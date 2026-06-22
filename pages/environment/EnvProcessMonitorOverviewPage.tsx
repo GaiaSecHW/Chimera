@@ -61,7 +61,7 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
   }, [page, totalPages]);
 
   return (
-    <div className="p-10 space-y-6">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4">
       <PageHeader
         title="节点进程监控 - 节点总览"
         description="展示当前项目下支持 PROCESS_MONITOR 的节点服务"
@@ -94,7 +94,7 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
                   const value = Math.max(1, Math.min(1000, Number(event.target.value) || 100));
                   setPerPage(value);
                 }}
-                className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-xs"
+                className="form-select text-xs"
               >
                 {[50, 100, 200, 500, 1000].map((value) => (
                   <option key={value} value={value}>{value}</option>

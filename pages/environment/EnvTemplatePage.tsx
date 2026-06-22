@@ -1387,7 +1387,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                         value={agentSearch}
                         onChange={(e) => setAgentSearch(e.target.value)}
                         placeholder="快速筛选：hostname / IP / agent key / 原因"
-                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-theme-border text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                        className="form-input w-full pl-9"
                       />
                     </div>
                     <div className="flex rounded-xl border border-theme-border bg-theme-surface p-1">
@@ -1407,7 +1407,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     <select
                       value={agentPageSize}
                       onChange={(e) => setAgentPageSize(Number(e.target.value) || 10)}
-                      className="px-3 py-2.5 rounded-xl border border-theme-border bg-theme-surface text-xs font-semibold text-theme-text-secondary"
+                      className="form-select text-xs"
                     >
                       <option value={10}>10/页</option>
                       <option value={20}>20/页</option>
@@ -1579,7 +1579,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           });
                           patchDeployLlmBinding({ env_overrides: next });
                         }}
-                        className="px-3 py-2 rounded-lg border border-theme-border text-xs font-mono"
+                        className="form-input text-xs font-mono"
                         placeholder="ENV_KEY"
                       />
                       <input
@@ -1589,7 +1589,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           next[key] = e.target.value;
                           patchDeployLlmBinding({ env_overrides: next });
                         }}
-                        className="px-3 py-2 rounded-lg border border-theme-border text-xs font-mono"
+                        className="form-input text-xs font-mono"
                         placeholder="value"
                       />
                       <button
@@ -1656,7 +1656,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             next[index] = { ...next[index], name: e.target.value };
                             patchDeployLlmBinding({ file_overrides: next });
                           }}
-                          className="px-3 py-2 rounded-lg border border-theme-border bg-theme-bg-app text-xs"
+                          className="form-input text-xs"
                           placeholder="文件名称"
                         />
                         <input
@@ -1666,7 +1666,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             next[index] = { ...next[index], path: e.target.value };
                             patchDeployLlmBinding({ file_overrides: next });
                           }}
-                          className="px-3 py-2 rounded-lg border border-theme-border bg-theme-bg-app text-xs font-mono"
+                          className="form-input text-xs font-mono"
                           placeholder="/etc/service/config.toml"
                         />
                       </div>
@@ -1678,7 +1678,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             next[index] = { ...next[index], format: e.target.value };
                             patchDeployLlmBinding({ file_overrides: next });
                           }}
-                          className="px-3 py-2 rounded-lg border border-theme-border bg-theme-bg-app text-xs"
+                          className="form-input text-xs"
                           placeholder="format"
                         />
                         <label className="flex items-center gap-2 text-xs text-theme-text-secondary px-3 py-2 rounded-lg border border-theme-border bg-theme-bg-app">
@@ -1714,7 +1714,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           next[index] = { ...next[index], content: e.target.value };
                           patchDeployLlmBinding({ file_overrides: next });
                         }}
-                        className="w-full px-3 py-2 rounded-lg border border-theme-border bg-theme-bg-app text-xs font-mono"
+                        className="form-textarea w-full text-xs font-mono"
                         placeholder="文件内容"
                       />
                     </div>
@@ -2044,7 +2044,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     ];
     return (
       <>
-      <div className="p-10 space-y-8 animate-in slide-in-from-right duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
+      <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in slide-in-from-right duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
         {/* Detail Header with Top Right Actions */}
  <div className="flex flex-col md:flex-row justify-between items-start gap-6 bg-theme-elevated backdrop-blur-md p-8 rounded-xl border border-theme-border">
           <div className="flex items-center gap-8">
@@ -2307,7 +2307,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     onChange={(e) => setDetailWebPortPresets(prev => prev.map((p, i) => i === idx ? { ...p, name: e.target.value } : p))}
                     disabled={!canManageCurrentTemplate}
                     placeholder="名称"
-                    className="col-span-2 px-2 py-2 text-xs border border-theme-border rounded-lg"
+                    className="form-input col-span-2 text-xs"
                   />
                   <input
                     value={preset.port || 0}
@@ -2317,7 +2317,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     min={1}
                     max={65535}
                     placeholder="端口"
-                    className="col-span-2 px-2 py-2 text-xs border border-theme-border rounded-lg"
+                    className="form-input col-span-2 text-xs"
                   />
                   <select
                     value={preset.backend_protocol || preset.protocol || 'http'}
@@ -2337,14 +2337,14 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     onChange={(e) => setDetailWebPortPresets(prev => prev.map((p, i) => i === idx ? { ...p, path: e.target.value } : p))}
                     disabled={!canManageCurrentTemplate}
                     placeholder="Path"
-                    className="col-span-2 px-2 py-2 text-xs border border-theme-border rounded-lg"
+                    className="form-input col-span-2 text-xs"
                   />
                   <input
                     value={preset.description || ''}
                     onChange={(e) => setDetailWebPortPresets(prev => prev.map((p, i) => i === idx ? { ...p, description: e.target.value } : p))}
                     disabled={!canManageCurrentTemplate}
                     placeholder="说明"
-                    className="col-span-3 px-2 py-2 text-xs border border-theme-border rounded-lg"
+                    className="form-input col-span-3 text-xs"
                   />
                   {canManageCurrentTemplate && (
                     <button
@@ -2699,7 +2699,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
   return (
     <>
-    <div className="p-10 space-y-10 animate-in fade-in duration-300 pb-24 h-full overflow-y-auto custom-scrollbar">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-300 pb-24 h-full overflow-y-auto custom-scrollbar">
       <PageHeader
         title="环境模板管理"
         description="标准化、可复用的安全测试沙箱编排模版库"
@@ -2732,7 +2732,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       <div className="space-y-4">
         <div className="relative">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-theme-text-faint" size={20} />
- <input type="text" placeholder="检索模版名称、描述信息或文件类型..." className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+ <input type="text" placeholder="检索模版名称、描述信息或文件类型..." className="form-input w-full pl-16 pr-8" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-3">
@@ -2776,7 +2776,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
  className={`bg-theme-surface border-2 rounded-xl overflow-hidden cursor-pointer transition-all group hover:border-blue-500/20 ${selectedNames.has(String(t.id)) ? 'border-blue-600 ring-4 ring-blue-500/5' : 'border-theme-border'}`}
                 >
                   {/* Card Header */}
-                  <div className="p-6 border-b border-slate-50">
+                  <div className="p-6 border-b border-theme-border">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-4 flex-1 min-w-0">
                         <button
@@ -2933,7 +2933,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 </div>
 
                   {/* Card Footer */}
-                  <div className="px-6 py-4 bg-slate-100/50 border-t border-slate-50 flex items-center justify-between">
+                  <div className="px-6 py-4 bg-slate-100/50 border-t border-theme-border flex items-center justify-between">
                     <div className="flex items-center gap-4 text-xs text-theme-text-muted">
                       <div className="flex items-center gap-1.5">
                         <Database size={12} />
@@ -2992,7 +2992,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             uploadTab === 'editor' ? 'h-[90vh]' : 'max-h-[80vh]'
           }`}>
             {/* Modal Header */}
-            <div className="p-6 pb-4 border-b border-slate-50 bg-slate-100/30 shrink-0">
+            <div className="p-6 pb-4 border-b border-theme-border bg-slate-100/30 shrink-0">
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-blue-600/20">
@@ -3054,7 +3054,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     value={newTemplate.name}
                     onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
                     placeholder="输入模版唯一标识符（如：pentest-v2-standard）"
- className="w-full px-5 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="form-input w-full"
                   />
                 </div>
 
@@ -3068,7 +3068,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     onChange={(e) => setNewTemplate({ ...newTemplate, description: e.target.value })}
                     placeholder="简要说明模版用途、适用场景和安全基线标准..."
                     rows={2}
- className="w-full px-5 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium resize-none"
+ className="form-textarea w-full resize-none"
                   />
                 </div>
 
@@ -3081,7 +3081,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     value={stringifyTemplateTags(newTemplate.tags)}
                     onChange={(e) => setNewTemplate({ ...newTemplate, tags: normalizeTemplateTags(e.target.value) })}
                     placeholder="使用英文逗号分隔，例如：AI_AGENT_HELPER, INTERNAL"
- className="w-full px-5 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="form-input w-full"
                   />
                   <p className="text-[11px] text-theme-text-muted mt-2">模板 TAG 会用于分类、识别和自动化关联。</p>
                 </div>
@@ -3190,7 +3190,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             web_port_presets: prev.web_port_presets.map((p, i) => i === idx ? { ...p, name: e.target.value } : p)
                           }))}
                           placeholder="名称"
-                          className="col-span-2 px-2 py-2 text-xs border border-theme-border rounded-lg"
+                          className="form-input col-span-2 text-xs"
                         />
                         <input
                           value={preset.port || 0}
@@ -3202,7 +3202,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           min={1}
                           max={65535}
                           placeholder="端口"
-                          className="col-span-2 px-2 py-2 text-xs border border-theme-border rounded-lg"
+                          className="form-input col-span-2 text-xs"
                         />
                         <select
                           value={preset.backend_protocol || preset.protocol || 'http'}
@@ -3214,7 +3214,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                               backend_protocol: (e.target.value === 'https' ? 'https' : 'http') as 'http' | 'https'
                             } : p)
                           }))}
-                          className="col-span-2 px-2 py-2 text-xs border border-theme-border rounded-lg bg-theme-bg-app"
+className="form-select col-span-2 text-xs"
                         >
                           <option value="http">后端 HTTP</option>
                           <option value="https">后端 HTTPS</option>
@@ -3226,7 +3226,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             web_port_presets: prev.web_port_presets.map((p, i) => i === idx ? { ...p, path: e.target.value } : p)
                           }))}
                           placeholder="Path"
-                          className="col-span-2 px-2 py-2 text-xs border border-theme-border rounded-lg"
+                          className="form-input col-span-2 text-xs"
                         />
                         <input
                           value={preset.description || ''}
@@ -3235,7 +3235,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             web_port_presets: prev.web_port_presets.map((p, i) => i === idx ? { ...p, description: e.target.value } : p)
                           }))}
                           placeholder="说明"
-                          className="col-span-3 px-2 py-2 text-xs border border-theme-border rounded-lg"
+                          className="form-input col-span-3 text-xs"
                         />
                         <button
                           type="button"

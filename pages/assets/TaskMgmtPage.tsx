@@ -278,7 +278,7 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold outline-none"
+              className="form-select w-full text-xs"
             >
               <option value="all">全部状态</option>
               <option value="pending">Pending</option>
@@ -394,7 +394,7 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               <select
                 value={pageSize}
                 onChange={(e) => setPageSize(Number(e.target.value))}
-                className="rounded-md border border-theme-border bg-theme-surface px-2 py-1 text-xs font-semibold"
+                className="form-select text-xs"
               >
                 <option value={10}>10 / 页</option>
                 <option value={20}>20 / 页</option>

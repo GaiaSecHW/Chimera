@@ -134,7 +134,7 @@ const OcServerTable: React.FC<{ servers: AppScanOcServer[]; urlToJob: Record<str
         {servers.map((s, i) => {
           const boundJob = s.base_url ? urlToJob[s.base_url] : undefined;
           return (
-            <tr key={s.instance_id || i} className="border-b border-slate-50 hover:bg-slate-100/70">
+            <tr key={s.instance_id || i} className="border-b border-theme-border hover:bg-slate-100/70">
               <td className="px-3 py-2 font-mono text-xs text-theme-text-secondary">{(s.instance_id || '').slice(0, 8)}</td>
               <td className="px-3 py-2">
                 <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ocStatusTone(s.status)}`}>{s.status || '-'}</span>
@@ -363,7 +363,7 @@ export const AppScanMonitorPage: React.FC<Props> = ({ onBack }) => {
                   </thead>
                   <tbody>
                     {Object.entries(keys).map(([name, k]) => (
-                      <tr key={name} className="border-b border-slate-50">
+                      <tr key={name} className="border-b border-theme-border">
                         <td className="px-3 py-3 text-sm font-semibold text-theme-text-primary">{name}</td>
                         <td className="px-3 py-3 text-sm text-theme-text-secondary">{k.in_flight} / {k.concurrency}</td>
                       </tr>
@@ -495,7 +495,7 @@ export const AppScanMonitorPage: React.FC<Props> = ({ onBack }) => {
                       const total = (j.token_input || 0) + (j.token_cache_read || 0) + (j.token_output || 0);
                       const start = j.started_at || j.created_at;
                       return (
-                        <tr key={j.job_id} className="border-b border-slate-50">
+                        <tr key={j.job_id} className="border-b border-theme-border">
                           <td className="px-3 py-2.5 text-sm font-semibold text-theme-text-primary">{j.project_display_name || j.project_name || '--'}</td>
                           <td className="px-3 py-2.5 text-xs text-theme-text-muted">
                             {fmtTimeShort(start)} ~ {fmtTimeShort(j.completed_at)}

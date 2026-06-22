@@ -392,7 +392,7 @@ export const LlmProviderChatWorkspace: React.FC<LlmProviderChatWorkspaceProps> =
                     <input
                       value={customModels[provider.provider_key] || ''}
                       onChange={(event) => setCustomModels((current) => ({ ...current, [provider.provider_key]: event.target.value }))}
-                      className="mt-2 w-full rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3 text-sm text-theme-text-primary outline-none focus:border-blue-500"
+                      className="form-input mt-2 w-full"
                       placeholder="可直接覆盖上面的选择，例如 gpt-4.1-mini"
                     />
                   </div>
@@ -426,7 +426,7 @@ export const LlmProviderChatWorkspace: React.FC<LlmProviderChatWorkspaceProps> =
               onChange={(event) => setDraftMessage(event.target.value)}
               rows={4}
               placeholder="输入你想发给模型的内容"
-              className="mt-4 w-full rounded-[1.75rem] border border-theme-border bg-theme-surface px-4 py-4 text-sm text-theme-text-primary outline-none focus:border-blue-500"
+              className="form-textarea mt-4 w-full"
             />
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-xs text-theme-text-muted">

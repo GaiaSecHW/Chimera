@@ -44,7 +44,7 @@ export const ReportsPage: React.FC = () => {
   ];
 
   return (
-    <div className="p-10 space-y-10 animate-in fade-in duration-500 pb-24"
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500 pb-24"
       style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
       <PageHeader
         title="安全审计报告"

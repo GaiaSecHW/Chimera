@@ -3426,7 +3426,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     () => selectedVisibleStageItems.filter((item) => Boolean(item.downstream_task_id)),
     [selectedVisibleStageItems],
   );
-  const stageFilterSelectClassName = 'mt-2 w-full rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-[11px] font-bold normal-case tracking-normal text-theme-text-secondary outline-none focus:border-slate-400';
+  const stageFilterSelectClassName = 'form-select mt-2 w-full text-[11px] normal-case tracking-normal';
   const renderStageItemFilterSelect = (
     value: string,
     onChange: (value: string) => void,
@@ -3736,7 +3736,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <select
             value={moduleTableRiskFilter}
             onChange={(event) => setModuleTableRiskFilter(event.target.value as 'all' | '高' | '中' | '低')}
-            className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none"
+            className="form-select"
           >
             <option value="all">全部风险</option>
             <option value="高">高</option>
@@ -3746,7 +3746,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <select
             value={moduleTableSourceFilter}
             onChange={(event) => setModuleTableSourceFilter(event.target.value as 'all' | '系统分析' | '候选' | '已选')}
-            className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none"
+            className="form-select"
           >
             <option value="all">全部来源</option>
             <option value="系统分析">系统分析</option>
@@ -5359,7 +5359,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           const next = Number(event.target.value) || DEFAULT_STAGE_ITEMS_PER_PAGE;
                           setStageItemsPerPage(next);
                         }}
-                        className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-xs font-bold text-theme-text-primary outline-none"
+                        className="form-select text-xs"
                       >
                         {STAGE_ITEMS_PER_PAGE_OPTIONS.map((size) => (
                           <option key={size} value={size}>{size}</option>
@@ -5975,7 +5975,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       const next = Math.min(2000, Math.max(200, Number(event.target.value) || 200));
                       setTimelinePageSize(next);
                     }}
-                    className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-sm font-bold text-theme-text-secondary outline-none"
+                    className="form-select"
                   >
                     {[200, 500, 1000, 2000].map((size) => (
                       <option key={size} value={size}>{size}</option>

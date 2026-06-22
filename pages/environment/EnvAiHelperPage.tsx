@@ -118,15 +118,15 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
  <section className="rounded-xl border border-theme-border bg-theme-surface p-4">
           <div className="flex gap-2">
-            <input value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 rounded-xl border border-theme-border px-3 py-2 text-sm" placeholder="搜索节点、服务名、agent_key" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} className="form-input flex-1" placeholder="搜索节点、服务名、agent_key" />
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <select value={healthFilter} onChange={(e) => setHealthFilter(e.target.value)} className="rounded-xl border border-theme-border px-3 py-2 text-sm">
+            <select value={healthFilter} onChange={(e) => setHealthFilter(e.target.value)} className="form-select">
               <option value="">全部健康状态</option>
               <option value="healthy">healthy</option>
               <option value="unhealthy">unhealthy</option>
             </select>
-            <select value={nodeFilter} onChange={(e) => setNodeFilter(e.target.value)} className="rounded-xl border border-theme-border px-3 py-2 text-sm">
+            <select value={nodeFilter} onChange={(e) => setNodeFilter(e.target.value)} className="form-select">
               <option value="">全部节点</option>
               {nodeOptions.map((node) => <option key={node} value={node}>{node}</option>)}
             </select>

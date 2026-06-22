@@ -416,15 +416,15 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
                                   value={fileBinding.name}
                                   disabled={disabled}
                                   onChange={(event) => updateCustomFileBinding(index, fileIndex, { name: event.target.value })}
-                                  placeholder="provider-config.yaml"
-                                  className="rounded-xl border border-theme-border px-3 py-2 text-sm outline-none focus:border-sky-500"
+                                   placeholder="provider-config.yaml"
+                                   className="form-input"
                                 />
                                 <input
                                   value={fileBinding.path}
                                   disabled={disabled}
                                   onChange={(event) => updateCustomFileBinding(index, fileIndex, { path: event.target.value })}
-                                  placeholder="/etc/llm/provider-config.yaml"
-                                  className="rounded-xl border border-theme-border px-3 py-2 text-sm outline-none focus:border-sky-500"
+                                   placeholder="/etc/llm/provider-config.yaml"
+                                   className="form-input"
                                 />
                                 <select
                                   value={fileBinding.format}
@@ -452,7 +452,7 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
                                 disabled={disabled}
                                 onChange={(event) => updateCustomFileBinding(index, fileIndex, { content: event.target.value })}
                                 placeholder="填写注入到容器内的文件内容"
-                                className="mt-3 min-h-[140px] w-full rounded-xl border border-theme-border bg-theme-bg-app p-3 font-mono text-sm text-emerald-300 outline-none focus:border-sky-500"
+                                className="form-textarea w-full min-h-[140px] mt-3 font-mono text-emerald-300"
                                 spellCheck={false}
                               />
                             </div>
@@ -490,7 +490,7 @@ export const AppWorkflowLlmBindingsEditor: React.FC<AppWorkflowLlmBindingsEditor
                   setCustomJsonText(event.target.value);
                   if (customJsonError) setCustomJsonError('');
                 }}
-                className="min-h-[420px] w-full rounded-2xl border border-theme-border bg-theme-bg-app p-4 font-mono text-sm text-emerald-300 outline-none focus:border-sky-500"
+                className="form-textarea w-full min-h-[420px] font-mono text-emerald-300"
                 spellCheck={false}
               />
               {customJsonError && (

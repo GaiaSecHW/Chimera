@@ -11,7 +11,7 @@ export const SecurityAssessmentPage: React.FC = () => {
   ];
 
   return (
-    <div className="p-10 space-y-10 animate-in fade-in duration-500 pb-24">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500 pb-24">
       <PageHeader
         title="安全评估工作流"
         description="标准化、自动化的安全风险评估与合规审计引擎"

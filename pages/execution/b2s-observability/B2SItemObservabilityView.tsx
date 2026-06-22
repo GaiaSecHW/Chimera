@@ -209,7 +209,7 @@ export const B2SItemObservabilityView: React.FC<Props> = ({
                           <select
                             value={batchStatusFilter}
                             onChange={(event) => setBatchStatusFilter(event.target.value as BatchStatusFilter)}
-                            className="rounded-xl px-3 py-2 text-xs font-semibold outline-none transition-colors"
+                            className="form-select text-xs"
                             style={{
                               backgroundColor: LK.surface,
                               border: `1px solid ${LK.border}`,
@@ -230,7 +230,7 @@ export const B2SItemObservabilityView: React.FC<Props> = ({
                           <select
                             value={batchSortKey}
                             onChange={(event) => setBatchSortKey(event.target.value as BatchSortKey)}
-                            className="rounded-xl px-3 py-2 text-xs font-semibold outline-none transition-colors"
+                            className="form-select text-xs"
                             style={{
                               backgroundColor: LK.surface,
                               border: `1px solid ${LK.border}`,

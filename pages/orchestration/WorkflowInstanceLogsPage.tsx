@@ -71,7 +71,7 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
   }, [instanceId, selectedNodeId, page, pageSize]);
 
   return (
-    <div className="p-10 space-y-8 animate-in fade-in duration-500">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500">
       <PageHeader
         title="实例节点日志"
         description={instance ? `${instance.name} · ${instance.id}` : '加载实例信息中...'}
@@ -96,7 +96,7 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
               setSelectedNodeId(e.target.value);
               setPage(1);
             }}
- className="w-full pl-14 pr-5 py-4 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium appearance-none"
+ className="form-select w-full pl-14 appearance-none"
           >
             <option value="">全部节点日志</option>
             {availableNodes.map((node) => (
@@ -117,7 +117,7 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
             setPageSize(Number(e.target.value));
             setPage(1);
           }}
- className="bg-theme-bg-app border border-theme-border rounded-xl px-5 py-4 text-sm font-semibold text-theme-text-secondary outline-none focus:ring-4 ring-blue-500/5"
+ className="form-select"
         >
           {[10, 20, 50].map((size) => (
             <option key={size} value={size}>

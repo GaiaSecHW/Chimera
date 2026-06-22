@@ -806,7 +806,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
 
   return (
     <>
-    <div className="p-10 space-y-10 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
       {!projectId && (
         <div className="mb-6 p-4 bg-amber-500/15 border border-amber-500/20 text-amber-400 rounded-xl text-xs font-medium flex items-center gap-3">
           <AlertCircle size={16} /> 请先在顶部菜单选择一个项目
@@ -831,7 +831,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           <select
             value={syncScope}
             onChange={(e) => setSyncScope(e.target.value as 'project' | 'stale' | 'agent')}
-            className="px-3 py-2 border border-theme-border rounded-xl text-sm text-theme-text-secondary bg-theme-surface"
+            className="form-select"
           >
             <option value="stale">仅异常/过期Agent</option>
             <option value="project">当前项目全部在线Agent</option>
@@ -1027,7 +1027,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                   setAgentIngressPerPage(Math.max(1, Math.min(Number(event.target.value || 10), 1000)));
                   setAgentIngressPage(1);
                 }}
-                className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-xs"
+                className="form-select text-xs"
               >
                 {[10, 20, 50, 100, 200, 500, 1000].map((size) => (
                   <option key={size} value={size}>{size}</option>
@@ -1076,7 +1076,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 setAgentsPerPage(Math.max(1, Math.min(Number(event.target.value || 100), 1000)));
                 setAgentsPage(1);
               }}
-              className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-xs"
+              className="form-select text-xs"
             >
               {[50, 100, 200, 500, 1000].map((size) => (
                 <option key={size} value={size}>{size}</option>
@@ -1459,7 +1459,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       {isIntegrationModalOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
  <div className="bg-theme-bg-app w-full max-w-2xl rounded-[3.5rem] overflow-hidden animate-in zoom-in-95 flex flex-col">
-              <div className="p-10 pb-8 border-b border-slate-50 flex items-center justify-between">
+              <div className="p-10 pb-8 border-b border-theme-border flex items-center justify-between">
                 <div className="flex items-center gap-5">
  <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center text-white">
                      <Terminal size={28} />

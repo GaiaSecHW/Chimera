@@ -120,7 +120,7 @@ export const VulnVerifyConfigPage: React.FC<{ projectId: string; embedded?: bool
                 value={defaultModel}
                 onChange={(event) => setDefaultModel(event.target.value)}
                 disabled={loading || saving}
-                className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm text-slate-900 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className="form-select mt-3 w-full font-mono disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <option value="">继承模型配置中心全局默认模型</option>
                 {modelOptions.map((model) => (

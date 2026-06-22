@@ -242,7 +242,7 @@ export const ProductMgmtPage: React.FC = () => {
   );
 
   return (
-    <div className="space-y-8 p-10 pb-24">
+    <div className="space-y-4 px-5 py-5 md:px-6 2xl:px-8 pb-24">
       {feedbackNodes}
       <PageHeader
         title="产品管理"
@@ -354,27 +354,27 @@ export const ProductMgmtPage: React.FC = () => {
               value={productForm.name}
               onChange={(event) => setProductForm((prev) => ({ ...prev, name: event.target.value }))}
               placeholder="产品名称"
-              className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
+              className="form-input w-full"
             />
             <input
               required
               value={productForm.code}
               onChange={(event) => setProductForm((prev) => ({ ...prev, code: event.target.value }))}
               placeholder="产品编码"
-              className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
+              className="form-input w-full"
             />
             <input
               value={productForm.sort_order}
               onChange={(event) => setProductForm((prev) => ({ ...prev, sort_order: event.target.value }))}
               placeholder="排序"
-              className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
+              className="form-input w-full"
             />
             <textarea
               value={productForm.description}
               onChange={(event) => setProductForm((prev) => ({ ...prev, description: event.target.value }))}
               placeholder="产品说明"
               rows={3}
-              className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
+              className="form-textarea w-full"
             />
             <div className="flex items-center gap-3">
               <button
@@ -405,20 +405,20 @@ export const ProductMgmtPage: React.FC = () => {
                       value={versionForm.version}
                       onChange={(event) => setVersionForm((prev) => ({ ...prev, version: event.target.value }))}
                       placeholder="版本号，例如 1.0.0"
-                      className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
+                      className="form-input w-full"
                     />
                     <input
                       value={versionForm.name}
                       onChange={(event) => setVersionForm((prev) => ({ ...prev, name: event.target.value }))}
                       placeholder="版本名称"
-                      className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
+                      className="form-input w-full"
                     />
                     <textarea
                       value={versionForm.description}
                       onChange={(event) => setVersionForm((prev) => ({ ...prev, description: event.target.value }))}
                       placeholder="版本说明"
                       rows={3}
-                      className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold outline-none"
+                      className="form-textarea w-full"
                     />
                     <div className="flex items-center gap-3">
                       <button type="submit" disabled={saving} className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-medium text-white">

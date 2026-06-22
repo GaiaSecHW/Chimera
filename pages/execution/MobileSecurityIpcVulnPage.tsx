@@ -4252,7 +4252,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
               <select
                 value={taskStatusFilter}
                 onChange={(event) => setTaskStatusFilter(event.target.value)}
-                className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-bold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                className="form-select"
               >
                 <option value="all">全部状态</option>
                 {Object.entries(TASK_STATUS_LABELS).map(([value, label]) => (
@@ -4262,7 +4262,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
               <select
                 value={taskStageFilter}
                 onChange={(event) => setTaskStageFilter(event.target.value)}
-                className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-bold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                className="form-select"
               >
                 <option value="all">全部阶段</option>
                 {taskStageOptions.map((stageName) => (
@@ -4851,7 +4851,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         <select
                           value={selectedAttemptId}
                           onChange={(event) => setSelectedAttemptId(event.target.value)}
-                          className="mt-2 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2.5 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                          className="form-select mt-2 w-full"
                         >
                           {attempts.map((item) => (
                             <option key={item.attempt_id} value={item.attempt_id}>
@@ -5095,7 +5095,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     <select
                       value={workspaceId}
                       onChange={(event) => setWorkspaceId(event.target.value)}
-                      className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                      className="form-select w-full"
                     >
                       {workspaces.map((item) => (
                         <option key={item.workspace_id} value={item.workspace_id}>
@@ -5277,7 +5277,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       value={title}
                       onChange={(event) => setTitle(event.target.value)}
                       placeholder={selectedProjectItems.length === 1 ? buildDefaultTitle(selectedProjectItems[0].path, selectedProjectItems[0].displayName) : '留空则每个路径自动生成标题'}
-                      className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                      className="form-input w-full"
                     />
                     <div className="mt-2 text-xs font-medium text-theme-text-muted">单选时作为任务标题；多选时作为标题前缀并自动追加项目名。</div>
                   </label>
@@ -5288,7 +5288,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       value={modelName}
                       onChange={(event) => setModelName(event.target.value)}
                       placeholder="留空则使用 CLI / Provider 默认模型"
-                      className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                      className="form-input w-full"
                     />
                   </label>
                   <div className="text-xs font-medium text-theme-text-muted">{modelHintForExecutor(executorMode, providerFallbackModel || null)}</div>
@@ -5357,7 +5357,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                               setBuilderSourceMode('code');
                             }
                           }}
-                          className="w-full rounded-lg border border-sky-500/20 bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+className="form-input w-full"
                         >
                           <option value="inline_json">inline_json</option>
                           <option value="python_builder">python_builder</option>
@@ -5464,7 +5464,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                             value={templateName}
                             onChange={(event) => setTemplateName(event.target.value)}
                             placeholder="模板名称，例如 4-stage-ipc-audit"
-                            className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                            className="form-select"
                           />
                           <select
                             value={selectedTemplateId}
@@ -5477,7 +5477,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                                 setTemplateDescription(target.description || '');
                               }
                             }}
-                            className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                            className="form-select"
                           >
                             <option value="">选择已保存模板...</option>
                             {graphTemplates.map((item) => (
@@ -5578,7 +5578,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                                   </label>
                                   <label className="block">
                                     <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">Format</div>
-                                    <select value={item.format} onChange={(event) => handleUpdateReportOutput(item.key, 'format', event.target.value)} className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100">
+                                    <select value={item.format} onChange={(event) => handleUpdateReportOutput(item.key, 'format', event.target.value)} className="form-select w-full">
                                       <option value="markdown">Markdown</option>
                                       <option value="text">Text</option>
                                       <option value="json">JSON</option>
@@ -5637,7 +5637,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         value={selectedProviderKey}
                         onChange={(event) => setSelectedProviderKey(event.target.value)}
                         disabled={providerPanelLoading || providerOptions.length === 0}
-                        className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-theme-elevated disabled:text-theme-text-muted"
+                        className="form-select w-full disabled:cursor-not-allowed disabled:bg-theme-elevated disabled:text-theme-text-muted"
                       >
                         <option value="">{providerPanelLoading ? '正在加载 Provider...' : '选择 Provider...'}</option>
                         {providerOptions.map((provider) => (

@@ -919,7 +919,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               <select
                 value={statusFilter}
                 onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 text-xs text-theme-text-secondary"
+                className="form-select text-xs"
               >
                 <option value="">全部状态</option>
                 {Object.entries(STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -927,7 +927,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               <select
                 value={resultVerdictFilter}
                 onChange={(e) => { setResultVerdictFilter(e.target.value); setPage(1); }}
-                className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 text-xs text-theme-text-secondary"
+                className="form-select text-xs"
               >
                 <option value="">全部结果</option>
                 {Object.entries(RESULT_VERDICT_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -944,7 +944,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               <select
                 value={perPage}
                 onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-                className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 text-xs text-theme-text-secondary"
+                className="form-select text-xs"
               >
                 {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n}条/页</option>)}
               </select>
@@ -1125,11 +1125,11 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
 
               <label className="block text-sm font-semibold text-theme-text-secondary">
                 任务名称 <span className="text-rose-500">*</span>
-                <input className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 text-sm" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
+                <input className="form-input mt-1 w-full" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
               </label>
               <label className="block text-sm font-semibold text-theme-text-secondary">
                 描述
-                <textarea className="mt-1 min-h-20 w-full rounded-lg border border-theme-border px-3 py-2 text-sm" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="可选：说明本次验证范围或报告来源" />
+                <textarea className="form-textarea mt-1 min-h-20 w-full" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="可选：说明本次验证范围或报告来源" />
               </label>
               {[
                 ['reports_dir', '报告目录', '扫描报告所在目录'],
@@ -1141,7 +1141,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                 <label key={key} className="block text-sm font-semibold text-theme-text-secondary">
                   {label} {key !== 'model' && key !== 'binary_root' && key !== 'threat_path' ? <span className="text-rose-500">*</span> : null}
                   <input
-                    className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 font-mono text-xs"
+                    className="form-input mt-1 w-full font-mono text-xs"
                     value={(form as any)[key]}
                     onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))}
                     placeholder={help}
@@ -1151,7 +1151,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               ))}
               <label className="block text-sm font-semibold text-theme-text-secondary">
                 并发
-                <input type="number" min={1} max={16} className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 text-sm" value={form.concurrency} onChange={(e) => setForm((p) => ({ ...p, concurrency: Number(e.target.value || 1) }))} />
+                <input type="number" min={1} max={16} className="form-input mt-1 w-full" value={form.concurrency} onChange={(e) => setForm((p) => ({ ...p, concurrency: Number(e.target.value || 1) }))} />
               </label>
 
               <div className="flex justify-end gap-2 pt-2">

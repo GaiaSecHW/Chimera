@@ -761,7 +761,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
   };
 
   return (
-    <div className="p-8 space-y-8 animate-in fade-in duration-500">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500">
       <PageHeader
         title={<><Bot className="w-8 h-8 text-blue-400 inline" /> LLM 对接配置</>}
         description="在配置中心统一维护全局 LLM 渠道，让其他微服务可以按需拉取当前可用的模型配置。"
@@ -933,7 +933,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
                 onChange={(event) => setJsonDraft(event.target.value)}
                 rows={28}
                 spellCheck={false}
-                className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-5 py-4 font-mono text-sm leading-6 text-theme-text-primary outline-none focus:border-blue-500"
+                className="form-textarea w-full font-mono leading-6"
               />
             </div>
           ) : (
@@ -941,21 +941,21 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">渠道标识</label>
-              <input value={form.provider_key} onChange={(event) => setForm({ ...form, provider_key: event.target.value })} className="mt-2 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="openai-prod" />
+              <input value={form.provider_key} onChange={(event) => setForm({ ...form, provider_key: event.target.value })} className="form-input mt-2 w-full" placeholder="openai-prod" />
             </div>
             <div>
               <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">展示名称</label>
-              <input value={form.display_name} onChange={(event) => setForm({ ...form, display_name: event.target.value })} className="mt-2 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="OpenAI Production" />
+              <input value={form.display_name} onChange={(event) => setForm({ ...form, display_name: event.target.value })} className="form-input mt-2 w-full" placeholder="OpenAI Production" />
             </div>
             <div>
               <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">渠道类型</label>
-              <select value={form.provider_type} onChange={(event) => setForm({ ...form, provider_type: event.target.value })} className="mt-2 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500">
+              <select value={form.provider_type} onChange={(event) => setForm({ ...form, provider_type: event.target.value })} className="form-input mt-2 w-full">
                 {providerTypeOptions.map((item) => <option key={item} value={item}>{item}</option>)}
               </select>
             </div>
             <div>
               <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">模型</label>
-              <input value={form.model} onChange={(event) => setForm({ ...form, model: event.target.value })} className="mt-2 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="gpt-4.1-mini" />
+              <input value={form.model} onChange={(event) => setForm({ ...form, model: event.target.value })} className="form-input mt-2 w-full" placeholder="gpt-4.1-mini" />
             </div>
             <div>
               <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">模型上下文窗口大小（十进制）</label>
@@ -965,13 +965,13 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
                 required
                 value={form.model_context_window}
                 onChange={(event) => setForm({ ...form, model_context_window: Math.max(0, Math.trunc(Number(event.target.value || 0))) })}
-                className="mt-2 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500"
+                className="form-input mt-2 w-full"
                 placeholder="128000"
               />
             </div>
             <div className="md:col-span-2">
               <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">API Base</label>
-              <input value={form.api_base} onChange={(event) => setForm({ ...form, api_base: event.target.value })} className="mt-2 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="https://api.openai.com/v1" />
+              <input value={form.api_base} onChange={(event) => setForm({ ...form, api_base: event.target.value })} className="form-input mt-2 w-full" placeholder="https://api.openai.com/v1" />
             </div>
             <div className="md:col-span-2">
               <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">API Key</label>
@@ -980,7 +980,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
                   type={showSecret ? 'text' : 'password'}
                   value={form.api_key}
                   onChange={(event) => setForm({ ...form, api_key: event.target.value })}
-                  className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500"
+                  className="form-input w-full"
                   placeholder="sk-..."
                 />
                 <button type="button" onClick={() => setShowSecret((current) => !current)} className="rounded-lg border border-theme-border px-4 text-theme-text-muted">
@@ -990,27 +990,27 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
             </div>
             <div>
               <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">Organization</label>
-              <input value={form.organization || ''} onChange={(event) => setForm({ ...form, organization: event.target.value })} className="mt-2 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="可选" />
+              <input value={form.organization || ''} onChange={(event) => setForm({ ...form, organization: event.target.value })} className="form-input mt-2 w-full" placeholder="可选" />
             </div>
             <div>
               <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">API Version</label>
-              <input value={form.api_version || ''} onChange={(event) => setForm({ ...form, api_version: event.target.value })} className="mt-2 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="可选" />
+              <input value={form.api_version || ''} onChange={(event) => setForm({ ...form, api_version: event.target.value })} className="form-input mt-2 w-full" placeholder="可选" />
             </div>
             <div>
               <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">超时秒数</label>
-              <input type="number" value={form.timeout_seconds} onChange={(event) => setForm({ ...form, timeout_seconds: Number(event.target.value) || 60 })} className="mt-2 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" />
+              <input type="number" value={form.timeout_seconds} onChange={(event) => setForm({ ...form, timeout_seconds: Number(event.target.value) || 60 })} className="form-input mt-2 w-full" />
             </div>
             <div>
               <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">Max Tokens</label>
-              <input type="number" value={form.max_tokens ?? ''} onChange={(event) => setForm({ ...form, max_tokens: event.target.value ? Number(event.target.value) : null })} className="mt-2 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="可选" />
+              <input type="number" value={form.max_tokens ?? ''} onChange={(event) => setForm({ ...form, max_tokens: event.target.value ? Number(event.target.value) : null })} className="form-input mt-2 w-full" placeholder="可选" />
             </div>
             <div>
               <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">Temperature</label>
-              <input type="number" step="0.1" min="0" max="2" value={form.temperature ?? ''} onChange={(event) => setForm({ ...form, temperature: event.target.value ? Number(event.target.value) : null })} className="mt-2 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="可选" />
+              <input type="number" step="0.1" min="0" max="2" value={form.temperature ?? ''} onChange={(event) => setForm({ ...form, temperature: event.target.value ? Number(event.target.value) : null })} className="form-input mt-2 w-full" placeholder="可选" />
             </div>
             <div className="md:col-span-2">
               <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">描述</label>
-              <textarea value={form.description || ''} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={3} className="mt-2 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="说明该渠道的用途、区域或限流策略" />
+              <textarea value={form.description || ''} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={3} className="form-textarea mt-2 w-full" placeholder="说明该渠道的用途、区域或限流策略" />
             </div>
           </div>
 
@@ -1074,7 +1074,7 @@ API_TIMEOUT_MS=600000`}
                   rows={8}
                   spellCheck={false}
                   placeholder="在这里粘贴多行 KEY=value 文本"
-                  className="mt-4 w-full rounded-xl border border-theme-border bg-theme-bg-app px-4 py-4 font-mono text-sm leading-6 outline-none focus:border-blue-500"
+                  className="form-textarea mt-4 w-full font-mono leading-6"
                 />
                 <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
                   <button
@@ -1114,12 +1114,12 @@ API_TIMEOUT_MS=600000`}
                       ));
                       setForm({ ...form, env_bindings: Object.fromEntries(nextEntries) });
                     }}
-                    className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none"
+                    className="form-input"
                   />
                   <input
                     value={String(value ?? '')}
                     onChange={(event) => setForm({ ...form, env_bindings: { ...form.env_bindings, [key]: event.target.value } })}
-                    className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500"
+                    className="form-input"
                   />
                   <button
                     type="button"
@@ -1214,7 +1214,7 @@ API_TIMEOUT_MS=600000`}
                             <input
                               value={activeFile.name}
                               onChange={(event) => updateFileBinding(activeFileIndex, { name: event.target.value })}
-                              className={`mt-2 w-full rounded-lg border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500 ${fileValidationErrors[activeFileIndex]?.name ? 'border-red-300 bg-red-500/15' : 'border-theme-border'}`}
+                              className={`form-input mt-2 w-full ${fileValidationErrors[activeFileIndex]?.name ? 'border-red-300 bg-red-500/15' : ''}`}
                               placeholder="provider-config.yaml"
                             />
                             {fileValidationErrors[activeFileIndex]?.name && (
@@ -1226,7 +1226,7 @@ API_TIMEOUT_MS=600000`}
                             <input
                               value={activeFile.path}
                               onChange={(event) => updateFileBinding(activeFileIndex, { path: event.target.value })}
-                              className={`mt-2 w-full rounded-lg border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500 ${fileValidationErrors[activeFileIndex]?.path ? 'border-red-300 bg-red-500/15' : 'border-theme-border'}`}
+                              className={`form-input mt-2 w-full ${fileValidationErrors[activeFileIndex]?.path ? 'border-red-300 bg-red-500/15' : ''}`}
                               placeholder="/etc/llm/provider-config.yaml"
                             />
                             {fileValidationErrors[activeFileIndex]?.path && (
@@ -1238,7 +1238,7 @@ API_TIMEOUT_MS=600000`}
                             <select
                               value={activeFile.format}
                               onChange={(event) => updateFileBinding(activeFileIndex, { format: event.target.value as LlmProviderFileBinding['format'] })}
-                              className="mt-2 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500"
+                              className="form-input mt-2 w-full"
                             >
                               {fileFormatOptions.map((item) => <option key={item} value={item}>{item}</option>)}
                             </select>

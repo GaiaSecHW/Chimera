@@ -2423,7 +2423,7 @@ function TaskDetailPanel({
                           <select
                             value={roundStatusFilter}
                             onChange={(event) => setRoundStatusFilter(event.target.value)}
-                            className="rounded-xl border border-theme-border px-3 py-2 text-xs outline-none focus:border-blue-300"
+                            className="form-select text-xs"
                           >
                             <option value="">全部状态</option>
                             {roundStatuses.map((status) => <option key={status} value={status}>{roundStatusLabel(status)}</option>)}
@@ -2431,7 +2431,7 @@ function TaskDetailPanel({
                           <select
                             value={roundReviewFilter}
                             onChange={(event) => setRoundReviewFilter(event.target.value)}
-                            className="rounded-xl border border-theme-border px-3 py-2 text-xs outline-none focus:border-blue-300"
+                            className="form-select text-xs"
                           >
                             <option value="">全部评审</option>
                             <option value="passed">评审通过</option>
@@ -2440,7 +2440,7 @@ function TaskDetailPanel({
                           <select
                             value={roundFallbackFilter}
                             onChange={(event) => setRoundFallbackFilter(event.target.value)}
-                            className="rounded-xl border border-theme-border px-3 py-2 text-xs outline-none focus:border-blue-300"
+                            className="form-select text-xs"
                           >
                             <option value="">全部策略</option>
                             <option value="yes">回退 LLM</option>
@@ -4177,7 +4177,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                 setFilterStatus(nextStatus);
                 fetchTasks(true, { statusOverride: nextStatus });
               }}
-              className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 text-xs text-theme-text-secondary outline-none"
+              className="form-select text-xs"
             >
               {STATUS_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
@@ -4191,7 +4191,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                 setFilterOriginMode(nextOriginMode);
                 fetchTasks(true, { originModeOverride: nextOriginMode });
               }}
-              className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 text-xs text-theme-text-secondary outline-none"
+              className="form-select text-xs"
             >
               {ORIGIN_MODE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
@@ -4326,7 +4326,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                     setPageSize(nextSize);
                     fetchTasks(true, { pageSizeOverride: nextSize });
                   }}
-                  className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 text-xs text-theme-text-secondary outline-none"
+                  className="form-select text-xs"
                 >
                   {PAGE_SIZE_OPTIONS.map((size) => (
                     <option key={size} value={size}>{size}</option>

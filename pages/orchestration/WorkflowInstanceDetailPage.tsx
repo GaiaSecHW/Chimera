@@ -2056,7 +2056,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                     <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">显示名称</label>
                     <input
                       type="text"
-                      className="w-full px-4 py-3 bg-theme-bg-app border border-theme-border rounded-xl outline-none focus:border-blue-500 transition-all font-semibold text-sm"
+                      className="form-input w-full"
                       value={newNodeConfig.name}
                       onChange={e => setNewNodeConfig({...newNodeConfig, name: e.target.value})}
                       placeholder="e.g. 前端服务"
@@ -2140,7 +2140,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                               ) : (
                                 <>
                                   <select
-                                    className="w-full mt-1 bg-transparent outline-none text-sm font-semibold text-theme-text-primary"
+className="form-select w-full mt-1 bg-transparent"
                                     value={vm.pvc_name}
                                     onChange={e => {
                                       const n = [...newNodeConfig.volume_mounts];
@@ -2157,7 +2157,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                   </select>
                                   <input
                                     type="text"
-                                    className="w-full mt-2 bg-theme-bg-app px-3 py-2 rounded-lg border border-theme-border outline-none text-xs font-mono text-theme-text-secondary focus:border-blue-500 transition-all"
+                                     className="form-input w-full mt-2 text-xs font-mono"
                                     value={vm.sub_path || ''}
                                     onChange={e => {
                                       const n = [...newNodeConfig.volume_mounts];
@@ -2202,10 +2202,10 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                               <label className="text-[9px] font-medium text-theme-text-muted uppercase">服务名称</label>
-                              <input
-                                type="text"
-                                className="w-full px-3 py-2 bg-theme-bg-app border border-indigo-500/20 rounded-lg outline-none focus:border-indigo-500 text-sm font-semibold text-theme-text-primary"
-                                value={newNodeConfig.service_name}
+                               <input
+                                 type="text"
+                                 className="form-input w-full"
+                                 value={newNodeConfig.service_name}
                                 onChange={e => setNewNodeConfig({...newNodeConfig, service_name: e.target.value})}
                                 placeholder="my-service"
                               />
@@ -2213,7 +2213,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                             <div className="space-y-1.5">
                               <label className="text-[9px] font-medium text-theme-text-muted uppercase">服务类型</label>
                               <select
-                                className="w-full px-3 py-2 bg-theme-bg-app border border-indigo-500/20 rounded-lg outline-none focus:border-indigo-500 text-sm font-semibold text-theme-text-primary"
+                                className="form-select w-full"
                                 value={newNodeConfig.service_type}
                                 onChange={e => setNewNodeConfig({...newNodeConfig, service_type: e.target.value as any})}
                               >
@@ -2243,7 +2243,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                 <div key={i} className="flex items-center gap-2 p-2 bg-theme-bg-app rounded-lg border border-indigo-500/20">
                                   <input
                                     type="text"
-                                    className="flex-1 px-2 py-1 bg-theme-bg-app border border-theme-border rounded text-xs font-mono"
+                                    className="form-input flex-1 text-xs font-mono"
                                     value={sp.name}
                                     onChange={e => {
                                       const n = [...newNodeConfig.service_ports];
@@ -2254,7 +2254,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                   />
                                   <input
                                     type="number"
-                                    className="w-20 px-2 py-1 bg-theme-bg-app border border-theme-border rounded text-xs font-mono"
+                                    className="form-input w-20 text-xs font-mono"
                                     value={sp.port}
                                     onChange={e => {
                                       const n = [...newNodeConfig.service_ports];
@@ -2266,7 +2266,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                   <span className="text-theme-text-muted">→</span>
                                   <input
                                     type="number"
-                                    className="w-20 px-2 py-1 bg-theme-bg-app border border-theme-border rounded text-xs font-mono"
+                                    className="form-input w-20 text-xs font-mono"
                                     value={sp.target_port}
                                     onChange={e => {
                                       const n = [...newNodeConfig.service_ports];
@@ -2276,7 +2276,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                     placeholder="目标端口"
                                   />
                                   <select
-                                    className="w-20 px-2 py-1 bg-theme-bg-app border border-theme-border rounded text-xs font-mono"
+                                    className="form-select w-20 text-xs font-mono"
                                     value={sp.protocol}
                                     onChange={e => {
                                       const n = [...newNodeConfig.service_ports];
@@ -2337,7 +2337,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                     <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">超时时间 (秒)</label>
                     <input
                       type="number"
-                      className="w-full px-4 py-3 bg-theme-bg-app border border-theme-border rounded-xl outline-none focus:border-blue-500 transition-all font-semibold text-sm"
+                      className="form-input w-full"
                       value={newNodeConfig.timeout_seconds || ''}
                       onChange={e => setNewNodeConfig({...newNodeConfig, timeout_seconds: e.target.value ? parseInt(e.target.value) : null})}
                       placeholder="可选，单位：秒"

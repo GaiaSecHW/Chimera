@@ -215,7 +215,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                 <input
                   disabled={!isEditMode}
                   required placeholder="e.g. nmap-scanner"
-                  className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all disabled:opacity-70 disabled:bg-theme-elevated"
+                  className="form-input w-full disabled:opacity-70 disabled:bg-theme-elevated"
                   value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
                 />
               </div>
@@ -238,7 +238,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                 <input
                   disabled={!isEditMode}
                   type="number" min="0" max="10"
-                  className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all disabled:opacity-70 disabled:bg-theme-elevated"
+                  className="form-input w-full disabled:opacity-70 disabled:bg-theme-elevated"
                   value={formData.backoff_limit} onChange={e => setFormData({...formData, backoff_limit: parseInt(e.target.value)})}
                 />
               </div>
@@ -247,7 +247,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                 <input
                   disabled={!isEditMode}
                   type="number" min="0"
-                  className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all disabled:opacity-70 disabled:bg-theme-elevated"
+                  className="form-input w-full disabled:opacity-70 disabled:bg-theme-elevated"
                   value={formData.ttl_seconds_after_finished} onChange={e => setFormData({...formData, ttl_seconds_after_finished: parseInt(e.target.value)})}
                 />
               </div>
@@ -258,7 +258,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
               <textarea
                 disabled={!isEditMode}
                 placeholder="描述该任务组件的功能、输入输出要求..." rows={2}
-                className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all resize-none disabled:opacity-70 disabled:bg-theme-elevated"
+                className="form-textarea w-full resize-none disabled:opacity-70 disabled:bg-theme-elevated"
                 value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}
               />
             </div>
@@ -273,7 +273,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                   <div className="flex flex-col md:flex-row gap-3">
                     <input
                       placeholder="输入标签名后回车，例如 port-scan / weak-password"
-                      className="flex-1 px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all"
+                      className="form-input flex-1"
                       value={tagInputValue}
                       onChange={(e) => setTagInputValue(e.target.value)}
                       onKeyDown={(e) => {
@@ -368,7 +368,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <input
                         disabled={!isEditMode}
                         required placeholder="e.g. main-task"
-                        className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-medium disabled:opacity-70 disabled:bg-theme-elevated"
+                        className="form-input w-full text-xs disabled:opacity-70 disabled:bg-theme-elevated"
                         value={container.name}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -382,7 +382,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <input
                         disabled={!isEditMode}
                         required placeholder="e.g. nmap:latest"
-                        className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono font-medium text-blue-400 disabled:opacity-70 disabled:bg-theme-elevated"
+                        className="form-input w-full text-xs font-mono text-blue-400 disabled:opacity-70 disabled:bg-theme-elevated"
                         value={container.image}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -399,7 +399,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <input
                         disabled={!isEditMode}
                         placeholder="e.g. /bin/sh, -c (逗号分隔)"
-                        className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
+                        className="form-input w-full text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                         value={container.command}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -413,7 +413,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <input
                         disabled={!isEditMode}
                         placeholder="e.g. -p, 80 (逗号分隔)"
-                        className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
+                        className="form-input w-full text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                         value={container.args}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -429,8 +429,8 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">拉取策略 (Image Pull Policy)</label>
                       <select
                         disabled={!isEditMode}
-                        className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-medium disabled:opacity-70 disabled:bg-theme-elevated"
-                        value={container.image_pull_policy}
+className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-medium disabled:opacity-70 disabled:bg-theme-elevated"
+                         value={container.image_pull_policy}
                         onChange={e => {
                           const n = [...formData.containers];
                           n[idx].image_pull_policy = e.target.value;
@@ -483,7 +483,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                           <input
                             disabled={!isEditMode}
                             placeholder="Name (e.g. ENV_KEY)"
-                            className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
+                            className="form-input flex-1 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                             value={env.name}
                             onChange={e => {
                               const n = [...formData.containers];
@@ -494,7 +494,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                           <input
                             disabled={!isEditMode}
                             placeholder="Value (e.g. ENV_VALUE)"
-                            className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
+                            className="form-input flex-1 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                             value={env.value}
                             onChange={e => {
                               const n = [...formData.containers];
@@ -543,7 +543,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                           <input
                             disabled={!isEditMode}
                             placeholder="PVC Name"
-                            className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
+                            className="form-input flex-1 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                             value={vol.pvc_name}
                             onChange={e => {
                               const n = [...formData.containers];
@@ -554,7 +554,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                           <input
                             disabled={!isEditMode}
                             placeholder="Mount Path"
-                            className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
+                            className="form-input flex-1 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                             value={vol.mount_path}
                             onChange={e => {
                               const n = [...formData.containers];
@@ -565,7 +565,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                           <input
                             disabled={!isEditMode}
                             placeholder="Sub Path"
-                            className="w-24 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
+                            className="form-input w-24 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                             value={vol.sub_path}
                             onChange={e => {
                               const n = [...formData.containers];
@@ -628,7 +628,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             <input
                               disabled={!isEditMode}
                               placeholder="Name"
-                              className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
+                              className="form-input flex-1 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                               value={env.name}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -639,7 +639,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             <input
                               disabled={!isEditMode}
                               placeholder="Default Value"
-                              className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
+                              className="form-input flex-1 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                               value={env.default_value}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -687,7 +687,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             <input
                               disabled={!isEditMode}
                               placeholder="Mount Path"
-                              className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
+                              className="form-input flex-1 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                               value={vol.mount_path}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -698,7 +698,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             <input
                               disabled={!isEditMode}
                               placeholder="Sub Path"
-                              className="w-24 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
+                              className="form-input w-24 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                               value={vol.sub_path}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -745,7 +745,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <input
                         disabled={!isEditMode}
                         placeholder="Req CPU (100m)"
-                        className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
+                        className="form-input w-full text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                         value={container.resources?.requests?.cpu || ''}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -758,7 +758,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <input
                         disabled={!isEditMode}
                         placeholder="Req Mem (128Mi)"
-                        className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
+                        className="form-input w-full text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                         value={container.resources?.requests?.memory || ''}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -771,7 +771,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <input
                         disabled={!isEditMode}
                         placeholder="Lim CPU (500m)"
-                        className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
+                        className="form-input w-full text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                         value={container.resources?.limits?.cpu || ''}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -784,7 +784,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <input
                         disabled={!isEditMode}
                         placeholder="Lim Mem (512Mi)"
-                        className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
+                        className="form-input w-full text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                         value={container.resources?.limits?.memory || ''}
                         onChange={e => {
                           const n = [...formData.containers];

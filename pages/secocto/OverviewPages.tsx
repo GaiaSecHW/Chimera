@@ -170,7 +170,7 @@ export const SecOctoOverviewPage: React.FC<OverviewProps> = ({ onNavigateTask })
           <select
             value={statusFilter}
             onChange={(e) => handleFilterChange({ status: e.target.value })}
-            className="px-2 py-1 rounded-lg text-xs border border-theme-border bg-theme-surface text-theme-text-secondary"
+            className="form-select text-xs"
           >
             {SECOCTO_STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -179,7 +179,7 @@ export const SecOctoOverviewPage: React.FC<OverviewProps> = ({ onNavigateTask })
           <select
             value={agentTypeFilter}
             onChange={(e) => handleFilterChange({ agent: e.target.value })}
-            className="px-2 py-1 rounded-lg text-xs border border-theme-border bg-theme-surface text-theme-text-secondary"
+            className="form-select text-xs"
           >
             {SECOCTO_AGENT_TYPES.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>

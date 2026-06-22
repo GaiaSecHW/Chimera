@@ -455,7 +455,7 @@ export const MachineTokenPage: React.FC = () => {
                     <input
                       required
                       placeholder="e.g. scanner-node-beijing-01"
-                      className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-5 py-4 text-sm font-semibold text-theme-text-primary outline-none transition focus:border-blue-300 focus:bg-theme-bg-app focus:ring-4 focus:ring-blue-500/10"
+                      className="form-input w-full"
                       value={formData.machine_code}
                       onChange={(event) => setFormData({ ...formData, machine_code: event.target.value })}
                     />
@@ -464,7 +464,7 @@ export const MachineTokenPage: React.FC = () => {
                     <label className="text-[10px] font-semibold uppercase tracking-[0.22em] text-theme-text-muted">用途描述</label>
                     <input
                       placeholder="例如：分布式漏洞扫描引擎专用接入凭证"
-                      className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-5 py-4 text-sm font-semibold text-theme-text-primary outline-none transition focus:border-blue-300 focus:bg-theme-bg-app focus:ring-4 focus:ring-blue-500/10"
+                      className="form-input w-full"
                       value={formData.description}
                       onChange={(event) => setFormData({ ...formData, description: event.target.value })}
                     />
@@ -473,7 +473,7 @@ export const MachineTokenPage: React.FC = () => {
                     <label className="text-[10px] font-semibold uppercase tracking-[0.22em] text-theme-text-muted">有效截止日期 (可选)</label>
                     <input
                       type="date"
-                      className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-5 py-4 text-sm font-semibold text-theme-text-primary outline-none transition focus:border-blue-300 focus:bg-theme-bg-app focus:ring-4 focus:ring-blue-500/10"
+                      className="form-input w-full"
                       value={formData.expires_at}
                       onChange={(event) => setFormData({ ...formData, expires_at: event.target.value })}
                     />

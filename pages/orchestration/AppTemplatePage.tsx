@@ -254,7 +254,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
   };
 
   return (
-    <div className="p-10 space-y-10 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
       {/* Header */}
       <PageHeader
         title="应用模板"
@@ -287,7 +287,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
         <input
           type="text"
           placeholder="搜索模板名称或 ID..."
- className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="form-input w-full pl-16 pr-8"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -531,7 +531,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
       {isModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
  <div className="bg-theme-bg-app w-full max-w-4xl rounded-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]">
-            <div className="p-8 border-b border-slate-50 bg-slate-100/30 flex items-center justify-between shrink-0">
+            <div className="p-8 border-b border-theme-border bg-slate-100/30 flex items-center justify-between shrink-0">
                <div className="flex items-center gap-4">
  <div className="w-14 h-14 bg-theme-surface text-white rounded-xl flex items-center justify-center">
                    <Plus size={28} />
@@ -552,7 +552,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                     <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">模板名称 *</label>
                     <input
                       required placeholder="e.g. security-waf-proxy"
-                      className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all"
+                      className="form-input w-full"
                       value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
                     />
                   </div>
@@ -596,7 +596,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                       <div key={pIdx} className="flex gap-2 items-center">
                         <input
                           placeholder="Name"
-                          className="w-24 px-4 py-2 bg-theme-bg-app rounded-xl border-none outline-none text-xs font-medium"
+                          className="form-input w-24 text-xs"
                           value={p.name} onChange={e => {
                             const n = [...formData.service_ports];
                             n[pIdx].name = e.target.value;
@@ -605,7 +605,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                         />
                         <input
                           type="number" placeholder="Port"
-                          className="w-20 px-4 py-2 bg-theme-bg-app rounded-xl border-none outline-none text-xs font-mono"
+                          className="form-input w-20 text-xs font-mono"
                           value={p.port} onChange={e => {
                             const n = [...formData.service_ports];
                             n[pIdx].port = parseInt(e.target.value);
@@ -614,7 +614,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                         />
                         <input
                           type="number" placeholder="Target"
-                          className="w-20 px-4 py-2 bg-theme-bg-app rounded-xl border-none outline-none text-xs font-mono"
+                          className="form-input w-20 text-xs font-mono"
                           value={p.target_port} onChange={e => {
                             const n = [...formData.service_ports];
                             n[pIdx].target_port = parseInt(e.target.value);
@@ -622,7 +622,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                           }}
                         />
                         <select
-                          className="w-24 px-4 py-2 bg-theme-bg-app rounded-xl border-none outline-none text-xs font-medium"
+                          className="form-input w-24 text-xs"
                           value={p.protocol} onChange={e => {
                             const n = [...formData.service_ports];
                             n[pIdx].protocol = e.target.value;
@@ -651,7 +651,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                     <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">Service 名称</label>
                     <input
                       placeholder="自动生成"
-                      className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all"
+                      className="form-input w-full"
                       value={formData.service_name} onChange={e => setFormData({...formData, service_name: e.target.value})}
                     />
                   </div>
@@ -683,7 +683,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                   <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">组件描述</label>
                   <textarea
                     placeholder="描述该应用组件的功能、挂载需求及预期的服务类型..." rows={2}
-                    className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all resize-none"
+                    className="form-textarea w-full resize-none"
                     value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}
                   />
                </div>
@@ -697,7 +697,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                     <input
                       type="text"
                       placeholder="输入标签名后回车，例如 web-scan / ai-agent"
-                      className="flex-1 px-4 py-3 bg-theme-bg-app rounded-xl border border-theme-border outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all"
+                      className="form-input flex-1"
                       value={tagInputValue}
                       onChange={(e) => setTagInputValue(e.target.value)}
                       onKeyDown={(e) => {
@@ -775,7 +775,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">容器名称</label>
                             <input
                               required placeholder="e.g. main-service"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-medium"
+                              className="form-input w-full text-xs"
                               value={container.name}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -788,7 +788,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">镜像 (Image) *</label>
                             <input
                               required placeholder="e.g. nginx:latest"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono font-medium text-blue-400"
+                              className="form-input w-full text-xs font-mono text-blue-400"
                               value={container.image}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -804,7 +804,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">启动命令 (Command)</label>
                             <input
                               placeholder="e.g. /bin/sh, -c (逗号分隔)"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                              className="form-input w-full text-xs font-mono"
                               value={container.command}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -817,7 +817,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">命令参数 (Args)</label>
                             <input
                               placeholder="e.g. start, --prod (逗号分隔)"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                              className="form-input w-full text-xs font-mono"
                               value={container.args}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -832,8 +832,8 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                           <div className="space-y-1.5">
                             <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">拉取策略 (Image Pull Policy)</label>
                             <select
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-medium"
-                              value={container.image_pull_policy}
+className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-medium"
+                               value={container.image_pull_policy}
                               onChange={e => {
                                 const n = [...formData.containers];
                                 n[idx].image_pull_policy = e.target.value;
@@ -882,7 +882,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                               <div key={envIdx} className="flex gap-2 items-center">
                                 <input
                                   placeholder="Name (e.g. ENV_KEY)"
-                                  className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                                  className="form-input flex-1 text-xs font-mono"
                                   value={env.name}
                                   onChange={e => {
                                     const n = [...formData.containers];
@@ -892,7 +892,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                 />
                                 <input
                                   placeholder="Value (e.g. ENV_VALUE)"
-                                  className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                                  className="form-input flex-1 text-xs font-mono"
                                   value={env.value}
                                   onChange={e => {
                                     const n = [...formData.containers];
@@ -936,7 +936,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                               <div key={volIdx} className="flex gap-2 items-center">
                                 <input
                                   placeholder="PVC Name"
-                                  className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                                  className="form-input flex-1 text-xs font-mono"
                                   value={vol.pvc_name}
                                   onChange={e => {
                                     const n = [...formData.containers];
@@ -946,7 +946,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                 />
                                 <input
                                   placeholder="Mount Path"
-                                  className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                                  className="form-input flex-1 text-xs font-mono"
                                   value={vol.mount_path}
                                   onChange={e => {
                                     const n = [...formData.containers];
@@ -956,7 +956,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                 />
                                 <input
                                   placeholder="Sub Path"
-                                  className="w-24 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                                  className="form-input w-24 text-xs font-mono"
                                   value={vol.sub_path}
                                   onChange={e => {
                                     const n = [...formData.containers];
@@ -1013,7 +1013,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                 <div key={envIdx} className="flex gap-2 items-center">
                                   <input
                                     placeholder="Name"
-                                    className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                                    className="form-input flex-1 text-xs font-mono"
                                     value={env.name}
                                     onChange={e => {
                                       const n = [...formData.containers];
@@ -1023,7 +1023,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                   />
                                   <input
                                     placeholder="Default Value"
-                                    className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                                    className="form-input flex-1 text-xs font-mono"
                                     value={env.default_value}
                                     onChange={e => {
                                       const n = [...formData.containers];
@@ -1066,7 +1066,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                 <div key={volIdx} className="flex gap-2 items-center">
                                   <input
                                     placeholder="Mount Path"
-                                    className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                                    className="form-input flex-1 text-xs font-mono"
                                     value={vol.mount_path}
                                     onChange={e => {
                                       const n = [...formData.containers];
@@ -1109,7 +1109,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                             <input
                               placeholder="Requests CPU (e.g. 100m)"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                              className="form-input w-full text-xs font-mono"
                               value={container.resources.requests.cpu}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -1119,7 +1119,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             />
                             <input
                               placeholder="Requests Memory (e.g. 128Mi)"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                              className="form-input w-full text-xs font-mono"
                               value={container.resources.requests.memory}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -1129,7 +1129,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             />
                             <input
                               placeholder="Limits CPU (e.g. 500m)"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                              className="form-input w-full text-xs font-mono"
                               value={container.resources.limits.cpu}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -1139,7 +1139,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             />
                             <input
                               placeholder="Limits Memory (e.g. 512Mi)"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                              className="form-input w-full text-xs font-mono"
                               value={container.resources.limits.memory}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -1171,7 +1171,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                 <>
                                   <input
                                     placeholder="Port" type="number"
-                                    className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-mono"
+                                    className="form-input text-[10px] font-mono"
                                     value={container.liveness_probe.port}
                                     onChange={e => {
                                       const n = [...formData.containers];
@@ -1182,7 +1182,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                   {container.liveness_probe.type === 'http' && (
                                     <input
                                       placeholder="Path"
-                                      className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-mono"
+                                      className="form-input text-[10px] font-mono"
                                       value={container.liveness_probe.path}
                                       onChange={e => {
                                         const n = [...formData.containers];
@@ -1195,7 +1195,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                               ) : (
                                 <input
                                   placeholder="Command (comma separated)"
-                                  className="col-span-2 px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-mono"
+                                  className="form-input col-span-2 text-[10px] font-mono"
                                   value={container.liveness_probe.command}
                                   onChange={e => {
                                     const n = [...formData.containers];
@@ -1289,7 +1289,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                 <>
                                   <input
                                     placeholder="Port" type="number"
-                                    className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-mono"
+                                    className="form-input text-[10px] font-mono"
                                     value={container.readiness_probe.port}
                                     onChange={e => {
                                       const n = [...formData.containers];
@@ -1300,7 +1300,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                   {container.readiness_probe.type === 'http' && (
                                     <input
                                       placeholder="Path"
-                                      className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-mono"
+                                      className="form-input text-[10px] font-mono"
                                       value={container.readiness_probe.path}
                                       onChange={e => {
                                         const n = [...formData.containers];
@@ -1313,7 +1313,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                               ) : (
                                 <input
                                   placeholder="Command (comma separated)"
-                                  className="col-span-2 px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-mono"
+                                  className="form-input col-span-2 text-[10px] font-mono"
                                   value={container.readiness_probe.command}
                                   onChange={e => {
                                     const n = [...formData.containers];
@@ -1402,7 +1402,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                </div>
             </form>
 
-            <div className="p-8 border-t border-slate-50 bg-slate-100/50 flex gap-4 shrink-0">
+            <div className="p-8 border-t border-theme-border bg-slate-100/50 flex gap-4 shrink-0">
                <button
                  type="button" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}
                  className="flex-1 py-3 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl font-semibold hover:bg-theme-elevated transition-all"

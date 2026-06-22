@@ -40,7 +40,7 @@ export const ConfigCenterLlmChatPage: React.FC<ConfigCenterLlmChatPageProps> = (
   }, []);
 
   return (
-    <div className="p-8 space-y-6 animate-in fade-in duration-500">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500">
       <PageHeader
         title={<><MessageSquare className="h-8 w-8 text-blue-400 inline" /> LLM 在线聊天</>}
         description="基于已保存的 LLM Provider 进行模型选择、多轮对话与并排对比。"

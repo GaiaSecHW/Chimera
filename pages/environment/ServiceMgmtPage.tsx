@@ -1100,7 +1100,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
 
   return (
     <>
-    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500 pb-24">
       <PageHeader
         title="集群服务发现"
         description="服务批量启停删与实例筛选管理"
@@ -1263,7 +1263,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
         <select
           value={nodeFilter}
           onChange={(e) => setNodeFilter(e.target.value)}
-          className="px-3 py-2 border border-theme-border rounded-xl text-sm text-theme-text-secondary bg-theme-surface"
+          className="form-select"
         >
           <option value="all">全部节点</option>
           {nodeOptions.map((node) => (
@@ -1275,7 +1275,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
         <select
           value={templateFilter}
           onChange={(e) => setTemplateFilter(e.target.value)}
-          className="px-3 py-2 border border-theme-border rounded-xl text-sm text-theme-text-secondary bg-theme-surface"
+          className="form-select"
         >
           <option value="all">全部模板</option>
           {templateOptions.map((name) => (
@@ -1285,7 +1285,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
         <select
           value={serviceStateFilter}
           onChange={(e) => setServiceStateFilter(e.target.value as any)}
-          className="px-3 py-2 border border-theme-border rounded-xl text-sm text-theme-text-secondary bg-theme-surface"
+          className="form-select"
         >
           <option value="all">全部状态</option>
           <option value="running">运行中</option>
@@ -1355,7 +1355,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
           <select
             value={servicePerPage}
             onChange={(e) => setServicePerPage(Number(e.target.value) || 50)}
-            className="px-2 py-1 border border-theme-border rounded-lg bg-theme-bg-app text-xs"
+            className="form-select text-xs"
           >
             <option value={20}>20</option>
             <option value={50}>50</option>
@@ -1605,7 +1605,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                     <select
                       value={execContainer}
                       onChange={(e) => setExecContainer(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-theme-border text-xs bg-theme-surface"
+                      className="form-select w-full text-xs"
                     >
                       <option value="">自动选择容器</option>
                       {resolveContainers(serviceDetail).map((name) => (
@@ -1615,7 +1615,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                     <select
                       value={terminalMode}
                       onChange={(e) => setTerminalMode(e.target.value === 'shell' ? 'shell' : 'attach')}
-                      className="w-full px-3 py-2 rounded-xl border border-theme-border text-xs bg-theme-surface"
+                      className="form-select w-full text-xs"
                     >
                       <option value="attach">Attach 模式</option>
                       <option value="shell">新建 Shell</option>
@@ -1709,7 +1709,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                   <select
                     value={ingressTlsEnabled ? 'https' : 'http'}
                     onChange={(e) => setIngressTlsEnabled(e.target.value === 'https')}
-                    className="md:col-span-1 px-3 py-2 text-xs border border-theme-border rounded-xl bg-theme-surface"
+                    className="form-select md:col-span-1 text-xs"
                   >
                     <option value="https">Ingress HTTPS</option>
                     <option value="http">Ingress HTTP</option>
@@ -1717,7 +1717,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                   <select
                     value={backendProtocol}
                     onChange={(e) => setBackendProtocol(e.target.value === 'https' ? 'https' : 'http')}
-                    className="md:col-span-1 px-3 py-2 text-xs border border-theme-border rounded-xl bg-theme-surface"
+                    className="form-select md:col-span-1 text-xs"
                   >
                     <option value="http">后端 HTTP</option>
                     <option value="https">后端 HTTPS</option>
@@ -1958,7 +1958,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                   value={deployExtraParamsText}
                   onChange={(e) => setDeployExtraParamsText(e.target.value)}
                   placeholder='可选：额外参数 JSON，例如 {"env":{"DEBUG":"1"}}'
-                  className="w-full min-h-24 px-3 py-2 text-xs border border-theme-border rounded-xl outline-none focus:ring-2 ring-blue-500/10 font-mono"
+                  className="form-textarea w-full min-h-24 text-xs font-mono"
                 />
                 <TemplateLlmBindingEditor
                   projectId={projectId}

@@ -437,7 +437,7 @@ export const DepartmentMemberPage: React.FC = () => {
   }, [members]);
 
   return (
-    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto bg-theme-app">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto">
       <PageHeader
         title={<><div className="p-3 bg-gradient-to-br from-blue-600 via-cyan-500 to-sky-500 text-white rounded-2xl inline-flex"><Users size={28} /></div> 部门成员管理</>}
         actions={<div className="flex gap-4">
@@ -504,7 +504,7 @@ export const DepartmentMemberPage: React.FC = () => {
             <input
               type="text"
               placeholder="搜索成员名称..."
- className="w-full pl-16 pr-8 py-5 bg-theme-bg-app backdrop-blur border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="form-input w-full pl-16 pr-8 backdrop-blur"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -653,7 +653,7 @@ export const DepartmentMemberPage: React.FC = () => {
 
       <Modal open={!!(isAddModalOpen && userPermissions?.can_manage_department_members)} onClose={() => setIsAddModalOpen(false)} className="max-w-3xl">
 
-            <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
+            <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                   <Plus size={24} />
@@ -685,8 +685,8 @@ export const DepartmentMemberPage: React.FC = () => {
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
                         <input
                           type="text"
-                          placeholder="输入部门名称筛选"
-                          className="w-full pl-11 pr-4 py-3 bg-theme-bg-app border border-theme-border rounded-lg outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-secondary"
+placeholder="输入部门名称筛选"
+                           className="form-input w-full pl-11 pr-4"
                           value={departmentPickerSearchTerm}
                           onChange={(e) => setDepartmentPickerSearchTerm(e.target.value)}
                         />
@@ -731,8 +731,8 @@ export const DepartmentMemberPage: React.FC = () => {
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
                         <input
                           type="text"
-                          placeholder="输入用户名筛选"
-                          className="w-full pl-11 pr-4 py-3 bg-theme-bg-app border border-theme-border rounded-lg outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-secondary"
+placeholder="输入用户名筛选"
+                           className="form-input w-full pl-11 pr-4"
                           value={userPickerSearchTerm}
                           onChange={(e) => setUserPickerSearchTerm(e.target.value)}
                         />
@@ -757,7 +757,7 @@ export const DepartmentMemberPage: React.FC = () => {
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">角色 *</label>
-                <select required className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
+                <select required className="form-select w-full" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
                   {getAvailableRoles().map((role) => (
                     <option key={role.value} value={role.value}>{role.label}</option>
                   ))}
@@ -772,7 +772,7 @@ export const DepartmentMemberPage: React.FC = () => {
 
       {selectedMember && <Modal open={isMoveModalOpen} onClose={() => setIsMoveModalOpen(false)} className="max-w-md">
 
-            <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
+            <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
                   <Building2 size={24} />
@@ -787,7 +787,7 @@ export const DepartmentMemberPage: React.FC = () => {
             <form onSubmit={handleMoveMember} className="p-10 space-y-6">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">目标部门 *</label>
-                <select required className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-indigo-500/10 font-bold text-theme-text-primary" value={moveDepartmentId} onChange={(e) => setMoveDepartmentId(e.target.value)}>
+                <select required className="form-select w-full" value={moveDepartmentId} onChange={(e) => setMoveDepartmentId(e.target.value)}>
                   {departments.map((dept) => (
                     <option key={dept.id} value={dept.id}>{dept.name}</option>
                   ))}
@@ -802,7 +802,7 @@ export const DepartmentMemberPage: React.FC = () => {
 
       {selectedMember && userPermissions?.can_manage_department_members && <Modal open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} className="max-w-md">
 
-            <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
+            <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-amber-600 rounded-lg flex items-center justify-center text-white">
                   <Edit3 size={24} />
@@ -817,7 +817,7 @@ export const DepartmentMemberPage: React.FC = () => {
             <form onSubmit={handleEditMember} className="p-10 space-y-6">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">角色 *</label>
-                <select required className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-theme-text-primary" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
+                <select required className="form-select w-full" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
                   {getAvailableRoles().map((role) => (
                     <option key={role.value} value={role.value}>{role.label}</option>
                   ))}
@@ -865,7 +865,7 @@ export const DepartmentMemberPage: React.FC = () => {
 
                     <div className="space-y-3">
                       <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">导入策略</label>
-                      <select value={importMode} onChange={(e) => setImportMode(e.target.value as ImportMode)} disabled={!isAdmin()} className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border border-theme-border outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary disabled:bg-theme-elevated disabled:text-theme-text-muted">
+                      <select value={importMode} onChange={(e) => setImportMode(e.target.value as ImportMode)} disabled={!isAdmin()} className="form-select w-full disabled:bg-theme-elevated disabled:text-theme-text-muted">
                         <option value="skip_existing">已存在则跳过</option>
                         {isAdmin() && <option value="update_role">已存在则更新角色</option>}
                       </select>

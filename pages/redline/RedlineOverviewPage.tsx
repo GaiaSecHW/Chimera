@@ -214,7 +214,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary"
+          className="form-select"
         >
           <option value="">全部状态</option>
           {Object.entries(STATUS_MAP).map(([key, { label }]) => (
@@ -227,7 +227,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="搜索任务名称..."
-            className="w-64 rounded-lg border border-theme-border bg-theme-surface pl-9 pr-3 py-2 text-sm text-theme-text-primary placeholder:text-theme-text-tertiary focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            className="form-input w-64 pl-9 pr-3"
           />
         </div>
       </div>
@@ -324,7 +324,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="请输入任务名称"
-                  className="w-full rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary placeholder:text-theme-text-tertiary focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  className="form-input w-full"
                 />
               </div>
               <div>
@@ -332,7 +332,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
                 <select
                   value={formProduct}
                   onChange={(e) => handleProductChange(e.target.value)}
-                  className="w-full rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary"
+                  className="form-select w-full"
                 >
                   <option value="">请选择产品</option>
                   {uniqueProducts.map((p) => (
@@ -345,7 +345,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
                 <select
                   value={formVersion}
                   onChange={(e) => setFormVersion(e.target.value)}
-                  className="w-full rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary"
+                  className="form-select w-full"
                   disabled={!formProduct}
                 >
                   <option value="">请选择版本</option>
@@ -375,7 +375,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="请输入任务名称"
-                  className="w-full rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary placeholder:text-theme-text-tertiary focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  className="form-input w-full"
                 />
               </div>
               <div>
@@ -383,7 +383,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
                 <select
                   value={formProduct}
                   onChange={(e) => handleProductChange(e.target.value)}
-                  className="w-full rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary"
+                  className="form-select w-full"
                 >
                   <option value="">请选择产品</option>
                   {uniqueProducts.map((p) => (
@@ -396,7 +396,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
                 <select
                   value={formVersion}
                   onChange={(e) => setFormVersion(e.target.value)}
-                  className="w-full rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary"
+                  className="form-select w-full"
                   disabled={!formProduct}
                 >
                   <option value="">请选择版本</option>

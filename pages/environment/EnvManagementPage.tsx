@@ -699,7 +699,7 @@ const RouteTableWithSearch: React.FC<{
           value={searchValue}
           onChange={(event) => setSearchValue(event.target.value)}
           placeholder={placeholder}
-          className="w-full rounded border border-theme-border bg-theme-surface py-2 pl-8 pr-3 text-xs text-theme-text-secondary outline-none focus:border-cyan-400"
+          className="form-input w-full pl-8 text-xs"
         />
       </div>
       <div className="overflow-hidden rounded border border-theme-border">
@@ -1077,11 +1077,11 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
               </div>
             </div>
             <div className="grid gap-3 lg:grid-cols-[180px_180px_minmax(0,1fr)_auto]">
-              <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none focus:border-cyan-400">
+              <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="form-select">
                 <option value="">全部类型</option>
                 {agentTypes.map((type) => <option key={type} value={type}>{getAgentTypeLabel(type)}</option>)}
               </select>
-              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none focus:border-cyan-400">
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="form-select">
                 <option value="">全部状态</option>
                 <option value="online">在线</option>
                 <option value="offline">离线/异常</option>
@@ -1093,7 +1093,7 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                   value={searchText}
                   onChange={(event) => setSearchText(event.target.value)}
                   placeholder="搜索 ID / 名称 / 主机名 / IP / 版本..."
-                  className="w-full rounded-lg border border-theme-border bg-theme-bg-app py-2 pl-9 pr-3 text-sm font-semibold text-theme-text-secondary outline-none focus:border-cyan-400"
+                  className="form-input w-full pl-9"
                 />
               </div>
               <button

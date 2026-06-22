@@ -626,7 +626,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
 
   return (
     <>
-    <div className="p-10 space-y-8 animate-in slide-in-from-right duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in slide-in-from-right duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-6">
@@ -706,7 +706,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                       <div className="h-3 bg-theme-elevated rounded-full overflow-hidden">
                         <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${sys?.cpu?.usage_percent || 0}%` }} />
                       </div>
-                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-50">
+                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-theme-border">
                         <div>
                           <p className="text-[9px] font-medium text-theme-text-muted uppercase">型号</p>
                           <p className="text-xs font-medium text-theme-text-secondary truncate">{sys?.cpu?.model || 'Generic x86_64'}</p>
@@ -729,7 +729,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                       <div className="h-3 bg-theme-elevated rounded-full overflow-hidden">
                         <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${sys?.memory?.usage_percent || 0}%` }} />
                       </div>
-                      <div className="grid grid-cols-3 gap-2 pt-4 border-t border-slate-50">
+                      <div className="grid grid-cols-3 gap-2 pt-4 border-t border-theme-border">
                         <div>
                           <p className="text-[9px] font-medium text-theme-text-muted uppercase">总量</p>
                           <p className="text-xs font-medium text-theme-text-secondary">{formatted?.memory?.total || '0 GB'}</p>
@@ -855,7 +855,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                            </div>
                            {iface.is_up && <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />}
                         </div>
-                        <div className="space-y-2 border-t border-slate-50 pt-4">
+                        <div className="space-y-2 border-t border-theme-border pt-4">
                            <div className="flex justify-between items-center text-xs">
                               <span className="text-theme-text-muted font-bold">IPv4 Address</span>
                               <span className="font-mono font-medium text-blue-400">{iface.ip_address || 'Unassigned'}</span>
@@ -1775,7 +1775,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                     value={templateSearch}
                     onChange={(e) => setTemplateSearch(e.target.value)}
                     placeholder="检索模板名称或描述..."
-                    className="w-full pl-11 pr-4 py-3 bg-theme-bg-app border border-theme-border rounded-2xl text-sm outline-none focus:ring-4 ring-blue-500/10"
+                    className="form-input w-full pl-11 pr-4"
                   />
                 </div>
                 <button

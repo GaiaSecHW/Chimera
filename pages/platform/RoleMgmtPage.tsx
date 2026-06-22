@@ -138,7 +138,7 @@ export const RoleMgmtPage: React.FC = () => {
   };
 
   return (
-    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
       <PageHeader
         title={<><div className="p-3 bg-indigo-600 text-white rounded-lg shadow-indigo-500/20 inline-flex"><Shield size={28} /></div> 角色定义管理</>}
         actions={<div className="flex gap-4">
@@ -176,7 +176,7 @@ export const RoleMgmtPage: React.FC = () => {
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-theme-text-faint group-focus-within:text-indigo-500 transition-colors" size={20} />
           <input
             type="text" placeholder="搜索角色名称或职责描述..."
- className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-indigo-500/5 transition-all font-medium"
+ className="form-input w-full pl-16 pr-8"
             value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
@@ -200,7 +200,7 @@ export const RoleMgmtPage: React.FC = () => {
 
       {/* Create/Edit Modal */}
       <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} className="max-w-md">
-              <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
+              <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
                 <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-indigo-500/20">
                     {editingRole ? <Edit3 size={24} /> : <Plus size={24} />}
@@ -217,7 +217,7 @@ export const RoleMgmtPage: React.FC = () => {
                     <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">角色标识名称 *</label>
                     <input
                       required placeholder="e.g. security_auditor"
-                      className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-indigo-500/10 font-bold text-theme-text-primary"
+                      className="form-input w-full"
                       value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
                     />
                  </div>
@@ -225,7 +225,7 @@ export const RoleMgmtPage: React.FC = () => {
                     <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">权限职责描述</label>
                     <textarea
                       rows={3} placeholder="描述该角色所涵盖的功能边界与操作权限..."
-                      className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-indigo-500/10 font-bold text-theme-text-primary resize-none"
+                      className="form-textarea w-full resize-none"
                       value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}
                     />
                  </div>

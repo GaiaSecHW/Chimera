@@ -915,7 +915,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
             />
           </div>
           <select
-            className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-bold text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="form-select text-xs"
             value={bindingFilter}
             onChange={(e) => setBindingFilter(e.target.value as BindingStatusFilter)}
           >
@@ -1433,7 +1433,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                   <h4 className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary">LLM Provider</h4>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
                     <select
-                      className="w-full min-w-0 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-xs font-bold text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:bg-theme-elevated"
+                      className="form-select w-full text-xs disabled:bg-theme-elevated"
                       value={providerToAdd}
                       onChange={(e) => setProviderToAdd(e.target.value)}
                       disabled={llmProvidersLoading}
@@ -1621,7 +1621,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                       <div key={idx} className="grid grid-cols-12 items-center gap-2">
                         <div className="col-span-7">
                           <select
-                            className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-xs font-bold outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            className="form-select w-full text-xs"
                             value={item.pvc_name}
                             onChange={e => {
                               const n = [...formData.source_pvcs];
@@ -1680,7 +1680,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                       <div key={idx} className="grid grid-cols-12 items-center gap-2">
                         <div className="col-span-7">
                           <select
-                            className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-xs font-bold outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            className="form-select w-full text-xs"
                             value={item.pvc_name}
                             onChange={e => {
                               const n = [...formData.output_pvcs];

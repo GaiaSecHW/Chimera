@@ -2355,13 +2355,13 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     </div>
                     <label className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-muted">
                       每页
-                      <select value={timelinePageSize} onChange={(event) => setTimelinePageSize(Math.min(2000, Math.max(50, Number(event.target.value) || 200)))} className="ml-2 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-xs font-bold text-theme-text-secondary">
+                      <select value={timelinePageSize} onChange={(event) => setTimelinePageSize(Math.min(2000, Math.max(50, Number(event.target.value) || 200)))} className="form-select ml-2 text-xs">
                         {[50, 100, 200, 500].map((size) => <option key={size} value={size}>{size}</option>)}
                       </select>
                     </label>
                     <label className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-muted">
                       自动刷新
-                      <select value={timelineAutoRefresh} onChange={(event) => setTimelineAutoRefresh(event.target.value as TimelineAutoRefreshValue)} className="ml-2 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-xs font-bold text-theme-text-secondary">
+                      <select value={timelineAutoRefresh} onChange={(event) => setTimelineAutoRefresh(event.target.value as TimelineAutoRefreshValue)} className="form-select ml-2 text-xs">
                         <option value="off">关闭</option>
                         <option value="15">15s</option>
                         <option value="30">30s</option>
@@ -2379,15 +2379,15 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <select value={timelineStageFilter} onChange={(event) => setTimelineStageFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
+                  <select value={timelineStageFilter} onChange={(event) => setTimelineStageFilter(event.target.value)} className="form-select">
                     <option value="__all__">全部阶段</option>
                     {timelineStageOptions.map((value) => <option key={value} value={value}>{stageLabel(value)}</option>)}
                   </select>
-                  <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
+                  <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="form-select">
                     <option value="__all__">全部事件</option>
                     {timelineEventTypeOptions.map((value) => <option key={value} value={value}>{formatTimelineEventTypeLabel(value)}</option>)}
                   </select>
-                  <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
+                  <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="form-select">
                     <option value="__all__">全部级别</option>
                     {timelineLevelOptions.map((value) => <option key={value} value={value}>{value}</option>)}
                   </select>
@@ -3311,7 +3311,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         <select
                           value={evaluationStageFilter}
                           onChange={(event) => setEvaluationStageFilter(event.target.value)}
-                          className="rounded-xl border border-theme-border px-3 py-2 text-xs outline-none focus:border-cyan-300"
+                          className="form-select text-xs"
                         >
                           <option value="">全部阶段</option>
                           {evaluationStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
@@ -3319,7 +3319,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         <select
                           value={evaluationStatusFilter}
                           onChange={(event) => setEvaluationStatusFilter(event.target.value)}
-                          className="rounded-xl border border-theme-border px-3 py-2 text-xs outline-none focus:border-cyan-300"
+                          className="form-select text-xs"
                         >
                           <option value="">全部状态</option>
                           {evaluationStatuses.map((status) => <option key={status} value={status}>{status}</option>)}

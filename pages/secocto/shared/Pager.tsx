@@ -74,7 +74,7 @@ export const SecOctoPager: React.FC<PagerProps> = ({ total, state, onChange, onS
         <select
           value={state.size}
           onChange={(e) => onSizeChange(Number(e.target.value))}
-          className="ml-2 px-2 py-1 rounded-lg text-xs border border-theme-border bg-theme-surface text-theme-text-secondary"
+          className="form-select text-xs ml-2"
         >
           {sizeOptions.map((s) => (
             <option key={s} value={s}>{s} / 页</option>

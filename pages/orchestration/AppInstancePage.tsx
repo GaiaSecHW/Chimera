@@ -554,9 +554,9 @@ export const AppInstancePage: React.FC<{
       <div className="mb-6 flex items-center gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-text-muted" size={18} />
-          <input type="text" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="搜索实例名称、ID 或模板名称" className="w-full rounded-xl border border-theme-border bg-theme-bg-app py-3 pl-12 pr-4 text-sm outline-none focus:border-blue-500" />
+          <input type="text" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="搜索实例名称、ID 或模板名称" className="form-input w-full pl-12 pr-4" />
         </div>
-        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-bg-app px-5 py-3 text-sm outline-none focus:border-blue-500">
+        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="form-select">
           <option value="">全部状态</option>
           <option value="pending">待初始化</option>
           <option value="unready">未就绪</option>
@@ -615,7 +615,7 @@ export const AppInstancePage: React.FC<{
           <div className="flex items-center justify-between border-t border-theme-border bg-slate-100/50 px-8 py-4">
             <div className="flex items-center gap-4">
               <span className="text-xs font-semibold uppercase tracking-widest text-theme-text-muted">每页</span>
-              <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setCurrentPage(1); }} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-medium text-theme-text-secondary outline-none focus:border-blue-500">
+              <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setCurrentPage(1); }} className="form-select text-[10px]">
                 <option value={10}>10</option>
                 <option value={20}>20</option>
                 <option value={50}>50</option>
@@ -649,7 +649,7 @@ export const AppInstancePage: React.FC<{
                           value={templateSearchTerm}
                           onChange={(event) => setTemplateSearchTerm(event.target.value)}
                           placeholder="搜索模板名称、描述、标签或创建人"
-                          className="w-full rounded-xl border border-theme-border bg-theme-bg-app py-2.5 pl-10 pr-3.5 text-[13px] text-theme-text-secondary outline-none transition-all focus:border-blue-500 focus:bg-theme-bg-app"
+                          className="form-input w-full pl-10 pr-3.5 text-[13px]"
                         />
                       </div>
                     </div>
@@ -832,19 +832,19 @@ export const AppInstancePage: React.FC<{
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
                       <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">实例名称 *</label>
-                      <input value={formData.name} onChange={(event) => setFormData({ ...formData, name: event.target.value })} className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="例如：demo-nginx" />
+                      <input value={formData.name} onChange={(event) => setFormData({ ...formData, name: event.target.value })} className="form-input w-full" placeholder="例如：demo-nginx" />
                     </div>
                     <div>
                       <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">Service 名称 *</label>
-                      <input value={formData.service_name} onChange={(event) => setFormData({ ...formData, service_name: event.target.value })} className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="例如：nginx-svc" />
+                      <input value={formData.service_name} onChange={(event) => setFormData({ ...formData, service_name: event.target.value })} className="form-input w-full" placeholder="例如：nginx-svc" />
                     </div>
                     <div className="md:col-span-2">
                       <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">描述</label>
-                      <textarea value={formData.description} onChange={(event) => setFormData({ ...formData, description: event.target.value })} rows={3} className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" />
+                      <textarea value={formData.description} onChange={(event) => setFormData({ ...formData, description: event.target.value })} rows={3} className="form-textarea w-full" />
                     </div>
                     <div>
                       <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">Service 类型</label>
-                      <select value={formData.service_type} onChange={(event) => setFormData({ ...formData, service_type: event.target.value as any })} className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500">
+                      <select value={formData.service_type} onChange={(event) => setFormData({ ...formData, service_type: event.target.value as any })} className="form-select w-full">
                         <option value="ClusterIP">集群内部访问</option>
                         <option value="NodePort">节点端口访问</option>
                         <option value="LoadBalancer">负载均衡访问</option>
@@ -852,7 +852,7 @@ export const AppInstancePage: React.FC<{
                     </div>
                     <div>
                       <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">副本数</label>
-                      <input type="number" min="1" value={formData.replicas} onChange={(event) => setFormData({ ...formData, replicas: parseInt(event.target.value, 10) || 1 })} className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm outline-none focus:border-blue-500" />
+                      <input type="number" min="1" value={formData.replicas} onChange={(event) => setFormData({ ...formData, replicas: parseInt(event.target.value, 10) || 1 })} className="form-input w-full" />
                     </div>
                   </div>
                   {selectedTemplate?.containers.some((container) => (container.input_env_vars || []).length > 0) && (
@@ -864,7 +864,7 @@ export const AppInstancePage: React.FC<{
                           return (
                             <div key={key}>
                               <label className="mb-1 block text-xs font-medium text-theme-text-secondary">{envVar.name}<span className="ml-2 text-theme-text-muted">容器：{container.name}</span></label>
-                              <input value={inputEnvVarValues[key] || ''} onChange={(event) => setInputEnvVarValues({ ...inputEnvVarValues, [key]: event.target.value })} placeholder={envVar.default_value || '请输入变量值'} className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm outline-none focus:border-blue-500" />
+                              <input value={inputEnvVarValues[key] || ''} onChange={(event) => setInputEnvVarValues({ ...inputEnvVarValues, [key]: event.target.value })} placeholder={envVar.default_value || '请输入变量值'} className="form-input w-full" />
                             </div>
                           );
                         }))}
@@ -882,11 +882,11 @@ export const AppInstancePage: React.FC<{
                             <div key={key} className="rounded-xl border border-purple-500/20 bg-theme-bg-app p-4">
                               <div className="mb-3 text-sm font-medium text-theme-text-secondary">挂载路径：{mount.mount_path}<span className="ml-2 text-xs text-theme-text-muted">容器：{container.name}</span></div>
                               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                                <select value={config.pvc_name} onChange={(event) => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...config, pvc_name: event.target.value } })} className="rounded-lg border border-theme-border px-3 py-2 text-sm outline-none focus:border-purple-500">
+                                <select value={config.pvc_name} onChange={(event) => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...config, pvc_name: event.target.value } })} className="form-select">
                                   <option value="">选择 PVC</option>
                                   {pvcList.map((pvc) => <option key={pvc.pvc_name} value={pvc.pvc_name}>{pvc.pvc_name} {pvc.resource_name ?`(${pvc.resource_name})` : ''}</option>)}
                                 </select>
-                                <input value={config.sub_path} onChange={(event) => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...config, sub_path: event.target.value } })} placeholder="子路径，可留空" className="rounded-lg border border-theme-border px-3 py-2 text-sm outline-none focus:border-purple-500" />
+                                <input value={config.sub_path} onChange={(event) => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...config, sub_path: event.target.value } })} placeholder="子路径，可留空" className="form-input" />
                               </div>
                             </div>
                           );
@@ -944,14 +944,14 @@ export const AppInstancePage: React.FC<{
                               <input
                                 value={mount.mount_path}
                                 onChange={(event) => setAdditionalPvcMounts(additionalPvcMounts.map((item, itemIndex) => itemIndex === index ? { ...item, mount_path: event.target.value } : item))}
-                                placeholder="容器内挂载路径，例如 /workspace/shared"
-                                className="rounded-lg border border-theme-border px-3 py-2 text-sm outline-none focus:border-amber-500"
+                                 placeholder="容器内挂载路径，例如 /workspace/shared"
+                                 className="form-input"
                               />
                               <input
                                 value={mount.sub_path}
                                 onChange={(event) => setAdditionalPvcMounts(additionalPvcMounts.map((item, itemIndex) => itemIndex === index ? { ...item, sub_path: event.target.value } : item))}
-                                placeholder="PVC 子路径，可留空"
-                                className="rounded-lg border border-theme-border px-3 py-2 text-sm outline-none focus:border-amber-500"
+                                 placeholder="PVC 子路径，可留空"
+                                 className="form-input"
                               />
                               <label className="flex items-center gap-2 rounded-lg border border-theme-border px-3 py-2 text-sm text-theme-text-secondary">
                                 <input

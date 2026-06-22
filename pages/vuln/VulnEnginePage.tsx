@@ -1040,7 +1040,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
         ? 'px-5 py-5 pb-12 space-y-5 xl:px-6 2xl:px-8'
         : effectiveListEntryMode
           ? 'p-6 pb-16 space-y-5'
-          : 'p-10 pb-24 space-y-8'
+          : 'px-5 py-5 md:px-6 2xl:px-8 pb-24 space-y-4'
       }`} style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
       <PageHeader
         title={(

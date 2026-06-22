@@ -310,7 +310,7 @@ export const DepartmentPage: React.FC = () => {
   };
 
   return (
-    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto bg-theme-app">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto">
       <PageHeader
         title={<><div className="p-3 bg-gradient-to-br from-blue-600 via-sky-500 to-cyan-500 text-white rounded-2xl inline-flex"><Building2 size={28} /></div> 组织架构管理</>}
         actions={<div className="flex gap-4">
@@ -363,7 +363,7 @@ export const DepartmentPage: React.FC = () => {
           <input
             type="text"
             placeholder="搜索部门名称或描述..."
- className="w-full pl-16 pr-8 py-5 bg-theme-bg-app backdrop-blur border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="form-input w-full pl-16 pr-8 backdrop-blur"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -381,7 +381,7 @@ export const DepartmentPage: React.FC = () => {
       </div>
 
       <Modal open={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} className="max-w-md">
-            <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
+            <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                   <Plus size={24} />
@@ -400,18 +400,18 @@ export const DepartmentPage: React.FC = () => {
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">部门名称 *</label>
                 <input
                   required
-                  placeholder="Department Name"
-                  className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">部门描述</label>
-                <textarea
+placeholder="Department Name"
+                   className="form-input w-full"
+                   value={formData.name}
+                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                 />
+               </div>
+               <div className="space-y-1.5">
+                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">部门描述</label>
+                 <textarea
                   placeholder="Description"
                   rows={3}
-                  className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary resize-none"
+                  className="form-textarea w-full resize-none"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
@@ -437,7 +437,7 @@ export const DepartmentPage: React.FC = () => {
       </Modal>
 
       {selectedDepartment && <Modal open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} className="max-w-md">
-            <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
+            <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-amber-600 rounded-lg flex items-center justify-center text-white">
                   <Edit3 size={24} />
@@ -456,18 +456,18 @@ export const DepartmentPage: React.FC = () => {
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">部门名称 *</label>
                 <input
                   required
-                  placeholder="Department Name"
-                  className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-theme-text-primary"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">部门描述</label>
-                <textarea
+placeholder="Department Name"
+                   className="form-input w-full"
+                   value={formData.name}
+                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                 />
+               </div>
+               <div className="space-y-1.5">
+                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">部门描述</label>
+                 <textarea
                   placeholder="Description"
                   rows={3}
-                  className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-theme-text-primary resize-none"
+                  className="form-textarea w-full resize-none"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />

@@ -1181,7 +1181,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                       <select
                         value={activeAgentPageSize}
                         onChange={(event) => setActiveAgentPageSize(Math.max(1, Number(event.target.value) || 10))}
-                        className="ml-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold text-slate-700"
+                        className="form-select ml-2 text-xs"
                       >
                         {[10, 20, 50].map((size) => <option key={size} value={size}>{size}</option>)}
                       </select>
@@ -1266,7 +1266,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                   </div>
                   <label className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
                     每页
-                    <select value={timelinePageSize} onChange={(event) => setTimelinePageSize(Math.min(2000, Math.max(50, Number(event.target.value) || 200)))} className="ml-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold text-slate-700">
+                    <select value={timelinePageSize} onChange={(event) => setTimelinePageSize(Math.min(2000, Math.max(50, Number(event.target.value) || 200)))} className="form-select ml-2 text-xs">
                       {[50, 100, 200, 500].map((size) => <option key={size} value={size}>{size}</option>)}
                     </select>
                   </label>
@@ -1281,15 +1281,15 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+                <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="form-select">
                   <option value="__all__">全部事件</option>
                   {timelineEventTypeOptions.map((value) => <option key={value} value={value}>{formatTimelineEventTypeLabel(value)}</option>)}
                 </select>
-                <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+                <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="form-select">
                   <option value="__all__">全部级别</option>
                   {timelineLevelOptions.map((value) => <option key={value} value={value}>{value}</option>)}
                 </select>
-                <select value={timelineStatusFilter} onChange={(event) => setTimelineStatusFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+                <select value={timelineStatusFilter} onChange={(event) => setTimelineStatusFilter(event.target.value)} className="form-select">
                   <option value="__all__">全部状态</option>
                   {timelineStatusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
                 </select>

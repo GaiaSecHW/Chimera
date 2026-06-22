@@ -284,7 +284,7 @@ export const UserMgmtPage: React.FC = () => {
   }, [totalPages]);
 
   return (
-    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto bg-theme-app">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto">
       <PageHeader
         title={<><div className="p-3 bg-gradient-to-br from-blue-600 via-cyan-500 to-sky-500 text-white rounded-2xl inline-flex"><Users size={28} /></div> 用户账号管理</>}
         actions={<div className="flex gap-4">
@@ -350,7 +350,7 @@ export const UserMgmtPage: React.FC = () => {
           <input
             type="text"
             placeholder="搜索用户名、部门、角色或状态..."
- className="w-full pl-16 pr-8 py-5 bg-theme-bg-app backdrop-blur border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="form-input w-full pl-16 pr-8 backdrop-blur"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -489,7 +489,7 @@ export const UserMgmtPage: React.FC = () => {
       </div>
 
       <Modal open={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} className="max-w-md">
-            <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
+            <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                   <Plus size={24} />
@@ -506,8 +506,8 @@ export const UserMgmtPage: React.FC = () => {
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">用户名 *</label>
                 <input
                   required
-                  placeholder="Username"
-                  className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary"
+placeholder="Username"
+                   className="form-input w-full"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                 />
@@ -517,8 +517,8 @@ export const UserMgmtPage: React.FC = () => {
                 <input
                   type="password"
                   required
-                  placeholder="••••••••"
-                  className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary"
+placeholder="••••••••"
+                   className="form-input w-full"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
@@ -531,7 +531,7 @@ export const UserMgmtPage: React.FC = () => {
       </Modal>
 
       {selectedUser && <Modal open={isResetModalOpen} onClose={() => setIsResetModalOpen(false)} className="max-w-md">
-            <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
+            <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-amber-600 rounded-lg flex items-center justify-center text-white">
                   <Key size={24} />
@@ -549,8 +549,8 @@ export const UserMgmtPage: React.FC = () => {
                 <input
                   type="password"
                   required
-                  placeholder="Current Password"
-                  className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-theme-text-primary"
+placeholder="Current Password"
+                   className="form-input w-full"
                   value={resetData.old_password}
                   onChange={(e) => setResetData({ ...resetData, old_password: e.target.value })}
                 />
@@ -560,8 +560,8 @@ export const UserMgmtPage: React.FC = () => {
                 <input
                   type="password"
                   required
-                  placeholder="New Password"
-                  className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-theme-text-primary"
+placeholder="New Password"
+                   className="form-input w-full"
                   value={resetData.new_password}
                   onChange={(e) => setResetData({ ...resetData, new_password: e.target.value })}
                 />
@@ -613,7 +613,7 @@ export const UserMgmtPage: React.FC = () => {
                         <input
                           type="password"
                           placeholder="可选，不填则按行密码或随机密码"
-                          className="w-full px-5 py-4 rounded-lg bg-theme-bg-app border border-theme-border outline-none focus:ring-4 ring-blue-500/10 font-semibold text-theme-text-primary"
+                          className="form-input w-full"
                           value={importDefaultPassword}
                           onChange={(e) => setImportDefaultPassword(e.target.value)}
                         />

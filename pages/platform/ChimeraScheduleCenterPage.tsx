@@ -1615,14 +1615,14 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                   <label className="text-sm font-bold text-theme-text-secondary">
                   范围
-                  <select value={taskEventFilters.scope} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, scope: e.target.value as 'project' | 'global' })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary">
+                  <select value={taskEventFilters.scope} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, scope: e.target.value as 'project' | 'global' })); setTaskEventPage(1); }} className="form-input mt-2 w-full">
                     <option value="project">当前项目</option>
                     <option value="global">全局</option>
                   </select>
                 </label>
                   <label className="text-sm font-bold text-theme-text-secondary">
                   项目
-                  <select value={taskEventFilters.projectId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, projectId: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary">
+                  <select value={taskEventFilters.projectId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, projectId: e.target.value })); setTaskEventPage(1); }} className="form-input mt-2 w-full">
                     <option value="">
                       {taskEventFilters.scope === 'global'
                         ? '全部项目'
@@ -1633,19 +1633,19 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                 </label>
                 <label className="text-sm font-bold text-theme-text-secondary">
                   任务类型
-                  <input value={taskEventFilters.taskType} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, taskType: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary" placeholder="binary_firmware_e2e" />
+                  <input value={taskEventFilters.taskType} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, taskType: e.target.value })); setTaskEventPage(1); }} className="form-input mt-2 w-full" placeholder="binary_firmware_e2e" />
                 </label>
                 <label className="text-sm font-bold text-theme-text-secondary">
                   事件分类
-                  <input value={taskEventFilters.eventCategory} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, eventCategory: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary" placeholder="dispatch / sync / delete" />
+                  <input value={taskEventFilters.eventCategory} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, eventCategory: e.target.value })); setTaskEventPage(1); }} className="form-input mt-2 w-full" placeholder="dispatch / sync / delete" />
                 </label>
                 <label className="text-sm font-bold text-theme-text-secondary">
                   结果
-                  <input value={taskEventFilters.resultStatus} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, resultStatus: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary" placeholder="failed / succeeded" />
+                  <input value={taskEventFilters.resultStatus} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, resultStatus: e.target.value })); setTaskEventPage(1); }} className="form-input mt-2 w-full" placeholder="failed / succeeded" />
                 </label>
                 <label className="text-sm font-bold text-theme-text-secondary">
                   来源
-                  <input value={taskEventFilters.eventSource} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, eventSource: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary" placeholder="api / worker / sync_worker" />
+                  <input value={taskEventFilters.eventSource} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, eventSource: e.target.value })); setTaskEventPage(1); }} className="form-input mt-2 w-full" placeholder="api / worker / sync_worker" />
                 </label>
                 <label className="text-sm font-bold text-theme-text-secondary xl:col-span-2">
                   关键词
@@ -1656,11 +1656,11 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                 </label>
                 <label className="text-sm font-bold text-theme-text-secondary">
                   任务 ID
-                  <input value={taskEventFilters.taskId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, taskId: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary" />
+                  <input value={taskEventFilters.taskId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, taskId: e.target.value })); setTaskEventPage(1); }} className="form-input mt-2 w-full" />
                 </label>
                 <label className="text-sm font-bold text-theme-text-secondary">
                   下游任务 ID
-                  <input value={taskEventFilters.downstreamTaskId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, downstreamTaskId: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary" />
+                  <input value={taskEventFilters.downstreamTaskId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, downstreamTaskId: e.target.value })); setTaskEventPage(1); }} className="form-input mt-2 w-full" />
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm font-bold text-theme-text-secondary xl:self-end">
                   <input type="checkbox" checked={taskEventFilters.onlyFailed} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, onlyFailed: e.target.checked })); setTaskEventPage(1); }} />
@@ -1710,7 +1710,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="text-sm font-semibold text-theme-text-muted">第 {taskEventPage} 页，共 {Math.max(1, Math.ceil(taskEventTotal / taskEventPageSize))} 页，共 {formatCount(taskEventTotal)} 条</div>
                   <div className="flex items-center gap-3">
-                  <select value={taskEventPageSize} onChange={(e) => { setTaskEventPageSize(Number(e.target.value)); setTaskEventPage(1); }} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
+                  <select value={taskEventPageSize} onChange={(e) => { setTaskEventPageSize(Number(e.target.value)); setTaskEventPage(1); }} className="form-select">
                     {[20, 50, 100, 200, 500, 1000].map((size) => <option key={size} value={size}>{size} / 页</option>)}
                   </select>
                   <button onClick={() => setTaskEventPage((current) => Math.max(1, current - 1))} disabled={taskEventPage <= 1} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-50">

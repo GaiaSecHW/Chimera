@@ -205,7 +205,7 @@ export const WorkflowInstancePage: React.FC<{
   };
 
   return (
-    <div className="p-10 space-y-8 animate-in fade-in duration-500">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500">
       <PageHeader
         title="工作流实例"
         description="实时监控安全评估流水线的执行进度与底层容器负载"
@@ -239,7 +239,7 @@ export const WorkflowInstancePage: React.FC<{
         <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-theme-text-faint" size={20} />
         <input
           type="text" placeholder="搜索实例名称或 ID..."
- className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="form-input w-full pl-16 pr-8"
           value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
         />
         </div>
@@ -249,7 +249,7 @@ export const WorkflowInstancePage: React.FC<{
             setStatusFilter(e.target.value);
             setPage(1);
           }}
- className="px-5 py-5 bg-theme-bg-app border border-theme-border rounded-xl text-sm font-medium outline-none focus:ring-4 ring-blue-500/5 transition-all"
+ className="form-select"
         >
           <option value="">全部状态</option>
           <option value="pending">待初始化</option>
@@ -435,7 +435,7 @@ export const WorkflowInstancePage: React.FC<{
             <select
               value={pageSize}
               onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-              className="px-3 py-2 bg-theme-bg-app border border-theme-border rounded-xl text-sm font-medium text-theme-text-secondary outline-none focus:border-blue-500 transition-all"
+              className="form-select text-[10px]"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -478,23 +478,23 @@ export const WorkflowInstancePage: React.FC<{
             <form onSubmit={handleCreate} className="p-8 space-y-6">
               <div>
                 <label className="block text-sm font-medium text-theme-text-secondary mb-2">实例名称</label>
-                <input required type="text" className="w-full px-4 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-sm focus:ring-2 ring-blue-500 outline-none transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="例如: prod-security-scan" />
+                <input required type="text" className="form-input w-full" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="例如: prod-security-scan" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-theme-text-secondary mb-2">描述</label>
-                <textarea className="w-full px-4 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-sm focus:ring-2 ring-blue-500 outline-none transition-all" rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="实例描述信息..." />
+                <textarea className="form-textarea w-full" rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="实例描述信息..." />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-theme-text-secondary mb-2">运行模式</label>
-                  <select className="w-full px-4 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-sm focus:ring-2 ring-blue-500 outline-none transition-all" value={formData.run_mode} onChange={e => setFormData({...formData, run_mode: e.target.value})}>
+                  <select className="form-select w-full" value={formData.run_mode} onChange={e => setFormData({...formData, run_mode: e.target.value})}>
                     <option value="once">一次性 (Once)</option>
                     <option value="persistent">持久化 (Persistent)</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-theme-text-secondary mb-2">触发类型</label>
-                  <select className="w-full px-4 py-3 bg-theme-bg-app border border-theme-border rounded-xl text-sm focus:ring-2 ring-blue-500 outline-none transition-all" value={formData.trigger_type} onChange={e => setFormData({...formData, trigger_type: e.target.value})}>
+                  <select className="form-select w-full" value={formData.trigger_type} onChange={e => setFormData({...formData, trigger_type: e.target.value})}>
                     <option value="manual">手动 (Manual)</option>
                     <option value="http">HTTP触发 (HTTP)</option>
                   </select>

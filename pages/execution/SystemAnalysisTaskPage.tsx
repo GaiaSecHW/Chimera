@@ -911,7 +911,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <select
               value={analysisModeFilter}
               onChange={(e) => { setAnalysisModeFilter(e.target.value as '' | 'binary' | 'source'); setPage(1); }}
-              className="rounded-lg border border-theme-border px-2 py-1.5 text-xs text-theme-text-secondary bg-theme-bg-app"
+              className="form-select text-xs"
               title="分析模式筛选"
             >
               <option value="">全部模式</option>
@@ -928,7 +928,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="rounded-lg border border-theme-border px-2 py-1.5 text-xs text-theme-text-secondary bg-theme-bg-app"
+              className="form-select text-xs"
               title="任务状态筛选"
             >
               <option value="">全部状态</option>
@@ -939,7 +939,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <select
               value={sortBy}
               onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
-              className="rounded-lg border border-theme-border px-2 py-1.5 text-xs text-theme-text-secondary bg-theme-bg-app"
+              className="form-select text-xs"
               title="排序字段"
             >
               {SORT_OPTIONS.map((option) => (
@@ -949,7 +949,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <select
               value={sortOrder}
               onChange={(e) => { setSortOrder(e.target.value === 'asc' ? 'asc' : 'desc'); setPage(1); }}
-              className="rounded-lg border border-theme-border px-2 py-1.5 text-xs text-theme-text-secondary bg-theme-bg-app"
+              className="form-select text-xs"
               title="排序方向"
             >
               <option value="desc">降序</option>
@@ -1206,7 +1206,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                   setPerPage(nextSize);
                   setPage(1);
                 }}
-                className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 text-xs text-theme-text-secondary outline-none"
+                className="form-select text-xs"
               >
                 {[10, 50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}</option>)}
               </select>

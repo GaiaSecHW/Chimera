@@ -317,7 +317,7 @@ export const ServiceTerminalWindowPage: React.FC = () => {
         <select
           value={mode}
           onChange={(e) => setMode(e.target.value === 'attach' ? 'attach' : 'shell')}
-          className="px-2 py-1.5 rounded-lg bg-theme-elevated border border-theme-border text-xs text-slate-100 shrink-0"
+          className="form-select text-xs shrink-0"
         >
           <option value="attach">Attach 模式</option>
           <option value="shell">新建 Shell</option>

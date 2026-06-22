@@ -425,7 +425,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
               <select
                 value={String(autoSyncIntervalMs)}
                 onChange={(event) => setAutoSyncIntervalMs(Number(event.target.value))}
-                className="rounded-xl border border-theme-border px-2 py-1 text-xs text-theme-text-secondary"
+                className="form-select text-xs"
                 disabled={!autoSyncEnabled}
               >
                 <option value="5000">5s</option>
@@ -477,26 +477,26 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder="关键词: session_id / agent_id / backend"
-              className="rounded-xl border border-theme-border px-3 py-2 text-sm xl:col-span-2"
+              className="form-input xl:col-span-2"
             />
-            <select value={nodeFilterInput} onChange={(event) => setNodeFilterInput(event.target.value)} className="rounded-xl border border-theme-border px-3 py-2 text-sm">
+            <select value={nodeFilterInput} onChange={(event) => setNodeFilterInput(event.target.value)} className="form-select">
               <option value="">全部节点</option>
               {nodeOptionsResolved.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
-            <select value={serviceFilterInput} onChange={(event) => setServiceFilterInput(event.target.value)} className="rounded-xl border border-theme-border px-3 py-2 text-sm">
+            <select value={serviceFilterInput} onChange={(event) => setServiceFilterInput(event.target.value)} className="form-select">
               <option value="">全部 service</option>
               {serviceOptionsResolved.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
-            <select value={statusFilterInput} onChange={(event) => setStatusFilterInput(event.target.value)} className="rounded-xl border border-theme-border px-3 py-2 text-sm">
+            <select value={statusFilterInput} onChange={(event) => setStatusFilterInput(event.target.value)} className="form-select">
               <option value="">全部状态</option>
               {statusOptionsResolved.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
-            <select value={invalidFilterInput} onChange={(event) => setInvalidFilterInput(event.target.value as 'all' | 'invalid' | 'normal')} className="rounded-xl border border-theme-border px-3 py-2 text-sm">
+            <select value={invalidFilterInput} onChange={(event) => setInvalidFilterInput(event.target.value as 'all' | 'invalid' | 'normal')} className="form-select">
               <option value="all">全部会话</option>
               <option value="invalid">仅异常</option>
               <option value="normal">仅正常</option>
             </select>
-            <select value={reasonFilterInput} onChange={(event) => setReasonFilterInput(event.target.value)} className="rounded-xl border border-theme-border px-3 py-2 text-sm">
+            <select value={reasonFilterInput} onChange={(event) => setReasonFilterInput(event.target.value)} className="form-select">
               <option value="">全部异常类型</option>
               {invalidReasonOptionsResolved.map((item) => <option key={item} value={item}>{parseInvalidReason(item)}</option>)}
             </select>
@@ -610,7 +610,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                   setPerPage(Number(event.target.value));
                   setPage(1);
                 }}
-                className="rounded-lg border border-theme-border px-2 py-1 text-xs"
+                className="form-select text-xs"
               >
                 <option value="20">20 / 页</option>
                 <option value="50">50 / 页</option>

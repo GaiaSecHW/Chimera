@@ -770,7 +770,7 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
                 <select
                   value={severityFilter}
                   onChange={(e) => setSeverityFilter(e.target.value)}
-                  className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-secondary"
+                  className="form-select"
                 >
                   <option value="">全部严重程度</option>
                   <option value="CRITICAL">CRITICAL</option>
@@ -782,7 +782,7 @@ export const AppScanTaskDetailPage: React.FC<Props> = ({ projectId, toolTaskId, 
                 <select
                   value={resultFilter}
                   onChange={(e) => setResultFilter(e.target.value)}
-                  className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-secondary"
+                  className="form-select"
                 >
                   <option value="">全部验证结果</option>
                   <option value="CONFIRMED">已确认</option>

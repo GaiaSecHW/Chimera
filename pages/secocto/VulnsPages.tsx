@@ -318,7 +318,7 @@ export const SecOctoVulnsListPage: React.FC<VulnsListProps> = ({ onNavigateDetai
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="搜索 CWE…"
-            className="pl-9 pr-3 py-1.5 rounded-lg border border-theme-border bg-theme-surface text-theme-text-primary text-sm w-56 outline-none focus:border-brand-primary transition-colors"
+            className="form-input w-56 pl-9 pr-3"
           />
         </div>
       </div>
@@ -1060,7 +1060,7 @@ export const SecOctoVulnDetailPage: React.FC<VulnDetailProps> = ({ findingId, on
             <select
               value={verdict}
               onChange={(e) => setVerdict(e.target.value)}
-              className="px-2.5 py-1.5 rounded-md border border-theme-border bg-theme-bg-elevated text-xs text-theme-text-primary outline-none focus:border-brand-primary"
+              className="form-select text-xs"
             >
               {VERDICT_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
@@ -1074,7 +1074,7 @@ export const SecOctoVulnDetailPage: React.FC<VulnDetailProps> = ({ findingId, on
               value={cvssInput}
               onChange={(e) => setCvssInput(e.target.value)}
               placeholder="0.0 ~ 10.0"
-              className="px-2.5 py-1.5 rounded-md border border-theme-border bg-theme-bg-elevated text-xs text-theme-text-primary outline-none focus:border-brand-primary w-32"
+              className="form-input w-32 text-xs"
             />
           </FormRow>
           <FormRow label="影响">
@@ -1084,7 +1084,7 @@ export const SecOctoVulnDetailPage: React.FC<VulnDetailProps> = ({ findingId, on
               onChange={(e) => setImpactInput(e.target.value)}
               maxLength={64}
               placeholder="影响描述(≤64 字符)"
-              className="px-2.5 py-1.5 rounded-md border border-theme-border bg-theme-bg-elevated text-xs text-theme-text-primary outline-none focus:border-brand-primary flex-1 min-w-0"
+              className="form-input flex-1 min-w-0 text-xs"
             />
           </FormRow>
           <FormRow label="分析说明 / 补充上下文" labelClass="self-start mt-1.5">
@@ -1093,14 +1093,14 @@ export const SecOctoVulnDetailPage: React.FC<VulnDetailProps> = ({ findingId, on
               onChange={(e) => setAnalysis(e.target.value)}
               rows={3}
               placeholder="输入分析说明或补充上下文..."
-              className="px-2.5 py-1.5 rounded-md border border-theme-border bg-theme-bg-elevated text-xs text-theme-text-primary outline-none focus:border-brand-primary flex-1 min-w-0 resize-y"
+              className="form-textarea flex-1 min-w-0 text-xs resize-y"
             />
           </FormRow>
           <FormRow label="状态变更">
             <select
               value={newStatus}
               onChange={(e) => setNewStatus(e.target.value)}
-              className="px-2.5 py-1.5 rounded-md border border-theme-border bg-theme-bg-elevated text-xs text-theme-text-primary outline-none focus:border-brand-primary"
+              className="form-select text-xs"
             >
               {STATUS_CHANGE_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
@@ -1163,7 +1163,7 @@ export const SecOctoVulnDetailPage: React.FC<VulnDetailProps> = ({ findingId, on
                 void submitComment();
               }
             }}
-            className="w-full px-2 py-1.5 rounded-md border border-theme-border bg-theme-bg-elevated text-xs text-theme-text-primary outline-none focus:border-brand-primary resize-none"
+            className="form-textarea w-full text-xs resize-none"
           />
           <div className="flex justify-end gap-2 mt-2">
             <button

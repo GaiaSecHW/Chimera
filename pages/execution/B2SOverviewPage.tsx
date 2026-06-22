@@ -1059,7 +1059,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         <select
                           value={originFilter}
                           onChange={(e) => { setOriginFilter((e.target.value || '') as '' | 'manual' | 'binary_security'); setPage(1); }}
-                          className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 text-xs normal-case tracking-normal text-theme-text-secondary"
+                          className="form-select w-full text-xs normal-case tracking-normal"
                           onClick={(event) => event.stopPropagation()}
                         >
                           <option value="">全部来源</option>
@@ -1228,7 +1228,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                   <select
                     value={perPage}
                     onChange={(e) => setPerPage(Number(e.target.value) || 50)}
-                    className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 text-xs text-theme-text-secondary outline-none"
+                    className="form-select text-xs"
                   >
                     {[10, 50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}</option>)}
                   </select>
@@ -1376,7 +1376,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     value={llmProviderKey}
                     onChange={(e) => setLlmProviderKey(e.target.value)}
                     disabled={llmProvidersLoading || llmProviders.length === 0}
-                    className="mt-2 w-full rounded-2xl border border-theme-border px-4 py-3 text-sm disabled:bg-theme-surface disabled:text-theme-text-muted"
+                    className="form-select mt-2 w-full disabled:bg-theme-surface disabled:text-theme-text-muted"
                   >
                     {llmProviders.length === 0 && <option value="">{llmProvidersLoading ? '加载中...' : '使用后端默认 Provider'}</option>}
                     {!hasSelectedProviderInList && llmProviderKey ? (

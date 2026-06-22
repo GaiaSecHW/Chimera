@@ -119,7 +119,7 @@ const ModelSelect: React.FC<{ value: string; options: string[]; onChange: (v: st
   const allOpts = value && !options.includes(value) ? [value, ...options] : options;
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
+      className="form-select w-full">
       <option value="">— 选择模型 —</option>
       {allOpts.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
     </select>

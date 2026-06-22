@@ -166,7 +166,7 @@ const ProjectAccessInfoSection: React.FC<{
           disabled={loading}
           onChange={(event) => onChange({ ...value, description: event.target.value })}
           placeholder="填写 Web 访问 URL、账号密码、登录步骤、验证码说明、测试范围、特殊入口或其他分析需要注意的信息。"
-          className="mt-2 min-h-44 w-full resize-y rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm leading-6 text-theme-text-primary outline-none transition focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
+          className="form-textarea mt-2 min-h-44 w-full resize-y leading-6 disabled:cursor-not-allowed disabled:opacity-70"
         />
       </label>
       <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary">

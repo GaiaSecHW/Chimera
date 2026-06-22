@@ -139,10 +139,10 @@ export const CfgDbVulnToolPage: React.FC<{ projectId: string; onOpenTask?: (task
           <div className="bg-white rounded-lg p-6 w-[520px]" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-semibold mb-4">新建数据库漏洞挖掘任务</h2>
             <label className="block text-sm font-medium mb-1">任务名称</label>
-            <input className="w-full border rounded px-3 py-2 mb-3 text-sm" value={form.name}
+            <input className="form-input w-full mb-3" value={form.name}
                    onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="如：openGauss 数据流审计" />
             <label className="block text-sm font-medium mb-1">源码路径（NFS）</label>
-            <input className="w-full border rounded px-3 py-2 mb-4 text-sm font-mono" value={form.input_path}
+            <input className="form-input w-full mb-4 font-mono" value={form.input_path}
                    onChange={(e) => setForm({ ...form, input_path: e.target.value })}
                    placeholder="/data/files/<project>/.../src" />
             <div className="flex justify-end gap-2">

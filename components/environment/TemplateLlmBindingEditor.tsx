@@ -223,7 +223,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
               value={providerToAdd}
               disabled={disabled || providers.length === 0}
               onChange={(e) => setProviderToAdd(e.target.value)}
-              className="flex-1 px-3 py-2 text-xs border border-theme-border rounded-xl outline-none focus:ring-2 ring-blue-500/10"
+              className="form-select flex-1 text-xs"
             >
               {providers.length === 0 && <option value="">暂无可用 Provider</option>}
               {providers.map((provider) => (

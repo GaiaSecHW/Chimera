@@ -479,7 +479,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
             <input
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
-              className="min-w-[240px] flex-1 rounded-xl border border-theme-border px-3 py-2 text-sm"
+              className="form-input min-w-[240px] flex-1"
               placeholder="搜索 batch_id / 状态 / 创建人 / 模式"
             />
             <button
@@ -598,7 +598,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                   value={createKeyword}
                   onChange={(event) => setCreateKeyword(event.target.value)}
                   placeholder="搜索节点 / helper"
-                  className="mt-3 w-full rounded-xl border border-theme-border px-3 py-2 text-sm"
+                  className="form-input mt-3 w-full"
                 />
                 <div className="mt-3 max-h-[380px] space-y-2 overflow-auto pr-1">
                   {helperLoading ? <div className="text-sm text-theme-text-muted">加载 helper 中...</div> : null}
@@ -625,7 +625,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                   value={createSelectedAgentId}
                   onChange={(event) => setCreateSelectedAgentId(event.target.value)}
                   disabled={commonAgentOptions.length === 0}
-                  className="mt-3 w-full rounded-xl border border-theme-border px-3 py-2 text-sm disabled:bg-theme-elevated"
+                  className="form-select mt-3 w-full disabled:bg-theme-elevated"
                 >
                   {commonAgentOptions.length === 0 ? <option value="">无可用共享 Agent</option> : null}
                   {commonAgentOptions.map((agent) => (
@@ -718,7 +718,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   rows={3}
-                  className="w-full rounded-xl border border-theme-border px-3 py-2 text-sm"
+                  className="form-textarea w-full"
                   placeholder="输入要发送给当前批量会话（所有目标 Agent）的用户消息"
                 />
                 <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">

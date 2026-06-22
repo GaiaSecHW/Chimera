@@ -344,7 +344,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
   }
 
   return (
-    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24" style={{ backgroundColor: LK.canvas }}>
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500 pb-24" style={{ backgroundColor: LK.canvas }}>
       {feedbackNodes}
 
       {/* ── Header ─────────────────────────────────────────── */}

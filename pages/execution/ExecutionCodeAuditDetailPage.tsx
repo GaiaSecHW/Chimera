@@ -230,7 +230,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
   const llmFileBindings = Array.isArray(instance?.llm_file_bindings) ? instance.llm_file_bindings : [];
 
   return (
-    <div className="p-10 space-y-8 animate-in slide-in-from-right duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in slide-in-from-right duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
       {/* Detail Header - More Compact */}
  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-theme-bg-app p-6 rounded-[2.5rem] border border-theme-border shadow-slate-200/40">
         <div className="flex items-center gap-6">
@@ -335,19 +335,19 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
               </div>
 
               <div className="space-y-4">
-                 <div className="flex justify-between items-center border-b border-slate-50 pb-3">
+                 <div className="flex justify-between items-center border-b border-theme-border pb-3">
                     <span className="text-[9px] font-semibold text-theme-text-muted uppercase">POD IP Address</span>
                     <span className={`text-xs font-mono font-semibold ${k8sStatus?.pod_ip ? 'text-blue-400' : 'text-theme-text-faint'}`}>
                        {k8sStatus?.pod_ip || 'PENDING...'}
                     </span>
                  </div>
-                 <div className="flex justify-between items-center border-b border-slate-50 pb-3">
+                 <div className="flex justify-between items-center border-b border-theme-border pb-3">
                     <span className="text-[9px] font-semibold text-theme-text-muted uppercase">Host Node</span>
                     <span className={`text-[10px] font-semibold ${k8sStatus?.node_name ? 'text-theme-text-secondary' : 'text-theme-text-faint'}`}>
                        {k8sStatus?.node_name || 'SCHEDULING...'}
                     </span>
                  </div>
-                 <div className="flex justify-between items-center border-b border-slate-50 pb-3">
+                 <div className="flex justify-between items-center border-b border-theme-border pb-3">
                     <span className="text-[9px] font-semibold text-theme-text-muted uppercase">Instance Replicas</span>
                     <div className="flex items-center gap-2">
                        <span className="text-xs font-semibold text-theme-text-secondary">

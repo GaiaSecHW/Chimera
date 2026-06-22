@@ -6,7 +6,7 @@ import { StatusBadge } from '../components/StatusBadge';
 import { PageHeader } from '../design-system';
 
 export const EnvAgentPage: React.FC<{ agents: Agent[]; isLoading: boolean }> = ({ agents, isLoading }) => (
-  <div className="p-10 space-y-8 animate-in fade-in duration-300">
+  <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-300">
     <PageHeader title="Agent 管理" />
  <div className="bg-theme-surface rounded-xl border border-theme-border overflow-hidden">
       <table className="w-full text-left">
@@ -27,7 +27,7 @@ export const EnvAgentPage: React.FC<{ agents: Agent[]; isLoading: boolean }> = (
 );
 
 export const EnvTemplatePage: React.FC<{ templates: EnvTemplate[]; isLoading: boolean }> = ({ templates, isLoading }) => (
-  <div className="p-10 space-y-8 animate-in fade-in duration-300">
+  <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-300">
     <PageHeader title="环境模板管理" />
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {isLoading ? <Loader2 className="animate-spin text-blue-400" /> : templates.map(t => (
@@ -43,7 +43,7 @@ export const EnvTemplatePage: React.FC<{ templates: EnvTemplate[]; isLoading: bo
 );
 
 export const EnvTasksPage: React.FC<{ tasks: AsyncTask[]; isLoading: boolean }> = ({ tasks, isLoading }) => (
-  <div className="p-10 space-y-8 animate-in fade-in duration-300">
+  <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-300">
     <PageHeader title="环境模板部署/卸载任务管理" />
  <div className="bg-theme-surface rounded-xl border border-theme-border overflow-hidden">
       <table className="w-full text-left">

@@ -439,24 +439,24 @@ const CreateAgentModal: React.FC<{
     compactHeight
   >
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <select value={createHelperKey} onChange={(e) => setCreateHelperKey(e.target.value)} className="rounded-xl border border-theme-border px-3 py-2 text-sm xl:col-span-3">
+      <select value={createHelperKey} onChange={(e) => setCreateHelperKey(e.target.value)} className="form-select xl:col-span-3">
         {helperOptions.map((item) => (
           <option key={item.key} value={item.key}>
             {item.label}
           </option>
         ))}
       </select>
-      <input value={createForm.agent_id} onChange={(e) => setCreateForm((prev) => ({ ...prev, agent_id: e.target.value }))} className="rounded-xl border border-theme-border px-3 py-2 text-sm" placeholder="agent_id" />
-      <select value={createForm.backend_type} onChange={(e) => setCreateForm((prev) => ({ ...prev, backend_type: e.target.value }))} className="rounded-xl border border-theme-border px-3 py-2 text-sm">
+      <input value={createForm.agent_id} onChange={(e) => setCreateForm((prev) => ({ ...prev, agent_id: e.target.value }))} className="form-input" placeholder="agent_id" />
+      <select value={createForm.backend_type} onChange={(e) => setCreateForm((prev) => ({ ...prev, backend_type: e.target.value }))} className="form-select">
         <option value="claude">claude</option>
         <option value="codex">codex</option>
         <option value="opencode">opencode</option>
       </select>
-      <input value={createForm.command} onChange={(e) => setCreateForm((prev) => ({ ...prev, command: e.target.value }))} className="rounded-xl border border-theme-border px-3 py-2 text-sm" placeholder="二进制/命令路径，例如 /usr/local/bin/codex" />
-      <input value={createForm.cwd} onChange={(e) => setCreateForm((prev) => ({ ...prev, cwd: e.target.value }))} className="rounded-xl border border-theme-border px-3 py-2 text-sm md:col-span-2 xl:col-span-2" placeholder="工作目录（可选），例如 /workspace/project" />
-      <input value={createForm.description} onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))} className="rounded-xl border border-theme-border px-3 py-2 text-sm md:col-span-2 xl:col-span-3" placeholder="description" />
-      <textarea value={createForm.args} onChange={(e) => setCreateForm((prev) => ({ ...prev, args: e.target.value }))} rows={5} className="rounded-xl border border-theme-border px-3 py-2 text-sm font-mono md:col-span-1 xl:col-span-1" placeholder='args JSON，例如 ["serve"]' />
-      <textarea value={createForm.env} onChange={(e) => setCreateForm((prev) => ({ ...prev, env: e.target.value }))} rows={5} className="rounded-xl border border-theme-border px-3 py-2 text-sm font-mono md:col-span-1 xl:col-span-2" placeholder='env JSON，例如 {"OPENAI_API_KEY":"..."}' />
+      <input value={createForm.command} onChange={(e) => setCreateForm((prev) => ({ ...prev, command: e.target.value }))} className="form-input" placeholder="二进制/命令路径，例如 /usr/local/bin/codex" />
+      <input value={createForm.cwd} onChange={(e) => setCreateForm((prev) => ({ ...prev, cwd: e.target.value }))} className="form-input md:col-span-2 xl:col-span-2" placeholder="工作目录（可选），例如 /workspace/project" />
+      <input value={createForm.description} onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))} className="form-input md:col-span-2 xl:col-span-3" placeholder="description" />
+      <textarea value={createForm.args} onChange={(e) => setCreateForm((prev) => ({ ...prev, args: e.target.value }))} rows={5} className="form-textarea font-mono md:col-span-1 xl:col-span-1" placeholder='args JSON，例如 ["serve"]' />
+      <textarea value={createForm.env} onChange={(e) => setCreateForm((prev) => ({ ...prev, env: e.target.value }))} rows={5} className="form-textarea font-mono md:col-span-1 xl:col-span-2" placeholder='env JSON，例如 {"OPENAI_API_KEY":"..."}' />
       <label className="flex items-center gap-2 text-sm text-theme-text-secondary xl:col-span-3">
         <input type="checkbox" checked={createForm.enabled} onChange={(e) => setCreateForm((prev) => ({ ...prev, enabled: e.target.checked }))} />
         默认启用
@@ -882,7 +882,7 @@ const BatchLlmApplyModal: React.FC<{
                 <select
                   value={providerToAdd}
                   onChange={(e) => setProviderToAdd(e.target.value)}
-                  className="flex-1 rounded-xl border border-theme-border px-3 py-2 text-xs"
+                  className="form-select flex-1 text-xs"
                 >
                   {providerOptions.map((provider) => (
                     <option key={provider.provider_key} value={provider.provider_key}>
@@ -964,8 +964,8 @@ const BatchLlmApplyModal: React.FC<{
               <div className="max-h-[420px] space-y-2 overflow-auto pr-1">
                 {envEntries.map((entry) => (
                   <div key={entry.id} className="grid grid-cols-1 gap-2 md:grid-cols-[220px_minmax(0,1fr)_72px]">
-                    <input value={entry.key} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, key: e.target.value } : it))} className="rounded border border-theme-border px-2 py-1 text-xs" placeholder="KEY" />
-                    <input value={entry.value} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, value: e.target.value } : it))} className="rounded border border-theme-border px-2 py-1 text-xs" placeholder="VALUE" />
+                    <input value={entry.key} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, key: e.target.value } : it))} className="form-input text-xs" placeholder="KEY" />
+                    <input value={entry.value} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, value: e.target.value } : it))} className="form-input text-xs" placeholder="VALUE" />
                     <button type="button" onClick={() => setEnvEntries((prev) => prev.filter((it) => it.id !== entry.id))} className="rounded border border-rose-500/20 px-2 py-1 text-xs text-rose-400">删除</button>
                   </div>
                 ))}
@@ -985,24 +985,24 @@ const BatchLlmApplyModal: React.FC<{
                     <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                       <label className="text-xs text-theme-text-secondary">
                         <div className="mb-1 font-semibold text-theme-text-secondary">名称（name）</div>
-                        <input value={entry.name} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, name: e.target.value } : it))} className="w-full rounded border border-theme-border px-2 py-1 text-xs" placeholder="例如: claude-config" />
+                        <input value={entry.name} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, name: e.target.value } : it))} className="form-input w-full text-xs" placeholder="例如: claude-config" />
                       </label>
                       <label className="text-xs text-theme-text-secondary">
                         <div className="mb-1 font-semibold text-theme-text-secondary">注入路径（path）</div>
-                        <input value={entry.path} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, path: e.target.value } : it))} className="w-full rounded border border-theme-border px-2 py-1 text-xs" placeholder="例如: /etc/agent/config.json" />
+                        <input value={entry.path} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, path: e.target.value } : it))} className="form-input w-full text-xs" placeholder="例如: /etc/agent/config.json" />
                       </label>
                       <label className="text-xs text-theme-text-secondary">
                         <div className="mb-1 font-semibold text-theme-text-secondary">格式（format）</div>
-                        <input value={entry.format} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, format: e.target.value } : it))} className="w-full rounded border border-theme-border px-2 py-1 text-xs" placeholder="json/yaml/env/other" />
+                        <input value={entry.format} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, format: e.target.value } : it))} className="form-input w-full text-xs" placeholder="json/yaml/env/other" />
                       </label>
                       <label className="text-xs text-theme-text-secondary">
                         <div className="mb-1 font-semibold text-theme-text-secondary">来源 Provider（可选）</div>
-                        <input value={entry.provider_key || ''} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, provider_key: e.target.value } : it))} className="w-full rounded border border-theme-border px-2 py-1 text-xs" placeholder="provider_key(optional)" />
+                        <input value={entry.provider_key || ''} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, provider_key: e.target.value } : it))} className="form-input w-full text-xs" placeholder="provider_key(optional)" />
                       </label>
                     </div>
                     <label className="mt-2 block text-xs text-theme-text-secondary">
                       <div className="mb-1 font-semibold text-theme-text-secondary">文件内容（content）</div>
-                      <textarea value={entry.content} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, content: e.target.value } : it))} rows={4} className="w-full rounded border border-theme-border px-2 py-1 text-xs font-mono" placeholder="输入将注入到文件中的完整内容" />
+                      <textarea value={entry.content} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, content: e.target.value } : it))} rows={4} className="form-textarea w-full text-xs font-mono" placeholder="输入将注入到文件中的完整内容" />
                     </label>
                     <div className="mt-2 flex items-center justify-between">
                       <label className="inline-flex items-center gap-2 text-xs text-theme-text-secondary"><input type="checkbox" checked={entry.enabled} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, enabled: e.target.checked } : it))} />启用（enabled）</label>
@@ -1486,7 +1486,7 @@ const SingleAgentLlmModal: React.FC<{
                     <select
                       value={providerToAdd}
                       onChange={(e) => setProviderToAdd(e.target.value)}
-                      className="flex-1 rounded-xl border border-theme-border px-3 py-2 text-xs"
+                      className="form-select flex-1 text-xs"
                     >
                       <option value="">选择 LLM Provider</option>
                       {providerOptions.map((provider) => (
@@ -1571,8 +1571,8 @@ const SingleAgentLlmModal: React.FC<{
                   <div className="max-h-[420px] space-y-2 overflow-auto pr-1">
                     {envEntries.map((entry) => (
                       <div key={entry.id} className="grid grid-cols-1 gap-2 md:grid-cols-[220px_minmax(0,1fr)_72px]">
-                        <input value={entry.key} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, key: e.target.value } : it))} className="rounded border border-theme-border px-2 py-1 text-xs" placeholder="KEY" />
-                        <input value={entry.value} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, value: e.target.value } : it))} className="rounded border border-theme-border px-2 py-1 text-xs" placeholder="VALUE" />
+                        <input value={entry.key} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, key: e.target.value } : it))} className="form-input text-xs" placeholder="KEY" />
+                        <input value={entry.value} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, value: e.target.value } : it))} className="form-input text-xs" placeholder="VALUE" />
                         <button type="button" onClick={() => setEnvEntries((prev) => prev.filter((it) => it.id !== entry.id))} className="rounded border border-rose-500/20 px-2 py-1 text-xs text-rose-400">删除</button>
                       </div>
                     ))}
@@ -1592,24 +1592,24 @@ const SingleAgentLlmModal: React.FC<{
                         <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                           <label className="text-xs text-theme-text-secondary">
                             <div className="mb-1 font-semibold text-theme-text-secondary">名称（name）</div>
-                            <input value={entry.name} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, name: e.target.value } : it))} className="w-full rounded border border-theme-border px-2 py-1 text-xs" placeholder="例如: claude-config" />
+                            <input value={entry.name} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, name: e.target.value } : it))} className="form-input w-full text-xs" placeholder="例如: claude-config" />
                           </label>
                           <label className="text-xs text-theme-text-secondary">
                             <div className="mb-1 font-semibold text-theme-text-secondary">注入路径（path）</div>
-                            <input value={entry.path} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, path: e.target.value } : it))} className="w-full rounded border border-theme-border px-2 py-1 text-xs" placeholder="例如: /etc/agent/config.json" />
+                            <input value={entry.path} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, path: e.target.value } : it))} className="form-input w-full text-xs" placeholder="例如: /etc/agent/config.json" />
                           </label>
                           <label className="text-xs text-theme-text-secondary">
                             <div className="mb-1 font-semibold text-theme-text-secondary">格式（format）</div>
-                            <input value={entry.format} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, format: e.target.value } : it))} className="w-full rounded border border-theme-border px-2 py-1 text-xs" placeholder="json/yaml/env/other" />
+                            <input value={entry.format} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, format: e.target.value } : it))} className="form-input w-full text-xs" placeholder="json/yaml/env/other" />
                           </label>
                           <label className="text-xs text-theme-text-secondary">
                             <div className="mb-1 font-semibold text-theme-text-secondary">来源 Provider（可选）</div>
-                            <input value={entry.provider_key || ''} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, provider_key: e.target.value } : it))} className="w-full rounded border border-theme-border px-2 py-1 text-xs" placeholder="provider_key(optional)" />
+                            <input value={entry.provider_key || ''} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, provider_key: e.target.value } : it))} className="form-input w-full text-xs" placeholder="provider_key(optional)" />
                           </label>
                         </div>
                         <label className="mt-2 block text-xs text-theme-text-secondary">
                           <div className="mb-1 font-semibold text-theme-text-secondary">文件内容（content）</div>
-                          <textarea value={entry.content} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, content: e.target.value } : it))} rows={4} className="w-full rounded border border-theme-border px-2 py-1 text-xs font-mono" placeholder="输入将注入到文件中的完整内容" />
+                          <textarea value={entry.content} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, content: e.target.value } : it))} rows={4} className="form-textarea w-full text-xs font-mono" placeholder="输入将注入到文件中的完整内容" />
                         </label>
                         <div className="mt-2 flex items-center justify-between">
                           <label className="inline-flex items-center gap-2 text-xs text-theme-text-secondary"><input type="checkbox" checked={entry.enabled} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, enabled: e.target.checked } : it))} />启用（enabled）</label>
@@ -1845,11 +1845,11 @@ const AgentDetailDrawer: React.FC<{
               <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="text-sm text-theme-text-secondary md:col-span-2">
                   <div className="mb-1.5 font-semibold text-theme-text-primary">二进制/命令路径</div>
-                  <input value={editForm.command} onChange={(e) => setEditForm((prev) => ({ ...prev, command: e.target.value }))} className="w-full rounded-xl border border-theme-border px-3 py-2 text-sm" placeholder="例如 /usr/local/bin/codex" />
+                  <input value={editForm.command} onChange={(e) => setEditForm((prev) => ({ ...prev, command: e.target.value }))} className="form-input w-full" placeholder="例如 /usr/local/bin/codex" />
                 </label>
                 <label className="text-sm text-theme-text-secondary md:col-span-2">
                   <div className="mb-1.5 font-semibold text-theme-text-primary">工作目录</div>
-                  <input value={editForm.cwd} onChange={(e) => setEditForm((prev) => ({ ...prev, cwd: e.target.value }))} className="w-full rounded-xl border border-theme-border px-3 py-2 text-sm" placeholder="可选，例如 /workspace/project" />
+                  <input value={editForm.cwd} onChange={(e) => setEditForm((prev) => ({ ...prev, cwd: e.target.value }))} className="form-input w-full" placeholder="可选，例如 /workspace/project" />
                 </label>
                 <label className="text-sm text-theme-text-secondary md:col-span-2">
                   <div className="mb-1.5 font-semibold text-theme-text-primary">命令行参数</div>
@@ -1870,7 +1870,7 @@ const AgentDetailDrawer: React.FC<{
                             <input
                               value={entry.value}
                               onChange={(e) => setArgEntries((prev) => prev.map((item) => (item.id === entry.id ? { ...item, value: e.target.value } : item)))}
-                              className="min-w-0 flex-1 rounded-xl border border-theme-border px-3 py-2 text-sm font-mono"
+className="form-input min-w-0 flex-1 font-mono"
                               placeholder="例如 --port 或 8080"
                             />
                             <button
@@ -1893,7 +1893,7 @@ const AgentDetailDrawer: React.FC<{
                 </label>
                 <label className="text-sm text-theme-text-secondary md:col-span-2">
                   <div className="mb-1.5 font-semibold text-theme-text-primary">描述</div>
-                  <input value={editForm.description} onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))} className="w-full rounded-xl border border-theme-border px-3 py-2 text-sm" placeholder="描述这个 AI Agent 的用途" />
+                  <input value={editForm.description} onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))} className="form-input w-full" placeholder="描述这个 AI Agent 的用途" />
                 </label>
                 <label className="flex items-center gap-2 text-sm font-semibold text-theme-text-secondary md:col-span-2"><input type="checkbox" checked={editForm.enabled} onChange={(e) => setEditForm((prev) => ({ ...prev, enabled: e.target.checked }))} />启用该 AI Agent</label>
                 <button onClick={() => void onSaveAgent()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white md:col-span-2">
@@ -1926,14 +1926,14 @@ const AgentDetailDrawer: React.FC<{
                       <input
                         value={entry.key}
                         onChange={(e) => setEnvEntries((prev) => prev.map((item) => (item.id === entry.id ? { ...item, key: e.target.value } : item)))}
-                        className="w-56 shrink-0 rounded-xl border border-theme-border px-3 py-2 text-sm font-mono"
+                        className="form-input w-56 shrink-0 font-mono"
                         placeholder="KEY"
                       />
                       <span className="shrink-0 text-theme-text-muted">=</span>
                       <input
                         value={entry.value}
                         onChange={(e) => setEnvEntries((prev) => prev.map((item) => (item.id === entry.id ? { ...item, value: e.target.value } : item)))}
-                        className="min-w-0 flex-1 rounded-xl border border-theme-border px-3 py-2 text-sm font-mono"
+                        className="form-input min-w-0 flex-1 font-mono"
                         placeholder="value"
                       />
                       <button
@@ -1993,7 +1993,7 @@ const AgentDetailDrawer: React.FC<{
                     value={envImportText}
                     onChange={(e) => setEnvImportText(e.target.value)}
                     rows={10}
-                    className="w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-mono"
+                    className="form-textarea w-full font-mono"
                     placeholder={'例如 OPENAI_API_KEY=xxx\\nHTTP_PROXY=\"http://a;b@proxy:8080\";DEBUG=true'}
                   />
                   {envImportError ? <div className="text-sm font-semibold text-red-400">{envImportError}</div> : null}
@@ -2028,7 +2028,7 @@ const AgentDetailDrawer: React.FC<{
                     value={argImportText}
                     onChange={(e) => setArgImportText(e.target.value)}
                     rows={10}
-                    className="w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-mono"
+                    className="form-textarea w-full font-mono"
                     placeholder={'例如 --serve\\n--port\\n8080\\n或 --flag-a;--flag-b;\"--note=a;b\"'}
                   />
                   {argImportError ? <div className="text-sm font-semibold text-red-400">{argImportError}</div> : null}
@@ -2716,12 +2716,12 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
  <section className="rounded-xl border border-theme-border bg-theme-surface p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6 flex-1">
-                <input value={search} onChange={(e) => setSearch(e.target.value)} className="rounded-xl border border-theme-border px-3 py-2 text-sm xl:col-span-2" placeholder="搜索节点、helper、agent_id、backend、provider" />
-                <select value={nodeFilter} onChange={(e) => setNodeFilter(e.target.value)} className="rounded-xl border border-theme-border px-3 py-2 text-sm"><option value="">全部节点</option>{nodeOptions.map((node) => <option key={node} value={node}>{node}</option>)}</select>
-                <select value={backendFilter} onChange={(e) => setBackendFilter(e.target.value)} className="rounded-xl border border-theme-border px-3 py-2 text-sm"><option value="">全部后端</option>{backendOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select>
-                <select value={installedFilter} onChange={(e) => setInstalledFilter(e.target.value)} className="rounded-xl border border-theme-border px-3 py-2 text-sm"><option value="">Installed 全部</option><option value="true">已安装</option><option value="false">未安装</option></select>
-                <select value={runningFilter} onChange={(e) => setRunningFilter(e.target.value)} className="rounded-xl border border-theme-border px-3 py-2 text-sm"><option value="">Running 全部</option><option value="true">运行中</option><option value="false">已停止</option></select>
-                <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} className="rounded-xl border border-theme-border px-3 py-2 text-sm"><option value="">Active 全部</option><option value="true">已激活</option><option value="false">未激活</option></select>
+                <input value={search} onChange={(e) => setSearch(e.target.value)} className="form-input xl:col-span-2" placeholder="搜索节点、helper、agent_id、backend、provider" />
+                <select value={nodeFilter} onChange={(e) => setNodeFilter(e.target.value)} className="form-select"><option value="">全部节点</option>{nodeOptions.map((node) => <option key={node} value={node}>{node}</option>)}</select>
+                <select value={backendFilter} onChange={(e) => setBackendFilter(e.target.value)} className="form-select"><option value="">全部后端</option>{backendOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+                <select value={installedFilter} onChange={(e) => setInstalledFilter(e.target.value)} className="form-select"><option value="">Installed 全部</option><option value="true">已安装</option><option value="false">未安装</option></select>
+                <select value={runningFilter} onChange={(e) => setRunningFilter(e.target.value)} className="form-select"><option value="">Running 全部</option><option value="true">运行中</option><option value="false">已停止</option></select>
+                <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} className="form-select"><option value="">Active 全部</option><option value="true">已激活</option><option value="false">未激活</option></select>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3 xl:justify-end">
                 <button
@@ -2890,7 +2890,7 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                     setPerPage(next);
                     setPage(1);
                   }}
-                  className="rounded border border-theme-border px-2 py-1 text-xs"
+className="form-select text-xs"
                 >
                   {[50, 100, 200, 500, 1000].map((size) => (
                     <option key={size} value={size}>{size}</option>

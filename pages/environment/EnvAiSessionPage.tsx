@@ -618,7 +618,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
               <select
                 value={String(autoSyncIntervalMs)}
                 onChange={(event) => setAutoSyncIntervalMs(Number(event.target.value))}
-                className="rounded-xl border border-theme-border px-2 py-1 text-xs text-theme-text-secondary"
+                className="form-select text-xs"
                 disabled={!autoSyncEnabled}
               >
                 <option value="5000">5s</option>
@@ -645,7 +645,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                   placeholder="筛选 hostname / agent_key / service_name"
                   className="mb-2 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm"
                 />
-                <select value={selectedHelperKey} onChange={(e) => setSelectedHelperKey(e.target.value)} className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm">
+                <select value={selectedHelperKey} onChange={(e) => setSelectedHelperKey(e.target.value)} className="form-select w-full">
                   {helperSelectOptions.map((helper) => (
                     <option key={`${helper.agent_key}::${helper.service_name}`} value={`${helper.agent_key}::${helper.service_name}`}>{helper.agent_hostname || helper.agent_key} · {helper.service_name}</option>
                   ))}
@@ -811,7 +811,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                 </div>
 
                 <div className="flex items-end gap-2">
-                  <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} className="min-h-[76px] flex-1 rounded-xl border border-theme-border px-3 py-2 text-sm" placeholder="输入要发送给当前会话的消息" />
+                  <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} className="form-textarea min-h-[76px] flex-1" placeholder="输入要发送给当前会话的消息" />
                   <button onClick={() => void sendMessage()} className="inline-flex h-[76px] items-center justify-center gap-2 rounded-xl bg-theme-surface px-4 text-sm font-semibold text-white">
                     {busyAction === 'send' ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
                     发送

@@ -707,7 +707,7 @@ const KnowledgeFeedbackQuadrant: React.FC<{
       onChange={(e) => p.onFeedbackContentChange(e.target.value)}
       placeholder="输入反馈内容..."
       rows={3}
-      className="w-full px-2.5 py-1.5 rounded-md text-xs border border-theme-border bg-theme-bg-elevated text-theme-text-primary placeholder-theme-text-faint focus:outline-none focus:border-brand-primary resize-none"
+      className="form-textarea w-full text-xs resize-none"
     />
     {p.error && <div className="text-[11px] text-red-600 mt-1">{p.error}</div>}
     <button

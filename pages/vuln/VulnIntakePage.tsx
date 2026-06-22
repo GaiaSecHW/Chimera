@@ -2312,42 +2312,42 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       <div className="grid grid-cols-2 gap-2.5">
                         <label className="grid gap-1">
                           <span className="text-[11px] font-semibold text-theme-text-muted-soft">上报者名称（reporter.name）</span>
-                          <input value={editableDetail?.reporter?.name || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, name: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input rounded-lg px-3 py-2 text-sm" />
+                          <input value={editableDetail?.reporter?.name || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, name: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input" />
                         </label>
                         <label className="grid gap-1">
                           <span className="text-[11px] font-semibold text-theme-text-muted-soft">上报者版本（reporter.version）</span>
-                          <input value={editableDetail?.reporter?.version || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, version: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input rounded-lg px-3 py-2 text-sm" />
+                          <input value={editableDetail?.reporter?.version || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, version: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input" />
                         </label>
                         <label className="grid gap-1">
                           <span className="text-[11px] font-semibold text-theme-text-muted-soft">上报方式（reporter.type）</span>
-                          <input value={editableDetail?.reporter?.type || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, type: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input rounded-lg px-3 py-2 text-sm" />
+                          <input value={editableDetail?.reporter?.type || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, type: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input" />
                         </label>
                         <label className="grid gap-1">
                           <span className="text-[11px] font-semibold text-theme-text-muted-soft">上报入口（reporter.endpoint）</span>
-                          <input value={editableDetail?.reporter?.endpoint || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, endpoint: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input rounded-lg px-3 py-2 text-sm" />
+                          <input value={editableDetail?.reporter?.endpoint || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, endpoint: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input" />
                         </label>
                       </div>
                       <div className="grid grid-cols-2 gap-2.5">
                         <label className="grid gap-1">
                           <span className="text-[11px] font-semibold text-theme-text-muted-soft">对象类型（subject.type）</span>
-                          <input value={editableDetail?.subject?.type || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, type: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input rounded-lg px-3 py-2 text-sm" />
+                          <input value={editableDetail?.subject?.type || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, type: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input" />
                         </label>
                         <label className="grid gap-1">
                           <span className="text-[11px] font-semibold text-theme-text-muted-soft">对象名称（subject.name）</span>
-                          <input value={editableDetail?.subject?.name || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, name: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input rounded-lg px-3 py-2 text-sm" />
+                          <input value={editableDetail?.subject?.name || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, name: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input" />
                         </label>
                         <label className="grid gap-1 col-span-2">
                           <span className="text-[11px] font-semibold text-theme-text-muted-soft">对象定位（subject.locator）</span>
-                          <input value={editableDetail?.subject?.locator || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, locator: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input rounded-lg px-3 py-2 text-sm" />
+                          <input value={editableDetail?.subject?.locator || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, locator: event.target.value } } : prev))} disabled={!detailEditMode || detailSaving} className="form-input" />
                         </label>
                       </div>
                       <label className="grid gap-1">
                         <span className="text-[11px] font-semibold text-theme-text-muted-soft">证据摘要（evidence.summary）</span>
-                        <textarea value={editableDetail?.evidence_summary || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_summary: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="form-input min-h-[66px] rounded-lg px-3 py-2 text-sm resize-none" />
+                        <textarea value={editableDetail?.evidence_summary || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_summary: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="form-textarea min-h-[66px] resize-none" />
                       </label>
                       <label className="grid gap-1">
                         <span className="text-[11px] font-semibold text-theme-text-muted-soft">复现提示（evidence.reproduction_hint）</span>
-                        <textarea value={editableDetail?.evidence_reproduction_hint || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_reproduction_hint: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="form-input min-h-[66px] rounded-lg px-3 py-2 text-sm resize-none" />
+                        <textarea value={editableDetail?.evidence_reproduction_hint || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_reproduction_hint: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="form-textarea min-h-[66px] resize-none" />
                       </label>
                     </div>
                   </DetailSectionCard>

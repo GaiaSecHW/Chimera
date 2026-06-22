@@ -86,7 +86,7 @@ const NumberInput: React.FC<{ value: number; min?: number; max?: number; step?: 
         if (!isNaN(n)) onChange(n);
       }}
       onBlur={() => setStr(String(value))}
-      className="w-full rounded-lg border border-theme-border px-3 py-2 text-sm" />
+      className="form-input w-full" />
   );
 };
 
@@ -94,7 +94,7 @@ const ModelSelect: React.FC<{ value: string; options: string[]; onChange: (v: st
   const allOpts = value && !options.includes(value) ? [value, ...options] : options;
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-theme-border px-3 py-2 text-sm bg-theme-bg-app">
+      className="form-select w-full">
       <option value="">— 选择模型 —</option>
       {allOpts.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
     </select>
@@ -412,7 +412,7 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
                   onChange={(e) => patch({
                     max_rounds_exceeded_review_strategy: e.target.value as AppDfaServiceConfig['max_rounds_exceeded_review_strategy'],
                   })}
-                  className="w-full rounded-lg border border-theme-border px-3 py-2 text-sm bg-theme-bg-app"
+className="form-select w-full"
                 >
                   <option value="treat_as_passed">默认通过，子任务按通过收敛</option>
                   <option value="treat_as_failed">判定失败，子任务按失败收敛</option>

@@ -456,7 +456,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
             <select
               value={selectedServiceKey}
               onChange={(event) => setSelectedServiceKey(event.target.value)}
-              className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-3"
+              className="form-select mt-1 w-full"
             >
               {nodes.map((item) => (
                 <option key={`${item.agent_key}:${item.service_name}`} value={`${item.agent_key}:${item.service_name}`}>

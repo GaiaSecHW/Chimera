@@ -1224,15 +1224,15 @@ export const CasesWorkspace: React.FC<any> = ({
             {activeTab === 'tasks' && (
               <div className="space-y-5">
                 <form onSubmit={handleCreateTask} className="rounded-[1.5rem] border border-theme-border p-4 grid grid-cols-1 xl:grid-cols-2 gap-3">
-                  <select value={taskForm.task_type} onChange={(event) => setTaskForm({ ...taskForm, task_type: event.target.value })} className="px-4 py-3 rounded-2xl border border-theme-border outline-none bg-theme-bg-app">
+                  <select value={taskForm.task_type} onChange={(event) => setTaskForm({ ...taskForm, task_type: event.target.value })} className="form-select">
                     <option value="manual_review">人工复核</option>
                     <option value="manual_analysis">人工分析</option>
                     <option value="manual_validation">人工验证</option>
                     <option value="manual_decision">人工裁决</option>
                   </select>
-                  <input value={taskForm.assignee} onChange={(event) => setTaskForm({ ...taskForm, assignee: event.target.value })} placeholder="指派给谁" className="px-4 py-3 rounded-2xl border border-theme-border outline-none" />
-                  <input value={taskForm.title} onChange={(event) => setTaskForm({ ...taskForm, title: event.target.value })} placeholder="任务标题" className="px-4 py-3 rounded-2xl border border-theme-border outline-none xl:col-span-2" required />
-                  <textarea value={taskForm.summary} onChange={(event) => setTaskForm({ ...taskForm, summary: event.target.value })} placeholder="任务说明" className="min-h-[6rem] px-4 py-3 rounded-2xl border border-theme-border outline-none resize-none xl:col-span-2" />
+                  <input value={taskForm.assignee} onChange={(event) => setTaskForm({ ...taskForm, assignee: event.target.value })} placeholder="指派给谁" className="form-input" />
+                  <input value={taskForm.title} onChange={(event) => setTaskForm({ ...taskForm, title: event.target.value })} placeholder="任务标题" className="form-input xl:col-span-2" required />
+                  <textarea value={taskForm.summary} onChange={(event) => setTaskForm({ ...taskForm, summary: event.target.value })} placeholder="任务说明" className="form-textarea min-h-[6rem] resize-none xl:col-span-2" />
                   <button type="submit" disabled={creatingTask} className="xl:col-span-2 px-5 py-3 rounded-2xl bg-amber-500 text-white font-medium">{creatingTask ? '创建中...' : '创建人工任务'}</button>
                 </form>
 
@@ -1286,13 +1286,13 @@ export const CasesWorkspace: React.FC<any> = ({
                       value={newPanelTitle}
                       onChange={(event) => setNewPanelTitle(event.target.value)}
                       placeholder="Panel 标题"
-                      className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm outline-none"
+                      className="form-input w-full"
                     />
                     <textarea
                       value={newPanelContent}
                       onChange={(event) => setNewPanelContent(event.target.value)}
                       placeholder="Panel 内容（可选）"
-                      className="min-h-[74px] w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm outline-none"
+                      className="form-textarea min-h-[74px] w-full"
                     />
                     <div className="flex justify-end">
                       <button

@@ -128,7 +128,7 @@ export const SecOctoSkillsPage: React.FC<SkillsProps> = ({ onNavigateSkill, onNa
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="搜索当前页…"
-            className="pl-9 pr-3 py-1.5 rounded-lg border border-theme-border bg-theme-surface text-theme-text-primary text-sm w-56 outline-none focus:border-brand-primary transition-colors"
+            className="form-input w-56 pl-9 pr-3"
           />
         </div>
       </div>
@@ -1436,7 +1436,7 @@ export const SecOctoResultPage: React.FC<ResultProps> = ({ fullName, proposalIds
           onChange={(e) => setReason(e.target.value)}
           rows={3}
           placeholder="可选,填写原因或备注..."
-          className="w-full px-3 py-2 rounded-md border border-theme-border bg-theme-bg-elevated text-xs text-theme-text-primary outline-none focus:border-brand-primary resize-y"
+          className="form-textarea w-full text-xs resize-y"
         />
         <div className="flex items-center justify-end gap-2 mt-3">
           <button

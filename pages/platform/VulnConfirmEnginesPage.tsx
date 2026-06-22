@@ -215,7 +215,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
   const activeCount = engines.filter((e) => e.status === 'active').length;
 
   return (
-    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
       <PageHeader
         title={<><div className="p-3 bg-indigo-600 text-white rounded-lg shadow-indigo-500/20 inline-flex"><ShieldCheck size={28} /></div> 漏洞确认引擎管理</>}
         actions={<div className="flex gap-4">
@@ -264,7 +264,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
       />
 
       <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} className="max-w-lg">
-        <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
+        <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-indigo-500/20">
               {editingEngine ? <Edit3 size={24} /> : <Plus size={24} />}
@@ -283,7 +283,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
               required
               disabled={!!editingEngine}
               placeholder="e.g. loki-triage-prod"
-              className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-indigo-500/10 font-bold text-theme-text-primary font-mono disabled:opacity-60 disabled:cursor-not-allowed"
+              className="form-input w-full font-mono disabled:opacity-60 disabled:cursor-not-allowed"
               value={formData.engine_name}
               onChange={(e) => setFormData({ ...formData, engine_name: e.target.value })}
             />
@@ -294,7 +294,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
             <input
               required
               placeholder="http://engine-host:port"
-              className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-indigo-500/10 font-bold text-theme-text-primary font-mono"
+              className="form-input w-full font-mono"
               value={formData.endpoint}
               onChange={(e) => setFormData({ ...formData, endpoint: e.target.value })}
             />
@@ -304,7 +304,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
             <input
               required
               placeholder="v1.0.0"
-              className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-indigo-500/10 font-bold text-theme-text-primary font-mono"
+              className="form-input w-full font-mono"
               value={formData.version}
               onChange={(e) => setFormData({ ...formData, version: e.target.value })}
             />
@@ -314,7 +314,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
             <textarea
               rows={4}
               placeholder={'每行一个工具名，例如：\nloki-triage\nloki-validate'}
-              className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-indigo-500/10 font-bold text-theme-text-primary font-mono resize-none"
+              className="form-textarea w-full font-mono resize-none"
               value={formData.bind_tools_text}
               onChange={(e) => setFormData({ ...formData, bind_tools_text: e.target.value })}
             />

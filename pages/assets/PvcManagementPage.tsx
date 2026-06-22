@@ -1673,13 +1673,13 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
             <div className="text-2xl font-semibold text-theme-text-primary">创建 PVC</div>
             <p className="mt-2 text-sm font-medium text-theme-text-muted">为当前项目创建任意资源类型的持久化存储。</p>
             <form onSubmit={handleCreatePvc} className="mt-6 space-y-5">
-              <input data-testid="pvc-create-name-input" value={createForm.name} onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="PVC 名称" required className="w-full rounded-2xl border border-theme-border px-4 py-3 font-semibold outline-none" />
-              <textarea value={createForm.description} onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))} placeholder="用途说明" rows={3} className="w-full rounded-2xl border border-theme-border px-4 py-3 font-semibold outline-none" />
+              <input data-testid="pvc-create-name-input" value={createForm.name} onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="PVC 名称" required className="form-input w-full" />
+              <textarea value={createForm.description} onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))} placeholder="用途说明" rows={3} className="form-textarea w-full" />
               <select
                 data-testid="pvc-create-type-select"
                 value={createForm.resource_type}
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, resource_type: e.target.value as any }))}
-                className="w-full rounded-2xl border border-theme-border px-4 py-3 font-semibold outline-none"
+className="form-select w-full"
               >
                 <option value="document">文档资源 PVC</option>
                 <option value="software">软件包资源 PVC</option>
@@ -1716,7 +1716,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                   data-testid="pvc-archive-type-select"
                   value={archiveUploadForm.resource_type}
                   onChange={(e) => setArchiveUploadForm((prev) => ({ ...prev, resource_type: e.target.value as any }))}
-                  className="w-full rounded-xl border border-theme-border px-4 py-3 text-sm font-semibold outline-none"
+                  className="form-select w-full"
                 >
                   <option value="document">文档资源 PVC</option>
                   <option value="software">软件包资源 PVC</option>

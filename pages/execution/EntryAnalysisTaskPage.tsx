@@ -1743,7 +1743,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="rounded-lg border border-theme-border px-2 py-1.5 text-xs text-theme-text-secondary bg-theme-surface"
+              className="form-select text-xs"
               title="任务状态筛选"
             >
               <option value="">全部状态</option>
@@ -1754,7 +1754,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
             <select
               value={modeFilter}
               onChange={(e) => { setModeFilter((e.target.value as '' | 'manual' | 'binary' | 'source') || ''); setPage(1); }}
-              className="rounded-lg border border-theme-border px-2 py-1.5 text-xs text-theme-text-secondary bg-theme-surface"
+              className="form-select text-xs"
               title="模式筛选"
             >
               <option value="">全部模式</option>
@@ -1772,7 +1772,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
             <select
               value={sortBy}
               onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
-              className="rounded-lg border border-theme-border px-2 py-1.5 text-xs text-theme-text-secondary bg-theme-surface"
+              className="form-select text-xs"
               title="排序字段"
             >
               {SORT_OPTIONS.map((option) => (
@@ -1782,7 +1782,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
             <select
               value={sortOrder}
               onChange={(e) => { setSortOrder(e.target.value === 'asc' ? 'asc' : 'desc'); setPage(1); }}
-              className="rounded-lg border border-theme-border px-2 py-1.5 text-xs text-theme-text-secondary bg-theme-surface"
+              className="form-select text-xs"
               title="排序方向"
             >
               <option value="desc">降序</option>
@@ -1791,7 +1791,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
             <select
               value={perPage}
               onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-              className="rounded-lg border border-theme-border px-2 py-1.5 text-xs text-theme-text-secondary bg-theme-surface"
+              className="form-select text-xs"
               title="每页显示条数"
             >
               {[10, 50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}条/页</option>)}
@@ -2186,7 +2186,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                   {!loadingModules && form.input_path.trim() && availableModules.length === 0 ? <span className="text-xs text-red-400">未找到模块</span> : null}
                 </span>
                 <select
-                  className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 text-sm font-mono bg-theme-surface disabled:opacity-50"
+                  className="form-select mt-1 w-full font-mono disabled:opacity-50"
                   value={form.module_name}
                   onChange={(e) => setForm((p) => ({ ...p, module_name: e.target.value }))}
                   disabled={loadingModules || availableModules.length === 0}

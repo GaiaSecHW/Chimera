@@ -1426,15 +1426,15 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
           <MetricTile label="当前函数" value={detail?.event_summary?.current_function || '-'} tone="emerald" icon={<Code2 size={18} />} />
         </div>
         <div className="grid gap-2 md:grid-cols-4">
-          <select value={timelinePhaseFilter} onChange={(event) => setTimelinePhaseFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none focus:border-slate-400">
+          <select value={timelinePhaseFilter} onChange={(event) => setTimelinePhaseFilter(event.target.value)} className="form-select">
             <option value="__all__">全部阶段</option>
             {timelinePhaseOptions.map((value) => <option key={value} value={value}>{PHASE_LABELS[value] || value}</option>)}
           </select>
-          <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none focus:border-slate-400">
+          <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="form-select">
             <option value="__all__">全部事件</option>
             {timelineEventTypeOptions.map((value) => <option key={value} value={value}>{formatTimelineEventTypeLabel(value)}</option>)}
           </select>
-          <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none focus:border-slate-400">
+          <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="form-select">
             <option value="__all__">全部级别</option>
             {timelineLevelOptions.map((value) => <option key={value} value={value}>{value}</option>)}
           </select>

@@ -207,7 +207,7 @@ export const DialogViewport: React.FC = () => {
                 value={promptValue}
                 onChange={(event) => setPromptValue(event.target.value)}
                 placeholder={active.placeholder}
-                className="mt-6 w-full rounded-2xl border border-theme-border bg-theme-elevated px-5 py-4 text-sm font-semibold text-theme-text-primary outline-none ring-0 transition-all focus:border-violet-300 focus:shadow-[0_0_0_4px_rgba(139,92,246,0.08)]"
+                className="form-input mt-6 w-full"
                 onKeyDown={(event) => {
                   if (event.key === 'Escape') resolvePrompt(null);
                   if (event.key === 'Enter') resolvePrompt(promptValue.trim());

@@ -108,7 +108,7 @@ const ModelSelect: React.FC<{ value: string; options: string[]; onChange: (v: st
   const allOpts = value && !options.includes(value) ? [value, ...options] : options;
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-slate-50">
+      className="form-select w-full">
       <option value="">— 选择模型 —</option>
       {allOpts.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
     </select>
@@ -438,7 +438,7 @@ export const CfgGuidedExploreConfigPage: React.FC<{ projectId: string; embedded?
                   onChange={(e) => patch({
                     max_rounds_exceeded_review_strategy: e.target.value as AppDfaServiceConfig['max_rounds_exceeded_review_strategy'],
                   })}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-slate-50"
+                  className="form-select w-full"
                 >
                   <option value="treat_as_passed">默认通过，子任务按通过收敛</option>
                   <option value="treat_as_failed">判定失败，子任务按失败收敛</option>

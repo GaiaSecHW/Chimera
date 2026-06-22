@@ -325,7 +325,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-secondary"
+              className="form-select"
             >
               <option value="">全部状态</option>
               <option value="pending">等待中</option>
@@ -376,7 +376,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
                   return (
                     <tr
                       key={item.tool_task_id}
-                      className="group cursor-pointer border-b border-slate-50 transition hover:bg-slate-100/70"
+                      className="group cursor-pointer border-b border-theme-border transition hover:bg-slate-100/70"
                       onClick={() => onOpenTask(item.tool_task_id)}
                     >
                       <td className="px-3 py-3 font-mono text-xs text-theme-text-secondary">
@@ -481,7 +481,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
                   value={taskName}
                   onChange={(e) => setTaskName(e.target.value)}
                   placeholder="输入任务名称"
-                  className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-theme-border"
+                  className="form-input w-full"
                 />
               </div>
 
@@ -491,7 +491,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
                 <select
                   value={platform}
                   onChange={(e) => setPlatform(e.target.value as AppScanPlatform)}
-                  className="w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2.5 text-sm text-theme-text-secondary"
+                  className="form-select w-full"
                 >
                   <option value="APP">APP（APK/HAP/源码包，直接反编译）</option>
                   <option value="WEB">WEB（源码包，预处理 Agent 拆分服务）</option>
@@ -504,7 +504,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
                 <select
                   value={scanMode}
                   onChange={(e) => setScanMode(e.target.value as AppScanScanMode)}
-                  className="w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2.5 text-sm text-theme-text-secondary"
+                  className="form-select w-full"
                 >
                   <option value="fast">fast（仅 sink/taint，速度优先）</option>
                   <option value="deep">deep（source/surface + 深度挖掘）</option>

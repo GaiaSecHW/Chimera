@@ -808,7 +808,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
 
   if (!projectId) {
     return (
-      <div className="flex h-full min-h-[calc(100vh-5rem)] items-center justify-center p-10">
+      <div className="flex h-full min-h-[calc(100vh-5rem)] items-center justify-center px-5 py-5 md:px-6 2xl:px-8">
         <section className="w-full max-w-3xl rounded-xl border border-theme-border bg-theme-surface px-10 py-14 text-center shadow-brand">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-lg bg-theme-elevated text-theme-text-primary">
             <FileBox size={28} />
@@ -888,7 +888,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="搜索记录、路径或错误信息"
-                  className="w-full rounded-xl border border-theme-border bg-theme-surface py-3 pl-11 pr-4 text-sm font-medium text-theme-text-secondary outline-none transition focus:border-slate-400"
+                  className="form-input w-full pl-11 pr-4"
                 />
               </div>
               <select

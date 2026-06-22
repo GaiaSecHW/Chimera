@@ -68,7 +68,7 @@ export const PermMgmtPage: React.FC = () => {
   const activeUser = users.find(u => u.id === selectedUserId);
 
   return (
-    <div className="p-10 space-y-10 animate-in fade-in duration-500 pb-24 h-full overflow-hidden flex flex-col">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500 pb-24 h-full overflow-hidden flex flex-col">
       <PageHeader
         title={<><div className="p-3 bg-purple-600 text-white rounded-2xl shadow-purple-500/20 inline-flex"><ArrowRightLeft size={28} /></div> 功能权限分配</>}
         actions={<div className="flex gap-4">
@@ -85,12 +85,12 @@ export const PermMgmtPage: React.FC = () => {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-text-faint" size={18} />
               <input
                 type="text" placeholder="检索用户列表..."
- className="w-full pl-12 pr-4 py-4 bg-theme-bg-app border border-theme-border rounded-xl text-xs outline-none focus:ring-4 ring-purple-500/5 transition-all font-bold"
+ className="form-input w-full pl-12 pr-4 text-xs"
                 value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
               />
             </div>
  <div className="flex-1 bg-theme-surface border border-theme-border rounded-xl overflow-hidden flex flex-col min-h-0">
-               <div className="px-8 py-5 border-b border-slate-50 bg-slate-100/50 flex items-center justify-between">
+               <div className="px-8 py-5 border-b border-theme-border bg-slate-100/50 flex items-center justify-between">
                   <span className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">Identities Directory</span>
                   <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                </div>
@@ -120,7 +120,7 @@ export const PermMgmtPage: React.FC = () => {
          {/* Right Column: Permission Matrix */}
          <div className="flex-1 flex flex-col gap-6 min-h-0">
  <div className="flex-1 bg-theme-surface border border-theme-border rounded-xl flex flex-col overflow-hidden min-h-0">
-               <div className="p-10 border-b border-slate-50 flex items-center justify-between shrink-0">
+               <div className="p-10 border-b border-theme-border flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-6">
                      <div className="w-16 h-16 bg-purple-500/15 text-purple-400 rounded-lg flex items-center justify-center shadow-inner">
                         <Tags size={32} />

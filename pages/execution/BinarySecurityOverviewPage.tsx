@@ -1011,7 +1011,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-secondary"
+              className="form-select"
             >
               <option value="">全部状态</option>
               <option value="pending">pending</option>
@@ -1029,7 +1029,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 setSortOrder((nextSortOrder as 'asc' | 'desc') || 'desc');
                 setPage(1);
               }}
-              className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-secondary"
+              className="form-select"
             >
               <option value="created_at:desc">创建时间 最新</option>
               <option value="created_at:asc">创建时间 最早</option>
@@ -1177,7 +1177,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 setPageSize(Number(e.target.value) || 50);
                 setPage(1);
               }}
-              className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-secondary"
+              className="form-select"
             >
               {[10, 50, 100, 200, 500, 1000].map((size) => (
                 <option key={size} value={size}>{size} / 页</option>

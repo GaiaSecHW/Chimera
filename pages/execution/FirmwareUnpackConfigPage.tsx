@@ -621,7 +621,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                     disabled={configLoading || configSaving}
                     onChange={(event) => updateDraftValue(item.modelKey, event.target.value)}
                     placeholder="例如 openai/gpt-4o，留空则使用配置文件默认"
-                    className="w-full rounded-xl border px-3 py-2 text-sm outline-none transition disabled:cursor-not-allowed"
+className="form-select w-full disabled:cursor-not-allowed"
                     style={{
                       backgroundColor: LK.surface,
                       border: `1px solid ${LK.border}`,

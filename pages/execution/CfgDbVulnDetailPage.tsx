@@ -154,7 +154,7 @@ export const CfgDbVulnDetailPage: React.FC<{ projectId: string; taskId: string; 
         ) : (
           <>
             <div className="flex items-center gap-3 mb-2 text-sm">
-              <input className="border rounded px-2 py-1 flex-1" placeholder="过滤函数名/文件/reason"
+              <input className="form-input flex-1" placeholder="过滤函数名/文件/reason"
                      value={filter} onChange={(e) => setFilter(e.target.value)} />
               <label className="flex items-center gap-1 whitespace-nowrap">
                 <input type="checkbox" checked={onlyHighValue} onChange={(e) => setOnlyHighValue(e.target.checked)} />

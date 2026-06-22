@@ -179,7 +179,7 @@ export const useUiFeedback = () => {
                   value={promptValue}
                   onChange={(e) => setPromptValue(e.target.value)}
                   placeholder={promptState.placeholder}
-                  className="mt-4 w-full px-4 py-3 border border-theme-border rounded-xl text-sm font-medium text-theme-text-primary bg-theme-elevated outline-none focus:ring-2 ring-blue-500/15"
+                  className="form-input mt-4 w-full"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       promptState.resolve(promptValue);

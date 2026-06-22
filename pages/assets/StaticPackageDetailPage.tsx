@@ -73,7 +73,7 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
   const { package: pkg } = data;
 
   return (
-    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500 pb-24">
       <PageHeader
         title={
           <div className="flex items-center gap-3">
@@ -118,19 +118,19 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
             </h4>
 
             <div className="space-y-4">
-              <div className="flex justify-between items-center py-2 border-b border-slate-50">
+              <div className="flex justify-between items-center py-2 border-b border-theme-border">
                 <span className="text-xs font-medium text-theme-text-muted">操作系统</span>
                 <span className="text-xs font-medium text-theme-text-primary uppercase px-2 py-1 bg-theme-bg-app rounded-lg">{pkg.system}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-slate-50">
+              <div className="flex justify-between items-center py-2 border-b border-theme-border">
                 <span className="text-xs font-medium text-theme-text-muted">硬件架构</span>
                 <span className="text-xs font-medium text-blue-400 uppercase px-2 py-1 bg-blue-500/15 rounded-lg">{pkg.architecture}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-slate-50">
+              <div className="flex justify-between items-center py-2 border-b border-theme-border">
                 <span className="text-xs font-medium text-theme-text-muted">文件计数</span>
                 <span className="text-xs font-medium text-theme-text-primary">{pkg.file_count}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-slate-50">
+              <div className="flex justify-between items-center py-2 border-b border-theme-border">
                 <span className="text-xs font-medium text-theme-text-muted">物理大小</span>
                 <span className="text-xs font-medium text-theme-text-primary">{(pkg.total_size / 1024 / 1024).toFixed(2)} MB</span>
               </div>

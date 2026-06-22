@@ -557,7 +557,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
         <section className="rounded-2xl border border-theme-border bg-theme-surface p-4">
           <div className="mb-4 flex flex-wrap items-center gap-3">
-            <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm text-theme-text-primary">
+            <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="form-select">
               <option value="">全部状态</option>
               <option value="pending">等待中</option>
               <option value="running">执行中</option>
@@ -574,7 +574,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   setPerPage(next);
                   setPage(1);
                 }}
-                className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm text-theme-text-primary"
+                className="form-select"
               >
                 {PAGE_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}
               </select>
@@ -689,7 +689,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   setExistingTaskFilter(next);
                   setBatchPage(1);
                 }}
-                className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary"
+                className="form-select"
               >
                 <option value="all">全部漏洞</option>
                 <option value="existing">已创建过验证任务</option>
@@ -704,7 +704,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                     setBatchPerPage(next);
                     setBatchPage(1);
                   }}
-                  className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary"
+                  className="form-select"
                 >
                   {PAGE_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}
                 </select>

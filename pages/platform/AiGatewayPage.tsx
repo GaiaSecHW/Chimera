@@ -1003,33 +1003,33 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
         {logFiltersExpanded ? (
           <>
             <div className="grid gap-3 p-3 pt-0 md:grid-cols-2 xl:grid-cols-5">
-              <input value={logModel} onChange={(e) => setLogModel(e.target.value)} placeholder="公开模型" className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
-              <select value={logBackendModel} onChange={(e) => setLogBackendModel(e.target.value)} className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
+              <input value={logModel} onChange={(e) => setLogModel(e.target.value)} placeholder="公开模型" className="form-input" />
+              <select value={logBackendModel} onChange={(e) => setLogBackendModel(e.target.value)} className="form-select">
                 <option value="">后端模型</option>
                 {backendModels.map((item) => <option key={item} value={item}>{item}</option>)}
               </select>
-              <select value={logAliasId} onChange={(e) => setLogAliasId(e.target.value)} className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
+              <select value={logAliasId} onChange={(e) => setLogAliasId(e.target.value)} className="form-select">
                 <option value="">模型别名</option>
                 {aliasOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
               </select>
-              <select value={logBackendUnitId} onChange={(e) => setLogBackendUnitId(e.target.value)} className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
+              <select value={logBackendUnitId} onChange={(e) => setLogBackendUnitId(e.target.value)} className="form-select">
                 <option value="">模型</option>
                 {backendUnitOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
               </select>
-              <select value={logLlmKeyId} onChange={(e) => setLogLlmKeyId(e.target.value)} className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
+              <select value={logLlmKeyId} onChange={(e) => setLogLlmKeyId(e.target.value)} className="form-select">
                 <option value="">调用密钥</option>
                 {llmKeys.map((item) => <option key={item.id} value={item.id}>{item.key_name ||`#${item.id}`}</option>)}
               </select>
-              <select value={logCapacityPoolId} onChange={(e) => setLogCapacityPoolId(e.target.value)} className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
+              <select value={logCapacityPoolId} onChange={(e) => setLogCapacityPoolId(e.target.value)} className="form-select">
                 <option value="">算力池</option>
                 {capacityPools.map((item) => <option key={item.id} value={item.id}>{item.pool_name}</option>)}
               </select>
-              <input value={logTaskKeyId} onChange={(e) => setLogTaskKeyId(e.target.value)} placeholder="任务密钥 ID" className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
-              <input value={logAppId} onChange={(e) => setLogAppId(e.target.value)} placeholder="应用 ID" className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
-              <input value={logTaskId} onChange={(e) => setLogTaskId(e.target.value)} placeholder="任务 ID" className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
-              <input value={logSubTaskId} onChange={(e) => setLogSubTaskId(e.target.value)} placeholder="子任务 ID" className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
-              <input type="datetime-local" value={logStartDate} onChange={(e) => setLogStartDate(e.target.value)} className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
-              <input type="datetime-local" value={logEndDate} onChange={(e) => setLogEndDate(e.target.value)} className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
+              <input value={logTaskKeyId} onChange={(e) => setLogTaskKeyId(e.target.value)} placeholder="任务密钥 ID" className="form-input" />
+              <input value={logAppId} onChange={(e) => setLogAppId(e.target.value)} placeholder="应用 ID" className="form-input" />
+              <input value={logTaskId} onChange={(e) => setLogTaskId(e.target.value)} placeholder="任务 ID" className="form-input" />
+              <input value={logSubTaskId} onChange={(e) => setLogSubTaskId(e.target.value)} placeholder="子任务 ID" className="form-input" />
+              <input type="datetime-local" value={logStartDate} onChange={(e) => setLogStartDate(e.target.value)} className="form-input" />
+              <input type="datetime-local" value={logEndDate} onChange={(e) => setLogEndDate(e.target.value)} className="form-input" />
             </div>
             <div className="flex items-center gap-2 p-3 pt-0">
               <button onClick={() => { setLogPage(1); void loadLogs(); }} disabled={logsLoading} className="rounded-lg bg-theme-surface px-4 py-2 text-sm font-bold text-white disabled:opacity-50">查询</button>
@@ -1122,7 +1122,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
         <div className="text-sm text-theme-text-muted">共 {logsTotal} 条</div>
         <div className="flex items-center gap-2">
           <button onClick={clearLogs} className="rounded-xl bg-rose-500/15 px-3 py-2 text-sm font-bold text-rose-400 hover:bg-rose-200">清空日志</button>
-          <select value={logPageSize} onChange={(e) => { setLogPageSize(Number(e.target.value)); setLogPage(1); }} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm outline-none">
+          <select value={logPageSize} onChange={(e) => { setLogPageSize(Number(e.target.value)); setLogPage(1); }} className="form-select">
             {[10, 20, 50, 100].map((size) => <option key={size} value={size}>{size} / 页</option>)}
           </select>
           <button disabled={logPage <= 1} onClick={() => setLogPage((v) => Math.max(1, v - 1))} className="rounded-xl bg-theme-elevated px-3 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40">上一页</button>
@@ -1164,13 +1164,13 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
         </button>
         {keyFiltersExpanded ? (
           <div className="grid gap-3 p-3 pt-0 md:grid-cols-2 xl:grid-cols-4">
-            <input value={keySearch} onChange={(e) => setKeySearch(e.target.value)} placeholder="搜索名称、任务 ID、备注..." className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
-            <select value={keyKeyType} onChange={(e) => setKeyKeyType(e.target.value)} className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
+            <input value={keySearch} onChange={(e) => setKeySearch(e.target.value)} placeholder="搜索名称、任务 ID、备注..." className="form-input" />
+            <select value={keyKeyType} onChange={(e) => setKeyKeyType(e.target.value)} className="form-select">
               <option value="">全部类型</option>
               <option value="task">任务密钥</option>
               <option value="work">工作密钥</option>
             </select>
-            <select value={keyEnabled} onChange={(e) => setKeyEnabled(e.target.value)} className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
+            <select value={keyEnabled} onChange={(e) => setKeyEnabled(e.target.value)} className="form-select">
               <option value="">全部状态</option>
               <option value="true">启用</option>
               <option value="false">禁用</option>
@@ -1248,7 +1248,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
       <div className="mt-5 flex shrink-0 items-center justify-between">
         <div className="text-sm text-theme-text-muted">共 {llmKeysTotal} 条</div>
         <div className="flex items-center gap-2">
-          <select value={keyPageSize} onChange={(e) => { setKeyPageSize(Number(e.target.value)); setKeyPage(1); }} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm outline-none">
+          <select value={keyPageSize} onChange={(e) => { setKeyPageSize(Number(e.target.value)); setKeyPage(1); }} className="form-select">
             {[10, 20, 50, 100].map((size) => <option key={size} value={size}>{size} / 页</option>)}
           </select>
           <button disabled={keyPage <= 1} onClick={() => setKeyPage((v) => Math.max(1, v - 1))} className="rounded-xl bg-theme-elevated px-3 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40">上一页</button>
@@ -1567,10 +1567,10 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
             </div>
             <div className="space-y-4 p-6">
               <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">模型别名默认参数</div>
-              <label className="block text-sm font-bold text-theme-text-secondary">模型别名<input value={aliasForm.alias_name} onChange={(e) => setAliasForm((v) => ({ ...v, alias_name: e.target.value }))} placeholder="例如 gpt-4o-mini / deepseek-chat" className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+              <label className="block text-sm font-bold text-theme-text-secondary">模型别名<input value={aliasForm.alias_name} onChange={(e) => setAliasForm((v) => ({ ...v, alias_name: e.target.value }))} placeholder="例如 gpt-4o-mini / deepseek-chat" className="form-input mt-1 w-full" /></label>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-theme-text-secondary">Max Tokens<input type="number" value={aliasForm.max_tokens_default} onChange={(e) => setAliasForm((v) => ({ ...v, max_tokens_default: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
-                <label className="block text-sm font-bold text-theme-text-secondary">Temperature<input type="number" step="0.1" value={aliasForm.temperature_default} onChange={(e) => setAliasForm((v) => ({ ...v, temperature_default: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">Max Tokens<input type="number" value={aliasForm.max_tokens_default} onChange={(e) => setAliasForm((v) => ({ ...v, max_tokens_default: Number(e.target.value) || 0 }))} className="form-input mt-1 w-full" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">Temperature<input type="number" step="0.1" value={aliasForm.temperature_default} onChange={(e) => setAliasForm((v) => ({ ...v, temperature_default: Number(e.target.value) || 0 }))} className="form-input mt-1 w-full" /></label>
               </div>
               <p className="-mt-1 text-xs text-theme-text-muted">这里配置的是公开模型别名的默认推理参数，供上游请求未显式传值时回退使用。</p>
               <label className="flex items-center gap-3 text-sm font-bold text-theme-text-secondary"><input type="checkbox" checked={aliasForm.enabled} onChange={(e) => setAliasForm((v) => ({ ...v, enabled: e.target.checked }))} />启用</label>
@@ -1592,13 +1592,13 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
             <div className="space-y-4 p-6">
               <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">模型</div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-theme-text-secondary">模型名称<input value={backendUnitForm.model_name} onChange={(e) => setBackendUnitForm((v) => ({ ...v, model_name: e.target.value }))} placeholder="实际下游模型名" className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
-                <label className="block text-sm font-bold text-theme-text-secondary">API 地址<input value={backendUnitForm.api_base_url} onChange={(e) => setBackendUnitForm((v) => ({ ...v, api_base_url: e.target.value }))} placeholder="https://..." className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
-                <label className="block text-sm font-bold text-theme-text-secondary">最大并发<input type="number" value={backendUnitForm.total_max_concurrency} onChange={(e) => setBackendUnitForm((v) => ({ ...v, total_max_concurrency: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
-                <label className="block text-sm font-bold text-theme-text-secondary">默认优先级<input type="number" value={backendUnitForm.priority_default} onChange={(e) => setBackendUnitForm((v) => ({ ...v, priority_default: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">模型名称<input value={backendUnitForm.model_name} onChange={(e) => setBackendUnitForm((v) => ({ ...v, model_name: e.target.value }))} placeholder="实际下游模型名" className="form-input mt-1 w-full" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">API 地址<input value={backendUnitForm.api_base_url} onChange={(e) => setBackendUnitForm((v) => ({ ...v, api_base_url: e.target.value }))} placeholder="https://..." className="form-input mt-1 w-full" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">最大并发<input type="number" value={backendUnitForm.total_max_concurrency} onChange={(e) => setBackendUnitForm((v) => ({ ...v, total_max_concurrency: Number(e.target.value) || 0 }))} className="form-input mt-1 w-full" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">默认优先级<input type="number" value={backendUnitForm.priority_default} onChange={(e) => setBackendUnitForm((v) => ({ ...v, priority_default: Number(e.target.value) || 0 }))} className="form-input mt-1 w-full" /></label>
               </div>
               <p className="-mt-1 text-xs text-theme-text-muted">一个模型对应一个真实的接入点，下面的 Chat / Responses / Messages 开关会直接写入`gaiasec-llm-gateway` 的真实后端能力字段。</p>
-              <label className="block text-sm font-bold text-theme-text-secondary">API 密钥<input type="password" value={backendUnitForm.api_key_ciphertext || ''} onChange={(e) => setBackendUnitForm((v) => ({ ...v, api_key_ciphertext: e.target.value }))} placeholder={editingBackendUnitId ? '留空则保持现有 API 密钥' : ''} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+              <label className="block text-sm font-bold text-theme-text-secondary">API 密钥<input type="password" value={backendUnitForm.api_key_ciphertext || ''} onChange={(e) => setBackendUnitForm((v) => ({ ...v, api_key_ciphertext: e.target.value }))} placeholder={editingBackendUnitId ? '留空则保持现有 API 密钥' : ''} className="form-input mt-1 w-full" /></label>
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="flex items-center gap-3 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-bold text-theme-text-secondary">
                   <input type="checkbox" checked={backendUnitForm.supports_chat_completions} onChange={(e) => setBackendUnitForm((v) => ({ ...v, supports_chat_completions: e.target.checked }))} />
@@ -1613,7 +1613,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                   支持 Messages
                 </label>
               </div>
-              <label className="block text-sm font-bold text-theme-text-secondary">描述<textarea value={backendUnitForm.description || ''} onChange={(e) => setBackendUnitForm((v) => ({ ...v, description: e.target.value }))} className="mt-1 min-h-24 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+              <label className="block text-sm font-bold text-theme-text-secondary">描述<textarea value={backendUnitForm.description || ''} onChange={(e) => setBackendUnitForm((v) => ({ ...v, description: e.target.value }))} className="form-textarea mt-1 min-h-24 w-full" /></label>
               <label className="flex items-center gap-3 text-sm font-bold text-theme-text-secondary"><input type="checkbox" checked={backendUnitForm.enabled} onChange={(e) => setBackendUnitForm((v) => ({ ...v, enabled: e.target.checked }))} />启用</label>
             </div>
             <div className="flex items-center justify-end gap-3 border-t border-theme-border px-6 py-4">
@@ -1634,18 +1634,18 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
             <div className="space-y-4 p-6">
               <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">绑定调度</div>
               <label className="block text-sm font-bold text-theme-text-secondary">模型别名
-                <select value={bindingForm.model_alias_id} onChange={(e) => setBindingForm((v) => ({ ...v, model_alias_id: Number(e.target.value) }))} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none">
+                <select value={bindingForm.model_alias_id} onChange={(e) => setBindingForm((v) => ({ ...v, model_alias_id: Number(e.target.value) }))} className="form-input mt-1 w-full">
                   {modelAliases.map((item) => <option key={item.id} value={item.id}>{item.alias_name}</option>)}
                 </select>
               </label>
               <label className="block text-sm font-bold text-theme-text-secondary">模型
-                <select value={bindingForm.backend_unit_id} onChange={(e) => setBindingForm((v) => ({ ...v, backend_unit_id: Number(e.target.value) }))} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none">
+                <select value={bindingForm.backend_unit_id} onChange={(e) => setBindingForm((v) => ({ ...v, backend_unit_id: Number(e.target.value) }))} className="form-input mt-1 w-full">
                   {backendUnits.map((item) => <option key={item.id} value={item.id}>{item.model_name} (#${item.id})</option>)}
                 </select>
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-theme-text-secondary">优先级<input type="number" value={bindingForm.priority} onChange={(e) => setBindingForm((v) => ({ ...v, priority: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
-                <label className="block text-sm font-bold text-theme-text-secondary">权重<input type="number" value={bindingForm.weight} onChange={(e) => setBindingForm((v) => ({ ...v, weight: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">优先级<input type="number" value={bindingForm.priority} onChange={(e) => setBindingForm((v) => ({ ...v, priority: Number(e.target.value) || 0 }))} className="form-input mt-1 w-full" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">权重<input type="number" value={bindingForm.weight} onChange={(e) => setBindingForm((v) => ({ ...v, weight: Number(e.target.value) || 0 }))} className="form-input mt-1 w-full" /></label>
               </div>
               <p className="-mt-1 text-xs text-theme-text-muted">优先级决定优先调度顺序，权重用于同层级的流量分配。</p>
               <label className="flex items-center gap-3 text-sm font-bold text-theme-text-secondary"><input type="checkbox" checked={bindingForm.enabled} onChange={(e) => setBindingForm((v) => ({ ...v, enabled: e.target.checked }))} />启用</label>
@@ -1666,8 +1666,8 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
               <button onClick={resetCapacityPoolForm} className="rounded-lg bg-theme-elevated p-2 text-theme-text-secondary hover:bg-theme-elevated"><X className="h-5 w-5" /></button>
             </div>
             <div className="space-y-4 p-6">
-              <label className="block text-sm font-bold text-theme-text-secondary">池名称<input value={capacityPoolForm.pool_name} onChange={(e) => setCapacityPoolForm((v) => ({ ...v, pool_name: e.target.value }))} placeholder="例如 GPT-4o 生产池" className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
-              <label className="block text-sm font-bold text-theme-text-secondary">描述<textarea value={capacityPoolForm.description} onChange={(e) => setCapacityPoolForm((v) => ({ ...v, description: e.target.value }))} className="mt-1 min-h-24 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+              <label className="block text-sm font-bold text-theme-text-secondary">池名称<input value={capacityPoolForm.pool_name} onChange={(e) => setCapacityPoolForm((v) => ({ ...v, pool_name: e.target.value }))} placeholder="例如 GPT-4o 生产池" className="form-input mt-1 w-full" /></label>
+              <label className="block text-sm font-bold text-theme-text-secondary">描述<textarea value={capacityPoolForm.description} onChange={(e) => setCapacityPoolForm((v) => ({ ...v, description: e.target.value }))} className="form-textarea mt-1 min-h-24 w-full" /></label>
               <label className="flex items-center gap-3 text-sm font-bold text-theme-text-secondary"><input type="checkbox" checked={capacityPoolForm.enabled} onChange={(e) => setCapacityPoolForm((v) => ({ ...v, enabled: e.target.checked }))} />启用</label>
             </div>
             <div className="flex items-center justify-end gap-3 border-t border-theme-border px-6 py-4">
@@ -1707,13 +1707,13 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
           </button>
           {keyFiltersExpanded ? (
             <div className="grid gap-3 p-3 pt-0 md:grid-cols-2 xl:grid-cols-4">
-              <input value={keySearch} onChange={(e) => setKeySearch(e.target.value)} placeholder="搜索名称、任务 ID、备注..." className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none" />
-              <select value={keyKeyType} onChange={(e) => setKeyKeyType(e.target.value)} className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
+              <input value={keySearch} onChange={(e) => setKeySearch(e.target.value)} placeholder="搜索名称、任务 ID、备注..." className="form-input" />
+              <select value={keyKeyType} onChange={(e) => setKeyKeyType(e.target.value)} className="form-select">
                 <option value="">全部类型</option>
                 <option value="task">任务密钥</option>
                 <option value="work">工作密钥</option>
               </select>
-              <select value={keyEnabled} onChange={(e) => setKeyEnabled(e.target.value)} className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm outline-none">
+              <select value={keyEnabled} onChange={(e) => setKeyEnabled(e.target.value)} className="form-select">
                 <option value="">全部状态</option>
                 <option value="true">启用</option>
                 <option value="false">禁用</option>
@@ -1795,7 +1795,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
         <div className="mt-5 flex shrink-0 items-center justify-between">
           <div className="text-sm text-theme-text-muted">共 {llmKeysTotal} 条</div>
           <div className="flex items-center gap-2">
-            <select value={keyPageSize} onChange={(e) => { setKeyPageSize(Number(e.target.value)); setKeyPage(1); }} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm outline-none">
+            <select value={keyPageSize} onChange={(e) => { setKeyPageSize(Number(e.target.value)); setKeyPage(1); }} className="form-select">
               {[10, 20, 50, 100].map((size) => <option key={size} value={size}>{size} / 页</option>)}
             </select>
             <button disabled={keyPage <= 1} onClick={() => setKeyPage((v) => Math.max(1, v - 1))} className="rounded-xl bg-theme-elevated px-3 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40">上一页</button>
@@ -1876,9 +1876,9 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
             </div>
             <div className="space-y-4 p-6">
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-theme-text-secondary">密钥名称<input value={llmKeyForm.key_name} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_name: e.target.value }))} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">密钥名称<input value={llmKeyForm.key_name} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_name: e.target.value }))} className="form-input mt-1 w-full" /></label>
                 <label className="block text-sm font-bold text-theme-text-secondary">密钥类型
-                  <select value={llmKeyForm.key_type} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_type: e.target.value as 'task' | 'work' | 'app' }))} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted">
+                  <select value={llmKeyForm.key_type} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, key_type: e.target.value as 'task' | 'work' | 'app' }))} className="form-input mt-1 w-full disabled:bg-theme-elevated disabled:text-theme-text-muted">
                     <option value="task">任务密钥</option>
                     <option value="work">工作密钥</option>
                     <option value="app">应用密钥</option>
@@ -1886,11 +1886,11 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                 </label>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-theme-text-secondary">最大并发<input type="number" value={llmKeyForm.max_concurrency} onChange={(e) => setLlmKeyForm((v) => ({ ...v, max_concurrency: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">最大并发<input type="number" value={llmKeyForm.max_concurrency} onChange={(e) => setLlmKeyForm((v) => ({ ...v, max_concurrency: Number(e.target.value) || 0 }))} className="form-input mt-1 w-full" /></label>
                 <label className="flex items-center gap-3 pt-8 text-sm font-bold text-theme-text-secondary"><input type="checkbox" checked={llmKeyForm.enabled} onChange={(e) => setLlmKeyForm((v) => ({ ...v, enabled: e.target.checked }))} />创建后立即启用</label>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-theme-text-secondary">过期时间<input type="datetime-local" value={String(llmKeyForm.expires_at || '')} onChange={(e) => setLlmKeyForm((v) => ({ ...v, expires_at: e.target.value || null }))} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+                <label className="block text-sm font-bold text-theme-text-secondary">过期时间<input type="datetime-local" value={String(llmKeyForm.expires_at || '')} onChange={(e) => setLlmKeyForm((v) => ({ ...v, expires_at: e.target.value || null }))} className="form-input mt-1 w-full" /></label>
                 {llmKeyForm.key_type === 'work' ? (
                   <label className="block text-sm font-bold text-theme-text-secondary">父任务密钥
                     <select value={String(llmKeyForm.parent_key_id || '')} disabled={Boolean(editingLlmKeyId)} onChange={(e) => {
@@ -1901,7 +1901,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                         parent_key_id: parentId,
                         task_id: parent?.task_id || '',
                       }));
-                    }} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted">
+                    }} className="form-input mt-1 w-full disabled:bg-theme-elevated disabled:text-theme-text-muted">
                       <option value="">选择父任务密钥</option>
                       {taskKeys.map((item) => <option key={item.id} value={item.id}>{item.key_name} · {item.task_id}</option>)}
                     </select>
@@ -1910,14 +1910,14 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 {llmKeyForm.key_type === 'app' ? (
-                  <label className="block text-sm font-bold text-theme-text-secondary">应用 ID<input value={llmKeyForm.app_id} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, app_id: e.target.value }))} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
+                  <label className="block text-sm font-bold text-theme-text-secondary">应用 ID<input value={llmKeyForm.app_id} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, app_id: e.target.value }))} className="form-input mt-1 w-full disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
                 ) : (
-                  <label className="block text-sm font-bold text-theme-text-secondary">任务 ID<input value={llmKeyForm.task_id} disabled={llmKeyForm.key_type === 'work' || Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, task_id: e.target.value }))} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
+                  <label className="block text-sm font-bold text-theme-text-secondary">任务 ID<input value={llmKeyForm.task_id} disabled={llmKeyForm.key_type === 'work' || Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, task_id: e.target.value }))} className="form-input mt-1 w-full disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
                 )}
                 {llmKeyForm.key_type === 'work' ? (
-                  <label className="block text-sm font-bold text-theme-text-secondary">子任务 ID<input value={llmKeyForm.sub_task_id} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, sub_task_id: e.target.value }))} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
+                  <label className="block text-sm font-bold text-theme-text-secondary">子任务 ID<input value={llmKeyForm.sub_task_id} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, sub_task_id: e.target.value }))} className="form-input mt-1 w-full disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
                 ) : llmKeyForm.key_type === 'app' ? (
-                  <label className="block text-sm font-bold text-theme-text-secondary">应用名称<input value={llmKeyForm.app_name} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, app_name: e.target.value }))} className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
+                  <label className="block text-sm font-bold text-theme-text-secondary">应用名称<input value={llmKeyForm.app_name} disabled={Boolean(editingLlmKeyId)} onChange={(e) => setLlmKeyForm((v) => ({ ...v, app_name: e.target.value }))} className="form-input mt-1 w-full disabled:bg-theme-elevated disabled:text-theme-text-muted" /></label>
                 ) : (
                   <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-muted">任务密钥不需要填写子任务 ID；如需限定到子任务，请创建工作密钥。</div>
                 )}
@@ -1947,7 +1947,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                 </div>
                 {llmKeyForm.key_type === 'work' ? <div className="mt-2 text-xs text-theme-text-muted">工作密钥不能单独定义算力池范围，会继承父任务密钥授权。</div> : llmKeyForm.key_type === 'app' ? <div className="mt-2 text-xs text-theme-text-muted">应用密钥必须显式选择可访问的算力池。</div> : null}
               </label>
-              <label className="block text-sm font-bold text-theme-text-secondary">备注<textarea value={llmKeyForm.description} onChange={(e) => setLlmKeyForm((v) => ({ ...v, description: e.target.value }))} className="mt-1 min-h-24 w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 outline-none" /></label>
+              <label className="block text-sm font-bold text-theme-text-secondary">备注<textarea value={llmKeyForm.description} onChange={(e) => setLlmKeyForm((v) => ({ ...v, description: e.target.value }))} className="form-textarea mt-1 min-h-24 w-full" /></label>
             </div>
             <div className="flex items-center justify-end gap-3 border-t border-theme-border px-6 py-4">
               <button onClick={resetLlmKeyForm} className="rounded-lg bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary">取消</button>

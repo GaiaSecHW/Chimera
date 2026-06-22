@@ -85,7 +85,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     return acc;
   }, {});
   return (
-    <div className="p-8 space-y-8 animate-in fade-in duration-500">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500">
       <PageHeader
         title={<><Shield className="w-8 h-8 text-blue-400 inline" /> 全局管理员控制台</>}
         description="平台整体运行态势与服务健康监控"

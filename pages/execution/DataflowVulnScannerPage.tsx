@@ -1447,7 +1447,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   <select
                     value={runStatusFilter}
                     onChange={(event) => { setRunStatusFilter(event.target.value); setPage(1); }}
-                    className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none"
+                    className="form-select"
                     title="按任务状态筛选"
                   >
                     <option value="">全部状态</option>
@@ -1459,7 +1459,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   <select
                     value={modeFilter}
                     onChange={(event) => { setModeFilter(event.target.value as '' | 'manual' | 'binary' | 'source'); setPage(1); }}
-                    className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none"
+                    className="form-select"
                     title="按任务来源筛选"
                   >
                     {TASK_MODE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -1474,7 +1474,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   <select
                     value={sortBy}
                     onChange={(event) => { setSortBy(event.target.value); setPage(1); }}
-                    className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none"
+                    className="form-select"
                     title="排序字段"
                   >
                     {TASK_SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>按{option.label}排序</option>)}
@@ -1482,7 +1482,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   <select
                     value={sortOrder}
                     onChange={(event) => { setSortOrder(event.target.value === 'asc' ? 'asc' : 'desc'); setPage(1); }}
-                    className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none"
+                    className="form-select"
                     title="排序方向"
                   >
                     <option value="desc">降序</option>
@@ -1491,7 +1491,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   <select
                     value={perPage}
                     onChange={(event) => { setPerPage(Number(event.target.value)); setPage(1); }}
-                    className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none"
+                    className="form-select"
                     title="每页显示条数"
                   >
                     {[10, 50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}条/页</option>)}
@@ -2294,7 +2294,7 @@ const CreateTaskDialog: React.FC<{
                       resultReviewConcurrency: payload.result_review_concurrency,
                     });
                   }}
-                  className="mt-2 w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-semibold outline-none focus:border-cyan-600"
+                  className="form-select mt-2 w-full"
                 >
                   <option value="">使用项目默认 Profile</option>
                   {profiles.map((profile) => (

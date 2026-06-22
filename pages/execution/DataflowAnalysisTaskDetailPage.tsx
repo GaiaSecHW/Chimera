@@ -986,7 +986,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                       <select
                         value={activeAgentPageSize}
                         onChange={(event) => setActiveAgentPageSize(Math.max(1, Number(event.target.value) || 10))}
-                        className="ml-2 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-xs font-bold text-theme-text-secondary"
+className="form-select ml-2 text-xs"
                       >
                         {[10, 20, 50].map((size) => <option key={size} value={size}>{size}</option>)}
                       </select>
@@ -1071,7 +1071,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                   </div>
                   <label className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-muted">
                     每页
-                    <select value={timelinePageSize} onChange={(event) => setTimelinePageSize(Math.min(2000, Math.max(50, Number(event.target.value) || 200)))} className="ml-2 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-xs font-bold text-theme-text-secondary">
+                    <select value={timelinePageSize} onChange={(event) => setTimelinePageSize(Math.min(2000, Math.max(50, Number(event.target.value) || 200)))} className="form-select ml-2 text-xs">
                       {[50, 100, 200, 500].map((size) => <option key={size} value={size}>{size}</option>)}
                     </select>
                   </label>
@@ -1105,15 +1105,15 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
+                <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="form-select">
                   <option value="__all__">全部事件</option>
                   {timelineEventTypeOptions.map((value) => <option key={value} value={value}>{formatTimelineEventTypeLabel(value)}</option>)}
                 </select>
-                <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
+                <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="form-select">
                   <option value="__all__">全部级别</option>
                   {timelineLevelOptions.map((value) => <option key={value} value={value}>{value}</option>)}
                 </select>
-                <select value={timelineStatusFilter} onChange={(event) => setTimelineStatusFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
+                <select value={timelineStatusFilter} onChange={(event) => setTimelineStatusFilter(event.target.value)} className="form-select">
                   <option value="__all__">全部状态</option>
                   {timelineStatusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
                 </select>
@@ -1346,7 +1346,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                           <Search size={13} className="pointer-events-none absolute left-3 top-2.5 text-theme-text-muted" />
                           <input value={evaluationKeyword} onChange={(e) => setEvaluationKeyword(e.target.value)} placeholder="函数过滤" className="rounded-xl border border-theme-border py-2 pl-8 pr-3 text-xs" />
                         </div>
-                        <select value={evaluationStatus} onChange={(e) => setEvaluationStatus(e.target.value)} className="rounded-xl border border-theme-border px-3 py-2 text-xs">
+                        <select value={evaluationStatus} onChange={(e) => setEvaluationStatus(e.target.value)} className="form-select text-xs">
                           <option value="">全部状态</option>
                           {evaluationStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
                         </select>

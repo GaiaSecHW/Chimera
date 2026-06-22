@@ -408,7 +408,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                           [key]: Number(event.target.value || 0),
                         },
                       }) : current)}
-                      className="mt-3 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400"
+                      className="form-input mt-3 w-full"
                     />
                   )}
                 </label>
@@ -436,13 +436,13 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                   min={1}
                   value={(draft.scheduler_policy as any)[key]}
                   onChange={(event) => updateSchedulerPolicy(key as keyof ScheduleRuntimeSchedulerPolicy, event.target.value)}
-                  className="mt-3 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400"
+                  className="form-input mt-3 w-full"
                 />
               </label>
             ))}
             <label className="block rounded-xl border border-theme-border bg-theme-surface p-4">
               <div className="text-sm font-bold text-theme-text-secondary">分发策略</div>
-              <select value={draft.scheduler_policy.dispatch_mode} onChange={(event) => updateSchedulerPolicy('dispatch_mode', event.target.value)} className="mt-3 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400">
+              <select value={draft.scheduler_policy.dispatch_mode} onChange={(event) => updateSchedulerPolicy('dispatch_mode', event.target.value)} className="form-input mt-3 w-full">
                 <option value="balanced">balanced</option>
                 <option value="fifo">fifo</option>
                 <option value="priority_first">priority_first</option>
@@ -450,7 +450,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
             </label>
             <label className="block rounded-xl border border-theme-border bg-theme-surface p-4">
               <div className="text-sm font-bold text-theme-text-secondary">队列策略</div>
-              <select value={draft.scheduler_policy.queue_strategy} onChange={(event) => updateSchedulerPolicy('queue_strategy', event.target.value)} className="mt-3 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400">
+              <select value={draft.scheduler_policy.queue_strategy} onChange={(event) => updateSchedulerPolicy('queue_strategy', event.target.value)} className="form-input mt-3 w-full">
                 <option value="capacity_aware">capacity_aware</option>
                 <option value="strict_fifo">strict_fifo</option>
               </select>
@@ -469,11 +469,11 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <label className="block">
                     <div className="text-sm font-bold text-theme-text-secondary">Task Key 最大并发</div>
-                    <input type="number" min={0} value={item.root_task_key_max_concurrency} onChange={(event) => updateToolDefault(item.task_type, { root_task_key_max_concurrency: Number(event.target.value || 0) })} className="mt-2 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400" />
+                    <input type="number" min={0} value={item.root_task_key_max_concurrency} onChange={(event) => updateToolDefault(item.task_type, { root_task_key_max_concurrency: Number(event.target.value || 0) })} className="form-input mt-2 w-full" />
                   </label>
                   <label className="block">
                     <div className="text-sm font-bold text-theme-text-secondary">Capacity Pool IDs</div>
-                    <input value={formatPoolIds(item.capacity_pool_ids)} onChange={(event) => updateToolDefault(item.task_type, { capacity_pool_ids: parsePoolIds(event.target.value) })} placeholder="例如 1,2,3" className="mt-2 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400" />
+                    <input value={formatPoolIds(item.capacity_pool_ids)} onChange={(event) => updateToolDefault(item.task_type, { capacity_pool_ids: parsePoolIds(event.target.value) })} placeholder="例如 1,2,3" className="form-input mt-2 w-full" />
                   </label>
                 </div>
               </div>
@@ -497,10 +497,10 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
               <div key={`${window.name}-${index}`} className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-3">
-                    <input value={window.name} onChange={(event) => updateTimeWindow(index, { name: event.target.value })} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-primary outline-none focus:border-cyan-400" />
-                    <input value={window.start_time} onChange={(event) => updateTimeWindow(index, { start_time: event.target.value })} placeholder="09:00" className="w-28 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400" />
+                    <input value={window.name} onChange={(event) => updateTimeWindow(index, { name: event.target.value })} className="form-input" />
+                    <input value={window.start_time} onChange={(event) => updateTimeWindow(index, { start_time: event.target.value })} placeholder="09:00" className="form-input w-28" />
                     <span className="text-theme-text-muted">至</span>
-                    <input value={window.end_time} onChange={(event) => updateTimeWindow(index, { end_time: event.target.value })} placeholder="18:00" className="w-28 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400" />
+                    <input value={window.end_time} onChange={(event) => updateTimeWindow(index, { end_time: event.target.value })} placeholder="18:00" className="form-input w-28" />
                     <label className="inline-flex items-center gap-2 text-sm font-semibold text-theme-text-secondary">
                       <input type="checkbox" checked={window.enabled} onChange={(event) => updateTimeWindow(index, { enabled: event.target.checked })} />
                       启用
@@ -521,7 +521,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                   ].map(([key, label]) => (
                     <label key={`${window.name}-${key}`} className="block rounded-xl border border-theme-border bg-theme-surface p-4">
                       <div className="text-sm font-bold text-theme-text-secondary">{label}</div>
-                      <input type="number" min={1} value={(window.scheduler_policy as any)?.[key] ?? 0} onChange={(event) => updateTimeWindowPolicy(index, key as keyof ScheduleRuntimeSchedulerPolicy, event.target.value)} className="mt-3 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400" />
+                      <input type="number" min={1} value={(window.scheduler_policy as any)?.[key] ?? 0} onChange={(event) => updateTimeWindowPolicy(index, key as keyof ScheduleRuntimeSchedulerPolicy, event.target.value)} className="form-input mt-3 w-full" />
                     </label>
                   ))}
                 </div>
@@ -543,7 +543,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                             [key]: Number(event.target.value || 0),
                           },
                         })}
-                        className="mt-3 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400"
+                        className="form-input mt-3 w-full"
                       />
                     </label>
                   ))}
@@ -555,11 +555,11 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                       <div className="mt-3 grid gap-3 md:grid-cols-2">
                         <label className="block">
                           <div className="text-xs font-bold uppercase tracking-wider text-theme-text-muted">Task Key 最大并发</div>
-                          <input type="number" min={0} value={tool.root_task_key_max_concurrency} onChange={(event) => updateTimeWindowTool(index, tool.task_type, { root_task_key_max_concurrency: Number(event.target.value || 0) })} className="mt-2 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400" />
+                          <input type="number" min={0} value={tool.root_task_key_max_concurrency} onChange={(event) => updateTimeWindowTool(index, tool.task_type, { root_task_key_max_concurrency: Number(event.target.value || 0) })} className="form-input mt-2 w-full" />
                         </label>
                         <label className="block">
                           <div className="text-xs font-bold uppercase tracking-wider text-theme-text-muted">Capacity Pool IDs</div>
-                          <input value={formatPoolIds(tool.capacity_pool_ids)} onChange={(event) => updateTimeWindowTool(index, tool.task_type, { capacity_pool_ids: parsePoolIds(event.target.value) })} placeholder="例如 1,2,3" className="mt-2 w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-primary outline-none focus:border-cyan-400" />
+                          <input value={formatPoolIds(tool.capacity_pool_ids)} onChange={(event) => updateTimeWindowTool(index, tool.task_type, { capacity_pool_ids: parsePoolIds(event.target.value) })} placeholder="例如 1,2,3" className="form-input mt-2 w-full" />
                         </label>
                       </div>
                     </div>

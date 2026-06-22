@@ -204,7 +204,7 @@ export const ProjectPage: React.FC = () => {
   const privateRatio = projectStats.total > 0 ? (projectStats.privateCount / projectStats.total) * 100 : 0;
 
   return (
-    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto bg-theme-app">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto">
       <PageHeader
         title={<><div className="p-3 bg-gradient-to-br from-blue-600 via-cyan-500 to-sky-500 text-white rounded-2xl inline-flex"><FolderOpen size={28} /></div> 项目权限管理</>}
         actions={<div className="flex gap-4">
@@ -265,7 +265,7 @@ export const ProjectPage: React.FC = () => {
           <input
             type="text"
             placeholder="搜索项目名称、部门或描述..."
- className="w-full pl-16 pr-8 py-5 bg-theme-bg-app backdrop-blur border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="form-input w-full pl-16 pr-8 backdrop-blur"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -370,7 +370,7 @@ export const ProjectPage: React.FC = () => {
       </div>
 
       <Modal open={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} className="max-w-md">
-            <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
+            <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                   <Plus size={24} />
@@ -389,18 +389,18 @@ export const ProjectPage: React.FC = () => {
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">项目名称 *</label>
                 <input
                   required
-                  placeholder="Project Name"
-                  className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">项目描述</label>
-                <textarea
+placeholder="Project Name"
+                   className="form-input w-full"
+                   value={formData.name}
+                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                 />
+               </div>
+               <div className="space-y-1.5">
+                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">项目描述</label>
+                 <textarea
                   placeholder="Description"
                   rows={3}
-                  className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary resize-none"
+                  className="form-textarea w-full resize-none"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
@@ -476,7 +476,7 @@ export const ProjectPage: React.FC = () => {
       </Modal>
 
       {selectedProject && <Modal open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} className="max-w-md">
-            <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
+            <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-amber-600 rounded-lg flex items-center justify-center text-white">
                   <Edit3 size={24} />
@@ -495,18 +495,18 @@ export const ProjectPage: React.FC = () => {
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">项目名称 *</label>
                 <input
                   required
-                  placeholder="Project Name"
-                  className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-theme-text-primary"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">项目描述</label>
-                <textarea
+placeholder="Project Name"
+                   className="form-input w-full"
+                   value={formData.name}
+                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                 />
+               </div>
+               <div className="space-y-1.5">
+                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">项目描述</label>
+                 <textarea
                   placeholder="Description"
                   rows={3}
-                  className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-theme-text-primary resize-none"
+                  className="form-textarea w-full resize-none"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />

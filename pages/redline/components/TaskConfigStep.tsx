@@ -463,7 +463,7 @@ export const TaskConfigStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
               <button type="button" onClick={() => setShowVariableModal(false)} className="text-theme-text-secondary hover:text-theme-text-primary"><XCircle className="w-5 h-5" /></button>
             </div>
             <div className="flex-1 overflow-auto p-5">
-              <textarea className="w-full h-80 p-3 text-sm font-mono rounded-lg border border-theme-border bg-theme-elevated text-theme-text-primary resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
+              <textarea className="form-textarea w-full h-80 font-mono resize-none"
                 value={editedJson} onChange={(e) => setEditedJson(e.target.value)} spellCheck={false} />
               {variableSaveError && <p className="mt-2 text-sm text-red-500">{variableSaveError}</p>}
             </div>

@@ -240,7 +240,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
   };
 
   return (
-    <div className="p-10 space-y-10 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
       {/* Header */}
       <PageHeader
         title="任务模板"
@@ -273,7 +273,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
         <input
           type="text"
           placeholder="搜索任务模板名称或 ID..."
- className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="form-input w-full pl-16 pr-8"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -468,7 +468,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
             <select
               value={pageSize}
               onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
-              className="px-3 py-2 bg-theme-bg-app border border-theme-border rounded-xl text-sm font-medium text-theme-text-secondary outline-none focus:border-blue-500 transition-all"
+              className="form-select text-[10px]"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -513,7 +513,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
       {isModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
  <div className="bg-theme-bg-app w-full max-w-4xl rounded-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]">
-            <div className="p-8 border-b border-slate-50 bg-slate-100/30 flex items-center justify-between shrink-0">
+            <div className="p-8 border-b border-theme-border bg-slate-100/30 flex items-center justify-between shrink-0">
                <div className="flex items-center gap-4">
  <div className="w-14 h-14 bg-theme-surface text-white rounded-xl flex items-center justify-center">
                    <Plus size={28} />
@@ -534,14 +534,14 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                     <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">模板名称 *</label>
                     <input
                       required placeholder="e.g. nmap-scanner"
-                      className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all"
+                      className="form-input w-full"
                       value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
                     />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">发布范围</label>
                     <select
-                      className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary"
+                      className="form-select w-full"
                       value={formData.scope} onChange={e => setFormData({...formData, scope: e.target.value as any})}
                     >
                       <option value="project">仅限当前项目 (Project-only)</option>
@@ -555,7 +555,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                     <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">重试次数 (Backoff Limit)</label>
                     <input
                       type="number" min="0" max="10"
-                      className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all"
+                      className="form-input w-full"
                       value={formData.backoff_limit} onChange={e => setFormData({...formData, backoff_limit: parseInt(e.target.value)})}
                     />
                   </div>
@@ -563,7 +563,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                     <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">完成后保留时间 (TTL Seconds)</label>
                     <input
                       type="number" min="0"
-                      className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all"
+                      className="form-input w-full"
                       value={formData.ttl_seconds_after_finished} onChange={e => setFormData({...formData, ttl_seconds_after_finished: parseInt(e.target.value)})}
                     />
                   </div>
@@ -573,7 +573,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                   <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">组件描述</label>
                   <textarea
                     placeholder="描述该任务组件的功能、输入输出要求..." rows={2}
-                    className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all resize-none"
+                    className="form-textarea w-full resize-none"
                     value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}
                   />
                </div>
@@ -587,7 +587,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                     <input
                       type="text"
                       placeholder="输入标签名后回车，例如 port-scan / weak-password"
-                      className="flex-1 px-4 py-3 bg-theme-bg-app rounded-xl border border-theme-border outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary transition-all"
+                      className="form-input flex-1"
                       value={tagInputValue}
                       onChange={(e) => setTagInputValue(e.target.value)}
                       onKeyDown={(e) => {
@@ -665,7 +665,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">容器名称</label>
                             <input
                               required placeholder="e.g. main-task"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-medium"
+                              className="form-input w-full text-xs"
                               value={container.name}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -678,7 +678,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">镜像 (Image) *</label>
                             <input
                               required placeholder="e.g. nmap:latest"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono font-medium text-blue-400"
+                              className="form-input w-full text-xs font-mono text-blue-400"
                               value={container.image}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -694,7 +694,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">启动命令 (Command)</label>
                             <input
                               placeholder="e.g. /bin/sh, -c (逗号分隔)"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                              className="form-input w-full text-xs font-mono"
                               value={container.command}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -707,7 +707,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">命令参数 (Args)</label>
                             <input
                               placeholder="e.g. -p, 80 (逗号分隔)"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                              className="form-input w-full text-xs font-mono"
                               value={container.args}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -722,8 +722,8 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                           <div className="space-y-1.5">
                             <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">拉取策略 (Image Pull Policy)</label>
                             <select
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-medium"
-                              value={container.image_pull_policy}
+className="form-select w-full text-xs"
+                               value={container.image_pull_policy}
                               onChange={e => {
                                 const n = [...formData.containers];
                                 n[idx].image_pull_policy = e.target.value;
@@ -772,7 +772,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                               <div key={envIdx} className="flex gap-2 items-center">
                                 <input
                                   placeholder="Name"
-                                  className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                                  className="form-input flex-1 text-xs font-mono"
                                   value={env.name}
                                   onChange={e => {
                                     const n = [...formData.containers];
@@ -782,7 +782,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                 />
                                 <input
                                   placeholder="Value"
-                                  className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                                  className="form-input flex-1 text-xs font-mono"
                                   value={env.value}
                                   onChange={e => {
                                     const n = [...formData.containers];
@@ -826,7 +826,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                               <div key={volIdx} className="flex gap-2 items-center">
                                 <input
                                   placeholder="PVC Name"
-                                  className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                                  className="form-input flex-1 text-xs font-mono"
                                   value={vol.pvc_name}
                                   onChange={e => {
                                     const n = [...formData.containers];
@@ -836,7 +836,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                 />
                                 <input
                                   placeholder="Mount Path"
-                                  className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                                  className="form-input flex-1 text-xs font-mono"
                                   value={vol.mount_path}
                                   onChange={e => {
                                     const n = [...formData.containers];
@@ -846,7 +846,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                 />
                                 <input
                                   placeholder="Sub Path"
-                                  className="w-24 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                                  className="form-input w-24 text-xs font-mono"
                                   value={vol.sub_path}
                                   onChange={e => {
                                     const n = [...formData.containers];
@@ -903,7 +903,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                 <div key={envIdx} className="flex gap-2 items-center">
                                   <input
                                     placeholder="Name"
-                                    className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                                    className="form-input flex-1 text-xs font-mono"
                                     value={env.name}
                                     onChange={e => {
                                       const n = [...formData.containers];
@@ -913,7 +913,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                   />
                                   <input
                                     placeholder="Default Value"
-                                    className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                                    className="form-input flex-1 text-xs font-mono"
                                     value={env.default_value}
                                     onChange={e => {
                                       const n = [...formData.containers];
@@ -956,7 +956,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                 <div key={volIdx} className="flex gap-2 items-center">
                                   <input
                                     placeholder="Mount Path"
-                                    className="flex-1 px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                                    className="form-input flex-1 text-xs font-mono"
                                     value={vol.mount_path}
                                     onChange={e => {
                                       const n = [...formData.containers];
@@ -999,7 +999,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                             <input
                               placeholder="Req CPU (100m)"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                              className="form-input w-full text-xs font-mono"
                               value={container.resources.requests.cpu}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -1009,7 +1009,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             />
                             <input
                               placeholder="Req Mem (128Mi)"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                              className="form-input w-full text-xs font-mono"
                               value={container.resources.requests.memory}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -1019,7 +1019,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             />
                             <input
                               placeholder="Lim CPU (500m)"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                              className="form-input w-full text-xs font-mono"
                               value={container.resources.limits.cpu}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -1029,7 +1029,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             />
                             <input
                               placeholder="Lim Mem (512Mi)"
-                              className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-mono"
+                              className="form-input w-full text-xs font-mono"
                               value={container.resources.limits.memory}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -1045,7 +1045,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">存活探针 (Liveness Probe)</label>
                             <div className="grid grid-cols-3 gap-2">
                               <select
-                                className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-medium"
+                                className="form-select text-[10px]"
                                 value={container.liveness_probe.type}
                                 onChange={e => {
                                   const n = [...formData.containers];
@@ -1061,7 +1061,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                 <>
                                   <input
                                     placeholder="Port" type="number"
-                                    className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-mono"
+                                    className="form-input text-[10px] font-mono"
                                     value={container.liveness_probe.port}
                                     onChange={e => {
                                       const n = [...formData.containers];
@@ -1072,7 +1072,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                   {container.liveness_probe.type === 'http' && (
                                     <input
                                       placeholder="Path"
-                                      className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-mono"
+                                      className="form-input text-[10px] font-mono"
                                       value={container.liveness_probe.path}
                                       onChange={e => {
                                         const n = [...formData.containers];
@@ -1085,7 +1085,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                               ) : (
                                 <input
                                   placeholder="Command (comma separated)"
-                                  className="col-span-2 px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-mono"
+                                  className="form-input col-span-2 text-[10px] font-mono"
                                   value={container.liveness_probe.command}
                                   onChange={e => {
                                     const n = [...formData.containers];
@@ -1163,7 +1163,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">就绪探针 (Readiness Probe)</label>
                             <div className="grid grid-cols-3 gap-2">
                               <select
-                                className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-medium"
+                                className="form-select text-[10px]"
                                 value={container.readiness_probe.type}
                                 onChange={e => {
                                   const n = [...formData.containers];
@@ -1179,7 +1179,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                 <>
                                   <input
                                     placeholder="Port" type="number"
-                                    className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-mono"
+                                    className="form-input text-[10px] font-mono"
                                     value={container.readiness_probe.port}
                                     onChange={e => {
                                       const n = [...formData.containers];
@@ -1190,7 +1190,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                                   {container.readiness_probe.type === 'http' && (
                                     <input
                                       placeholder="Path"
-                                      className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-mono"
+                                      className="form-input text-[10px] font-mono"
                                       value={container.readiness_probe.path}
                                       onChange={e => {
                                         const n = [...formData.containers];
@@ -1203,7 +1203,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                               ) : (
                                 <input
                                   placeholder="Command (comma separated)"
-                                  className="col-span-2 px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-mono"
+                                  className="form-input col-span-2 text-[10px] font-mono"
                                   value={container.readiness_probe.command}
                                   onChange={e => {
                                     const n = [...formData.containers];
@@ -1292,7 +1292,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                </div>
             </form>
 
-            <div className="p-8 border-t border-slate-50 bg-slate-100/50 flex gap-4 shrink-0">
+            <div className="p-8 border-t border-theme-border bg-slate-100/50 flex gap-4 shrink-0">
                <button
                  type="button" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}
                  className="flex-1 py-3 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl font-semibold hover:bg-theme-elevated transition-all"

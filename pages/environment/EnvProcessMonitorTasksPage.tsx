@@ -296,7 +296,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
 
   return (
     <>
-      <div className="p-10 space-y-6">
+      <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4">
         <PageHeader
           title="节点进程监控 - 任务管理"
           description="支持平台记录查询与指定节点实时任务查询"
