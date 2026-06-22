@@ -72,7 +72,7 @@ const TOOL_STYLE: Record<string, { badge: string; dot: string; label: string }> 
   getcaller: { badge: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500', label: 'caller' },
 };
 
-type DetailTab = 'overview' | 'walk' | 'tools' | 'graph' | 'result' | 'task-config';
+type DetailTab = 'overview' | 'walk' | 'tools' | 'result' | 'task-config';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 function formatDuration(startedAt?: string | null, finishedAt?: string | null): string {
@@ -574,7 +574,6 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
     ['overview', '总览', <ListTree size={14} key="i" />],
     ['walk', '审计走查', <Workflow size={14} key="i" />],
     ['tools', '工具调用', <Terminal size={14} key="i" />],
-    ['graph', '调用图', <Network size={14} key="i" />],
     ['result', '结果', <ShieldAlert size={14} key="i" />],
     ['task-config', '任务配置', <FileText size={14} key="i" />],
   ];
@@ -676,64 +675,96 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
           <button onClick={() => { setSessionDrawer(true); }} className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800"><FileText size={13} />查看智能体会话文件</button>
         </section>
       ) : activeTab === 'walk' ? (
-        <section className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
-          {/* Left: ordered review sequence (source entry → propagation) */}
-          <aside className="rounded-2xl border border-slate-200 bg-white p-3">
-            <div className="px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">审查顺序 ({walk.length})</div>
-            {walk.length === 0 ? <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-8 text-center text-xs text-slate-400">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div> : (
-              <ol className="relative max-h-[calc(100vh-20rem)] space-y-0 overflow-auto pr-1">
-                {walk.map((w, i) => {
-                  const sel = selectedFn?.fid === w.fid;
-                  const vuln = isVulnResult(w.audit?.result);
-                  const last = i === walk.length - 1;
-                  return (
-                    <li key={w.fid} className="relative flex gap-2.5">
-                      <div className="relative flex flex-col items-center">
-                        <span className={`mt-2.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 text-[9px] font-bold ${vuln ? 'border-rose-400 bg-rose-50 text-rose-700' : w.audit ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-slate-300 bg-white text-slate-400'}`}>{i + 1}</span>
-                        {!last ? <span className="w-px flex-1 bg-slate-200" /> : null}
-                      </div>
-                      <button onClick={() => setSelectedFid(w.fid)} className={`mb-1.5 flex-1 rounded-xl border px-3 py-2 text-left transition ${sel ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="truncate font-mono text-[13px] font-semibold">{w.name}</span>
-                          {vuln ? <Bug size={12} className={sel ? 'text-rose-300' : 'text-rose-500'} /> : w.audit ? <ShieldCheck size={12} className={sel ? 'text-emerald-300' : 'text-emerald-500'} /> : null}
+        <section className="space-y-4">
+          {/* Call graph on top — the navigation surface */}
+          {walk.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center text-sm text-slate-400">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div>
+          ) : (
+            <>
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-2.5 text-xs text-slate-500">
+                  <span className="font-semibold text-slate-600">污点传播 / 调用图</span>
+                  <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-5 bg-slate-500" />真实调用边 {callEdges.filter((e) => e.kind === 'call').length}</span>
+                  <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-5 border-t border-dashed border-slate-400" />审查顺序边 {callEdges.filter((e) => e.kind === 'flow').length}</span>
+                  <span className="ml-auto inline-flex items-center gap-2 text-[11px]">
+                    <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-300 bg-emerald-50" />安全</span>
+                    <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-rose-400 bg-rose-50" />漏洞</span>
+                  </span>
+                  {realCount === 0 ? <span className="rounded-full bg-amber-50 px-2 py-0.5 text-amber-700">无精确调用边(改动前运行),按审查顺序连接</span> : null}
+                </div>
+                <div className="h-[400px] bg-slate-50">
+                  <ReactFlow
+                    nodes={graph.nodes}
+                    edges={graph.flowEdges}
+                    nodeTypes={fnNodeTypes}
+                    onNodeClick={(_, node) => setSelectedFid(node.id)}
+                    fitView nodesDraggable nodesConnectable={false} elementsSelectable panOnDrag zoomOnScroll
+                    proOptions={{ hideAttribution: true }}
+                  >
+                    <Background color="#e2e8f0" gap={18} />
+                    <Controls showInteractive={false} />
+                  </ReactFlow>
+                </div>
+              </div>
+
+              {/* Below: ordered review rail + selected-node detail */}
+              <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
+                <aside className="rounded-2xl border border-slate-200 bg-white p-3">
+                  <div className="px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">审查顺序 ({walk.length})</div>
+                  <ol className="relative max-h-[560px] space-y-0 overflow-auto pr-1">
+                    {walk.map((w, i) => {
+                      const sel = selectedFn?.fid === w.fid;
+                      const vuln = isVulnResult(w.audit?.result);
+                      const last = i === walk.length - 1;
+                      return (
+                        <li key={w.fid} className="relative flex gap-2.5">
+                          <div className="relative flex flex-col items-center">
+                            <span className={`mt-2.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 text-[9px] font-bold ${vuln ? 'border-rose-400 bg-rose-50 text-rose-700' : w.audit ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-slate-300 bg-white text-slate-400'}`}>{i + 1}</span>
+                            {!last ? <span className="w-px flex-1 bg-slate-200" /> : null}
+                          </div>
+                          <button onClick={() => setSelectedFid(w.fid)} className={`mb-1.5 flex-1 rounded-xl border px-3 py-2 text-left transition ${sel ? 'border-slate-400 bg-slate-100 ring-1 ring-slate-300' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="truncate font-mono text-[13px] font-semibold text-slate-800">{w.name}</span>
+                              {vuln ? <Bug size={12} className="text-rose-500" /> : w.audit ? <ShieldCheck size={12} className="text-emerald-500" /> : null}
+                            </div>
+                            <div className="mt-0.5 truncate text-[10px] text-slate-500">污点 {w.taint?.tainted_params_in?.length ? w.taint.tainted_params_in.join(', ') : '—'}{w.ts ? ` · ${w.ts.slice(11, 19)}` : ''}</div>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </aside>
+                <div className="space-y-4">
+                  {!selectedFn ? <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-16 text-center text-sm text-slate-400">点击上方图节点或左侧函数,查看污点传播与模型推理</div> : (
+                    <>
+                      <SectionCard title={`#${selectedFn.order + 1} · ${selectedFn.name}`} icon={<Crosshair size={15} />} action={<FnBadge audit={selectedFn.audit} />}>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <InfoRow label="function_id" value={<span className="font-mono">{selectedFn.fid}</span>} />
+                          <InfoRow label="污点参数" value={selectedFn.taint?.tainted_params_in?.length ? <span className="font-mono text-rose-600">{selectedFn.taint.tainted_params_in.join(', ')}</span> : '—'} />
+                          {selectedFn.audit?.vuln_line ? <InfoRow label="漏洞行" value={<span className="font-mono text-rose-600">{selectedFn.audit.vuln_line}</span>} /> : null}
+                          {selectedFn.audit?.confidence != null ? <InfoRow label="置信度" value={selectedFn.audit.confidence} /> : null}
+                          {selectedFn.ts ? <InfoRow label="审查时间" value={<span className="font-mono">{selectedFn.ts.slice(11, 19)}</span>} /> : null}
                         </div>
-                        <div className={`mt-0.5 truncate text-[10px] ${sel ? 'text-slate-300' : 'text-slate-500'}`}>污点 {w.taint?.tainted_params_in?.length ? w.taint.tainted_params_in.join(', ') : '—'}{w.ts ? ` · ${w.ts.slice(11, 19)}` : ''}</div>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ol>
-            )}
-          </aside>
-          {/* Right: per-step detail — propagation + model think */}
-          <div className="space-y-4">
-            {!selectedFn ? <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-16 text-center text-sm text-slate-400">选择左侧函数查看污点传播与模型推理</div> : (
-              <>
-                <SectionCard title={`#${selectedFn.order + 1} · ${selectedFn.name}`} icon={<Crosshair size={15} />} action={<FnBadge audit={selectedFn.audit} />}>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <InfoRow label="function_id" value={<span className="font-mono">{selectedFn.fid}</span>} />
-                    <InfoRow label="污点参数" value={selectedFn.taint?.tainted_params_in?.length ? <span className="font-mono text-rose-600">{selectedFn.taint.tainted_params_in.join(', ')}</span> : '—'} />
-                    {selectedFn.audit?.vuln_line ? <InfoRow label="漏洞行" value={<span className="font-mono text-rose-600">{selectedFn.audit.vuln_line}</span>} /> : null}
-                    {selectedFn.audit?.confidence != null ? <InfoRow label="置信度" value={selectedFn.audit.confidence} /> : null}
-                    {selectedFn.ts ? <InfoRow label="审查时间" value={<span className="font-mono">{selectedFn.ts.slice(11, 19)}</span>} /> : null}
-                  </div>
-                </SectionCard>
-                {selectedFn.taint?.desc ? (
-                  <SectionCard title="污点传播 (是什么 / 为什么 / 怎么样)" icon={<Network size={15} />}><ThreeElementDesc text={selectedFn.taint.desc} /></SectionCard>
-                ) : null}
-                {selectedFn.audit?.desc ? (
-                  <SectionCard title="模型审计推理 (think)" icon={<Search size={15} />}><ThreeElementDesc text={selectedFn.audit.desc} /></SectionCard>
-                ) : null}
-                <SectionCard title={`该函数的工具调用 (${queriesForSelected.length})`} icon={<Terminal size={15} />}>
-                  {queriesForSelected.length === 0 ? <div className="text-xs text-slate-400">无</div> : (
-                    <div className="space-y-2">
-                      {queriesForSelected.map((q, i) => <ToolCallRow key={i} q={q} nameIdx={nameIdx} />)}
-                    </div>
+                      </SectionCard>
+                      {selectedFn.taint?.desc ? (
+                        <SectionCard title="污点传播 (是什么 / 为什么 / 怎么样)" icon={<Network size={15} />}><ThreeElementDesc text={selectedFn.taint.desc} /></SectionCard>
+                      ) : null}
+                      {selectedFn.audit?.desc ? (
+                        <SectionCard title="模型审计推理 (think)" icon={<Search size={15} />}><ThreeElementDesc text={selectedFn.audit.desc} /></SectionCard>
+                      ) : null}
+                      <SectionCard title={`该函数的工具调用 (${queriesForSelected.length})`} icon={<Terminal size={15} />}>
+                        {queriesForSelected.length === 0 ? <div className="text-xs text-slate-400">无</div> : (
+                          <div className="space-y-2">
+                            {queriesForSelected.map((q, i) => <ToolCallRow key={i} q={q} nameIdx={nameIdx} />)}
+                          </div>
+                        )}
+                      </SectionCard>
+                    </>
                   )}
-                </SectionCard>
-              </>
-            )}
-          </div>
+                </div>
+              </div>
+            </>
+          )}
         </section>
       ) : activeTab === 'tools' ? (
         <section className="space-y-4">
@@ -750,48 +781,6 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
             <div className="space-y-2">
               {(session?.codemap_queries || []).map((q, i) => <ToolCallRow key={i} q={q} nameIdx={nameIdx} index={i} />)}
             </div>
-          )}
-        </section>
-      ) : activeTab === 'graph' ? (
-        <section className="space-y-3">
-          {walk.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center text-sm text-slate-400">{sessionMissing ? '暂无调用图数据' : '加载中...'}</div>
-          ) : (
-            <>
-              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-5 bg-slate-500" />真实调用边 {callEdges.filter((e) => e.kind === 'call').length}</span>
-                <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-5 border-t border-dashed border-slate-400" />审查顺序边 {callEdges.filter((e) => e.kind === 'flow').length}</span>
-                {realCount === 0 ? <span className="rounded-full bg-amber-50 px-2 py-0.5 text-amber-700">该任务无精确调用边(改动前运行),按审查顺序连接</span> : null}
-              </div>
-              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                  <div className="h-[560px] bg-slate-50">
-                    <ReactFlow
-                      nodes={graph.nodes}
-                      edges={graph.flowEdges}
-                      nodeTypes={fnNodeTypes}
-                      onNodeClick={(_, node) => setSelectedFid(node.id)}
-                      fitView nodesDraggable nodesConnectable={false} elementsSelectable panOnDrag zoomOnScroll
-                      proOptions={{ hideAttribution: true }}
-                    >
-                      <Background color="#e2e8f0" gap={18} />
-                      <Controls showInteractive={false} />
-                    </ReactFlow>
-                  </div>
-                </div>
-                <SectionCard title="节点详情" icon={<Crosshair size={15} />} action={<FnBadge audit={selectedFn?.audit} />}>
-                  {!selectedFn ? <div className="text-xs text-slate-400">点击图中节点查看详情</div> : (
-                    <div className="space-y-3">
-                      <div className="font-mono text-sm font-semibold text-slate-900">#{selectedFn.order + 1} {selectedFn.name}</div>
-                      <InfoRow label="污点参数" value={selectedFn.taint?.tainted_params_in?.join(', ') || '—'} />
-                      {selectedFn.audit ? <InfoRow label="判定" value={selectedFn.audit.result} /> : null}
-                      {selectedFn.audit?.desc ? <div className="border-t border-slate-100 pt-3"><ThreeElementDesc text={selectedFn.audit.desc} /></div> : null}
-                      <button onClick={() => setActiveTab('walk')} className="text-xs font-semibold text-slate-500 hover:text-slate-900">在审计走查中查看 →</button>
-                    </div>
-                  )}
-                </SectionCard>
-              </div>
-            </>
           )}
         </section>
       ) : activeTab === 'result' ? (
