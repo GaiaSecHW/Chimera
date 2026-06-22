@@ -4275,28 +4275,42 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
                 <div className="min-w-0 rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                   <div className="text-theme-text-muted">
-                    {isBinaryModuleTask ? '模块数量' : isSourceTask && detail.pipeline_profile === 'kg_source_vuln_scan' ? '原始入口数' : '已选模块'}
+                    {isBinaryModuleTask ? '模块数量' : isSourceTask && detail.pipeline_profile === 'kg_source_vuln_scan' ? '识别总数' : '已选模块'}
                   </div>
                   <div className="mt-1 break-words text-lg font-semibold text-theme-text-primary">
                     {isBinaryModuleTask
                       ? Math.max(1, detail.selected_module_count || 1)
                       : isSourceTask && detail.pipeline_profile === 'kg_source_vuln_scan'
-                        ? (detail.knowledge_graph_raw_entry_count || detail.candidate_entry_count || 0)
+                        ? (detail.knowledge_graph_analysis_total || detail.knowledge_graph_raw_entry_count || detail.candidate_entry_count || 0)
                         : detail.selected_module_count}
                   </div>
                 </div>
                 <div className="min-w-0 rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                   <div className="text-theme-text-muted">
-                    {isBinaryModuleTask ? '候选模块' : isSourceTask && detail.pipeline_profile === 'kg_source_vuln_scan' ? '过滤掉的入口' : '全部模块'}
+                    {isBinaryModuleTask ? '候选模块' : isSourceTask && detail.pipeline_profile === 'kg_source_vuln_scan' ? '待识别入口' : '全部模块'}
                   </div>
                   <div className="mt-1 break-words text-lg font-semibold text-theme-text-primary">
                     {isBinaryModuleTask
                       ? Math.max(1, detail.candidate_module_count || 1)
                       : isSourceTask && detail.pipeline_profile === 'kg_source_vuln_scan'
-                        ? (detail.knowledge_graph_filtered_out_count || 0)
+                        ? (detail.knowledge_graph_analysis_pending || 0)
                         : detail.high_risk_module_count}
                   </div>
                 </div>
+                {isSourceTask && detail.pipeline_profile === 'kg_source_vuln_scan' ? (
+                  <>
+                    <div className="min-w-0 rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
+                      <div className="text-theme-text-muted">图谱状态</div>
+                      <div className="mt-1 break-words font-semibold text-theme-text-primary">{detail.knowledge_graph_graph_status || '-'}</div>
+                    </div>
+                    <div className="min-w-0 rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
+                      <div className="text-theme-text-muted">识别状态</div>
+                      <div className="mt-1 break-words font-semibold text-theme-text-primary">
+                        {detail.knowledge_graph_identification_state || '-'}{detail.knowledge_graph_attack_status ? ` / ${detail.knowledge_graph_attack_status}` : ''}
+                      </div>
+                    </div>
+                  </>
+                ) : null}
                 <div className="min-w-0 rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                   <div className="text-theme-text-muted">漏洞结果</div>
                   <div className="mt-1 break-words text-lg font-semibold text-theme-text-primary">{detail.vuln_result_count}</div>
