@@ -546,7 +546,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-10 space-y-8 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
               {!isAppendMode ? (
  <div className="bg-theme-elevated p-6 rounded-xl border border-theme-border space-y-3">
                   <label className="block">

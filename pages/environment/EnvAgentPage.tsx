@@ -1474,7 +1474,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 </button>
               </div>
 
-              <div className="p-10 space-y-6">
+              <div className="p-6 space-y-4">
                 {!integrationType ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <button

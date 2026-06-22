@@ -88,7 +88,7 @@ export const SecurityAssessmentPage: React.FC = () => {
         </div>
 
         <div className="space-y-6">
- <div className="bg-theme-surface p-8 rounded-xl border border-theme-border space-y-6 relative overflow-hidden">
+ <div className="bg-theme-surface p-6 rounded-xl border border-theme-border space-y-4 relative overflow-hidden">
             <Activity className="absolute right-[-20px] top-[-20px] w-40 h-40 text-slate-100 opacity-80 rotate-12" />
             <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">实时评估统计</h4>
             <div className="grid grid-cols-2 gap-4">

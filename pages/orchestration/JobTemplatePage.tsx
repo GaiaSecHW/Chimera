@@ -527,7 +527,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                </button>
             </div>
 
-            <form onSubmit={handleCreate} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
+            <form onSubmit={handleCreate} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
                {/* Basic Info */}
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">

@@ -370,7 +370,7 @@ export const ProjectPage: React.FC = () => {
       </div>
 
       <Modal open={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} className="max-w-md">
-            <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
+            <div className="p-6 pb-4 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                   <Plus size={24} />
@@ -384,7 +384,7 @@ export const ProjectPage: React.FC = () => {
                 <X size={28} />
               </button>
             </div>
-            <form onSubmit={handleCreate} className="p-10 space-y-6">
+            <form onSubmit={handleCreate} className="p-6 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">项目名称 *</label>
                 <input
@@ -476,7 +476,7 @@ placeholder="Project Name"
       </Modal>
 
       {selectedProject && <Modal open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} className="max-w-md">
-            <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
+            <div className="p-6 pb-4 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-amber-600 rounded-lg flex items-center justify-center text-white">
                   <Edit3 size={24} />
@@ -490,7 +490,7 @@ placeholder="Project Name"
                 <X size={28} />
               </button>
             </div>
-            <form onSubmit={handleEdit} className="p-10 space-y-6">
+            <form onSubmit={handleEdit} className="p-6 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">项目名称 *</label>
                 <input

@@ -1523,9 +1523,9 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                   />
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <input type="number" min={1} max={100} value={evolutionForm.minRounds} onChange={(event) => setEvolutionForm((current) => ({ ...current, minRounds: Number(event.target.value || 1) }))} className="px-4 py-3 text-sm outline-none rounded-lg" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
-                  <input type="number" min={1} max={100} value={evolutionForm.maxRounds} onChange={(event) => setEvolutionForm((current) => ({ ...current, maxRounds: Number(event.target.value || 1) }))} className="px-4 py-3 text-sm outline-none rounded-lg" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
-                  <input type="number" min={1} max={64} value={evolutionForm.maxConcurrentSourceTasks} onChange={(event) => setEvolutionForm((current) => ({ ...current, maxConcurrentSourceTasks: Number(event.target.value || 1) }))} className="px-4 py-3 text-sm outline-none rounded-lg" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
+                  <input type="number" min={1} max={100} value={evolutionForm.minRounds} onChange={(event) => setEvolutionForm((current) => ({ ...current, minRounds: Number(event.target.value || 1) }))} className="form-input text-sm" />
+                  <input type="number" min={1} max={100} value={evolutionForm.maxRounds} onChange={(event) => setEvolutionForm((current) => ({ ...current, maxRounds: Number(event.target.value || 1) }))} className="form-input text-sm" />
+                  <input type="number" min={1} max={64} value={evolutionForm.maxConcurrentSourceTasks} onChange={(event) => setEvolutionForm((current) => ({ ...current, maxConcurrentSourceTasks: Number(event.target.value || 1) }))} className="form-input text-sm" />
                 </div>
               </div>
 

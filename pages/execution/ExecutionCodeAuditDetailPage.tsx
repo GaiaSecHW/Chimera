@@ -326,7 +326,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
         {activeTab === 'overview' && (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
            {/* Telemetry Section */}
- <div className="bg-theme-surface p-8 rounded-xl border border-theme-border space-y-6">
+ <div className="bg-theme-surface p-6 rounded-xl border border-theme-border space-y-4">
               <div className="flex items-center justify-between">
                  <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
                    <Activity size={16} className="text-blue-500" /> K8S Telemetry
@@ -374,7 +374,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
            </div>
 
            {/* Credentials Section */}
-           <div className="bg-theme-surface p-8 rounded-xl border border-theme-border space-y-6">
+           <div className="bg-theme-surface p-6 rounded-xl border border-theme-border space-y-4">
               <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
                 <Lock size={16} className="text-amber-500" /> Access Credentials
               </h4>
@@ -420,7 +420,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
         )}
 
         {activeTab === 'mounts' && (
- <div className="bg-theme-surface p-8 rounded-xl border border-theme-border space-y-6">
+ <div className="bg-theme-surface p-6 rounded-xl border border-theme-border space-y-4">
             <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
               <HardDrive size={16} className="text-indigo-500" /> 挂载明细
             </h4>
@@ -452,7 +452,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
         )}
 
         {activeTab === 'llm' && (
- <div className="bg-theme-surface p-8 rounded-xl border border-theme-border space-y-6">
+ <div className="bg-theme-surface p-6 rounded-xl border border-theme-border space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
               <Bot size={16} className="text-violet-500" /> LLM Provider Binding
@@ -624,7 +624,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
  <div className="bg-theme-surface w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95">
-            <div className="p-10 text-center space-y-8">
+            <div className="p-6 text-center space-y-4">
               <div className="w-24 h-24 bg-red-500/15 text-red-400 rounded-xl flex items-center justify-center mx-auto shadow-inner">
                 <Trash2 size={48} />
               </div>
@@ -660,7 +660,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
       {showRebuildConfirm && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
  <div className="bg-theme-surface w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95">
-            <div className="p-10 text-center space-y-8">
+            <div className="p-6 text-center space-y-4">
               <div className="w-24 h-24 bg-amber-500/15 text-amber-400 rounded-xl flex items-center justify-center mx-auto shadow-inner">
                 <RefreshCw size={48} className="animate-spin-slow" />
               </div>

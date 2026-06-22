@@ -695,7 +695,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
           {activeTab === 'overview' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
- <div className="bg-theme-surface p-8 rounded-xl border border-theme-border space-y-6">
+ <div className="bg-theme-surface p-6 rounded-xl border border-theme-border space-y-4">
                    <div className="flex items-center justify-between">
                      <h4 className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                        <CpuIcon size={14} className="text-blue-500" /> 处理器负载
@@ -718,7 +718,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                       </div>
                    </div>
                 </div>
- <div className="bg-theme-surface p-8 rounded-xl border border-theme-border space-y-6">
+ <div className="bg-theme-surface p-6 rounded-xl border border-theme-border space-y-4">
                    <div className="flex items-center justify-between">
                      <h4 className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                        <Database size={14} className="text-indigo-500" /> 内存状态
@@ -748,7 +748,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
               </div>
 
               {/* Docker Runtime Section */}
- <div className="bg-theme-surface p-8 rounded-xl border border-theme-border space-y-6">
+ <div className="bg-theme-surface p-6 rounded-xl border border-theme-border space-y-4">
                  <div className="flex items-center justify-between">
                     <h4 className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                       <Container size={16} className="text-blue-400" /> Docker 运行时摘要
@@ -1589,7 +1589,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
 
         <div className="space-y-8">
           {activeTab === 'services' ? (
- <div className="bg-theme-surface border border-theme-border p-10 rounded-2xl space-y-8 relative overflow-hidden group">
+ <div className="bg-theme-surface border border-theme-border p-6 rounded-2xl space-y-4 relative overflow-hidden group">
               <div className="absolute right-[-20px] top-[-20px] w-40 h-40 bg-blue-500 opacity-5 blur-3xl group-hover:opacity-10 transition-opacity" />
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -1674,7 +1674,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
               )}
             </div>
           ) : (
- <div className="bg-theme-surface border border-theme-border p-10 rounded-2xl space-y-8 relative overflow-hidden group">
+ <div className="bg-theme-surface border border-theme-border p-6 rounded-2xl space-y-4 relative overflow-hidden group">
                <div className="absolute right-[-20px] top-[-20px] w-40 h-40 bg-blue-500 opacity-5 blur-3xl group-hover:opacity-10 transition-opacity" />
                <div className="space-y-2">
                   <p className="text-theme-text-muted text-[10px] font-semibold uppercase tracking-widest">节点元数据</p>
@@ -1722,7 +1722,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
           )}
 
           {/* Activity Log / Tasks Card */}
- <div className="bg-theme-surface p-8 rounded-2xl border border-theme-border space-y-6">
+ <div className="bg-theme-surface p-6 rounded-2xl border border-theme-border space-y-4">
              <h4 className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                 <History size={16} /> 关联部署任务 (Latest 5)
              </h4>

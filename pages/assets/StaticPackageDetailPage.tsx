@@ -112,7 +112,7 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Sidebar: Metadata */}
         <div className="lg:col-span-1 space-y-6">
- <div className="bg-theme-surface p-8 rounded-xl border border-theme-border space-y-6">
+ <div className="bg-theme-surface p-6 rounded-xl border border-theme-border space-y-4">
             <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
               <Info size={14} /> 资产静态属性
             </h4>
@@ -141,7 +141,7 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
             </div>
           </div>
 
-          <div className="bg-theme-surface p-8 rounded-xl text-theme-text-faint space-y-6">
+          <div className="bg-theme-surface p-6 rounded-xl text-theme-text-faint space-y-4">
             <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">底层安全信息</h4>
             <div className="space-y-4">
               <div className="space-y-1.5">

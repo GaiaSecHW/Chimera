@@ -489,7 +489,7 @@ export const UserMgmtPage: React.FC = () => {
       </div>
 
       <Modal open={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} className="max-w-md">
-            <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
+            <div className="p-6 pb-4 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                   <Plus size={24} />
@@ -501,7 +501,7 @@ export const UserMgmtPage: React.FC = () => {
               </div>
               <button onClick={() => setIsCreateModalOpen(false)} className="p-3 text-theme-text-faint hover:text-theme-text-secondary"><X size={28} /></button>
             </div>
-            <form onSubmit={handleCreate} className="p-10 space-y-6">
+            <form onSubmit={handleCreate} className="p-6 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">用户名 *</label>
                 <input
@@ -531,7 +531,7 @@ placeholder="••••••••"
       </Modal>
 
       {selectedUser && <Modal open={isResetModalOpen} onClose={() => setIsResetModalOpen(false)} className="max-w-md">
-            <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
+            <div className="p-6 pb-4 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-amber-600 rounded-lg flex items-center justify-center text-white">
                   <Key size={24} />
@@ -543,7 +543,7 @@ placeholder="••••••••"
               </div>
               <button onClick={() => setIsResetModalOpen(false)} className="p-3 text-theme-text-faint hover:text-theme-text-secondary"><X size={28} /></button>
             </div>
-            <form onSubmit={handleResetPassword} className="p-10 space-y-6">
+            <form onSubmit={handleResetPassword} className="p-6 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">管理员密码验证 *</label>
                 <input
@@ -599,10 +599,10 @@ placeholder="New Password"
               })}
             </div>
 
-            <div className="p-10 pt-8 overflow-y-auto space-y-8">
+            <div className="p-6 pt-6 overflow-y-auto space-y-4">
               {importStage === 'upload' && (
                 <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-8">
-                  <div className="rounded-xl border border-theme-border bg-slate-50/70 p-8 space-y-6">
+                  <div className="rounded-xl border border-theme-border bg-slate-50/70 p-6 space-y-4">
                     <div className="space-y-2">
                       <h4 className="text-xl font-semibold text-theme-text-primary">1. 准备导入文件</h4>
                       <p className="text-sm text-theme-text-muted font-medium">下载模板后直接按示例填写即可，支持上传`.xlsx` 或`.csv` 文件，系统会先预校验再导入。</p>

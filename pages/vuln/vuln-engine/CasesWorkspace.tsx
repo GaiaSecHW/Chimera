@@ -350,10 +350,7 @@ export const CasesWorkspace: React.FC<any> = ({
             value={caseSearch}
             onChange={(event) => setCaseSearch(event.target.value)}
             placeholder="搜索标题、摘要、资产定位"
-            className="w-full px-4 py-2.5 outline-none text-sm rounded-lg"
-            style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-            onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+            className="form-input w-full text-sm"
           />
           {showValidationFilters && (
             <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
@@ -361,10 +358,7 @@ export const CasesWorkspace: React.FC<any> = ({
                 aria-label="验证状态筛选"
                 value={validationStatusFilter}
                 onChange={(event) => setValidationStatusFilter?.(event.target.value)}
-                className="flex-1 px-3 py-2.5 outline-none text-sm rounded-lg"
-                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                className="form-select flex-1 text-sm"
               >
                 {validationStatusOptions.map((option) => (
                   <option key={option} value={option}>
@@ -376,10 +370,7 @@ export const CasesWorkspace: React.FC<any> = ({
                 aria-label="验证结论筛选"
                 value={validationConclusionFilter}
                 onChange={(event) => setValidationConclusionFilter?.(event.target.value)}
-                className="flex-1 px-3 py-2.5 outline-none text-sm rounded-lg"
-                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                className="form-select flex-1 text-sm"
               >
                 {validationConclusionOptions.map((option) => (
                   <option key={option} value={option}>
@@ -391,10 +382,7 @@ export const CasesWorkspace: React.FC<any> = ({
                 aria-label="漏洞等级筛选"
                 value={severityFilter}
                 onChange={(event) => setSeverityFilter?.(event.target.value)}
-                className="flex-1 px-3 py-2.5 outline-none text-sm rounded-lg"
-                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                className="form-select flex-1 text-sm"
               >
                 {severityOptions.map((option) => (
                   <option key={option} value={option}>
@@ -622,22 +610,22 @@ export const CasesWorkspace: React.FC<any> = ({
             <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>创建新案例</h3>
           </div>
           <form onSubmit={handleCreateCase} className="p-5 grid grid-cols-1 gap-4">
-            <input value={caseForm.title} onChange={(event) => setCaseForm({ ...caseForm, title: event.target.value })} placeholder="案例标题" className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} required />
-            <textarea value={caseForm.summary} onChange={(event) => setCaseForm({ ...caseForm, summary: event.target.value })} placeholder="摘要" className="min-h-[6rem] px-4 py-2.5 rounded-lg outline-none text-sm resize-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
+            <input value={caseForm.title} onChange={(event) => setCaseForm({ ...caseForm, title: event.target.value })} placeholder="案例标题" className="form-input text-sm" required />
+            <textarea value={caseForm.summary} onChange={(event) => setCaseForm({ ...caseForm, summary: event.target.value })} placeholder="摘要" className="form-textarea min-h-[6rem] resize-none text-sm" />
             <div className="grid grid-cols-2 gap-4">
-              <select value={caseForm.severity} onChange={(event) => setCaseForm({ ...caseForm, severity: event.target.value })} className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}>
+              <select value={caseForm.severity} onChange={(event) => setCaseForm({ ...caseForm, severity: event.target.value })} className="form-select text-sm">
                 <option value="critical">严重</option>
                 <option value="high">高危</option>
                 <option value="medium">中危</option>
                 <option value="low">低危</option>
               </select>
-              <input type="number" min={0} max={100} value={caseForm.confidence} onChange={(event) => setCaseForm({ ...caseForm, confidence: Number(event.target.value) })} placeholder="置信度" className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
+              <input type="number" min={0} max={100} value={caseForm.confidence} onChange={(event) => setCaseForm({ ...caseForm, confidence: Number(event.target.value) })} placeholder="置信度" className="form-input text-sm" />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <input value={caseForm.source_service} onChange={(event) => setCaseForm({ ...caseForm, source_service: event.target.value })} placeholder="来源服务" className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
-              <input value={caseForm.asset_type} onChange={(event) => setCaseForm({ ...caseForm, asset_type: event.target.value })} placeholder="资产类型" className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
+              <input value={caseForm.source_service} onChange={(event) => setCaseForm({ ...caseForm, source_service: event.target.value })} placeholder="来源服务" className="form-input text-sm" />
+              <input value={caseForm.asset_type} onChange={(event) => setCaseForm({ ...caseForm, asset_type: event.target.value })} placeholder="资产类型" className="form-input text-sm" />
             </div>
-            <input value={caseForm.asset_locator} onChange={(event) => setCaseForm({ ...caseForm, asset_locator: event.target.value })} placeholder="资产定位" className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
+            <input value={caseForm.asset_locator} onChange={(event) => setCaseForm({ ...caseForm, asset_locator: event.target.value })} placeholder="资产定位" className="form-input text-sm" />
             <button type="submit" disabled={submittingCase} className="px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { if (!submittingCase) e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}>
               <Plus size={16} />
               {submittingCase ? '创建中...' : '创建案例'}
@@ -905,10 +893,7 @@ export const CasesWorkspace: React.FC<any> = ({
                     <select
                       value={validationForm.validation_result}
                       onChange={(event) => setValidationForm({ ...validationForm, validation_result: event.target.value })}
-                      className="w-full px-4 py-2.5 rounded-lg outline-none text-sm"
-                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                      className="form-select w-full text-sm"
                     >
                       {(validationResultOptions || []).map((item: string) => (
                         <option key={item} value={item}>{labelOf(item, VALIDATION_RESULT_LABELS)}</option>
@@ -918,10 +903,7 @@ export const CasesWorkspace: React.FC<any> = ({
                       value={validationForm.summary}
                       onChange={(event) => setValidationForm({ ...validationForm, summary: event.target.value })}
                       placeholder="补充验证结论、失败原因、环境限制或证明材料说明"
-                      className="min-h-[7rem] w-full px-4 py-2.5 rounded-lg outline-none text-sm resize-none"
-                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                      className="form-textarea min-h-[7rem] resize-none w-full text-sm"
                     />
                     <button type="submit" disabled={submittingValidation} className="w-full px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50" style={{ backgroundColor: LK.success, color: '#ffffff' }} onMouseEnter={(e) => { if (!submittingValidation) e.currentTarget.style.opacity = '0.9'; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}>
                       {submittingValidation ? '提交中...' : '提交验证结论'}
@@ -1017,11 +999,11 @@ export const CasesWorkspace: React.FC<any> = ({
               <div className="rounded-lg p-4 space-y-3" style={{ border: `1px solid ${LK.border}` }}>
                 <div className="flex items-center gap-2"><Sparkles size={16} style={{ color: LK.primary }} /><h5 className="font-semibold" style={{ color: LK.ink }}>派发动作</h5></div>
                 <div className="grid grid-cols-2 gap-3">
-                  <select value={dispatchForm.action_type} onChange={(event) => setDispatchForm({ ...dispatchForm, action_type: event.target.value })} className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}>
+                  <select value={dispatchForm.action_type} onChange={(event) => setDispatchForm({ ...dispatchForm, action_type: event.target.value })} className="form-select text-sm">
                     <option value="">全部动作</option>
                     {ACTION_TYPES.map((item) => <option key={item} value={item}>{labelOf(item, ACTION_TYPE_LABELS)}</option>)}
                   </select>
-                  <select value={dispatchForm.service_id} onChange={(event) => setDispatchForm({ ...dispatchForm, service_id: event.target.value })} className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}>
+                  <select value={dispatchForm.service_id} onChange={(event) => setDispatchForm({ ...dispatchForm, service_id: event.target.value })} className="form-select text-sm">
                     <option value="">全部服务</option>
                     {services.map((item: any) => <option key={item.service_id} value={item.service_id}>{item.service_name}</option>)}
                   </select>
@@ -1059,12 +1041,12 @@ export const CasesWorkspace: React.FC<any> = ({
                 {['triage', 'validation'].includes(selectedCaseDetail.current_stage) && (
                   <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40` }}>
                     <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.error }}>人工结束案例</div>
-                    <select value={finishForm.finished_reason} onChange={(event) => setFinishForm({ ...finishForm, finished_reason: event.target.value })} className="w-full px-3 py-2 rounded-lg outline-none text-xs font-semibold" style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: `1px solid ${LK.error}40` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.error)} onBlur={(e) => (e.currentTarget.style.borderColor =`${LK.error}40`)}>
+                    <select value={finishForm.finished_reason} onChange={(event) => setFinishForm({ ...finishForm, finished_reason: event.target.value })} className="form-select w-full text-xs font-semibold">
                       {FINISHED_REASON_OPTIONS.map((item) => (
                         <option key={item} value={item}>{labelOf(item, FINISHED_REASON_LABELS)}</option>
                       ))}
                     </select>
-                    <input value={finishForm.summary} onChange={(event) => setFinishForm({ ...finishForm, summary: event.target.value })} placeholder="结束说明（必填）" className="w-full px-3 py-2 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: `1px solid ${LK.error}40` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.error)} onBlur={(e) => (e.currentTarget.style.borderColor =`${LK.error}40`)} />
+                    <input value={finishForm.summary} onChange={(event) => setFinishForm({ ...finishForm, summary: event.target.value })} placeholder="结束说明（必填）" className="form-input w-full text-sm" />
                     <button onClick={handleFinishCase} disabled={submittingFinish} className="w-full px-3 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50" style={{ backgroundColor: LK.error, color: '#ffffff' }} onMouseEnter={(e) => { if (!submittingFinish) e.currentTarget.style.opacity = '0.9'; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}>
                       {submittingFinish ? '结束中...' : '结束案例'}
                     </button>
@@ -1076,10 +1058,10 @@ export const CasesWorkspace: React.FC<any> = ({
             <div className="rounded-lg p-4 space-y-3" style={{ border: `1px solid ${LK.border}` }}>
               <div className="flex items-center gap-2"><CheckCheck size={16} style={{ color: LK.success }} /><h5 className="font-semibold" style={{ color: LK.ink }}>人工裁决</h5></div>
               <form onSubmit={handleSubmitDecision} className="grid grid-cols-1 xl:grid-cols-[12rem_1fr_auto] gap-3">
-                <select value={decisionForm.decision_status} onChange={(event) => setDecisionForm({ ...decisionForm, decision_status: event.target.value })} className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}>
+                <select value={decisionForm.decision_status} onChange={(event) => setDecisionForm({ ...decisionForm, decision_status: event.target.value })} className="form-select text-sm">
                   {DECISION_OPTIONS.map((item) => <option key={item} value={item}>{labelOf(item, DECISION_LABELS)}</option>)}
                 </select>
-                <input value={decisionForm.summary} onChange={(event) => setDecisionForm({ ...decisionForm, summary: event.target.value })} placeholder="补充这次人工裁决的说明" className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
+                <input value={decisionForm.summary} onChange={(event) => setDecisionForm({ ...decisionForm, summary: event.target.value })} placeholder="补充这次人工裁决的说明" className="form-input text-sm" />
                 <button type="submit" disabled={submittingDecision} className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50" style={{ backgroundColor: LK.success, color: '#ffffff' }} onMouseEnter={(e) => { if (!submittingDecision) e.currentTarget.style.opacity = '0.9'; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}>{submittingDecision ? '提交中...' : '提交裁决'}</button>
               </form>
             </div>

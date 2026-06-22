@@ -653,7 +653,7 @@ export const DepartmentMemberPage: React.FC = () => {
 
       <Modal open={!!(isAddModalOpen && userPermissions?.can_manage_department_members)} onClose={() => setIsAddModalOpen(false)} className="max-w-3xl">
 
-            <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
+            <div className="p-6 pb-4 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                   <Plus size={24} />
@@ -665,7 +665,7 @@ export const DepartmentMemberPage: React.FC = () => {
               </div>
               <button onClick={() => setIsAddModalOpen(false)} className="p-3 text-theme-text-faint hover:text-theme-text-secondary"><X size={28} /></button>
             </div>
-            <form onSubmit={handleAddMember} className="p-10 space-y-8">
+            <form onSubmit={handleAddMember} className="p-6 space-y-4">
               <div className="space-y-6">
                 <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto_1fr] gap-4 items-end">
                   <div className="space-y-3">
@@ -772,7 +772,7 @@ placeholder="输入用户名筛选"
 
       {selectedMember && <Modal open={isMoveModalOpen} onClose={() => setIsMoveModalOpen(false)} className="max-w-md">
 
-            <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
+            <div className="p-6 pb-4 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
                   <Building2 size={24} />
@@ -784,7 +784,7 @@ placeholder="输入用户名筛选"
               </div>
               <button onClick={() => setIsMoveModalOpen(false)} className="p-3 text-theme-text-faint hover:text-theme-text-secondary"><X size={28} /></button>
             </div>
-            <form onSubmit={handleMoveMember} className="p-10 space-y-6">
+            <form onSubmit={handleMoveMember} className="p-6 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">目标部门 *</label>
                 <select required className="form-select w-full" value={moveDepartmentId} onChange={(e) => setMoveDepartmentId(e.target.value)}>
@@ -802,7 +802,7 @@ placeholder="输入用户名筛选"
 
       {selectedMember && userPermissions?.can_manage_department_members && <Modal open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} className="max-w-md">
 
-            <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
+            <div className="p-6 pb-4 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-amber-600 rounded-lg flex items-center justify-center text-white">
                   <Edit3 size={24} />
@@ -814,7 +814,7 @@ placeholder="输入用户名筛选"
               </div>
               <button onClick={() => setIsEditModalOpen(false)} className="p-3 text-theme-text-faint hover:text-theme-text-secondary"><X size={28} /></button>
             </div>
-            <form onSubmit={handleEditMember} className="p-10 space-y-6">
+            <form onSubmit={handleEditMember} className="p-6 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">角色 *</label>
                 <select required className="form-select w-full" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
@@ -854,10 +854,10 @@ placeholder="输入用户名筛选"
               ))}
             </div>
 
-            <div className="p-10 pt-8 overflow-y-auto space-y-8">
+            <div className="p-6 pt-6 overflow-y-auto space-y-4">
               {importStage === 'upload' && (
                 <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-8">
-                  <div className="rounded-xl border border-theme-border bg-slate-50/70 p-8 space-y-6">
+                  <div className="rounded-xl border border-theme-border bg-slate-50/70 p-6 space-y-4">
                     <div className="space-y-2">
                       <h4 className="text-xl font-semibold text-theme-text-primary">1. 准备成员导入文件</h4>
                       <p className="text-sm text-theme-text-muted font-medium">模板只要求填写已有账号的用户名。普通管理员仅允许导入`member`。</p>

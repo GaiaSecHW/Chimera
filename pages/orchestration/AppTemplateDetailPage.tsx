@@ -264,7 +264,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
         <div className="max-w-5xl mx-auto space-y-8">
 
           {/* Basic Info */}
- <div className="bg-theme-surface rounded-xl p-8 border border-theme-border space-y-6">
+ <div className="bg-theme-surface rounded-xl p-6 border border-theme-border space-y-4">
             <h3 className="text-lg font-semibold text-theme-text-primary flex items-center gap-2">
               <Settings size={18} className="text-blue-500" /> 基本信息
             </h3>
@@ -492,7 +492,7 @@ className="form-input w-20 text-xs font-mono disabled:opacity-70 disabled:bg-the
           </div>
 
           {/* Container Stack */}
- <div className="bg-theme-surface rounded-xl p-8 border border-theme-border space-y-6">
+ <div className="bg-theme-surface rounded-xl p-6 border border-theme-border space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-theme-text-primary flex items-center gap-2">
                 <Container size={18} className="text-blue-500" /> 容器编排栈

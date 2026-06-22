@@ -475,7 +475,7 @@ export const WorkflowInstancePage: React.FC<{
               <h3 className="text-2xl font-bold text-theme-text-primary">创建空白实例</h3>
               <p className="text-sm text-theme-text-muted mt-2 font-medium">创建一个不包含任何节点的空白工作流实例，稍后可添加节点。</p>
             </div>
-            <form onSubmit={handleCreate} className="p-8 space-y-6">
+            <form onSubmit={handleCreate} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-theme-text-secondary mb-2">实例名称</label>
                 <input required type="text" className="form-input w-full" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="例如: prod-security-scan" />

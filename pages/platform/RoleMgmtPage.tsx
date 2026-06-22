@@ -200,7 +200,7 @@ export const RoleMgmtPage: React.FC = () => {
 
       {/* Create/Edit Modal */}
       <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} className="max-w-md">
-              <div className="p-10 pb-4 border-b border-theme-border flex items-center justify-between">
+              <div className="p-6 pb-4 border-b border-theme-border flex items-center justify-between">
                 <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-indigo-500/20">
                     {editingRole ? <Edit3 size={24} /> : <Plus size={24} />}
@@ -212,7 +212,7 @@ export const RoleMgmtPage: React.FC = () => {
                 </div>
                 <button onClick={() => setIsModalOpen(false)} className="p-3 text-theme-text-faint hover:text-theme-text-secondary"><X size={28} /></button>
               </div>
-              <form onSubmit={handleSubmit} className="p-10 space-y-6">
+              <form onSubmit={handleSubmit} className="p-6 space-y-4">
                  <div className="space-y-1.5">
                     <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">角色标识名称 *</label>
                     <input
