@@ -254,7 +254,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
         loading={loading && engines.length === 0}
         empty={
           <div className="py-40 text-center">
-            <div className="w-20 h-20 bg-theme-bg-app rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
+            <div className="w-20 h-20 bg-theme-elevated rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
               <ServerCog size={40} />
             </div>
             <p className="text-sm font-semibold text-theme-text-muted uppercase tracking-widest">尚未注册任何漏洞确认引擎</p>

@@ -54,7 +54,7 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({ user }) 
     empty: {
       label: '等待输入',
       accent: 'bg-slate-300',
-      panel: 'border-theme-border bg-theme-bg-app text-theme-text-muted',
+      panel: 'border-theme-border bg-theme-elevated text-theme-text-muted',
     },
     weak: {
       label: '强度偏弱',
@@ -226,7 +226,7 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({ user }) 
                     className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition-all ${
                       rule.passed
                         ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400'
-                        : 'border-theme-border bg-theme-bg-app text-theme-text-muted'
+                        : 'border-theme-border bg-theme-elevated text-theme-text-muted'
                     }`}
                   >
                     <div className={`flex h-7 w-7 items-center justify-center rounded-full ${rule.passed ? 'bg-emerald-500 text-white' : 'bg-theme-elevated text-theme-text-muted'}`}>

@@ -306,7 +306,7 @@ export const ProjectPage: React.FC = () => {
                       </span>
                     ))
                   ) : (
-                    <span className="inline-flex items-center rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[10px] font-medium text-theme-text-muted">
+                    <span className="inline-flex items-center rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[10px] font-medium text-theme-text-muted">
                       {project.is_public ? '全员可访问' : '未绑定'}
                     </span>
                   )}
@@ -350,7 +350,7 @@ export const ProjectPage: React.FC = () => {
                       </button>
                     </>
                   ) : (
-                    <span className="text-[10px] text-theme-text-faint font-medium px-3 py-1.5 bg-theme-bg-app rounded-full">只读</span>
+                    <span className="text-[10px] text-theme-text-faint font-medium px-3 py-1.5 bg-theme-elevated rounded-full">只读</span>
                   )}
                 </div>
               ),

@@ -56,7 +56,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     },
     unregistered: {
       label: '未纳管',
-      panelClass: 'bg-theme-bg-app border-theme-border',
+      panelClass: 'bg-theme-surface border-theme-border',
       textClass: 'text-theme-text-muted',
       icon: <Server className="w-5 h-5 text-theme-text-muted" />,
     },

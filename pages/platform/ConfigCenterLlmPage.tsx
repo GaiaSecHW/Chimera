@@ -1336,10 +1336,10 @@ API_TIMEOUT_MS=600000`}
                   </h3>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
-                  <span className="rounded-full bg-theme-bg-app px-3 py-1 text-theme-text-secondary">{testResult.provider_type}</span>
-                  <span className="rounded-full bg-theme-bg-app px-3 py-1 text-theme-text-secondary">{testResult.latency_ms} ms</span>
+                  <span className="rounded-full bg-theme-elevated px-3 py-1 text-theme-text-secondary">{testResult.provider_type}</span>
+                  <span className="rounded-full bg-theme-elevated px-3 py-1 text-theme-text-secondary">{testResult.latency_ms} ms</span>
                   {testResult.status_code !== null && testResult.status_code !== undefined && (
-                    <span className="rounded-full bg-theme-bg-app px-3 py-1 text-theme-text-secondary">HTTP {testResult.status_code}</span>
+                    <span className="rounded-full bg-theme-elevated px-3 py-1 text-theme-text-secondary">HTTP {testResult.status_code}</span>
                   )}
                 </div>
               </div>

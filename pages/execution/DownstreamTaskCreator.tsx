@@ -1217,7 +1217,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                     </div>
                   ) : null}
                   {message ? (
-                    <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${message.includes('失败') ? 'border-rose-500/20 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary'}`}>
+                    <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${message.includes('失败') ? 'border-rose-500/20 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary'}`}>
                       {message}
                     </div>
                   ) : null}

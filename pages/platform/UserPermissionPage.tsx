@@ -378,7 +378,7 @@ export const UserPermissionPage: React.FC = () => {
                       className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                         active
  ? 'bg-theme-surface text-white '
-                          : 'border border-theme-border bg-theme-bg-app text-theme-text-muted hover:border-sky-500/20 hover:text-sky-400'
+                          : 'border border-theme-border bg-theme-surface text-theme-text-muted hover:border-sky-500/20 hover:text-sky-400'
                       }`}
                     >
                       {option.label} ({option.count})
@@ -453,7 +453,7 @@ export const UserPermissionPage: React.FC = () => {
                       disabled={!editable}
                       value={draft?.platformRole || 'ordinary_user'}
                       onChange={(event) => updateDraft(user.id, { platformRole: event.target.value as UserDraft['platformRole'] })}
-                      className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-medium text-theme-text-secondary outline-none transition focus:border-sky-300 focus:bg-theme-bg-app focus:ring-4 focus:ring-sky-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full rounded-lg border border-theme-border bg-theme-elevated px-4 py-3 text-sm font-medium text-theme-text-secondary outline-none transition focus:border-sky-300 focus:bg-theme-elevated focus:ring-4 focus:ring-sky-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <option value="ordinary_user">普通用户</option>
                       <option value="developer">开发者</option>
@@ -480,7 +480,7 @@ export const UserPermissionPage: React.FC = () => {
                       disabled={!editable}
                       value={draft?.departmentId || ''}
                       onChange={(event) => updateDraft(user.id, { departmentId: event.target.value })}
-                      className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-medium text-theme-text-secondary outline-none transition focus:border-sky-300 focus:bg-theme-bg-app focus:ring-4 focus:ring-sky-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full rounded-lg border border-theme-border bg-theme-elevated px-4 py-3 text-sm font-medium text-theme-text-secondary outline-none transition focus:border-sky-300 focus:bg-theme-elevated focus:ring-4 focus:ring-sky-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <option value="">未分配</option>
                       {departmentOptions.map((department) => (
@@ -553,7 +553,7 @@ export const UserPermissionPage: React.FC = () => {
                 <select
                   value={pageSize}
                   onChange={(event) => setPageSize(Number(event.target.value))}
-                  className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-500/10"
+                  className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-500/10"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>

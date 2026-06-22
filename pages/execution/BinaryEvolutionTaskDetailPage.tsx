@@ -220,7 +220,7 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
           <DetailBlock title="轮次记录" subtitle="每轮评分、指标与收敛决策">
             <div className="overflow-x-auto rounded-2xl border border-theme-border">
               <table className="min-w-full divide-y divide-theme-border text-left text-xs">
-                <thead className="bg-theme-bg-app text-theme-text-muted">
+                <thead className="bg-theme-elevated text-theme-text-muted">
                   <tr>
                     <th className="px-3 py-3">轮次</th>
                     <th className="px-3 py-3">状态</th>
@@ -231,7 +231,7 @@ export const BinaryEvolutionTaskDetailPage: React.FC<Props> = ({ projectId, task
                     <th className="px-3 py-3">收敛</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-theme-border bg-theme-bg-app">
+                <tbody className="divide-y divide-theme-border bg-theme-surface">
                   {detail.rounds.length === 0 ? (
                     <tr>
                       <td className="px-3 py-10 text-center text-sm text-theme-text-muted" colSpan={7}>暂无轮次数据</td>

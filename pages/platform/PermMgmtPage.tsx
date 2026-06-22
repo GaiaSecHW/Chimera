@@ -178,7 +178,7 @@ export const PermMgmtPage: React.FC = () => {
                </div>
 
                {selectedUserId && (
-                 <div className="px-10 py-6 bg-theme-bg-app border-t border-theme-border flex items-center gap-4">
+                 <div className="px-10 py-6 bg-theme-elevated border-t border-theme-border flex items-center gap-4">
                     <span className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">Selected Roles:</span>
                     <div className="flex flex-wrap gap-2">
                        {userRoles.map(rid => {

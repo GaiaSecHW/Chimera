@@ -404,8 +404,8 @@ const DetailDrawer: React.FC<{
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/40 backdrop-blur-[2px]">
       <button className="flex-1" aria-label="关闭详情抽屉" onClick={onClose} />
-      <aside className="relative h-full w-full max-w-[540px] overflow-y-auto border-l border-theme-border bg-theme-bg-app">
- <div className="sticky top-0 z-10 border-b border-theme-border bg-theme-bg-app px-6 py-5 backdrop-blur">
+      <aside className="relative h-full w-full max-w-[540px] overflow-y-auto border-l border-theme-border bg-theme-surface">
+ <div className="sticky top-0 z-10 border-b border-theme-border bg-theme-elevated px-6 py-5 backdrop-blur">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="mt-2 text-2xl font-bold text-theme-text-primary">{detail?.task_name || '加载任务详情'}</h2>
@@ -414,7 +414,7 @@ const DetailDrawer: React.FC<{
                   {summarizeStatus(detail || {})}
                 </span>
                 {detail?.task_type ? (
-                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-secondary">
+                  <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-secondary">
                     {detail.task_type}
                   </span>
                 ) : null}
@@ -1099,7 +1099,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
             className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition ${
               active
  ? 'bg-theme-surface text-white '
-                : 'border border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
+                : 'border border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated'
             }`}
           >
             <Icon size={16} />
@@ -1111,7 +1111,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
   );
 
   return (
-    <div className="min-h-full bg-theme-bg-app px-4 py-5 md:px-6 2xl:px-8">
+    <div className="min-h-full bg-theme-surface px-4 py-5 md:px-6 2xl:px-8">
       <div className="w-full space-y-4">
         {notice ? (
           <div className="rounded-2xl border border-amber-500/20 bg-amber-500/15 px-5 py-4 text-sm font-bold text-amber-400">
@@ -1181,7 +1181,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setFilters((current) => ({ ...current, status: event.target.value }));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
+                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
                     >
                       {STATUS_OPTIONS.map((item) => (
                         <option key={item.value} value={item.value}>{item.label}</option>
@@ -1196,7 +1196,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setFilters((current) => ({ ...current, taskType: event.target.value }));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
+                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
                     >
                       {TASK_TYPE_OPTIONS.map((item) => (
                         <option key={item.value} value={item.value}>{item.label}</option>
@@ -1211,7 +1211,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setFilters((current) => ({ ...current, projectId: event.target.value }));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
+                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
                     >
                       {projectOptions.map((item) => (
                         <option key={item.id} value={item.id}>{item.label}</option>
@@ -1226,7 +1226,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setPageSize(Number(event.target.value));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
+                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
                     >
                       {PAGE_SIZE_OPTIONS.map((value) => (
                         <option key={value} value={value}>{value}</option>
@@ -1285,7 +1285,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
 
               <div className="overflow-x-auto px-4 py-4 md:px-5">
                 <table className="min-w-full border-separate border-spacing-0 text-sm">
-                  <thead className="bg-theme-bg-app">
+                  <thead className="bg-theme-elevated">
                     <tr className="text-left text-xs font-bold text-theme-text-muted">
                       <th className="px-4 py-2">
                         <input
@@ -1481,7 +1481,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                                   onClick={() => void openTaskDetail(item)}
                                   title="查看详情"
                                   aria-label="查看详情"
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-theme-border text-theme-text-secondary transition hover:bg-theme-bg-app"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-theme-border text-theme-text-secondary transition hover:bg-theme-elevated"
                                 >
                                   <Eye size={15} />
                                 </button>
@@ -1489,7 +1489,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                                   onClick={() => void handleViewExecution(item)}
                                   title="查看执行记录"
                                   aria-label="查看执行记录"
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-theme-border text-theme-text-secondary transition hover:bg-theme-bg-app"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-theme-border text-theme-text-secondary transition hover:bg-theme-elevated"
                                 >
                                   <ListChecks size={15} />
                                 </button>
@@ -1497,7 +1497,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                                   onClick={() => void openTaskTimeline(item)}
                                   title="查看时间线"
                                   aria-label="查看时间线"
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-theme-border text-theme-text-secondary transition hover:bg-theme-bg-app"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-theme-border text-theme-text-secondary transition hover:bg-theme-elevated"
                                 >
                                   <Layers3 size={15} />
                                 </button>
@@ -1522,7 +1522,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                                     onClick={() => window.open(item.downstream_detail_view || '', '_blank', 'noopener,noreferrer')}
                                     title="跳转下游任务"
                                     aria-label="跳转下游任务"
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-theme-border text-theme-text-secondary transition hover:bg-theme-bg-app"
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-theme-border text-theme-text-secondary transition hover:bg-theme-elevated"
                                   >
                                     <ExternalLink size={15} />
                                   </button>
@@ -1537,7 +1537,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                       <tr>
                         <td colSpan={2 + visibleColumns.size} className="px-4 py-12">
                           <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center">
- <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-theme-bg-app">
+ <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-theme-elevated">
                               <AlertCircle className="text-theme-text-muted" size={24} />
                             </div>
                             <div className="mt-4 text-lg font-semibold text-theme-text-primary">当前没有可展示的全局任务</div>
@@ -1671,7 +1671,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
 
               <div className="overflow-x-auto px-4 py-4 md:px-5">
                 <table className="min-w-full border-separate border-spacing-0 text-sm">
-                  <thead className="bg-theme-bg-app text-left text-xs font-bold text-theme-text-muted">
+                  <thead className="bg-theme-elevated text-left text-xs font-bold text-theme-text-muted">
                     <tr>
                       <th className="px-4 py-3">时间</th>
                       <th className="px-4 py-3">项目</th>
@@ -1801,7 +1801,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                       </div>
                       <div className="overflow-x-auto px-4 py-4">
                       <table className="min-w-full border-separate border-spacing-0 text-sm">
-                        <thead className="bg-theme-bg-app">
+                        <thead className="bg-theme-elevated">
                           <tr className="text-left text-xs font-bold text-theme-text-muted">
                             <th className="px-4 py-2">队列名称</th>
                             <th className="px-4 py-2">队列键</th>
@@ -1897,7 +1897,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
 
               <div className="px-4 py-4 md:px-5">
                 <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10">
- <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-theme-bg-app">
+ <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-theme-elevated">
                     <AlertCircle className="text-theme-text-muted" size={24} />
                   </div>
                   <div className="mt-4 text-center text-lg font-semibold text-theme-text-primary">能力已下沉，子页建设中</div>
@@ -1960,7 +1960,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
       ) : null}
 
       {(loadingOverview || refreshing) ? (
- <div className="fixed bottom-6 right-6 inline-flex items-center gap-3 rounded-full bg-theme-bg-app px-5 py-3 text-sm font-medium text-white">
+ <div className="fixed bottom-6 right-6 inline-flex items-center gap-3 rounded-full bg-theme-elevated px-5 py-3 text-sm font-medium text-white">
           <RefreshCw className="animate-spin" size={16} />
           同步全局调度总览中
         </div>

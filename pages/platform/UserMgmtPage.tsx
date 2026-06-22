@@ -450,7 +450,7 @@ export const UserMgmtPage: React.FC = () => {
                 <select
                   value={pageSize}
                   onChange={(event) => setPageSize(Number(event.target.value))}
-                  className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
+                  className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-bold text-theme-text-secondary outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -592,7 +592,7 @@ placeholder="New Password"
                 const active = importStage === stage;
                 const passed = ['upload', 'preview', 'result'].indexOf(importStage) > index;
                 return (
-                  <div key={stage} className={`px-4 py-2 rounded-full border text-[11px] font-semibold uppercase tracking-[0.2em] ${active ? 'bg-blue-600 text-white border-blue-600' : passed ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' : 'bg-theme-bg-app text-theme-text-muted border-theme-border'}`}>
+                  <div key={stage} className={`px-4 py-2 rounded-full border text-[11px] font-semibold uppercase tracking-[0.2em] ${active ? 'bg-blue-600 text-white border-blue-600' : passed ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' : 'bg-theme-elevated text-theme-text-muted border-theme-border'}`}>
                     {stage}
                   </div>
                 );
@@ -744,7 +744,7 @@ const SummaryCard = ({ label, value, tone }: { label: string; value: string; ton
 const ImportResultTable = ({ rows }: { rows: UserImportPreviewResponse['rows'] | UserImportCommitResponse['rows'] }) => (
   <div className="rounded-xl border border-theme-border overflow-hidden bg-theme-surface">
     <table className="w-full text-left">
-      <thead className="bg-theme-bg-app border-b border-theme-border">
+      <thead className="bg-theme-elevated border-b border-theme-border">
         <tr className="text-[10px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">
           <th className="px-6 py-4">行号</th>
           <th className="px-6 py-4">用户名</th>

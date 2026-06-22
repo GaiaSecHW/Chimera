@@ -118,7 +118,7 @@ export const DepartmentMemberPage: React.FC = () => {
       vice_leader: 'bg-purple-500/15 text-purple-400 border-purple-500/20',
       member: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
     };
-    return styles[role] || 'bg-theme-bg-app text-theme-text-secondary border-theme-border';
+    return styles[role] || 'bg-theme-elevated text-theme-text-secondary border-theme-border';
   };
 
   const canEditRole = (): boolean => {
@@ -512,7 +512,7 @@ export const DepartmentMemberPage: React.FC = () => {
           <div ref={departmentFilterRef} className="relative min-w-[200px]">
             <button
               type="button"
- className="w-full px-8 pr-14 py-5 bg-theme-bg-app backdrop-blur border border-theme-border rounded-xl text-sm text-left outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium text-theme-text-secondary"
+ className="w-full px-8 pr-14 py-5 bg-theme-elevated backdrop-blur border border-theme-border rounded-xl text-sm text-left outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium text-theme-text-secondary"
               onClick={() => setIsDepartmentFilterOpen((open) => !open)}
             >
               {selectedDepartment?.name || '请选择部门'}
@@ -576,7 +576,7 @@ export const DepartmentMemberPage: React.FC = () => {
               key: 'department_name',
               header: '所属部门',
               render: (member) => (
-                <span className="inline-flex items-center rounded-full border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-medium text-theme-text-secondary">
+                <span className="inline-flex items-center rounded-full border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-medium text-theme-text-secondary">
                   {member.department_name}
                 </span>
               ),
@@ -694,7 +694,7 @@ placeholder="输入部门名称筛选"
                     )}
                     <select
                       required
-                      className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary"
+                      className="w-full px-6 py-4 bg-theme-elevated rounded-lg border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary"
                       value={formData.department_id}
                       onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
                     >
@@ -740,7 +740,7 @@ placeholder="输入用户名筛选"
                     )}
                     <select
                       required
-                      className="w-full px-6 py-4 bg-theme-bg-app rounded-lg border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary"
+                      className="w-full px-6 py-4 bg-theme-elevated rounded-lg border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary"
                       value={formData.user_id}
                       onChange={(e) => setFormData({ ...formData, user_id: e.target.value })}
                     >
@@ -848,7 +848,7 @@ placeholder="输入用户名筛选"
 
             <div className="px-10 pt-6 flex gap-3 flex-wrap">
               {['upload', 'preview', 'result'].map((stage) => (
-                <div key={stage} className={`px-4 py-2 rounded-full border text-[11px] font-semibold uppercase tracking-[0.2em] ${importStage === stage ? 'bg-blue-600 text-white border-blue-600' : 'bg-theme-bg-app text-theme-text-muted border-theme-border'}`}>
+                <div key={stage} className={`px-4 py-2 rounded-full border text-[11px] font-semibold uppercase tracking-[0.2em] ${importStage === stage ? 'bg-blue-600 text-white border-blue-600' : 'bg-theme-elevated text-theme-text-muted border-theme-border'}`}>
                   {stage}
                 </div>
               ))}
@@ -974,7 +974,7 @@ const DepartmentMemberImportTable = ({
 }) => (
   <div className="rounded-xl border border-theme-border overflow-hidden bg-theme-surface">
     <table className="w-full text-left">
-      <thead className="bg-theme-bg-app border-b border-theme-border">
+      <thead className="bg-theme-elevated border-b border-theme-border">
         <tr className="text-[10px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">
           <th className="px-6 py-4">行号</th>
           <th className="px-6 py-4">用户名</th>

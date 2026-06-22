@@ -139,7 +139,7 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
             <input
               type="text"
               placeholder="搜索软件包名称、版本..."
-              className="w-full pl-9 pr-3 py-2 bg-theme-bg-app border border-theme-border rounded-xl text-sm outline-none focus:ring-2 ring-slate-300/40 font-medium"
+              className="w-full pl-9 pr-3 py-2 bg-theme-elevated border border-theme-border rounded-xl text-sm outline-none focus:ring-2 ring-slate-300/40 font-medium"
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
             />
@@ -259,12 +259,12 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
                   header: '操作',
                   render: (pkg) => (
                     <div className="flex justify-end gap-1" onClick={e => e.stopPropagation()}>
-                      <a href={assetApi.staticPackages.getDownloadUrl(pkg.id)} className="p-3 text-theme-text-muted hover:text-indigo-400 bg-theme-bg-app rounded-xl border border-transparent hover:border-indigo-500/20 transition-all">
+                      <a href={assetApi.staticPackages.getDownloadUrl(pkg.id)} className="p-3 text-theme-text-muted hover:text-indigo-400 bg-theme-elevated rounded-xl border border-transparent hover:border-indigo-500/20 transition-all">
                         <Download size={18} />
                       </a>
                       <button
                         onClick={(e) => handleDeleteClick([pkg.id], e)}
-                        className="p-3 text-theme-text-muted hover:text-red-400 bg-theme-bg-app rounded-xl border border-transparent hover:border-red-500/20 transition-all"
+                        className="p-3 text-theme-text-muted hover:text-red-400 bg-theme-elevated rounded-xl border border-transparent hover:border-red-500/20 transition-all"
                       >
                         <Trash2 size={18} />
                       </button>

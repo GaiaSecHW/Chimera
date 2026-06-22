@@ -120,7 +120,7 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
             <div className="space-y-4">
               <div className="flex justify-between items-center py-2 border-b border-theme-border">
                 <span className="text-xs font-medium text-theme-text-muted">操作系统</span>
-                <span className="text-xs font-medium text-theme-text-primary uppercase px-2 py-1 bg-theme-bg-app rounded-lg">{pkg.system}</span>
+                <span className="text-xs font-medium text-theme-text-primary uppercase px-2 py-1 bg-theme-elevated rounded-lg">{pkg.system}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-theme-border">
                 <span className="text-xs font-medium text-theme-text-muted">硬件架构</span>
@@ -175,7 +175,7 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-text-faint" size={18} />
                 <input
                   placeholder="检索具体组件名称或路径..."
-                  className="w-full pl-12 pr-4 py-3.5 bg-theme-bg-app rounded-xl text-xs outline-none focus:ring-2 ring-blue-500/20 transition-all border-none font-medium"
+                  className="w-full pl-12 pr-4 py-3.5 bg-theme-elevated rounded-xl text-xs outline-none focus:ring-2 ring-blue-500/20 transition-all border-none font-medium"
                   value={fileSearch}
                   onChange={(e) => setFileSearch(e.target.value)}
                 />
@@ -205,7 +205,7 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
                         </div>
                       </td>
                       <td className="px-6 py-5">
-                        <span className="text-[11px] font-medium text-theme-text-muted bg-theme-bg-app px-2 py-1 rounded-lg">
+                        <span className="text-[11px] font-medium text-theme-text-muted bg-theme-elevated px-2 py-1 rounded-lg">
                           {(file.size / 1024).toFixed(1)} KB
                         </span>
                       </td>
@@ -215,7 +215,7 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
                       <td className="px-8 py-5 text-right">
                         <a
                           href={assetApi.staticPackages.getFileDownloadUrl(pkg.id, file.path)}
-                          className="p-3 text-theme-text-faint hover:text-blue-400 hover:bg-theme-bg-app border border-transparent hover:border-blue-500/20 rounded-xl inline-flex transition-all"
+                          className="p-3 text-theme-text-faint hover:text-blue-400 hover:bg-theme-elevated border border-transparent hover:border-blue-500/20 rounded-xl inline-flex transition-all"
                           title="独立分发此组件"
                         >
                           <Download size={16} />
@@ -234,13 +234,13 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
               </table>
             </div>
 
-            <div className="p-6 bg-theme-bg-app border-t border-theme-border flex justify-between items-center">
+            <div className="p-6 bg-theme-surface border-t border-theme-border flex justify-between items-center">
               <span className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">
                 显示 {filteredFiles.length} / {data.total_files} 个资源结果
               </span>
               <div className="flex gap-2">
-                 <button className="px-3 py-1 bg-theme-bg-app border border-theme-border rounded-lg text-[10px] font-medium text-theme-text-muted hover:text-blue-400 transition-all">PREV</button>
-                 <button className="px-3 py-1 bg-theme-bg-app border border-theme-border rounded-lg text-[10px] font-medium text-theme-text-muted hover:text-blue-400 transition-all">NEXT</button>
+                 <button className="px-3 py-1 bg-theme-elevated border border-theme-border rounded-lg text-[10px] font-medium text-theme-text-muted hover:text-blue-400 transition-all">PREV</button>
+                 <button className="px-3 py-1 bg-theme-elevated border border-theme-border rounded-lg text-[10px] font-medium text-theme-text-muted hover:text-blue-400 transition-all">NEXT</button>
               </div>
             </div>
           </div>

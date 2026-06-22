@@ -1355,7 +1355,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                     setSelectedItemId(item.id);
                     setActiveTab('result');
                   }}
-                  className="w-full rounded-lg bg-theme-bg-app px-3 py-2 text-left text-sm font-semibold text-rose-400 ring-1 ring-rose-100 transition hover:bg-rose-500/15"
+                  className="w-full rounded-lg bg-theme-elevated px-3 py-2 text-left text-sm font-semibold text-rose-400 ring-1 ring-rose-100 transition hover:bg-rose-500/15"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate">{`#${item.sequence_no} ${fileNameOf(item.elf_path)}`}</span>
@@ -1366,25 +1366,25 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                   </div>
                 </button>
               ))}
-              {failedItems.length === 0 ? <div className="rounded-lg bg-theme-bg-app px-3 py-3 text-sm text-theme-text-muted">暂无失败项</div> : null}
+              {failedItems.length === 0 ? <div className="rounded-lg bg-theme-elevated px-3 py-3 text-sm text-theme-text-muted">暂无失败项</div> : null}
             </div>
           </div>
           <div className="rounded-xl border border-amber-500/20 bg-amber-500/15 p-3">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-400">评审未通过</div>
             <div className="mt-2.5 space-y-1.5">
               {(resultSummary?.items.filter((item) => String(item.final_verdict || '').toUpperCase() !== 'PASS').slice(0, 4) || []).map((item) => (
-                <div key={item.item_id} className="rounded-lg bg-theme-bg-app px-3 py-1.5 text-sm font-semibold text-amber-400">{`#${item.sequence_no} ${item.item_name} · ${item.final_verdict_label || item.final_verdict || '-'}`}</div>
+                <div key={item.item_id} className="rounded-lg bg-theme-elevated px-3 py-1.5 text-sm font-semibold text-amber-400">{`#${item.sequence_no} ${item.item_name} · ${item.final_verdict_label || item.final_verdict || '-'}`}</div>
               ))}
-              {(resultSummary?.items.filter((item) => String(item.final_verdict || '').toUpperCase() !== 'PASS').length || 0) === 0 ? <div className="rounded-lg bg-theme-bg-app px-3 py-3 text-sm text-theme-text-muted">暂无未通过项</div> : null}
+              {(resultSummary?.items.filter((item) => String(item.final_verdict || '').toUpperCase() !== 'PASS').length || 0) === 0 ? <div className="rounded-lg bg-theme-elevated px-3 py-3 text-sm text-theme-text-muted">暂无未通过项</div> : null}
             </div>
           </div>
           <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-theme-text-muted">结果缺失</div>
             <div className="mt-2.5 space-y-1.5">
               {(resultSummary?.items.filter((item) => item.result_file_count === 0).slice(0, 4) || []).map((item) => (
-                <div key={item.item_id} className="rounded-lg bg-theme-bg-app px-3 py-1.5 text-sm font-semibold text-theme-text-secondary">{`#${item.sequence_no} ${item.item_name}`}</div>
+                <div key={item.item_id} className="rounded-lg bg-theme-elevated px-3 py-1.5 text-sm font-semibold text-theme-text-secondary">{`#${item.sequence_no} ${item.item_name}`}</div>
               ))}
-              {(resultSummary?.items.filter((item) => item.result_file_count === 0).length || 0) === 0 ? <div className="rounded-lg bg-theme-bg-app px-3 py-3 text-sm text-theme-text-muted">所有 item 都已有结果文件</div> : null}
+              {(resultSummary?.items.filter((item) => item.result_file_count === 0).length || 0) === 0 ? <div className="rounded-lg bg-theme-elevated px-3 py-3 text-sm text-theme-text-muted">所有 item 都已有结果文件</div> : null}
             </div>
           </div>
         </div>
@@ -1450,7 +1450,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
           <div className="overflow-hidden rounded-2xl border border-theme-border">
             <div className="overflow-x-auto">
               <table className="min-w-[1180px] w-full divide-y divide-theme-border text-left text-xs">
-                <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
+                <thead className="bg-theme-elevated text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                   <tr>
                     <th className="w-16 px-3 py-2">#</th>
                     <th className="w-44 px-3 py-2">时间</th>
@@ -1467,7 +1467,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                     <th className="w-36 px-3 py-2 text-right">操作</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-theme-border bg-theme-bg-app">
+                <tbody className="divide-y divide-theme-border bg-theme-elevated">
                   {filteredTimeline.map((event, index) => {
                     const expanded = expandedTimelineEventId === event.id;
                     const hasPayload = !!(event.payload && Object.keys(event.payload).length);
@@ -1602,7 +1602,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
             </div>
             <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
               <div className="text-xs font-semibold uppercase tracking-[0.18em] text-theme-text-muted">标签</div>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">{snapshot.tags.length ? snapshot.tags.map((tag) => <span key={tag} className="rounded-full bg-theme-bg-app px-2.5 py-0.5 text-[11px] font-medium text-theme-text-secondary">{tag}</span>) : <span className="text-sm text-theme-text-muted">-</span>}</div>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">{snapshot.tags.length ? snapshot.tags.map((tag) => <span key={tag} className="rounded-full bg-theme-elevated px-2.5 py-0.5 text-[11px] font-medium text-theme-text-secondary">{tag}</span>) : <span className="text-sm text-theme-text-muted">-</span>}</div>
             </div>
           </div>
         </SectionCard>
@@ -1650,7 +1650,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                       <div className="text-sm font-semibold text-theme-text-primary">#{item.sequence_no} {fileNameOf(item.source_elf_path || item.elf_path)}</div>
                       <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">{item.source_elf_path || item.elf_path}</div>
                     </div>
-                    <div className="rounded-full bg-theme-bg-app px-3 py-1 text-[11px] font-medium text-theme-text-secondary">
+                    <div className="rounded-full bg-theme-elevated px-3 py-1 text-[11px] font-medium text-theme-text-secondary">
                       {item.output_subdir || '默认输出目录'}
                     </div>
                   </div>
@@ -1762,7 +1762,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                 className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
                   selectedItemId === '__all__'
                     ? 'border-theme-border bg-theme-surface text-white'
-                    : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
+                    : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                 }`}
               >
                 全部 ELF
@@ -1775,7 +1775,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                   className={`rounded-xl border px-3 py-2 text-left text-xs transition ${
                     selectedItemId === group.itemId
                       ? 'border-theme-border bg-theme-surface text-white'
-                      : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
+                      : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                   }`}
                 >
                   <div className="font-semibold">{`#${group.sequenceNo} ${group.itemName}`}</div>
@@ -1837,7 +1837,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                           className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                             selected
                               ? 'border-theme-border bg-theme-surface text-white'
-                              : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-bg-app'
+                              : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                           }`}
                         >
                           <div className="flex items-start justify-between gap-3">
@@ -1911,10 +1911,10 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-theme-text-secondary">
-                  {selectedSessionRuntimeEntry.batch_no ? <span className="rounded-full bg-theme-bg-app px-2 py-1">Batch {selectedSessionRuntimeEntry.batch_no}</span> : null}
-                  {selectedSessionRuntimeEntry.attempt_no ? <span className="rounded-full bg-theme-bg-app px-2 py-1">Attempt {selectedSessionRuntimeEntry.attempt_no}</span> : null}
-                  {selectedSessionRuntimeEntry.current_function ? <span className="rounded-full bg-theme-bg-app px-2 py-1">{selectedSessionRuntimeEntry.current_function}</span> : null}
-                  {selectedSessionRuntimeEntry.pi_job_id ? <span className="rounded-full bg-theme-bg-app px-2 py-1">Job {selectedSessionRuntimeEntry.pi_job_id}</span> : null}
+                  {selectedSessionRuntimeEntry.batch_no ? <span className="rounded-full bg-theme-elevated px-2 py-1">Batch {selectedSessionRuntimeEntry.batch_no}</span> : null}
+                  {selectedSessionRuntimeEntry.attempt_no ? <span className="rounded-full bg-theme-elevated px-2 py-1">Attempt {selectedSessionRuntimeEntry.attempt_no}</span> : null}
+                  {selectedSessionRuntimeEntry.current_function ? <span className="rounded-full bg-theme-elevated px-2 py-1">{selectedSessionRuntimeEntry.current_function}</span> : null}
+                  {selectedSessionRuntimeEntry.pi_job_id ? <span className="rounded-full bg-theme-elevated px-2 py-1">Job {selectedSessionRuntimeEntry.pi_job_id}</span> : null}
                 </div>
               </div>
             ) : null}
@@ -1977,7 +1977,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                             });
                           }
                         }}
-                        className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-left hover:border-theme-border hover:bg-theme-elevated"
+                        className="w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-left hover:border-theme-border hover:bg-theme-elevated"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
@@ -2035,9 +2035,9 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                   失败原因
                 </div>
                 <div className="flex flex-wrap gap-1.5 text-[10px] font-semibold">
-                  <span className="rounded-full bg-theme-bg-app px-2 py-0.5 text-rose-400 ring-1 ring-rose-100">类型：{selectedItem.failure_type || '-'}</span>
-                  <span className="rounded-full bg-theme-bg-app px-2 py-0.5 text-rose-400 ring-1 ring-rose-100">阶段：{selectedItem.phase_label || selectedItem.phase || '-'}</span>
-                  <span className="rounded-full bg-theme-bg-app px-2 py-0.5 text-rose-400 ring-1 ring-rose-100">pi job：{selectedItem.pi_job_id || '-'}</span>
+                  <span className="rounded-full bg-theme-elevated px-2 py-0.5 text-rose-400 ring-1 ring-rose-100">类型：{selectedItem.failure_type || '-'}</span>
+                  <span className="rounded-full bg-theme-elevated px-2 py-0.5 text-rose-400 ring-1 ring-rose-100">阶段：{selectedItem.phase_label || selectedItem.phase || '-'}</span>
+                  <span className="rounded-full bg-theme-elevated px-2 py-0.5 text-rose-400 ring-1 ring-rose-100">pi job：{selectedItem.pi_job_id || '-'}</span>
                 </div>
               </div>
               <div className="mt-2 grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.7fr)]">
@@ -2072,7 +2072,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                   })}
                 </div>
               </aside>
-              <div className="min-h-[600px] bg-theme-bg-app">
+              <div className="min-h-[600px] bg-theme-elevated">
                 <div className="flex items-center justify-between gap-3 border-b border-theme-border px-4 py-2.5 text-sm font-semibold text-slate-100">
                   <div className="truncate">{selectedArtifact?.name || '请选择左侧文件'}</div>
                   {selectedArtifact ? (

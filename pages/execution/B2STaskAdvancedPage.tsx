@@ -478,7 +478,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
 
       <ReviewEffectivenessPanel analytics={reviewAnalytics} />
 
- <section id="b2s-artifacts" className="scroll-mt-24 overflow-hidden rounded-none border border-theme-border bg-theme-bg-app">
+ <section id="b2s-artifacts" className="scroll-mt-24 overflow-hidden rounded-none border border-theme-border bg-theme-surface">
         {loading && !advanced ? (
           <div className="flex items-center gap-2 p-8 text-sm text-theme-text-muted"><Loader2 size={16} className="animate-spin" />加载中...</div>
         ) : files.length === 0 ? (
@@ -490,7 +490,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
               <div className="max-h-[680px] overflow-auto p-3">
                 {groupedFiles.map((group) => (
                   <div key={group.stage} className="mb-5">
-                    <div className="mb-2 border-b border-theme-border bg-theme-bg-app px-1 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">{group.stage}</div>
+                    <div className="mb-2 border-b border-theme-border bg-theme-elevated px-1 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">{group.stage}</div>
                     {group.sections.map((section) => (
                       <div key={`${group.stage}-${section.name}`} className="mb-3 pl-1">
                         <div className="mb-2 text-[11px] font-medium tracking-[0.12em] text-theme-text-secondary">{section.name}</div>
@@ -501,8 +501,8 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
                               const active = selectedPath === file.path;
                               const metaLine = [agent, role].filter(Boolean).join(' · ');
                               return (
-                                <button key={file.path} type="button" onClick={() => setSelectedPath(file.path)} className={`group relative mb-1 flex w-full cursor-pointer items-start gap-2 border-l-4 px-3 py-2.5 text-left transition-colors duration-150 ease-out ${active ? 'border-l-violet-500 bg-violet-500/15 text-slate-950' : 'border-l-transparent bg-slate-50/35 hover:border-l-violet-300 hover:bg-theme-bg-app'}`}>
- <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center border transition-colors duration-150 ease-out ${active ? 'border-violet-500/20 bg-theme-bg-app text-violet-400' : 'border-theme-border bg-theme-bg-app text-theme-text-muted group-hover:border-violet-500/20 group-hover:text-violet-400'}`}>
+                                <button key={file.path} type="button" onClick={() => setSelectedPath(file.path)} className={`group relative mb-1 flex w-full cursor-pointer items-start gap-2 border-l-4 px-3 py-2.5 text-left transition-colors duration-150 ease-out ${active ? 'border-l-violet-500 bg-violet-500/15 text-slate-950' : 'border-l-transparent bg-slate-50/35 hover:border-l-violet-300 hover:bg-theme-elevated'}`}>
+ <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center border transition-colors duration-150 ease-out ${active ? 'border-violet-500/20 bg-theme-elevated text-violet-400' : 'border-theme-border bg-theme-elevated text-theme-text-muted group-hover:border-violet-500/20 group-hover:text-violet-400'}`}>
                                     {languageFromPath(file.name) === 'plaintext' ? <FileText size={15} /> : <Code2 size={15} />}
                                   </div>
                                   <div className="min-w-0 flex-1">
@@ -527,7 +527,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
                 ))}
               </div>
             </aside>
-            <div className="min-w-0 bg-theme-bg-app">
+            <div className="min-w-0 bg-theme-surface">
               <div className="flex min-h-[54px] items-center justify-between gap-3 border-b border-theme-border bg-theme-surface px-4 py-3">
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-slate-100" title={selected?.name || ''}>{selected?.name || '-'}</div>
@@ -549,7 +549,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
               </div>
               <div className="h-[680px]">
                 {isSelectedJsonlSession && selected ? (
-                  <div className="space-y-3 bg-theme-bg-app p-3">
+                  <div className="space-y-3 bg-theme-elevated p-3">
                     {sessionError ? <div className="rounded-xl border border-rose-800 bg-rose-950/40 px-3 py-2 text-xs text-rose-200">{sessionError}</div> : null}
                     <B2SSessionPreview key={selectedPreviewKey} name={selected.name} content={selected.content} meta={{ live: sessionLive, relativePath: selected.path }} />
                   </div>

@@ -313,7 +313,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-full bg-theme-bg-app px-4 py-5 md:px-6 2xl:px-8">
+    <div className="min-h-full bg-theme-surface px-4 py-5 md:px-6 2xl:px-8">
       {feedbackNodes}
       <div className="w-full space-y-4">
         <PageHeader
