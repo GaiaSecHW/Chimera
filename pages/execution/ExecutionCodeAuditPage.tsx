@@ -843,7 +843,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
   }
 
   return (
-    <div className="h-full overflow-y-auto custom-scrollbar p-4 md:p-6 lg:p-8 pb-16 space-y-4 animate-in fade-in duration-300">
+    <div className="space-y-4 px-5 py-5 md:px-6 2xl:px-8 h-full overflow-y-auto custom-scrollbar">
  <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <PageHeader
