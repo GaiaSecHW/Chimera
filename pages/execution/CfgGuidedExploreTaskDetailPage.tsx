@@ -162,25 +162,58 @@ function MilestoneTimeline({ session }: { session?: CfgAgentSession | null }) {
 interface WalkFn {
   fid: string;
   name: string;
+  order: number;          // review sequence index (by audit timestamp)
+  ts?: string;            // audit timestamp
   taint?: CfgFunctionTaintState;
   audit?: CfgAuditResult;
+  queries: CfgCodemapQuery[];
 }
 
-function mergeWalk(session?: CfgCparserSession | null): WalkFn[] {
+/** Resolve a display name for a fid from any available source (taint > audit > callee/caller items > fid). */
+function buildNameIndex(session?: CfgCparserSession | null): Map<string, string> {
+  const idx = new Map<string, string>();
+  if (!session) return idx;
+  for (const [fid, v] of Object.entries(session.function_taint_states || {})) if (v?.function) idx.set(fid, v.function);
+  for (const [fid, v] of Object.entries(session.audit_results || {})) if (v?.function && !idx.has(fid)) idx.set(fid, v.function);
+  // callee/caller items carry {id, name} — fill any gaps
+  for (const q of session.codemap_queries || []) {
+    for (const c of [...(q.result?.callees || []), ...(q.result?.callers || [])]) {
+      if (c?.id && c?.name && !idx.has(c.id)) idx.set(c.id, c.name);
+    }
+  }
+  return idx;
+}
+
+/** Merge taint+audit into a walk ORDERED BY REVIEW SEQUENCE (audit timestamp,
+ *  then taint discovery order). This reflects how the model walked from the
+ *  source entry through taint propagation. */
+function mergeWalk(session?: CfgCparserSession | null, nameIdx?: Map<string, string>): WalkFn[] {
   if (!session) return [];
   const ts = session.function_taint_states || {};
   const ar = session.audit_results || {};
-  const order: string[] = [];
-  const seen = new Set<string>();
-  // Preserve discovery order: taint states first (entry → downstream), then any audit-only.
-  for (const fid of Object.keys(ts)) { if (!seen.has(fid)) { seen.add(fid); order.push(fid); } }
-  for (const fid of Object.keys(ar)) { if (!seen.has(fid)) { seen.add(fid); order.push(fid); } }
-  return order.map((fid) => ({
+  const names = nameIdx || buildNameIndex(session);
+  const queriesByFid = new Map<string, CfgCodemapQuery[]>();
+  for (const q of session.codemap_queries || []) {
+    queriesByFid.set(q.function_id, [...(queriesByFid.get(q.function_id) || []), q]);
+  }
+  const allFids = new Set<string>([...Object.keys(ts), ...Object.keys(ar)]);
+  const arr = Array.from(allFids).map((fid) => ({
     fid,
-    name: ts[fid]?.function || ar[fid]?.function || fid,
+    name: names.get(fid) || ts[fid]?.function || ar[fid]?.function || fid,
+    ts: ar[fid]?.timestamp,
     taint: ts[fid],
     audit: ar[fid],
+    queries: queriesByFid.get(fid) || [],
   }));
+  // Sort by audit timestamp (review order); entries without audit go last in taint-discovery order.
+  const taintOrder = new Map(Object.keys(ts).map((f, i) => [f, i]));
+  arr.sort((a, b) => {
+    if (a.ts && b.ts) return a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0;
+    if (a.ts) return -1;
+    if (b.ts) return 1;
+    return (taintOrder.get(a.fid) ?? 999) - (taintOrder.get(b.fid) ?? 999);
+  });
+  return arr.map((w, i) => ({ ...w, order: i }));
 }
 
 function FnBadge({ audit }: { audit?: CfgAuditResult }) {
@@ -190,19 +223,19 @@ function FnBadge({ audit }: { audit?: CfgAuditResult }) {
 }
 
 function ThreeElementDesc({ text }: { text: string }) {
-  // Highlight the 【是什么】/【为什么】/【怎么样】 markers when present.
+  // Highlight 【是什么】/【为什么】/【怎么样】 (taint) or [漏洞类型]/[代码调用链]/[判定理由] (audit).
   if (!text) return null;
-  const parts = text.split(/(?=【)/g).filter(Boolean);
-  if (parts.length <= 1) return <p className="whitespace-pre-wrap text-xs leading-5 text-slate-700">{text}</p>;
+  const parts = text.split(/(?=【)|(?=\[(?:漏洞类型|严重程度|代码调用链|判定理由|安全判定)\])/g).filter((p) => p.trim());
+  if (parts.length <= 1) return <p className="whitespace-pre-wrap text-xs leading-6 text-slate-700">{text}</p>;
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       {parts.map((p, i) => {
-        const m = p.match(/^【([^】]+)】([\s\S]*)$/);
-        if (!m) return <p key={i} className="whitespace-pre-wrap text-xs leading-5 text-slate-700">{p}</p>;
+        const m = p.match(/^【([^】]+)】([\s\S]*)$/) || p.match(/^\[([^\]]+)\]([\s\S]*)$/);
+        if (!m) return <p key={i} className="whitespace-pre-wrap text-xs leading-6 text-slate-700">{p}</p>;
         return (
-          <div key={i} className="text-xs leading-5">
-            <span className="mr-1 inline-block rounded bg-slate-100 px-1.5 py-0.5 font-bold text-slate-600">{m[1]}</span>
-            <span className="text-slate-700">{m[2]}</span>
+          <div key={i} className="text-xs leading-6">
+            <span className="mr-1.5 inline-block rounded bg-violet-100 px-1.5 py-0.5 font-bold text-violet-700">{m[1].trim()}</span>
+            <span className="text-slate-700">{m[2].trim()}</span>
           </div>
         );
       })}
@@ -210,11 +243,20 @@ function ThreeElementDesc({ text }: { text: string }) {
   );
 }
 
+/** Extract a propagation call-chain (A -> B -> C) from a taint/audit desc, if present. */
+function extractChain(desc?: string): string[] {
+  if (!desc) return [];
+  const m = desc.match(/(?:代码调用链|调用链)[\]\s:：]*([^;；\[【]+)/);
+  const seg = m ? m[1] : (desc.includes('->') || desc.includes('→') ? desc : '');
+  if (!seg) return [];
+  return seg.split(/\s*(?:->|→)\s*/).map((s) => s.trim().replace(/\([^)]*\)/g, '').trim()).filter((s) => /^[A-Za-z_]\w*$/.test(s));
+}
+
 // ── Call graph (xyflow) ──────────────────────────────────────────────────────
-interface FnNodeData extends Record<string, unknown> { label: string; vuln: boolean; audited: boolean; selected: boolean }
+interface FnNodeData extends Record<string, unknown> { label: string; vuln: boolean; audited: boolean; selected: boolean; order: number }
 function FnNode({ data }: NodeProps<Node<FnNodeData>>) {
   const tone = data.vuln
-    ? 'border-rose-300 bg-rose-50 text-rose-800'
+    ? 'border-rose-400 bg-rose-50 text-rose-800'
     : data.audited
       ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
       : 'border-slate-300 bg-white text-slate-700';
@@ -222,6 +264,7 @@ function FnNode({ data }: NodeProps<Node<FnNodeData>>) {
   return (
     <div className={`rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-sm ${tone} ${ring}`} style={{ fontFamily: MONO }}>
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border !border-slate-300 !bg-slate-400" />
+      <span className="mr-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-900/10 text-[9px] font-bold">{data.order + 1}</span>
       {data.label}
       <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border !border-slate-300 !bg-slate-400" />
     </div>
@@ -229,53 +272,61 @@ function FnNode({ data }: NodeProps<Node<FnNodeData>>) {
 }
 const fnNodeTypes = { fn: FnNode };
 
-/** Build directed edges from codemap_queries[].result.callees/callers.
- *  Returns null when no task carries result edges (older tasks → linear fallback). */
-function buildCallEdges(session?: CfgCparserSession | null): { edges: Array<[string, string]>; hasResult: boolean } {
-  const out: Array<[string, string]> = [];
-  let hasResult = false;
-  const known = new Set(Object.keys(session?.function_taint_states || {}).concat(Object.keys(session?.audit_results || {})));
+interface CallEdge { from: string; to: string; kind: 'call' | 'flow' }
+/** Build the call graph. Real callee/caller edges (kind 'call') are the backbone;
+ *  the review-order sequence supplies 'flow' edges so the propagation is always
+ *  connected even when explicit callee edges are sparse. */
+function buildCallEdges(walk: WalkFn[], session: CfgCparserSession | null, nameIdx: Map<string, string>): { edges: CallEdge[]; realCount: number } {
+  const known = new Set(walk.map((w) => w.fid));
+  const name2fid = new Map<string, string>();
+  nameIdx.forEach((name, fid) => { if (!name2fid.has(name)) name2fid.set(name, fid); });
+  const seen = new Set<string>();
+  const edges: CallEdge[] = [];
+  const push = (from: string, to: string, kind: 'call' | 'flow') => {
+    if (!from || !to || from === to) return;
+    const k = `${from}>${to}`;
+    if (seen.has(k)) return;
+    seen.add(k); edges.push({ from, to, kind });
+  };
+  let realCount = 0;
+  // 1) explicit callee/caller edges (real call relations)
   for (const q of session?.codemap_queries || []) {
-    if (!q.result) continue;
-    if (q.command === 'getcallee' && Array.isArray(q.result.callees)) {
-      hasResult = true;
-      for (const c of q.result.callees) {
-        const to = c?.id || c?.function_id;
-        if (to) out.push([q.function_id, to]);
-      }
-    } else if (q.command === 'getcaller' && Array.isArray(q.result.callers)) {
-      hasResult = true;
-      for (const c of q.result.callers) {
-        const from = c?.id || c?.function_id;
-        if (from) out.push([from, q.function_id]);
-      }
+    if (q.command === 'getcallee') for (const c of q.result?.callees || []) { const to = c?.id || c?.function_id; if (to && known.has(to)) { push(q.function_id, to, 'call'); realCount++; } }
+    if (q.command === 'getcaller') for (const c of q.result?.callers || []) { const from = c?.id || c?.function_id; if (from && known.has(from)) { push(from, q.function_id, 'call'); realCount++; } }
+  }
+  // 2) chain edges parsed from audit desc (resolve names → fid)
+  for (const w of walk) {
+    const chain = extractChain(w.audit?.desc).concat(extractChain(w.taint?.desc));
+    for (let i = 0; i < chain.length - 1; i++) {
+      const a = name2fid.get(chain[i]); const b = name2fid.get(chain[i + 1]);
+      if (a && b && known.has(a) && known.has(b)) push(a, b, 'call');
     }
   }
-  // Keep only edges between functions we actually walked (drops external noise).
-  const filtered = out.filter(([a, b]) => known.has(a) && known.has(b) && a !== b);
-  return { edges: filtered, hasResult };
+  // 3) review-order flow edges so the graph is always connected (entry → … by sequence)
+  for (let i = 0; i < walk.length - 1; i++) {
+    const a = walk[i].fid; const b = walk[i + 1].fid;
+    if (!seen.has(`${a}>${b}`) && !seen.has(`${b}>${a}`)) push(a, b, 'flow');
+  }
+  return { edges, realCount };
 }
 
-function layoutGraph(walk: WalkFn[], edges: Array<[string, string]>, selectedFid: string | null): { nodes: Node<FnNodeData>[]; flowEdges: Edge[] } {
-  // Simple BFS-depth layering from roots (no incoming edge).
+function layoutGraph(walk: WalkFn[], edges: CallEdge[], selectedFid: string | null): { nodes: Node<FnNodeData>[]; flowEdges: Edge[] } {
+  // Layer by BFS depth over 'call' edges; fall back to review order for x.
+  const callEdges = edges.filter((e) => e.kind === 'call');
   const incoming = new Map<string, number>();
   walk.forEach((w) => incoming.set(w.fid, 0));
-  const dedup = new Set<string>();
-  const cleanEdges = edges.filter(([a, b]) => { const k = `${a}>${b}`; if (dedup.has(k)) return false; dedup.add(k); return true; });
-  cleanEdges.forEach(([, b]) => incoming.set(b, (incoming.get(b) || 0) + 1));
+  callEdges.forEach((e) => incoming.set(e.to, (incoming.get(e.to) || 0) + 1));
   const depth = new Map<string, number>();
+  const adj = new Map<string, string[]>();
+  callEdges.forEach((e) => adj.set(e.from, [...(adj.get(e.from) || []), e.to]));
   const queue = walk.filter((w) => (incoming.get(w.fid) || 0) === 0).map((w) => w.fid);
   queue.forEach((f) => depth.set(f, 0));
-  const adj = new Map<string, string[]>();
-  cleanEdges.forEach(([a, b]) => { adj.set(a, [...(adj.get(a) || []), b]); });
   let qi = 0;
   while (qi < queue.length) {
     const cur = queue[qi++]; const d = depth.get(cur) || 0;
-    for (const nx of adj.get(cur) || []) {
-      if (!depth.has(nx)) { depth.set(nx, d + 1); queue.push(nx); }
-    }
+    for (const nx of adj.get(cur) || []) { if (!depth.has(nx)) { depth.set(nx, d + 1); queue.push(nx); } }
   }
-  walk.forEach((w) => { if (!depth.has(w.fid)) depth.set(w.fid, 0); });
+  walk.forEach((w, i) => { if (!depth.has(w.fid)) depth.set(w.fid, Math.min(6, Math.floor(i / 4))); });
   const byDepth = new Map<number, string[]>();
   walk.forEach((w) => { const d = depth.get(w.fid) || 0; byDepth.set(d, [...(byDepth.get(d) || []), w.fid]); });
   const nodes: Node<FnNodeData>[] = walk.map((w) => {
@@ -283,27 +334,59 @@ function layoutGraph(walk: WalkFn[], edges: Array<[string, string]>, selectedFid
     const col = byDepth.get(d) || [];
     const row = col.indexOf(w.fid);
     return {
-      id: w.fid,
-      type: 'fn',
-      position: { x: d * 240, y: row * 70 },
-      data: {
-        label: w.name,
-        vuln: isVulnResult(w.audit?.result),
-        audited: Boolean(w.audit),
-        selected: selectedFid === w.fid,
-      },
+      id: w.fid, type: 'fn',
+      position: { x: d * 230, y: row * 64 },
+      data: { label: w.name, vuln: isVulnResult(w.audit?.result), audited: Boolean(w.audit), selected: selectedFid === w.fid, order: w.order },
     };
   });
-  const flowEdges: Edge[] = cleanEdges.map(([a, b], i) => ({
-    id: `e${i}_${a}_${b}`,
-    source: a, target: b,
-    markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: '#94a3b8' },
-    style: { stroke: '#cbd5e1' },
+  const flowEdges: Edge[] = edges.map((e, i) => ({
+    id: `e${i}_${e.from}_${e.to}`, source: e.from, target: e.to,
+    markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: e.kind === 'call' ? '#64748b' : '#cbd5e1' },
+    style: e.kind === 'call' ? { stroke: '#64748b' } : { stroke: '#cbd5e1', strokeDasharray: '4 4' },
+    animated: false,
   }));
   return { nodes, flowEdges };
 }
 
 // ── Result: findings (reused look) ───────────────────────────────────────────
+function ToolCallRow({ q, nameIdx, index }: { q: CfgCodemapQuery; nameIdx: Map<string, string>; index?: number }) {
+  const items = q.result?.callees || q.result?.callers || [];
+  const kindLabel = q.result?.callees ? 'callees (被调用)' : q.result?.callers ? 'callers (调用者)' : null;
+  const [open, setOpen] = useState(false);
+  const ts = TOOL_STYLE[q.command] || { badge: 'bg-slate-50 text-slate-600 border-slate-200', dot: 'bg-slate-400', label: q.command };
+  const hasDetail = items.length > 0;
+  const targetName = q.params?.func || nameIdx.get(q.function_id) || shortFid(q.function_id);
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <button onClick={() => hasDetail && setOpen((v) => !v)} className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs ${hasDetail ? 'hover:bg-slate-50' : 'cursor-default'}`}>
+        {index != null ? <span className="w-7 shrink-0 font-mono text-slate-400">{index + 1}</span> : null}
+        <span className="w-16 shrink-0 font-mono text-slate-400">{(q.timestamp || '').slice(11, 19)}</span>
+        <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 font-bold ${ts.badge}`}><span className={`h-1.5 w-1.5 rounded-full ${ts.dot}`} />{ts.label}</span>
+        <span className="min-w-0 flex-1 truncate font-mono text-slate-700">{targetName}</span>
+        {hasDetail ? <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{items.length} 项</span> : <span className="shrink-0 text-[10px] text-slate-400">{q.result ? '无返回' : '—'}</span>}
+        {hasDetail ? <span className="shrink-0 text-slate-400">{open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}</span> : null}
+      </button>
+      {open && hasDetail ? (
+        <div className="border-t border-slate-100 bg-slate-50/60 px-3 py-2">
+          <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">{kindLabel}</div>
+          <div className="space-y-1">
+            {items.map((c: any, i: number) => (
+              <div key={i} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[12px] font-semibold text-slate-800">{c.name || shortFid(c.id)}</span>
+                  {c.id ? <span className="font-mono text-[10px] text-slate-400">{shortFid(c.id)}</span> : null}
+                </div>
+                {c.signature ? <div className="mt-0.5 truncate font-mono text-[11px] text-slate-500" title={c.signature}>{c.signature}</div> : null}
+                {(c.file_path || c.call_line) ? <div className="mt-0.5 font-mono text-[10px] text-slate-400">{c.file_path || ''}{c.call_line ? `:${c.call_line}` : ''}{c.call_type ? ` · ${c.call_type}` : ''}</div> : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function SourceSnippetBlock({ finding }: { finding: AppDfaVulnFinding }) {
   const snippet = finding.source_snippet;
   if (!snippet?.lines?.length && !finding.code) return null;
@@ -452,8 +535,9 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
     return () => clearInterval(t);
   }, [detail?.status, taskId, rawOpen]);
 
-  const walk = useMemo(() => mergeWalk(session), [session]);
-  const { edges: callEdges, hasResult } = useMemo(() => buildCallEdges(session), [session]);
+  const nameIdx = useMemo(() => buildNameIndex(session), [session]);
+  const walk = useMemo(() => mergeWalk(session, nameIdx), [session, nameIdx]);
+  const { edges: callEdges, realCount } = useMemo(() => buildCallEdges(walk, session, nameIdx), [walk, session, nameIdx]);
   const selectedFn = useMemo(() => walk.find((w) => w.fid === selectedFid) || walk[0] || null, [walk, selectedFid]);
   const queriesForSelected = useMemo(
     () => (session?.codemap_queries || []).filter((q) => q.function_id === (selectedFn?.fid)),
@@ -592,69 +676,63 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
           <button onClick={() => { setSessionDrawer(true); }} className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800"><FileText size={13} />查看智能体会话文件</button>
         </section>
       ) : activeTab === 'walk' ? (
-        <section className="space-y-3">
-          {/* propagation chain ribbon */}
-          {walk.length ? (
-            <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs">
-              <span className="mr-1 font-semibold text-slate-400">污点传播链</span>
-              {walk.map((w, i) => (
-                <React.Fragment key={w.fid}>
-                  {i > 0 ? <span className="text-slate-300">→</span> : null}
-                  <button onClick={() => setSelectedFid(w.fid)} className={`rounded-lg px-2 py-0.5 font-mono font-semibold ${selectedFn?.fid === w.fid ? 'bg-slate-900 text-white' : isVulnResult(w.audit?.result) ? 'bg-rose-50 text-rose-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{w.name}</button>
-                </React.Fragment>
-              ))}
-            </div>
-          ) : null}
-          <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-            <aside className="rounded-2xl border border-slate-200 bg-white p-3">
-              <div className="px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">函数走查 ({walk.length})</div>
-              {walk.length === 0 ? <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-8 text-center text-xs text-slate-400">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div> : (
-                <div className="max-h-[calc(100vh-22rem)] space-y-1.5 overflow-auto pr-1">
-                  {walk.map((w) => {
-                    const sel = selectedFn?.fid === w.fid;
-                    return (
-                      <button key={w.fid} onClick={() => setSelectedFid(w.fid)} className={`w-full rounded-xl border px-3 py-2.5 text-left transition ${sel ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="truncate font-mono text-sm font-semibold">{w.name}</span>
-                          <FnBadge audit={w.audit} />
-                        </div>
-                        <div className={`mt-1 truncate text-[11px] ${sel ? 'text-slate-300' : 'text-slate-500'}`}>污点: {w.taint?.tainted_params_in?.length ? w.taint.tainted_params_in.join(', ') : '—'}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </aside>
-            <div className="space-y-4">
-              {!selectedFn ? <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-16 text-center text-sm text-slate-400">选择一个函数查看走查详情</div> : (
-                <>
-                  <SectionCard title={selectedFn.name} icon={<Crosshair size={15} />} action={<FnBadge audit={selectedFn.audit} />}>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <InfoRow label="function_id" value={<span className="font-mono">{selectedFn.fid}</span>} />
-                      <InfoRow label="污点参数" value={selectedFn.taint?.tainted_params_in?.join(', ') || '—'} />
-                      {selectedFn.audit ? <InfoRow label="漏洞行" value={selectedFn.audit.vuln_line || '—'} /> : null}
-                      {selectedFn.audit?.confidence != null ? <InfoRow label="置信度" value={selectedFn.audit.confidence} /> : null}
-                    </div>
-                  </SectionCard>
-                  {selectedFn.taint?.desc ? (
-                    <SectionCard title="污点状态 (三要素)" icon={<Network size={15} />}><ThreeElementDesc text={selectedFn.taint.desc} /></SectionCard>
-                  ) : null}
-                  {selectedFn.audit?.desc ? (
-                    <SectionCard title="审计判定" icon={<Search size={15} />}><p className="whitespace-pre-wrap text-xs leading-5 text-slate-700">{selectedFn.audit.desc}</p></SectionCard>
-                  ) : null}
-                  <SectionCard title={`该函数的工具调用 (${queriesForSelected.length})`} icon={<Terminal size={15} />}>
-                    {queriesForSelected.length === 0 ? <div className="text-xs text-slate-400">无</div> : (
-                      <div className="space-y-1.5">
-                        {queriesForSelected.map((q, i) => {
-                          const ts = TOOL_STYLE[q.command] || { badge: 'bg-slate-50 text-slate-600 border-slate-200', dot: 'bg-slate-400', label: q.command };
-                          return <div key={i} className="flex items-center gap-2 text-xs"><span className="font-mono text-slate-400">{(q.timestamp || '').slice(11, 19)}</span><span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-bold ${ts.badge}`}><span className={`h-1.5 w-1.5 rounded-full ${ts.dot}`} />{ts.label}</span><span className="font-mono text-slate-600">{q.params?.func || ''}</span></div>;
-                        })}
+        <section className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+          {/* Left: ordered review sequence (source entry → propagation) */}
+          <aside className="rounded-2xl border border-slate-200 bg-white p-3">
+            <div className="px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">审查顺序 ({walk.length})</div>
+            {walk.length === 0 ? <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-8 text-center text-xs text-slate-400">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div> : (
+              <ol className="relative max-h-[calc(100vh-20rem)] space-y-0 overflow-auto pr-1">
+                {walk.map((w, i) => {
+                  const sel = selectedFn?.fid === w.fid;
+                  const vuln = isVulnResult(w.audit?.result);
+                  const last = i === walk.length - 1;
+                  return (
+                    <li key={w.fid} className="relative flex gap-2.5">
+                      <div className="relative flex flex-col items-center">
+                        <span className={`mt-2.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 text-[9px] font-bold ${vuln ? 'border-rose-400 bg-rose-50 text-rose-700' : w.audit ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-slate-300 bg-white text-slate-400'}`}>{i + 1}</span>
+                        {!last ? <span className="w-px flex-1 bg-slate-200" /> : null}
                       </div>
-                    )}
-                  </SectionCard>
-                </>
-              )}
-            </div>
+                      <button onClick={() => setSelectedFid(w.fid)} className={`mb-1.5 flex-1 rounded-xl border px-3 py-2 text-left transition ${sel ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate font-mono text-[13px] font-semibold">{w.name}</span>
+                          {vuln ? <Bug size={12} className={sel ? 'text-rose-300' : 'text-rose-500'} /> : w.audit ? <ShieldCheck size={12} className={sel ? 'text-emerald-300' : 'text-emerald-500'} /> : null}
+                        </div>
+                        <div className={`mt-0.5 truncate text-[10px] ${sel ? 'text-slate-300' : 'text-slate-500'}`}>污点 {w.taint?.tainted_params_in?.length ? w.taint.tainted_params_in.join(', ') : '—'}{w.ts ? ` · ${w.ts.slice(11, 19)}` : ''}</div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </aside>
+          {/* Right: per-step detail — propagation + model think */}
+          <div className="space-y-4">
+            {!selectedFn ? <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-16 text-center text-sm text-slate-400">选择左侧函数查看污点传播与模型推理</div> : (
+              <>
+                <SectionCard title={`#${selectedFn.order + 1} · ${selectedFn.name}`} icon={<Crosshair size={15} />} action={<FnBadge audit={selectedFn.audit} />}>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <InfoRow label="function_id" value={<span className="font-mono">{selectedFn.fid}</span>} />
+                    <InfoRow label="污点参数" value={selectedFn.taint?.tainted_params_in?.length ? <span className="font-mono text-rose-600">{selectedFn.taint.tainted_params_in.join(', ')}</span> : '—'} />
+                    {selectedFn.audit?.vuln_line ? <InfoRow label="漏洞行" value={<span className="font-mono text-rose-600">{selectedFn.audit.vuln_line}</span>} /> : null}
+                    {selectedFn.audit?.confidence != null ? <InfoRow label="置信度" value={selectedFn.audit.confidence} /> : null}
+                    {selectedFn.ts ? <InfoRow label="审查时间" value={<span className="font-mono">{selectedFn.ts.slice(11, 19)}</span>} /> : null}
+                  </div>
+                </SectionCard>
+                {selectedFn.taint?.desc ? (
+                  <SectionCard title="污点传播 (是什么 / 为什么 / 怎么样)" icon={<Network size={15} />}><ThreeElementDesc text={selectedFn.taint.desc} /></SectionCard>
+                ) : null}
+                {selectedFn.audit?.desc ? (
+                  <SectionCard title="模型审计推理 (think)" icon={<Search size={15} />}><ThreeElementDesc text={selectedFn.audit.desc} /></SectionCard>
+                ) : null}
+                <SectionCard title={`该函数的工具调用 (${queriesForSelected.length})`} icon={<Terminal size={15} />}>
+                  {queriesForSelected.length === 0 ? <div className="text-xs text-slate-400">无</div> : (
+                    <div className="space-y-2">
+                      {queriesForSelected.map((q, i) => <ToolCallRow key={i} q={q} nameIdx={nameIdx} />)}
+                    </div>
+                  )}
+                </SectionCard>
+              </>
+            )}
           </div>
         </section>
       ) : activeTab === 'tools' ? (
@@ -664,77 +742,56 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
               const ts = TOOL_STYLE[cmd] || { badge: 'bg-slate-50 text-slate-600 border-slate-200', dot: 'bg-slate-400', label: cmd };
               return <span key={cmd} className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${ts.badge}`}><span className={`h-2 w-2 rounded-full ${ts.dot}`} />{ts.label} {n}</span>;
             })}
-            <span className="text-xs font-semibold text-slate-400">总计 {toolCount} 次</span>
+            <span className="text-xs font-semibold text-slate-400">总计 {toolCount} 次 · {callEdges.filter((e) => e.kind === 'call').length} 条调用边</span>
           </div>
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-            {toolCount === 0 ? <div className="px-4 py-12 text-center text-sm text-slate-400">{sessionMissing ? '暂无工具调用记录' : '加载中...'}</div> : (
-              <table className="w-full divide-y divide-slate-100 text-left text-xs">
-                <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                  <tr><th className="w-12 px-3 py-2">#</th><th className="w-28 px-3 py-2">时间</th><th className="w-40 px-3 py-2">命令</th><th className="px-3 py-2">目标函数</th><th className="w-32 px-3 py-2">function_id</th><th className="w-24 px-3 py-2 text-right">返回</th></tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {(session?.codemap_queries || []).map((q, i) => {
-                    const ts = TOOL_STYLE[q.command] || { badge: 'bg-slate-50 text-slate-600 border-slate-200', dot: 'bg-slate-400', label: q.command };
-                    const n = q.result?.callees?.length ?? q.result?.callers?.length;
-                    return (
-                      <tr key={i} className="hover:bg-slate-50">
-                        <td className="px-3 py-2 font-mono text-slate-400">{i + 1}</td>
-                        <td className="px-3 py-2 font-mono text-slate-500">{(q.timestamp || '').slice(11, 19)}</td>
-                        <td className="px-3 py-2"><span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-bold ${ts.badge}`}><span className={`h-1.5 w-1.5 rounded-full ${ts.dot}`} />{ts.label}</span></td>
-                        <td className="px-3 py-2 font-mono text-slate-700">{q.params?.func || '-'}</td>
-                        <td className="px-3 py-2 font-mono text-slate-400">{shortFid(q.function_id)}</td>
-                        <td className="px-3 py-2 text-right font-mono text-slate-500">{n != null ? `${n} 项` : '—'}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+          {toolCount === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-12 text-center text-sm text-slate-400">{sessionMissing ? '暂无工具调用记录' : '加载中...'}</div>
+          ) : (
+            <div className="space-y-2">
+              {(session?.codemap_queries || []).map((q, i) => <ToolCallRow key={i} q={q} nameIdx={nameIdx} index={i} />)}
+            </div>
+          )}
         </section>
       ) : activeTab === 'graph' ? (
         <section className="space-y-3">
           {walk.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center text-sm text-slate-400">{sessionMissing ? '暂无调用图数据' : '加载中...'}</div>
-          ) : !hasResult ? (
+          ) : (
             <>
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">该任务运行于调用边落盘改动之前,无精确调用边。下方按审计走查顺序线性展示;重跑任务即可生成真实调用图。</div>
-              <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-4">
-                {walk.map((w, i) => (
-                  <React.Fragment key={w.fid}>
-                    {i > 0 ? <span className="text-slate-300">→</span> : null}
-                    <span className={`rounded-lg px-2.5 py-1 font-mono text-xs font-semibold ${isVulnResult(w.audit?.result) ? 'bg-rose-50 text-rose-700' : 'bg-slate-100 text-slate-600'}`}>{w.name}</span>
-                  </React.Fragment>
-                ))}
+              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-5 bg-slate-500" />真实调用边 {callEdges.filter((e) => e.kind === 'call').length}</span>
+                <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-5 border-t border-dashed border-slate-400" />审查顺序边 {callEdges.filter((e) => e.kind === 'flow').length}</span>
+                {realCount === 0 ? <span className="rounded-full bg-amber-50 px-2 py-0.5 text-amber-700">该任务无精确调用边(改动前运行),按审查顺序连接</span> : null}
+              </div>
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                  <div className="h-[560px] bg-slate-50">
+                    <ReactFlow
+                      nodes={graph.nodes}
+                      edges={graph.flowEdges}
+                      nodeTypes={fnNodeTypes}
+                      onNodeClick={(_, node) => setSelectedFid(node.id)}
+                      fitView nodesDraggable nodesConnectable={false} elementsSelectable panOnDrag zoomOnScroll
+                      proOptions={{ hideAttribution: true }}
+                    >
+                      <Background color="#e2e8f0" gap={18} />
+                      <Controls showInteractive={false} />
+                    </ReactFlow>
+                  </div>
+                </div>
+                <SectionCard title="节点详情" icon={<Crosshair size={15} />} action={<FnBadge audit={selectedFn?.audit} />}>
+                  {!selectedFn ? <div className="text-xs text-slate-400">点击图中节点查看详情</div> : (
+                    <div className="space-y-3">
+                      <div className="font-mono text-sm font-semibold text-slate-900">#{selectedFn.order + 1} {selectedFn.name}</div>
+                      <InfoRow label="污点参数" value={selectedFn.taint?.tainted_params_in?.join(', ') || '—'} />
+                      {selectedFn.audit ? <InfoRow label="判定" value={selectedFn.audit.result} /> : null}
+                      {selectedFn.audit?.desc ? <div className="border-t border-slate-100 pt-3"><ThreeElementDesc text={selectedFn.audit.desc} /></div> : null}
+                      <button onClick={() => setActiveTab('walk')} className="text-xs font-semibold text-slate-500 hover:text-slate-900">在审计走查中查看 →</button>
+                    </div>
+                  )}
+                </SectionCard>
               </div>
             </>
-          ) : (
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                <div className="h-[520px] bg-slate-50">
-                  <ReactFlow
-                    nodes={graph.nodes}
-                    edges={graph.flowEdges}
-                    nodeTypes={fnNodeTypes}
-                    onNodeClick={(_, node) => setSelectedFid(node.id)}
-                    fitView nodesDraggable={false} nodesConnectable={false} elementsSelectable panOnDrag zoomOnScroll
-                  >
-                    <Background color="#e2e8f0" gap={18} />
-                    <Controls showInteractive={false} />
-                  </ReactFlow>
-                </div>
-              </div>
-              <SectionCard title="节点详情" icon={<Crosshair size={15} />} action={<FnBadge audit={selectedFn?.audit} />}>
-                {!selectedFn ? <div className="text-xs text-slate-400">点击图中节点查看详情</div> : (
-                  <div className="space-y-3">
-                    <div className="font-mono text-sm font-semibold text-slate-900">{selectedFn.name}</div>
-                    <InfoRow label="污点参数" value={selectedFn.taint?.tainted_params_in?.join(', ') || '—'} />
-                    {selectedFn.audit ? <InfoRow label="判定" value={selectedFn.audit.result} /> : null}
-                    {selectedFn.audit?.desc ? <p className="border-t border-slate-100 pt-3 text-xs leading-5 text-slate-600 line-clamp-[12]">{selectedFn.audit.desc}</p> : null}
-                  </div>
-                )}
-              </SectionCard>
-            </div>
           )}
         </section>
       ) : activeTab === 'result' ? (
