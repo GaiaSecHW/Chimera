@@ -3305,7 +3305,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             value={evaluationModuleFilter}
                             onChange={(event) => setEvaluationModuleFilter(event.target.value)}
                             placeholder="搜索模块"
-                            className="w-44 rounded-xl border border-theme-border py-2 pl-8 pr-3 text-xs outline-none focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100"
+                            className="form-input w-44 py-2 pl-8 pr-3 text-xs"
                           />
                         </div>
                         <select
