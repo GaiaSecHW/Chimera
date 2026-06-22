@@ -680,7 +680,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     [selectedDetail, selectedTimeline, projectId],
   );
   const conclusionReason = useMemo(() => {
-    if (!selectedDetail) return { source: '', text: '' };
+    if (!selectedDetail) return { source: '', text: '', engineName: '' };
     if (selectedDetail.finished_reason) {
       const finishedEvents = selectedTimeline
         .filter((item: any) => item.item_type === 'case_finished' || item.payload?.event_type === 'case_finished')
@@ -688,16 +688,16 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       const text = finishedEvents
         .map((item: any) => item.payload?.transition_reason || item.payload?.reason || '')
         .find((value: string) => !!value);
-      return { source: 'human', text: text || '' };
+      return { source: 'human', text: text || '', engineName: '' };
     }
     if (selectedDetail.validation_result) {
       const completed = (confirmRecords || [])
         .filter((record: any) => record && (record.status === 'completed' || record.result) && record.reason)
         .sort((a: any, b: any) => (b.completed_at || b.created_at || '').localeCompare(a.completed_at || a.created_at || ''));
       const top = completed[0];
-      return { source: 'engine', text: top?.reason || '' };
+      return { source: 'engine', text: top?.reason || '', engineName: top?.engine_name || '' };
     }
-    return { source: '', text: '' };
+    return { source: '', text: '', engineName: '' };
   }, [selectedDetail, selectedTimeline, confirmRecords]);
   const relatedRefs = Array.isArray(workspaceSummary.related_execution_refs) ? workspaceSummary.related_execution_refs : [];
   const processManualTasks = Array.isArray(selectedDetail?.manual_tasks) ? selectedDetail.manual_tasks : [];
@@ -2118,7 +2118,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         </div>
                         {(selectedDetail.finished_reason || selectedDetail.validation_result) ? (
                           <div className="mt-1 text-[11px] font-medium text-theme-text-muted">
-                            来源: {selectedDetail.finished_reason ? '人工判定' : '引擎判定'}
+                            来源: {selectedDetail.finished_reason ? '人工判定' : `${conclusionReason.engineName || '引擎'}判定`}
                           </div>
                         ) : null}
                         {conclusionReason.text ? (
