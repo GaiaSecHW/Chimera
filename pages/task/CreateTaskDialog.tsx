@@ -5,6 +5,7 @@ import { TestInputUploader, TestInputUploaderHandle } from '../../components/Tes
 import { getAuthHeaders, handleResponse } from '../../clients/base';
 import { agentManageApiPath } from '../../clients/agentManage';
 import { getUploadRecordDisplayName } from '../assets/baseResourcePageModel';
+import { buildManagerTargetDir } from '../../clients/codemapManager';
 import { resolveSechpsInstruction } from './taskCenterInstruction';
 import type {
   AgentAppSummary,
@@ -36,7 +37,7 @@ export interface CreateTaskDialogProps {
 type TaskMode = 'dragon-tail' | 'ram-horn';
 
 type TaskTypeOption = {
-  value: ScheduleCenterUserTaskType;
+  value: ScheduleCenterUserTaskType | 'cfg_db_vuln';
   label: string;
   downstreamView?: string;
   modes: readonly TaskMode[];
@@ -45,6 +46,7 @@ type TaskTypeOption = {
 const TASK_TYPES: readonly TaskTypeOption[] = [
   { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
+  { value: 'cfg_db_vuln', label: 'CFG-挖掘工具', downstreamView: 'cfg-db-vuln-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'ai4app_fast', label: 'AI4APP 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
   { value: 'ai4web_fast', label: 'AI4WEB 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
@@ -63,6 +65,7 @@ const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
   binary_firmware_e2e: 'file',
   binary_module_e2e: 'file_list',
   source_scan_e2e: 'directory',
+  cfg_db_vuln: 'directory',
   ai4red: 'directory',
   ai4app_fast: 'file',
   ai4app_deep: 'file',
@@ -200,6 +203,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   }, [isDirectorySelectionValid, selectedInput, selectedRelativePath, selectedRelativePaths, selectionMode]);
 
   const inputSelectionHint = useMemo(() => {
+    if (taskType === 'cfg_db_vuln') return '请选择一个已构建知识图谱的代码测试对象；CFG 两阶段挖掘按整个上传根进行（入口分析 → fan-out 审计）。';
     if (taskType === 'sechps_tool') return '请选择一个已注册的 Agent Harness，并选择一个目录。调度中心会在分发时自动申请 Task Key，并把所选目录直接传给下游。';
     if (taskType === 'ai4app_fast' || taskType === 'ai4app_deep') return '请选择一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包作为测试对象；压缩包将作为 APK/HAP 的源码包处理。';
     if (taskType === 'ai4web_fast' || taskType === 'ai4web_deep') return '请选择一个 Web 源码包（zip/rar/tar.gz/gz 等压缩包）作为测试对象。';
@@ -209,7 +213,11 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   }, [selectionMode, taskType]);
 
   const canCreateTask = mode !== 'lion-head' && (
-    inputSource === 'upload'
+    taskType === 'cfg_db_vuln'
+      // CFG mining runs over an existing, already-ingested code upload (its
+      // codemap graph must exist); just need a name + a selected record.
+      ? Boolean(name && selectedInputId)
+      : inputSource === 'upload'
       ? Boolean(name)
       : (taskType === 'sechps_tool'
         ? Boolean(name && selectedAgentApp && selectedInputId && isDirectorySelectionValid)
@@ -294,6 +302,11 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     if (taskType !== 'sechps_tool') {
       setSelectedAgentAppId('');
     }
+    // CFG mining needs an existing ingested code upload (graph must pre-exist),
+    // so force the "选择已有" source.
+    if (taskType === 'cfg_db_vuln') {
+      setInputSource('existing');
+    }
   }, [taskType]);
 
   /* --- agent app auto-select --- */
@@ -376,6 +389,30 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setSaving(true);
     setError('');
     try {
+      // CFG-挖掘工具: our own two-stage pipeline, not the schedule-center flow.
+      // Runs over the selected code upload's root (codemap graph keyed by that
+      // upload_id), then opens the CFG detail view.
+      if (taskType === 'cfg_db_vuln') {
+        if (!selectedInput) {
+          setError('请选择一个已有的代码测试对象（其知识图谱需已构建）');
+          return;
+        }
+        const created = await api.cfgPipeline.createPipeline({
+          project_id: projectId,
+          name,
+          input_path: buildManagerTargetDir(projectId, selectedInput.target_path),
+          created_by: currentUser?.username,
+        });
+        setName('');
+        setDescription('');
+        setActiveCreateTab('basic');
+        onCreated();
+        window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
+          detail: { view: 'cfg-db-vuln-detail', cfgDbVulnTaskId: created.pipeline_id },
+        }));
+        return;
+      }
+
       let finalInputUploadId = selectedInputId;
       let finalInputBinding = {
         upload_id: selectedInputId,
@@ -404,7 +441,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         ? resolveSechpsInstruction(instruction, selectedAgentApp?.startCommand)
         : '';
       const payload: ScheduleCenterUserTaskCreatePayload = {
-        task_type: taskType,
+        task_type: taskType as ScheduleCenterUserTaskType,
         name,
         description,
         input_upload_ids: [finalInputUploadId],
