@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => {
     // secocto-ui (VITE_SECOCTO_TARGET, 默认 http://127.0.0.1:18888),由 secocto-ui
     // 内部按 service 前缀分发到 vulns/skills/tasks/wiki/memories/gitea 六个后端服务。
     // 此处不做 rewrite——剥前缀的工作交给 secocto-ui 的 serve.py / nginx 统一处理。
-    const secoctoTarget = String(env.VITE_SECOCTO_TARGET || 'http://127.0.0.1:18888').trim();
+    const secoctoTarget = String(env.VITE_SECOCTO_TARGET || 'http://secocto.secflow.ai.icsl.huawei.com').trim();
     const secoctoAgent = new http.Agent({ keepAlive: true, maxSockets: 20, keepAliveMsecs: 3000 });
     return {
       // Use an absolute base in dev so HMR/module requests stay rooted at the
