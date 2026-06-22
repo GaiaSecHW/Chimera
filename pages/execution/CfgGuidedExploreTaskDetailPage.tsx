@@ -355,7 +355,9 @@ function layoutGraph(walk: WalkFn[], edges: CallEdge[], selectedFid: string | nu
 function FunctionCodeBlock({ meta, focusLine }: { meta?: CfgWalkFunction; focusLine?: number | null }) {
   if (!meta) return null;
   const code = meta.code;
-  const focus = focusLine && focusLine > 0 ? focusLine : (code?.focus_line ?? null);
+  // Only highlight a real vulnerability line; don't fall back to the snippet's
+  // centering focus (which is just the function midpoint).
+  const focus = focusLine && focusLine > 0 ? focusLine : null;
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-950">
       <div className="flex items-center justify-between gap-2 border-b border-slate-800 px-3 py-2">
