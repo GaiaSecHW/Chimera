@@ -5560,21 +5560,21 @@ className="form-input w-full"
                                 <div className="grid gap-3 xl:grid-cols-[1fr_1fr_1fr]">
                                   <label className="block">
                                     <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">Output ID</div>
-                                    <input value={item.outputId} onChange={(event) => handleUpdateReportOutput(item.key, 'outputId', event.target.value)} className="w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+                                    <input value={item.outputId} onChange={(event) => handleUpdateReportOutput(item.key, 'outputId', event.target.value)} className="form-input w-full" />
                                   </label>
                                   <label className="block">
                                     <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">Node ID</div>
-                                    <input value={item.nodeId} onChange={(event) => handleUpdateReportOutput(item.key, 'nodeId', event.target.value)} className="w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+                                    <input value={item.nodeId} onChange={(event) => handleUpdateReportOutput(item.key, 'nodeId', event.target.value)} className="form-input w-full" />
                                   </label>
                                   <label className="block">
                                     <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">Title</div>
-                                    <input value={item.title} onChange={(event) => handleUpdateReportOutput(item.key, 'title', event.target.value)} className="w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+                                    <input value={item.title} onChange={(event) => handleUpdateReportOutput(item.key, 'title', event.target.value)} className="form-input w-full" />
                                   </label>
                                 </div>
                                 <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_140px_120px_auto]">
                                   <label className="block">
                                     <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">Path</div>
-                                    <input value={item.path} onChange={(event) => handleUpdateReportOutput(item.key, 'path', event.target.value)} placeholder="exports/audit-report.md" className="w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+                                    <input value={item.path} onChange={(event) => handleUpdateReportOutput(item.key, 'path', event.target.value)} placeholder="exports/audit-report.md" className="form-input w-full" />
                                   </label>
                                   <label className="block">
                                     <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">Format</div>
@@ -5586,7 +5586,7 @@ className="form-input w-full"
                                   </label>
                                   <label className="block">
                                     <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">Order</div>
-                                    <input value={item.order} onChange={(event) => handleUpdateReportOutput(item.key, 'order', event.target.value)} className="w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+                                    <input value={item.order} onChange={(event) => handleUpdateReportOutput(item.key, 'order', event.target.value)} className="form-input w-full" />
                                   </label>
                                   <div className="flex items-end justify-between gap-3">
                                     <label className="inline-flex items-center gap-2 text-sm font-semibold text-theme-text-secondary">

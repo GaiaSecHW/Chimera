@@ -145,7 +145,7 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({ user }) 
           onChange={(event) => setFormData((current) => ({ ...current, [key]: event.target.value }))}
           placeholder={placeholder}
           autoComplete={key === 'old_password' ? 'current-password' : 'new-password'}
-          className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-theme-text-primary outline-none placeholder:text-theme-text-muted"
+          className="form-input min-w-0 flex-1"
         />
         <button
           type="button"

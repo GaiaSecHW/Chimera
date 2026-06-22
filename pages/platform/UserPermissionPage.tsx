@@ -364,7 +364,7 @@ export const UserPermissionPage: React.FC = () => {
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="搜索用户名、当前角色或所属部门..."
-                  className="w-full bg-transparent text-sm font-medium text-theme-text-secondary outline-none placeholder:text-theme-text-muted"
+                  className="form-input w-full"
                 />
               </label>
 

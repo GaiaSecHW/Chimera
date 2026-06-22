@@ -581,7 +581,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
             </label>
             <div className="relative min-w-[260px] flex-1">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" />
-              <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索 case_id / 任务名" className="w-full rounded-xl border border-theme-border bg-theme-elevated py-2 pl-9 pr-3 text-sm text-theme-text-primary" />
+              <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索 case_id / 任务名" className="form-input w-full py-2 pl-9 pr-3 text-sm text-theme-text-primary" />
             </div>
             <span className="text-xs text-theme-text-muted">共 {total} 条</span>
           </div>
@@ -680,7 +680,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               </button>
               <div className="relative min-w-[260px] flex-1">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" />
-                <input value={batchFilter} onChange={(e) => { setBatchFilter(e.target.value); setBatchPage(1); }} placeholder="搜索 case_id / 标题 / 对象定位" className="w-full rounded-xl border border-theme-border bg-theme-surface py-2 pl-9 pr-3 text-sm text-theme-text-primary" />
+                <input value={batchFilter} onChange={(e) => { setBatchFilter(e.target.value); setBatchPage(1); }} placeholder="搜索 case_id / 标题 / 对象定位" className="form-input w-full py-2 pl-9 pr-3 text-sm text-theme-text-primary" />
               </div>
               <select
                 value={existingTaskFilter}

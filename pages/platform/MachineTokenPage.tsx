@@ -228,7 +228,7 @@ export const MachineTokenPage: React.FC = () => {
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="搜索机器码或描述..."
-              className="w-full bg-transparent text-sm font-medium text-theme-text-secondary outline-none placeholder:text-theme-text-muted"
+              className="form-input w-full"
             />
           </label>
         </section>

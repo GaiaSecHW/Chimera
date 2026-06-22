@@ -177,7 +177,7 @@ export const OnlineSessionPage: React.FC = () => {
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="搜索用户名、IP 地址、角色或终端标识..."
-              className="w-full bg-transparent text-sm font-medium text-theme-text-secondary outline-none placeholder:text-theme-text-muted"
+              className="form-input w-full"
             />
           </label>
         </section>

@@ -1344,7 +1344,7 @@ className="form-select ml-2 text-xs"
                       <div className="flex flex-wrap gap-2">
                         <div className="relative">
                           <Search size={13} className="pointer-events-none absolute left-3 top-2.5 text-theme-text-muted" />
-                          <input value={evaluationKeyword} onChange={(e) => setEvaluationKeyword(e.target.value)} placeholder="函数过滤" className="rounded-xl border border-theme-border py-2 pl-8 pr-3 text-xs" />
+                          <input value={evaluationKeyword} onChange={(e) => setEvaluationKeyword(e.target.value)} placeholder="函数过滤" className="form-input py-2 pl-8 pr-3 text-xs" />
                         </div>
                         <select value={evaluationStatus} onChange={(e) => setEvaluationStatus(e.target.value)} className="form-select text-xs">
                           <option value="">全部状态</option>

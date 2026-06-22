@@ -5330,7 +5330,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 {activeServiceKey === 'dataflow-vuln' ? <DataflowVulnSampleScopeFilter activeScope={dataflowVulnSampleScope} onChange={setDataflowVulnSampleScope} /> : null}
                 <div style={{ position: 'relative' }}>
                   <Search size={14} style={{ pointerEvents: 'none', position: 'absolute', left: '12px', top: '10px', color: LK.muted }} />
-                  <input value={searchKeyword} onChange={(event) => setSearchKeyword(event.target.value)} placeholder="搜索指标名 / labels / help" className="rounded-xl border border-theme-border py-2 pl-9 pr-3 text-sm text-theme-text-secondary" />
+                  <input value={searchKeyword} onChange={(event) => setSearchKeyword(event.target.value)} placeholder="搜索指标名 / labels / help" className="form-input" />
                 </div>
                 <select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value as 'all' | BinarySecurityMetricsGroup)} style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', color: LK.inkSoft }}>
                   <option value="all">全部分组</option>
@@ -5738,15 +5738,15 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               <div style={{ marginTop: '16px', display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
                 <div style={{ position: 'relative' }}>
                   <Search size={14} style={{ pointerEvents: 'none', position: 'absolute', left: '12px', top: '10px', color: LK.muted }} />
-                  <input value={dfaAgentPodKeyword} onChange={(event) => setDfaAgentPodKeyword(event.target.value)} placeholder="筛选 Pod 名 / worker_id" className="w-full rounded-xl border border-theme-border py-2 pl-9 pr-3 text-sm text-theme-text-secondary" />
+                  <input value={dfaAgentPodKeyword} onChange={(event) => setDfaAgentPodKeyword(event.target.value)} placeholder="筛选 Pod 名 / worker_id" className="form-input w-full" />
                 </div>
                 <div style={{ position: 'relative' }}>
                   <Search size={14} style={{ pointerEvents: 'none', position: 'absolute', left: '12px', top: '10px', color: LK.muted }} />
-                  <input value={dfaAgentTaskKeyword} onChange={(event) => setDfaAgentTaskKeyword(event.target.value)} placeholder="筛选 task id / task name" className="w-full rounded-xl border border-theme-border py-2 pl-9 pr-3 text-sm text-theme-text-secondary" />
+                  <input value={dfaAgentTaskKeyword} onChange={(event) => setDfaAgentTaskKeyword(event.target.value)} placeholder="筛选 task id / task name" className="form-input w-full" />
                 </div>
                 <div style={{ position: 'relative' }}>
                   <Search size={14} style={{ pointerEvents: 'none', position: 'absolute', left: '12px', top: '10px', color: LK.muted }} />
-                  <input value={dfaAgentPidKeyword} onChange={(event) => setDfaAgentPidKeyword(event.target.value)} placeholder="筛选 PID / PGID / PPID" className="w-full rounded-xl border border-theme-border py-2 pl-9 pr-3 text-sm text-theme-text-secondary" />
+                  <input value={dfaAgentPidKeyword} onChange={(event) => setDfaAgentPidKeyword(event.target.value)} placeholder="筛选 PID / PGID / PPID" className="form-input w-full" />
                 </div>
                 <select value={dfaAgentOwnerFilter} onChange={(event) => setDfaAgentOwnerFilter(event.target.value as 'all' | 'tracked' | 'residual' | 'unknown' | 'suspected_orphan')} style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', color: LK.inkSoft }}>
                   <option value="all">全部归属</option>
@@ -6272,7 +6272,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ position: 'relative' }}>
                       <Search size={14} style={{ pointerEvents: 'none', position: 'absolute', left: '12px', top: '10px', color: LK.muted }} />
-                      <input value={aiSearchKeyword} onChange={(event) => setAiSearchKeyword(event.target.value)} placeholder="搜索 AI 指标名 / labels / help" className="rounded-xl border border-theme-border py-2 pl-9 pr-3 text-sm text-theme-text-secondary" />
+                      <input value={aiSearchKeyword} onChange={(event) => setAiSearchKeyword(event.target.value)} placeholder="搜索 AI 指标名 / labels / help" className="form-input" />
                     </div>
                     <select value={aiRoleFilter} onChange={(event) => setAiRoleFilter(event.target.value)} style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', color: LK.inkSoft }}>
                       <option value="all">全部角色/类型</option>

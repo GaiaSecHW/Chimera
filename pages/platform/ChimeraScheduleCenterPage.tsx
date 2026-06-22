@@ -1169,7 +1169,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                           if (page !== 1) setPage(1);
                         }}
                         placeholder="任务名 / 下游任务 ID / 创建人"
-                        className="w-full bg-transparent text-sm font-medium text-theme-text-primary outline-none placeholder:text-theme-text-muted"
+                        className="form-input w-full"
                       />
                     </div>
                   </div>
@@ -1651,7 +1651,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                   关键词
                   <div className="mt-2 flex items-center rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
                     <Search size={14} className="text-theme-text-muted" />
-                    <input value={taskEventFilters.search} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, search: e.target.value })); setTaskEventPage(1); }} className="ml-2 w-full bg-transparent text-sm text-theme-text-primary outline-none" placeholder="任务ID / message / actor / 下游任务ID" />
+                    <input value={taskEventFilters.search} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, search: e.target.value })); setTaskEventPage(1); }} className="form-input ml-2 w-full" placeholder="任务ID / message / actor / 下游任务ID" />
                   </div>
                 </label>
                 <label className="text-sm font-bold text-theme-text-secondary">
