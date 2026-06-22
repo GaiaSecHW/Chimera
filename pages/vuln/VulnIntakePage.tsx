@@ -2089,6 +2089,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         <div className="mt-1 text-sm font-semibold text-theme-text-primary">
                           {toConclusionText(displaySummary?.validation_result || selectedDetail.validation_result || selectedDetail.finished_reason) || resultSummary?.summary || toDecisionText(selectedDetail.decision_status)}
                         </div>
+                        {(selectedDetail.finished_reason || selectedDetail.validation_result) ? (
+                          <div className="mt-1 text-[11px] font-medium text-theme-text-muted">
+                            来源: {selectedDetail.finished_reason ? '人工判定' : '引擎判定'}
+                          </div>
+                        ) : null}
                       </div>
                       <div className="rounded-xl p-4 bg-theme-elevated">
                         <div className="text-xs font-semibold text-theme-text-muted-soft">对象定位</div>
@@ -2848,9 +2853,16 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-theme-text-secondary">{toUserVulnStatusText(item)}</div>
                         {(item.finished_reason || item.validation_result || item.decision_status) ? (
-                          <div className="mt-1 text-[10px] font-semibold text-theme-text-muted">
-                            结论: {toConclusionText(item.finished_reason || item.validation_result || item.decision_status)}
-                          </div>
+                          <>
+                            <div className="mt-1 text-[10px] font-semibold text-theme-text-muted">
+                              结论: {toConclusionText(item.finished_reason || item.validation_result || item.decision_status)}
+                            </div>
+                            {(item.finished_reason || item.validation_result) ? (
+                              <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
+                                来源: {item.finished_reason ? '人工判定' : '引擎判定'}
+                              </div>
+                            ) : null}
+                          </>
                         ) : null}
                       </div>
                       <div>
