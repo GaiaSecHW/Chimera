@@ -756,8 +756,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       };
       const matchesFinalResult = (item: any) => {
         if (finalResultFilter === 'all') return true;
-        const effective = String(item.finished_reason || item.validation_result || '').trim();
-        if (finalResultFilter === 'analyzing') return effective === '';
+        const isTerminal = item.current_stage === 'finished' || !!item.finished_reason;
+        if (finalResultFilter === 'analyzing') return !isTerminal;
+        const effective = isTerminal ? String(item.finished_reason || item.validation_result || '').trim() : '';
         if (finalResultFilter === 'not_vulnerable') return effective === 'not_vulnerable' || effective === 'non_vulnerable';
         if (finalResultFilter === 'inconclusive') return effective === 'inconclusive' || effective === 'manual_terminated';
         return effective === finalResultFilter;
@@ -1673,8 +1674,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       };
       const matchesFinalResult = (item: any) => {
         if (finalResultFilter === 'all') return true;
-        const effective = String(item.finished_reason || item.validation_result || '').trim();
-        if (finalResultFilter === 'analyzing') return effective === '';
+        const isTerminal = item.current_stage === 'finished' || !!item.finished_reason;
+        if (finalResultFilter === 'analyzing') return !isTerminal;
+        const effective = isTerminal ? String(item.finished_reason || item.validation_result || '').trim() : '';
         if (finalResultFilter === 'not_vulnerable') return effective === 'not_vulnerable' || effective === 'non_vulnerable';
         if (finalResultFilter === 'inconclusive') return effective === 'inconclusive' || effective === 'manual_terminated';
         return effective === finalResultFilter;
