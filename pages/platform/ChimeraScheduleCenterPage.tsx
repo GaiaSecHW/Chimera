@@ -105,6 +105,7 @@ const TASK_TYPE_OPTIONS = [
   { value: '', label: '全部任务类型' },
   { value: 'binary_firmware_e2e', label: '二进制固件端到端' },
   { value: 'source_scan_e2e', label: '源码扫描端到端' },
+  { value: 'kg_source_vuln_scan_e2e', label: '知识图谱漏洞挖掘端到端' },
   { value: 'binary_module_e2e', label: '二进制模块端到端' },
 ];
 
@@ -232,6 +233,7 @@ const statusTone = (label?: string | null) => {
 const normalizeTaskTypeLabel = (taskType?: string | null) => {
   if (taskType === 'binary_firmware_e2e') return '盖亚-二进制固件';
   if (taskType === 'source_scan_e2e') return '盖亚-源码';
+  if (taskType === 'kg_source_vuln_scan_e2e') return '知识图谱-漏洞挖掘';
   if (taskType === 'binary_module_e2e') return '盖亚-二进制模块';
   return taskType || '-';
 };

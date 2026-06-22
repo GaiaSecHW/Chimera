@@ -821,8 +821,8 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   }
 
   return (
- <div className="min-h-[calc(100vh-5rem)] bg-theme-elevated p-4 md:p-6 xl:p-8">
-      <div className="flex min-h-[calc(100vh-7rem)] w-full flex-col gap-5">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4">
+      <div className="flex flex-col gap-5">
         <PageHeader title="测试对象" description="统一管理与查看当前项目的测试输入对象，包括文档、代码、软件和其他资料的上传与状态追踪" />
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {INPUT_TYPE_ORDER.map((inputType) => {
@@ -873,7 +873,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                 </button>
                 <button
                   onClick={() => openCreateModal(selectedType === 'all' ? 'document' : selectedType)}
- className="inline-flex items-center gap-2 rounded-lg bg-theme-elevated px-4 py-3 text-sm font-semibold text-white transition hover:bg-theme-elevated"
+                  className="btn btn-primary"
                 >
                   <Plus size={16} />
                   新建上传
@@ -897,7 +897,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   setSelectedType(event.target.value as InputType | 'all');
                   setPage(1);
                 }}
-                className="w-full rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary outline-none sm:w-auto"
+                className="form-select w-full sm:w-auto"
               >
                 <option value="all">全部类型</option>
                 {INPUT_TYPE_ORDER.map((type) => (
@@ -910,7 +910,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   setSelectedStatus(event.target.value);
                   setPage(1);
                 }}
-                className="w-full rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary outline-none sm:w-auto"
+                className="form-select w-full sm:w-auto"
               >
                 <option value="all">全部状态</option>
                 <option value="pending">pending</option>
@@ -1397,11 +1397,11 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
               ) : (
                 <>
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-theme-text-secondary">上传记录名称</label>
+                    <label className="form-label">上传记录名称</label>
                     <input
                       value={uploadDisplayName}
                       onChange={(event) => setUploadDisplayName(event.target.value)}
-                      className="w-full rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-primary"
+                      className="form-input w-full"
                       placeholder="请输入上传记录名称"
                     />
                   </div>
@@ -1417,18 +1417,18 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
               )}
             </div>
             <div className="flex justify-end gap-3 border-t border-theme-border px-6 py-5">
-              <button type="button" onClick={() => setIsUploadModalOpen(false)} className="rounded-lg border border-theme-border px-4 py-3 text-sm font-semibold text-theme-text-secondary">
+              <button type="button" onClick={() => setIsUploadModalOpen(false)} className="btn btn-secondary">
                 取消
               </button>
               <button
                 type="button"
                 onClick={() => { void submitUpload({ runInBackground: true }); }}
                 disabled={isUploading || (isAppendMode ? uploadQueue.length === 0 : !uploadDisplayName.trim())}
-                className="rounded-xl border border-theme-border px-4 py-3 text-sm font-semibold text-theme-text-secondary disabled:opacity-50"
+                className="btn btn-secondary"
               >
                 后台运行
               </button>
-              <button type="submit" disabled={isUploading || (isAppendMode ? uploadQueue.length === 0 : !uploadDisplayName.trim())} className="rounded-lg bg-theme-elevated px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
+              <button type="submit" disabled={isUploading || (isAppendMode ? uploadQueue.length === 0 : !uploadDisplayName.trim())} className="btn btn-primary">
                 {isUploading ? <Loader2 size={16} className="mr-2 inline-block animate-spin" /> : null}
                 {isAppendMode ? '提交追加上传' : '创建上传记录'}
               </button>
@@ -1450,8 +1450,8 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-3">
-              <button onClick={() => setDeleteTarget(null)} className="rounded-lg border border-theme-border px-4 py-3 text-sm font-semibold text-theme-text-secondary">取消</button>
-              <button onClick={() => { void executeDelete(); }} className="rounded-lg bg-rose-600 px-4 py-3 text-sm font-semibold text-white">确认删除</button>
+              <button onClick={() => setDeleteTarget(null)} className="btn btn-secondary">取消</button>
+              <button onClick={() => { void executeDelete(); }} className="btn btn-danger-soft">确认删除</button>
             </div>
           </div>
         </div>

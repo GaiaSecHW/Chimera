@@ -212,7 +212,7 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
   }, [tasks]);
 
   return (
-    <div className="p-2.5 space-y-3 animate-in fade-in duration-500 h-full overflow-y-auto lg:p-3">
+    <div className="space-y-4 px-5 py-5 md:px-6 2xl:px-8 h-full overflow-y-auto">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
  <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
           <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">总任务</div>

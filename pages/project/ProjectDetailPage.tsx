@@ -59,6 +59,7 @@ const formatDateTime = (value?: string | null) => (value ? new Date(value).toLoc
 const TASK_TYPE_LABELS: Record<string, string> = {
   binary_firmware_e2e: '盖亚-二进制固件',
   source_scan_e2e: '盖亚-源码',
+  kg_source_vuln_scan_e2e: '知识图谱-漏洞挖掘',
   binary_module_e2e: '盖亚-二进制模块',
   ai4app_fast: 'AI4APP 扫描（快速）',
   ai4web_fast: 'AI4WEB 扫描（快速）',
@@ -70,6 +71,7 @@ const TASK_TYPE_LABELS: Record<string, string> = {
 const TASK_DOWNSTREAM_VIEW: Record<string, string> = {
   binary_firmware_e2e: 'binary-security-detail',
   source_scan_e2e: 'source-security-detail',
+  kg_source_vuln_scan_e2e: 'kg-source-security-detail',
   binary_module_e2e: 'binary-module-security-detail',
   ai4app_fast: 'app-security-scan-detail',
   ai4web_fast: 'app-security-scan-detail',
@@ -80,6 +82,7 @@ const TASK_DOWNSTREAM_VIEW: Record<string, string> = {
 const TASK_ID_KEY: Record<string, string> = {
   'binary-security-detail': 'binarySecurityTaskId',
   'source-security-detail': 'sourceSecurityTaskId',
+  'kg-source-security-detail': 'binarySecurityTaskId',
   'binary-module-security-detail': 'binaryModuleSecurityTaskId',
   'app-security-scan-detail': 'appScanTaskId',
   'task-redline-detail': 'redlineTaskId',

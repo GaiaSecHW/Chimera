@@ -84,7 +84,7 @@ export const FileserverArchiveTasksPage: React.FC<Props> = ({ projectId }) => {
   };
 
   return (
-    <div className="h-full overflow-auto p-6">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 h-full overflow-auto">
       <div className="mx-auto max-w-[1400px] space-y-4">
         <PageHeader
           title="打包下载任务"
