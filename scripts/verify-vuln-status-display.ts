@@ -139,8 +139,21 @@ async function main() {
     const ok = text.includes(c.expected);
     const flag = ok ? 'PASS' : 'FAIL';
     console.log(`[${flag}] ${c.title}`);
-    console.log(`       期望: ${c.expected} | 实际行内含: ${text.split(' ').slice(0, 15).join(' ')}...`);
-    if (!ok) failures.push(`${c.title}: 期望 "${c.expected}"`);
+    console.log(`       期望状态: ${c.expected} | 实际行内含: ${text.split(' ').slice(0, 15).join(' ')}...`);
+    if (!ok) failures.push(`${c.title}: 期望状态 "${c.expected}"`);
+
+    // 结论列断言:终审前不应该出现"无法判定/是漏洞/不是漏洞/人工判定/引擎判定"
+    const isTerminal = c.current_stage === 'finished' || !!c.finished_reason;
+    const conclusionPhrases = ['无法判定', '是漏洞', '不是漏洞', '人工终止', '人工判定', '引擎判定'];
+    const leaked = conclusionPhrases.filter((p) => text.includes(p));
+    if (!isTerminal && leaked.length > 0) {
+      console.log(`[FAIL] ${c.title} · 结论列泄漏: ${leaked.join('/')}`);
+      failures.push(`${c.title}: 未终审但结论列展示了 ${leaked.join('/')}`);
+    } else if (isTerminal) {
+      console.log(`[PASS] ${c.title} · 终审案例结论列展示正常`);
+    } else {
+      console.log(`[PASS] ${c.title} · 未终审案例结论列为 —`);
+    }
   }
 
   await page.screenshot({ path: 'scripts/verify-vuln-status-display.png', fullPage: true });
