@@ -37,7 +37,12 @@ export interface BinarySecurityTaskPolicy {
   module_selection_mode?: BinarySecurityModuleSelectionMode;
   entry_selection_mode?: BinarySecurityEntrySelectionMode;
   module_risk_levels?: string[];
-  knowledge_graph_entries_url?: string;
+  knowledge_graph_upload_id?: string;
+  knowledge_graph_db_name?: string;
+  knowledge_graph_include_excluded?: boolean;
+  knowledge_graph_status_filter?: string;
+  knowledge_graph_kind?: string;
+  knowledge_graph_module?: string;
   [key: string]: any;
 }
 
@@ -453,7 +458,16 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
   metrics: Record<string, any>;
   item_stats: Record<string, Record<string, number>>;
   knowledge_graph_raw_entry_count?: number;
+  knowledge_graph_selected_entry_count?: number;
   knowledge_graph_filtered_out_count?: number;
+  knowledge_graph_graph_status?: string | null;
+  knowledge_graph_identification_state?: string | null;
+  knowledge_graph_attack_status?: string | null;
+  knowledge_graph_analysis_total?: number;
+  knowledge_graph_analysis_identified?: number;
+  knowledge_graph_analysis_pending?: number;
+  knowledge_graph_analysis_confirmed?: number;
+  knowledge_graph_analysis_rejected?: number;
   stage_items_total?: number;
   stage_items_truncated?: boolean;
   stage_items: Array<{
@@ -1162,7 +1176,12 @@ export const binarySecurityApi = {
         module_selection_mode?: 'auto' | 'manual_confirm';
         entry_selection_mode?: 'auto' | 'manual_confirm';
         module_risk_levels?: string[];
-        knowledge_graph_entries_url?: string;
+        knowledge_graph_upload_id?: string;
+        knowledge_graph_db_name?: string;
+        knowledge_graph_include_excluded?: boolean;
+        knowledge_graph_status_filter?: string;
+        knowledge_graph_kind?: string;
+        knowledge_graph_module?: string;
       };
     },
   ): Promise<BinarySecurityTaskDetail> => {

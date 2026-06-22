@@ -400,6 +400,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [nameEdited, setNameEdited] = useState(false);
   const [description, setDescription] = useState('');
   const [moduleName, setModuleName] = useState('');
+  const [knowledgeGraphUploadId, setKnowledgeGraphUploadId] = useState('');
+  const [knowledgeGraphDbName, setKnowledgeGraphDbName] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploadSpeed, setUploadSpeed] = useState<Record<string, number>>({});
@@ -643,6 +645,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setNameEdited(false);
     setDescription('');
     setModuleName('');
+    setKnowledgeGraphUploadId('');
+    setKnowledgeGraphDbName('');
     setFiles([]);
     setUploadProgress({});
     setUploadSpeed({});
@@ -769,6 +773,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       setCreateError('至少选择一个模块风险等级');
       return;
     }
+    if (isKgSourcePage && !knowledgeGraphUploadId.trim() && !knowledgeGraphDbName.trim()) {
+      setCreateError('请填写知识图谱 upload_id 或 db_name');
+      return;
+    }
     setSubmitting(true);
     try {
       const inputFiles: BinarySecurityInputFile[] = files.map((file) => ({
@@ -797,6 +805,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
           stage_parallelism: Object.fromEntries(stages.map((stage) => [stage, stageParallelism[stage] ?? 1])),
           module_selection_mode: isBinaryModuleTask || isKgSourcePage ? undefined : moduleSelectionMode,
           module_risk_levels: isBinaryModuleTask || isKgSourcePage ? undefined : moduleRiskLevels,
+          knowledge_graph_upload_id: isKgSourcePage ? (knowledgeGraphUploadId.trim() || undefined) : undefined,
+          knowledge_graph_db_name: isKgSourcePage ? (knowledgeGraphDbName.trim() || undefined) : undefined,
         },
       });
       const workspaceRoot = created.workspace_root ||`/data/files/${projectId}/app/secflow-app-binary-security/${prepared.task_id}`;
@@ -1295,6 +1305,22 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                           </span>
                         </label>
                       </div>
+                    </div>
+                  ) : null}
+                  {isKgSourcePage ? (
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                      <input
+                        value={knowledgeGraphUploadId}
+                        onChange={(e) => setKnowledgeGraphUploadId(e.target.value)}
+                        placeholder="知识图谱 upload_id（优先）"
+                        className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-primary placeholder:text-theme-text-muted"
+                      />
+                      <input
+                        value={knowledgeGraphDbName}
+                        onChange={(e) => setKnowledgeGraphDbName(e.target.value)}
+                        placeholder="知识图谱 db_name（可选回退）"
+                        className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-primary placeholder:text-theme-text-muted"
+                      />
                     </div>
                   ) : null}
                 </>
