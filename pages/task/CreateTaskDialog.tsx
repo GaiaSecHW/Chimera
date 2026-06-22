@@ -176,8 +176,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [moduleName, setModuleName] = useState('');
   const [selectedAgentAppId, setSelectedAgentAppId] = useState('');
   const [instruction, setInstruction] = useState('');
-  const [knowledgeGraphUploadId, setKnowledgeGraphUploadId] = useState('');
-  const [knowledgeGraphDbName, setKnowledgeGraphDbName] = useState('');
   const [agentAppsLoadError, setAgentAppsLoadError] = useState('');
 
   /* --- input source toggle --- */
@@ -230,7 +228,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           (selectionMode === 'file' && selectedRelativePath) ||
           (selectionMode === 'file_list' && selectedRelativePaths.length > 0) ||
           (selectionMode === 'directory' && isDirectorySelectionValid)
-        ) && (taskType !== 'binary_module_e2e' || moduleName.trim()) && (!isKgSourceTask || knowledgeGraphUploadId.trim() || knowledgeGraphDbName.trim())))
+        ) && (taskType !== 'binary_module_e2e' || moduleName.trim())))
   );
 
 
@@ -304,14 +302,12 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setDirectorySelectionTouched(false);
     setInputBrowseError('');
     setInstruction('');
-    setKnowledgeGraphUploadId('');
-    setKnowledgeGraphDbName('');
     if (taskType !== 'sechps_tool') {
       setSelectedAgentAppId('');
     }
     // CFG mining needs an existing ingested code upload (graph must pre-exist),
     // so force the "选择已有" source.
-    if (taskType === 'cfg_db_vuln') {
+    if (taskType === 'cfg_db_vuln' || taskType === 'kg_source_vuln_scan_e2e') {
       setInputSource('existing');
     }
   }, [taskType]);
@@ -444,8 +440,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         };
       }
 
-      if (isKgSourceTask && !knowledgeGraphUploadId.trim() && !knowledgeGraphDbName.trim()) {
-        setError('请填写知识图谱 upload_id 或 db_name');
+      if (isKgSourceTask && inputSource !== 'existing') {
+        setError('知识图谱-漏洞挖掘只能选择已有测试对象');
         setSaving(false);
         return;
       }
@@ -461,8 +457,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         input_binding: finalInputBinding,
         policy: isKgSourceTask ? {
           pipeline_profile: 'kg_source_vuln_scan',
-          knowledge_graph_upload_id: knowledgeGraphUploadId.trim() || undefined,
-          knowledge_graph_db_name: knowledgeGraphDbName.trim() || undefined,
+          knowledge_graph_upload_id: finalInputUploadId,
         } : {},
         dispatch_policy: {},
         module_name: taskType === 'binary_module_e2e' ? moduleName : undefined,
@@ -482,8 +477,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setModuleName('');
       setSelectedAgentAppId('');
       setInstruction('');
-      setKnowledgeGraphUploadId('');
-      setKnowledgeGraphDbName('');
       setSelectedRelativePath(null);
       setSelectedRelativePaths([]);
       setInputCurrentPath('');
@@ -790,32 +783,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               ) : null}
 
               {isKgSourceTask ? (
-                <div className="grid gap-3 md:grid-cols-2">
-                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                    知识图谱 Upload ID
-                    <input
-                      value={knowledgeGraphUploadId}
-                      onChange={(e) => setKnowledgeGraphUploadId(e.target.value)}
-                      className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-                      placeholder="upload_id，优先于 db_name"
-                    />
-                  </label>
-                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                    知识图谱 DB Name
-                    <input
-                      value={knowledgeGraphDbName}
-                      onChange={(e) => setKnowledgeGraphDbName(e.target.value)}
-                      className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-                      placeholder="db_name，可选兜底"
-                    />
-                  </label>
-                  <div className="md:col-span-2 text-xs" style={{ color: LK.muted }}>至少填写一个；两者都填写时执行优先使用 upload_id。</div>
+                <div className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.body }}>
+                  知识图谱-漏洞挖掘会直接使用所选测试对象记录的 <span style={{ color: LK.ink, fontFamily: MONO }}>upload_id</span> 作为知识图谱定位参数，不需要手工填写。
                 </div>
               ) : null}
 
@@ -825,7 +794,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 <div className="mb-2 text-sm font-semibold" style={{ color: LK.inkSoft }}>测试对象</div>
                 {/* sub-mode toggle */}
                 <div className="mb-3 flex gap-2">
-                  {(['upload', 'existing'] as const).map((src) => {
+                  {(isKgSourceTask ? (['existing'] as const) : (['upload', 'existing'] as const)).map((src) => {
                     const active = inputSource === src;
                     return (
                       <button
