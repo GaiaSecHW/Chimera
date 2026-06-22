@@ -1327,7 +1327,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   const renderDeployModal = () => (
     isDeployModalOpen && (
       <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-6xl max-h-[86vh] rounded-[2.25rem] overflow-hidden flex flex-col animate-in zoom-in-95">
+ <div className="bg-theme-surface w-full max-w-6xl max-h-[86vh] rounded-[2.25rem] overflow-hidden flex flex-col animate-in zoom-in-95">
           <div className="p-7 border-b border-theme-border bg-slate-50/60 shrink-0">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-4">
@@ -1347,7 +1347,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               </div>
               <button
                 onClick={() => setIsDeployModalOpen(false)}
- className="p-3 text-theme-text-muted hover:bg-theme-bg-app hover:text-theme-text-secondary rounded-xl transition-all"
+ className="p-3 text-theme-text-muted hover:bg-theme-elevated hover:text-theme-text-secondary rounded-xl transition-all"
               >
                 <X size={22} />
               </button>
@@ -1364,8 +1364,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                   onClick={() => setDeployModalTab(tab.key as 'agents' | 'config' | 'llm' | 'confirm')}
                   className={`px-4 py-2 rounded-xl text-xs font-medium transition-all ${
                     deployModalTab === tab.key
- ? 'bg-theme-bg-app text-blue-400 border border-blue-500/20 '
-                      : 'text-theme-text-secondary hover:bg-theme-bg-app'
+ ? 'bg-theme-elevated text-blue-400 border border-blue-500/20 '
+                      : 'text-theme-text-secondary hover:bg-theme-elevated'
                   }`}
                 >
                   {tab.label}
@@ -1393,7 +1393,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     <div className="flex rounded-xl border border-theme-border bg-theme-surface p-1">
                       <button
                         onClick={() => setStatusFilter('all')}
- className={`px-3 py-1.5 rounded-lg text-xs font-medium ${statusFilter === 'all' ? 'bg-theme-bg-app text-theme-text-primary ' : 'text-theme-text-muted'}`}
+ className={`px-3 py-1.5 rounded-lg text-xs font-medium ${statusFilter === 'all' ? 'bg-theme-elevated text-theme-text-primary ' : 'text-theme-text-muted'}`}
                       >
                         全部
                       </button>
@@ -1426,7 +1426,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 </div>
 
                 <div className="rounded-xl border border-theme-border bg-theme-surface overflow-hidden">
-                  <div className="grid grid-cols-[44px_1.1fr_1fr_120px_220px_140px] gap-3 px-4 py-3 text-[11px] font-medium text-theme-text-muted uppercase bg-theme-bg-app border-b border-theme-border">
+                  <div className="grid grid-cols-[44px_1.1fr_1fr_120px_220px_140px] gap-3 px-4 py-3 text-[11px] font-medium text-theme-text-muted uppercase bg-theme-elevated border-b border-theme-border">
                     <div />
                     <div>节点</div>
                     <div>IP</div>
@@ -1452,10 +1452,10 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           onClick={() => online && toggleAgentSelect(agent.key)}
                           className={`w-full text-left grid grid-cols-[44px_1.1fr_1fr_120px_220px_140px] gap-3 px-4 py-3 border-b border-theme-border transition-colors ${
                             online ? 'hover:bg-blue-50/50' : 'opacity-60 cursor-not-allowed'
-                          } ${selected ? 'bg-blue-500/15' : 'bg-theme-bg-app'}`}
+                          } ${selected ? 'bg-blue-500/15' : 'bg-theme-surface'}`}
                         >
                           <div className="flex items-center justify-center">
-                            <span className={`w-5 h-5 rounded border flex items-center justify-center ${selected ? 'bg-blue-600 border-blue-600 text-white' : 'border-theme-border bg-theme-bg-app'}`}>
+                            <span className={`w-5 h-5 rounded border flex items-center justify-center ${selected ? 'bg-blue-600 border-blue-600 text-white' : 'border-theme-border bg-theme-elevated'}`}>
                               {selected ? <Check size={12} /> : null}
                             </span>
                           </div>
@@ -1862,7 +1862,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               </div>
               <button
                 onClick={() => setIsTemplateLlmModalOpen(false)}
- className="p-3 text-theme-text-muted hover:bg-theme-bg-app hover:text-theme-text-secondary rounded-xl transition-all"
+ className="p-3 text-theme-text-muted hover:bg-theme-elevated hover:text-theme-text-secondary rounded-xl transition-all"
               >
                 <X size={22} />
               </button>
@@ -3005,7 +3005,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 </div>
                 <button
                   onClick={() => { setIsUploadModalOpen(false); resetUploadForm(); }}
- className="p-3 text-theme-text-muted hover:bg-theme-bg-app hover:text-theme-text-secondary rounded-xl transition-all"
+ className="p-3 text-theme-text-muted hover:bg-theme-elevated hover:text-theme-text-secondary rounded-xl transition-all"
                 >
                   <X size={24} />
                 </button>

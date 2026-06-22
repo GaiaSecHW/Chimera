@@ -641,7 +641,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                   key={worker.worker_id}
                   className={`min-w-[220px] rounded-2xl border px-4 py-3 ${
                     worker.healthy
-                      ? 'border-theme-border bg-theme-bg-app'
+                      ? 'border-theme-border bg-theme-surface'
                       : 'border-rose-500/20 bg-rose-500/15'
                   }`}
                 >
@@ -727,7 +727,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                       <section
                         key={worker.worker_id}
                         className={`overflow-hidden rounded-xl border ${
-                          worker.healthy ? 'border-theme-border bg-theme-bg-app' : 'border-rose-500/20 bg-rose-50/70'
+                          worker.healthy ? 'border-theme-border bg-theme-surface' : 'border-rose-500/20 bg-rose-50/70'
                         }`}
                       >
                         <button
@@ -896,7 +896,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
           <div className="mt-5">
             <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
               <div className="flex flex-wrap items-center justify-end gap-2">
-                <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-secondary">
+                <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs text-theme-text-secondary">
                   <input
                     type="checkbox"
                     checked={autoRefreshEnabled}
@@ -904,7 +904,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                   />
                   自动刷新
                 </label>
-                <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-secondary">
+                <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs text-theme-text-secondary">
                   间隔
                   <input
                     type="number"
@@ -915,7 +915,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                       const value = Number(e.target.value);
                       setRefreshIntervalSec(Number.isFinite(value) ? Math.max(5, Math.floor(value)) : 5);
                     }}
-                    className="w-16 rounded border border-theme-border bg-theme-bg-app px-2 py-1 text-xs text-theme-text-secondary"
+                    className="w-16 rounded border border-theme-border bg-theme-elevated px-2 py-1 text-xs text-theme-text-secondary"
                   />
                   秒
                 </label>
@@ -958,7 +958,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 <button
                   type="button"
                   onClick={() => setOriginFilter('')}
-                  className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-xs font-bold text-theme-text-secondary"
+                  className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-xs font-bold text-theme-text-secondary"
                 >
                   来源：{originFilter === 'manual' ? '手动任务' : '关联总任务'} x
                 </button>
@@ -974,7 +974,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     type="button"
                     onClick={() => setSelectedTaskIds([])}
                     disabled={batchDeleting}
-                    className="rounded-lg border border-rose-500/20 bg-theme-bg-app px-3 py-1.5 text-xs font-bold text-rose-400 hover:bg-rose-500/15 disabled:opacity-50"
+                    className="rounded-lg border border-rose-500/20 bg-rose-500/15 px-3 py-1.5 text-xs font-bold text-rose-400 hover:bg-rose-500/25 disabled:opacity-50"
                   >
                     取消选择
                   </button>
@@ -1016,7 +1016,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                           value={searchText}
                           onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
                           placeholder="搜索任务名/任务ID"
-                          className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-2.5 py-1.5 text-xs normal-case tracking-normal text-theme-text-secondary"
+                          className="w-full rounded-lg border border-theme-border bg-theme-elevated px-2.5 py-1.5 text-xs normal-case tracking-normal text-theme-text-secondary"
                           onClick={(event) => event.stopPropagation()}
                         />
                       </div>
@@ -1028,7 +1028,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                           value={inputFileFilter}
                           onChange={(e) => { setInputFileFilter(e.target.value); setPage(1); }}
                           placeholder="搜索输入文件"
-                          className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-2.5 py-1.5 text-xs normal-case tracking-normal text-theme-text-secondary"
+                          className="w-full rounded-lg border border-theme-border bg-theme-elevated px-2.5 py-1.5 text-xs normal-case tracking-normal text-theme-text-secondary"
                           onClick={(event) => event.stopPropagation()}
                         />
                       </div>
@@ -1170,7 +1170,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                           )}
                         </ExecutionTableTd>
                         <ExecutionTableTd>
-                          <span className="inline-flex rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-xs font-semibold text-theme-text-secondary">
+                          <span className="inline-flex rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-xs font-semibold text-theme-text-secondary">
                             {modeLabel}
                           </span>
                         </ExecutionTableTd>
@@ -1330,7 +1330,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-sm font-semibold text-theme-text-primary">极速模式</div>
-                        <div className="rounded-full bg-theme-bg-app px-2.5 py-1 text-[10px] font-medium tracking-[0.08em] text-amber-400 ring-1 ring-amber-100">极速</div>
+                        <div className="rounded-full bg-theme-elevated px-2.5 py-1 text-[10px] font-medium tracking-[0.08em] text-amber-400 ring-1 ring-amber-100">极速</div>
                       </div>
                       <div className="mt-2 text-xs font-semibold leading-5 text-theme-text-muted">优先命中缓存和极速收敛，适合大批量快速扫一遍。</div>
                     </button>
@@ -1345,7 +1345,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-sm font-semibold text-theme-text-primary">快速模式</div>
-                        <div className="rounded-full bg-theme-bg-app px-2.5 py-1 text-[10px] font-medium tracking-[0.08em] text-cyan-400 ring-1 ring-cyan-100">推荐</div>
+                        <div className="rounded-full bg-theme-elevated px-2.5 py-1 text-[10px] font-medium tracking-[0.08em] text-cyan-400 ring-1 ring-cyan-100">推荐</div>
                       </div>
                       <div className="mt-2 text-xs font-semibold leading-5 text-theme-text-muted">优先速度，使用混合流水线，适合初步分析和批量还原。</div>
                     </button>
@@ -1360,7 +1360,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-sm font-semibold text-theme-text-primary">深度模式</div>
-                        <div className="rounded-full bg-theme-bg-app px-2.5 py-1 text-[10px] font-medium tracking-[0.08em] text-violet-400 ring-1 ring-violet-100">高质量</div>
+                        <div className="rounded-full bg-theme-elevated px-2.5 py-1 text-[10px] font-medium tracking-[0.08em] text-violet-400 ring-1 ring-violet-100">高质量</div>
                       </div>
                       <div className="mt-2 text-xs font-semibold leading-5 text-theme-text-muted">使用 Agent 深度推理，速度较慢，适合关键二进制和高质量还原。</div>
                     </button>
@@ -1399,7 +1399,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         默认开启。关闭后，本次会忽略历史缓存；如果任务成功，会覆盖当前 ELF 在 {B2S_MODE_LABELS[runMode]} 下的缓存结果。
                       </div>
                     </div>
-                    <label className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-theme-bg-app px-3 py-1.5 text-xs font-semibold text-emerald-400">
+                    <label className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-theme-elevated px-3 py-1.5 text-xs font-semibold text-emerald-400">
                       <input
                         type="checkbox"
                         checked={reuseCache}

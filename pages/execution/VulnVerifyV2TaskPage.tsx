@@ -581,7 +581,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
             </label>
             <div className="relative min-w-[260px] flex-1">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" />
-              <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索 case_id / 任务名" className="w-full rounded-xl border border-theme-border bg-theme-bg-app py-2 pl-9 pr-3 text-sm text-theme-text-primary" />
+              <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索 case_id / 任务名" className="w-full rounded-xl border border-theme-border bg-theme-elevated py-2 pl-9 pr-3 text-sm text-theme-text-primary" />
             </div>
             <span className="text-xs text-theme-text-muted">共 {total} 条</span>
           </div>
@@ -660,7 +660,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
       </div>
 
       {batchOpen ? (
-        <div className="fixed inset-0 z-50 bg-theme-bg-app">
+        <div className="fixed inset-0 z-50 bg-theme-surface">
           <div className="flex h-full w-full flex-col overflow-hidden p-6 shadow-2xl">
             <div className="mb-5 flex shrink-0 items-start justify-between gap-4">
               <div>
@@ -860,7 +860,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                 </div>
                 <div className="max-h-32 overflow-y-auto space-y-2 text-xs">
                   {batchResult.items.map((item) => (
-                    <div key={item.caseId} className="rounded-xl border border-theme-border bg-theme-bg-app p-3">
+                    <div key={item.caseId} className="rounded-xl border border-theme-border bg-theme-elevated p-3">
                       <div className="flex items-center gap-2">
                         {item.ok ? <CheckCircle2 size={14} className="text-emerald-400" /> : <XCircle size={14} className="text-rose-400" />}
                         <span className="font-mono">{item.caseId}</span>
@@ -879,7 +879,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
       {detailOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
-          <div className="max-h-[88vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-theme-border bg-theme-bg-app p-6 shadow-2xl">
+          <div className="max-h-[88vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-theme-border bg-theme-surface p-6 shadow-2xl">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-theme-text-primary">任务详情</h2>
@@ -901,7 +901,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                       const dim = dimensions[key];
                       const status = dim?.status;
                       return (
-                        <div key={key} className="rounded-xl border border-theme-border bg-theme-bg-app p-3">
+                        <div key={key} className="rounded-xl border border-theme-border bg-theme-elevated p-3">
                           <div className="font-mono text-xs text-theme-text-muted">{key}</div>
                           <div className={status === true ? 'mt-1 font-bold text-emerald-400' : status === false ? 'mt-1 font-bold text-rose-400' : 'mt-1 font-bold text-theme-text-muted'}>{status === true ? 'true' : status === false ? 'false' : 'null'}</div>
                           <div className="mt-1 line-clamp-4 text-xs text-theme-text-muted">{dim?.detail || '-'}</div>

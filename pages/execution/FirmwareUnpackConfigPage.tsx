@@ -392,7 +392,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
         <PageHeader
           title="固件解包 · 配置"
           description="动态配置参数"
-          actions={<button onClick={() => { loadConfig(); loadCluster(); loadLlmConfigFiles(); }} className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated transition-all"><RefreshCw size={12} />刷新</button>}
+          actions={<button onClick={() => { loadConfig(); loadCluster(); loadLlmConfigFiles(); }} className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated transition-all"><RefreshCw size={12} />刷新</button>}
         />
       )}
 

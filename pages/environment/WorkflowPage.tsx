@@ -93,13 +93,13 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
            </div>
         </div>
 
- <div className="bg-theme-bg-app p-8 rounded-[3rem] border border-theme-border flex flex-col justify-between">
+ <div className="bg-theme-surface p-8 rounded-[3rem] border border-theme-border flex flex-col justify-between">
            <p className="text-theme-text-muted text-[10px] font-semibold uppercase tracking-widest">任务平均耗时</p>
            <h3 className="text-4xl font-medium mt-4 text-theme-text-primary">12m 45s</h3>
            <p className="text-theme-text-muted text-[10px] font-bold mt-2 uppercase">System Efficiency: 94%</p>
         </div>
 
- <div className="bg-theme-bg-app p-8 rounded-[3rem] border border-theme-border col-span-2 flex items-center gap-10">
+ <div className="bg-theme-surface p-8 rounded-[3rem] border border-theme-border col-span-2 flex items-center gap-10">
            <div className="w-20 h-20 bg-blue-500/15 text-blue-400 rounded-[2rem] flex items-center justify-center shrink-0 shadow-inner">
              <Bot size={40} />
            </div>
@@ -129,16 +129,16 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               <input
                 type="text"
                 placeholder="搜索工作流模版或运行实例..."
- className="w-full pl-16 pr-8 py-5 bg-theme-bg-app border border-theme-border rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="w-full pl-16 pr-8 py-5 bg-theme-elevated border border-theme-border rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
            </div>
            <div className="flex gap-3">
-              <button className="px-6 py-4 bg-theme-bg-app border border-theme-border rounded-2xl text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest hover:bg-theme-elevated transition-all flex items-center gap-2">
+              <button className="px-6 py-4 bg-theme-elevated border border-theme-border rounded-2xl text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest hover:bg-theme-elevated transition-all flex items-center gap-2">
                 <Filter size={14} /> Type
               </button>
-              <button className="px-6 py-4 bg-theme-bg-app border border-theme-border rounded-2xl text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest hover:bg-theme-elevated transition-all flex items-center gap-2">
+              <button className="px-6 py-4 bg-theme-elevated border border-theme-border rounded-2xl text-[10px] font-semibold text-theme-text-muted uppercase tracking-widest hover:bg-theme-elevated transition-all flex items-center gap-2">
                 <History size={14} /> Execution Logs
               </button>
            </div>
@@ -146,13 +146,13 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
 
         <div className="grid grid-cols-1 gap-6">
            {workflows.filter(wf => wf.name.includes(searchTerm)).map((wf) => (
- <div key={wf.id} className="bg-theme-bg-app rounded-[2.5rem] border border-theme-border p-8 flex flex-col md:flex-row items-center gap-10 hover:border-blue-300 hover:-blue-500/5 transition-all group relative overflow-hidden">
+ <div key={wf.id} className="bg-theme-surface rounded-[2.5rem] border border-theme-border p-8 flex flex-col md:flex-row items-center gap-10 hover:border-blue-300 hover:-blue-500/5 transition-all group relative overflow-hidden">
                 {/* Visual Indicator of Progress */}
                 {wf.status === 'Running' && (
                   <div className="absolute top-0 left-0 h-1 bg-blue-600 animate-pulse" style={{ width: `${wf.progress}%` }} />
                 )}
 
-                <div className={`w-20 h-20 rounded-[2.25rem] flex items-center justify-center shrink-0 shadow-inner transition-all group-hover:scale-105 ${wf.status === 'Running' ? 'bg-blue-500/15 text-blue-400' : wf.status === 'Completed' ? 'bg-green-500/15 text-green-400' : 'bg-theme-bg-app text-theme-text-muted'}`}>
+                <div className={`w-20 h-20 rounded-[2.25rem] flex items-center justify-center shrink-0 shadow-inner transition-all group-hover:scale-105 ${wf.status === 'Running' ? 'bg-blue-500/15 text-blue-400' : wf.status === 'Completed' ? 'bg-green-500/15 text-green-400' : 'bg-theme-elevated text-theme-text-muted'}`}>
                    <Workflow size={40} />
                 </div>
 
@@ -169,7 +169,7 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                       {wf.steps.map((step, idx) => (
                         <React.Fragment key={step}>
                            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-medium uppercase border ${
-                             idx < (wf.progress / 25) ? 'bg-blue-600 text-white border-blue-600' : 'bg-theme-bg-app text-theme-text-faint border-theme-border'
+                             idx < (wf.progress / 25) ? 'bg-blue-600 text-white border-blue-600' : 'bg-theme-elevated text-theme-text-faint border-theme-border'
                            }`}>
                               {idx + 1}. {step}
                            </div>
@@ -185,7 +185,7 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                       <span className="text-[10px] font-semibold text-theme-text-muted uppercase tracking-tighter">Last Run: {wf.lastRun}</span>
                    </div>
                    <div className="flex items-center gap-3">
- <button className="p-3.5 bg-theme-bg-app text-theme-text-muted hover:text-blue-400 border border-theme-border rounded-2xl transition-all">
+ <button className="p-3.5 bg-theme-elevated text-theme-text-muted hover:text-blue-400 border border-theme-border rounded-2xl transition-all">
                         <Settings size={18} />
                       </button>
  <button className={`px-8 py-3.5 rounded-2xl font-medium text-xs flex items-center gap-2 transition-all active:scale-95 ${
@@ -206,8 +206,8 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
 
         {/* Empty State */}
         {workflows.length === 0 && (
-          <div className="bg-theme-bg-app rounded-[3rem] border-2 border-dashed border-theme-border p-32 text-center flex flex-col items-center gap-6">
-             <div className="w-20 h-20 bg-theme-bg-app rounded-full flex items-center justify-center text-slate-200">
+          <div className="bg-theme-surface rounded-[3rem] border-2 border-dashed border-theme-border p-32 text-center flex flex-col items-center gap-6">
+             <div className="w-20 h-20 bg-theme-elevated rounded-full flex items-center justify-center text-slate-200">
                 <Workflow size={48} />
              </div>
              <div className="space-y-1">

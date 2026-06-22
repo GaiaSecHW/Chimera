@@ -942,14 +942,14 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                 if (!providerFilterToAdd || providerFilterKeys.includes(providerFilterToAdd)) return;
                 setProviderFilterKeys([...providerFilterKeys, providerFilterToAdd]);
               }}
-              className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
+              className="rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
             >
               添加
             </button>
             <button
               type="button"
               onClick={() => setProviderFilterKeys([])}
-              className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
+              className="rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
             >
               清空
             </button>
@@ -995,7 +995,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
           {filteredInstances.length > 0 ? (
  <div className="overflow-x-auto rounded-2xl border border-theme-border bg-theme-surface">
               <table className="min-w-full text-left">
-                <thead className="bg-theme-bg-app">
+                <thead className="bg-theme-elevated">
                   <tr className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-muted">
                     <th className="px-3 py-2.5">实例</th>
                     <th className="px-3 py-2.5">状态</th>
@@ -1042,7 +1042,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                           )}
                         </td>
                         <td className="px-3 py-3">
-                          <div className="max-w-[260px] truncate rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 font-mono text-[11px] text-theme-text-secondary" title={item.image || '-'}>
+                          <div className="max-w-[260px] truncate rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 font-mono text-[11px] text-theme-text-secondary" title={item.image || '-'}>
                             {item.image || '-'}
                           </div>
                         </td>
@@ -1050,7 +1050,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                           <div className="max-w-[260px] space-y-1">
                             {(item.source_pvcs || []).length > 0 ? (
                               (item.source_pvcs || []).map((mount: any, idx: number) => (
-                                <div key={`${item.id}-src-${idx}`} className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-[11px] text-theme-text-secondary">
+                                <div key={`${item.id}-src-${idx}`} className="rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 text-[11px] text-theme-text-secondary">
                                   {(() => {
                                     const rawName = String(mount.pvc_name || '').trim();
                                     const mappedName = pvcDisplayMap.get(rawName);
@@ -1076,7 +1076,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                           <div className="max-w-[260px] space-y-1">
                             {(item.output_pvcs || []).length > 0 ? (
                               (item.output_pvcs || []).map((mount: any, idx: number) => (
-                                <div key={`${item.id}-out-${idx}`} className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-[11px] text-theme-text-secondary">
+                                <div key={`${item.id}-out-${idx}`} className="rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 text-[11px] text-theme-text-secondary">
                                   {(() => {
                                     const rawName = String(mount.pvc_name || '').trim();
                                     const mappedName = pvcDisplayMap.get(rawName);
@@ -1189,14 +1189,14 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                 <button
                   type="button"
                   onClick={() => loadTasksAndStatus()}
-                  className="rounded-lg border border-theme-border bg-theme-bg-app p-2 text-theme-text-muted hover:bg-theme-elevated"
+                  className="rounded-lg border border-theme-border bg-theme-elevated p-2 text-theme-text-muted hover:bg-theme-elevated"
                 >
                   <RefreshCw size={14} />
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsTaskModalOpen(false)}
-                  className="rounded-lg border border-theme-border bg-theme-bg-app p-2 text-theme-text-muted hover:bg-theme-elevated"
+                  className="rounded-lg border border-theme-border bg-theme-elevated p-2 text-theme-text-muted hover:bg-theme-elevated"
                 >
                   <X size={14} />
                 </button>
@@ -1205,7 +1205,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
             <div className="min-h-0 flex-1 overflow-auto">
               {tasks.length > 0 ? (
                 <table className="min-w-full text-left">
-                  <thead className="sticky top-0 bg-theme-bg-app">
+                  <thead className="sticky top-0 bg-theme-elevated">
                     <tr className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-muted">
                       <th className="px-3 py-2">
                         <input
@@ -1245,7 +1245,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                             <button
                               type="button"
                               onClick={() => handleOpenTaskDetail(task)}
-                              className="rounded-md border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
+                              className="rounded-md border border-theme-border bg-theme-elevated px-2 py-1 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                             >
                               详情
                             </button>
@@ -1286,7 +1286,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
       {/* Rebuild Confirmation Dialog */}
       {rebuildConfirm.show && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-950/70 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-surface w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-10 text-center space-y-6">
               <div className="w-20 h-20 bg-amber-500/15 text-amber-400 rounded-xl flex items-center justify-center mx-auto shadow-inner">
                 <RefreshCw size={40} className="animate-spin-slow" />
@@ -1312,7 +1312,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
       {/* Delete Confirmation Dialog */}
       {deleteConfirm.show && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-950/70 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-surface w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-10 text-center space-y-6">
               <div className="w-20 h-20 bg-red-500/15 text-red-400 rounded-xl flex items-center justify-center mx-auto shadow-inner">
                 <Trash2 size={40} />
@@ -1368,7 +1368,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                     className={`rounded-lg px-3 py-2 text-[11px] font-semibold transition ${
                       activeCreateTab === tab.key
                         ? 'bg-blue-600 text-white'
-                        : 'bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
+                        : 'bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                     }`}
                   >
                     {tab.label}
@@ -1386,7 +1386,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                       <input
                         required
                         placeholder="auth-service-review"
-                        className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-bold text-theme-text-primary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                        className="mt-1 w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-sm font-bold text-theme-text-primary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                         value={formData.name}
                         onChange={e => setFormData({ ...formData, name: e.target.value })}
                       />
@@ -1396,7 +1396,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                       <input
                         type="password"
                         placeholder="留空随机生成"
-                        className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-bold text-theme-text-primary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                        className="mt-1 w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-sm font-bold text-theme-text-primary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                         value={formData.password}
                         onChange={e => {
                           setAutoGeneratedPassword('');
@@ -1409,7 +1409,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                     <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">运行镜像</label>
                     <input
                       placeholder={defaultImage ?`默认: ${defaultImage}` :"留空使用默认镜像"}
-                      className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-xs font-mono text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                      className="mt-1 w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-xs font-mono text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                       value={formData.image}
                       onChange={e => setFormData({ ...formData, image: e.target.value })}
                     />
@@ -1422,7 +1422,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                     <textarea
                       placeholder="描述审计目标..."
                       rows={3}
-                      className="mt-1 w-full resize-none rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                      className="mt-1 w-full resize-none rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-sm text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                       value={formData.description}
                       onChange={e => setFormData({ ...formData, description: e.target.value })}
                     />
@@ -1455,7 +1455,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, llm_provider_keys: [] })}
-                      className="inline-flex items-center justify-center rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-[11px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
+                      className="inline-flex items-center justify-center rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-[11px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                     >
                       清空
                     </button>
@@ -1470,7 +1470,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                       <p className="text-[10px] italic text-theme-text-muted">当前未选择 Provider，部署时不会额外注入 LLM 环境变量或配置文件。</p>
                     ) : (
                       selectedProviderKeys.map((providerKey, index) => (
-                        <div key={providerKey} className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">
+                        <div key={providerKey} className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-xs font-semibold text-theme-text-secondary">{providerMap.get(providerKey)?.display_name || providerKey}</p>
                             <p className="truncate text-[10px] text-theme-text-muted">{providerKey} · {providerMap.get(providerKey)?.provider_type || '-'}</p>
@@ -1486,7 +1486,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                 next.splice(index - 1, 0, item);
                                 setFormData({ ...formData, llm_provider_keys: next });
                               }}
-                              className="rounded-md border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-semibold text-theme-text-secondary disabled:opacity-40"
+                              className="rounded-md border border-theme-border bg-theme-elevated px-2 py-1 text-[10px] font-semibold text-theme-text-secondary disabled:opacity-40"
                             >
                               上移
                             </button>
@@ -1500,7 +1500,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                 next.splice(index + 1, 0, item);
                                 setFormData({ ...formData, llm_provider_keys: next });
                               }}
-                              className="rounded-md border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-semibold text-theme-text-secondary disabled:opacity-40"
+                              className="rounded-md border border-theme-border bg-theme-elevated px-2 py-1 text-[10px] font-semibold text-theme-text-secondary disabled:opacity-40"
                             >
                               下移
                             </button>
@@ -1516,7 +1516,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                       ))
                     )}
                   </div>
-                  <div className="min-w-0 rounded-lg border border-theme-border bg-theme-bg-app p-2.5 space-y-2">
+                  <div className="min-w-0 rounded-lg border border-theme-border bg-theme-elevated p-2.5 space-y-2">
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">Provider 单独预览（不混合）</p>
                     {providerPreviewLoading && <p className="text-[10px] text-theme-text-muted">加载 Provider 预览中...</p>}
                     {providerPreviewError && <p className="text-[10px] text-red-500">{providerPreviewError}</p>}
@@ -1534,7 +1534,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                             ? detail.file_bindings.filter((f) => f?.enabled && String(f.path || '').trim().startsWith('/'))
                             : [];
                           return (
-                            <div key={`preview-${providerKey}`} className="rounded-lg border border-theme-border bg-theme-bg-app p-2">
+                            <div key={`preview-${providerKey}`} className="rounded-lg border border-theme-border bg-theme-elevated p-2">
                               <p className="truncate text-[10px] font-semibold text-theme-text-secondary">
                                 {providerMap.get(providerKey)?.display_name || providerKey} · {providerKey}
                               </p>
@@ -1545,7 +1545,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                 ) : (
                                   <div className="max-h-24 space-y-1 overflow-y-auto custom-scrollbar">
                                     {envEntries.map(([key, value]) => (
-                                      <div key={`${providerKey}-env-${key}`} className="grid grid-cols-[minmax(0,120px)_1fr] gap-2 rounded bg-theme-bg-app px-2 py-1 text-[10px] font-mono">
+                                      <div key={`${providerKey}-env-${key}`} className="grid grid-cols-[minmax(0,120px)_1fr] gap-2 rounded bg-theme-elevated px-2 py-1 text-[10px] font-mono">
                                         <div className="truncate font-semibold text-theme-text-secondary">{key}</div>
                                         <div className="truncate text-theme-text-muted">{String(value ?? '')}</div>
                                       </div>
@@ -1563,19 +1563,19 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                       const fileKey =`${providerKey}::${item.path}`;
                                       const isOpen = llmPreviewFileKey === fileKey;
                                       return (
-                                        <div key={fileKey} className="rounded bg-theme-bg-app px-2 py-1 text-[10px] font-mono">
+                                        <div key={fileKey} className="rounded bg-theme-elevated px-2 py-1 text-[10px] font-mono">
                                           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                                             <div className="truncate text-theme-text-secondary">{item.path}</div>
                                             <button
                                               type="button"
                                               onClick={() => setLlmPreviewFileKey((prev) => (prev === fileKey ? '' : fileKey))}
-                                              className="rounded border border-theme-border bg-theme-bg-app px-1.5 py-0.5 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
+                                              className="rounded border border-theme-border bg-theme-elevated px-1.5 py-0.5 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                                             >
                                               {isOpen ? '收起' : '预览'}
                                             </button>
                                           </div>
                                           {isOpen && (
-                                            <pre className="mt-1 max-h-32 overflow-auto rounded bg-theme-bg-app p-2 text-[10px] leading-relaxed text-theme-text-secondary custom-scrollbar">
+                                            <pre className="mt-1 max-h-32 overflow-auto rounded bg-theme-elevated p-2 text-[10px] leading-relaxed text-theme-text-secondary custom-scrollbar">
                                               {String(item.content || '无内容')}
                                             </pre>
                                           )}
@@ -1591,7 +1591,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                       </div>
                     )}
                   </div>
-                  <div className="rounded-lg border border-theme-border bg-theme-bg-app p-2">
+                  <div className="rounded-lg border border-theme-border bg-theme-elevated p-2">
                     <p className="text-[10px] text-theme-text-secondary">
                       环境变量最终注入优先级：<span className="font-semibold">用户手工</span> &gt; <span className="font-semibold">LLM Provider</span> &gt; <span className="font-semibold">程序预制</span>
                     </p>
@@ -1640,7 +1640,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                         <div className="col-span-4">
                           <input
                             placeholder="/config/workspace"
-                            className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-xs font-mono outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            className="w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-xs font-mono outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                             value={item.mount_path}
                             onChange={e => {
                               const n = [...formData.source_pvcs];
@@ -1699,7 +1699,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                         <div className="col-span-4">
                           <input
                             placeholder="/output"
-                            className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-xs font-mono outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            className="w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-xs font-mono outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                             value={item.mount_path}
                             onChange={e => {
                               const n = [...formData.output_pvcs];
@@ -1769,7 +1769,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                         className={`grid grid-cols-12 items-center gap-2 rounded-lg border px-2 py-1.5 ${
                           effectiveEnv.overrideHintsByKey[key]
                             ? 'border-amber-300 bg-amber-500/15'
-                            : 'border-theme-border bg-theme-bg-app'
+                            : 'border-theme-border bg-theme-elevated'
                         }`}
                       >
                         <div className="col-span-3">
@@ -1778,7 +1778,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                         <div className="col-span-6">
                           <input
                             placeholder="value"
-                            className="w-full rounded-md border border-theme-border bg-theme-bg-app px-2 py-1.5 text-[11px] font-mono outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            className="w-full rounded-md border border-theme-border bg-theme-elevated px-2 py-1.5 text-[11px] font-mono outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                             value={effectiveEnv.merged[key]}
                             onChange={(e) => handleEffectiveEnvValueChange(key, e.target.value)}
                           />
@@ -1818,11 +1818,11 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                   </div>
                   <div className="space-y-2">
                     {formData.custom_envs.map((env, idx) => (
-                      <div key={`custom-${idx}`} className="grid grid-cols-12 items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5">
+                      <div key={`custom-${idx}`} className="grid grid-cols-12 items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-2 py-1.5">
                         <div className="col-span-3">
                           <input
                             placeholder="ENV_KEY"
-                            className="w-full rounded-md border border-theme-border bg-theme-bg-app px-2 py-1.5 text-[11px] font-mono font-semibold uppercase outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            className="w-full rounded-md border border-theme-border bg-theme-elevated px-2 py-1.5 text-[11px] font-mono font-semibold uppercase outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                             value={env.key}
                             onChange={e => {
                               const n = [...formData.custom_envs];
@@ -1834,7 +1834,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                         <div className="col-span-6">
                           <input
                             placeholder="value"
-                            className="w-full rounded-md border border-theme-border bg-theme-bg-app px-2 py-1.5 text-[11px] font-mono outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            className="w-full rounded-md border border-theme-border bg-theme-elevated px-2 py-1.5 text-[11px] font-mono outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                             value={env.value}
                             onChange={e => {
                               const n = [...formData.custom_envs];
@@ -1881,11 +1881,11 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                         const isEditing = editingFilePaths.includes(item.path);
                         const displayContent = fileContentOverrides[item.path] !== undefined ? fileContentOverrides[item.path] : String(item.content || '');
                         return (
-                          <div key={item.path} className="rounded-lg border border-theme-border bg-theme-bg-app p-2">
+                          <div key={item.path} className="rounded-lg border border-theme-border bg-theme-elevated p-2">
                             <div className="flex items-center justify-between gap-2">
                               <div className="min-w-0 flex-1">
                                 <input
-                                  className="w-full rounded border border-theme-border bg-theme-bg-app px-2 py-1 text-[11px] font-mono font-semibold text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                                  className="w-full rounded border border-theme-border bg-theme-elevated px-2 py-1 text-[11px] font-mono font-semibold text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                                   value={filePathOverrides[item.path] !== undefined ? filePathOverrides[item.path] : item.path}
                                   onChange={(e) => setFilePathOverrides((prev) => ({ ...prev, [item.path]: e.target.value }))}
                                   placeholder="/abs/path/in/container"
@@ -1896,7 +1896,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                 <button
                                   type="button"
                                   onClick={() => setPreviewFilePath((prev) => (prev === item.path ? '' : item.path))}
-                                  className="rounded border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
+                                  className="rounded border border-theme-border bg-theme-elevated px-2 py-1 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                                 >
                                   {previewFilePath === item.path ? '收起' : '预览'}
                                 </button>
@@ -1918,12 +1918,12 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                 {isEditing ? (
                                   <textarea
                                     rows={8}
-                                    className="w-full rounded border border-theme-border bg-theme-bg-app p-2 text-[10px] font-mono leading-relaxed text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                                    className="w-full rounded border border-theme-border bg-theme-elevated p-2 text-[10px] font-mono leading-relaxed text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                                     value={displayContent}
                                     onChange={(e) => setFileContentOverrides((prev) => ({ ...prev, [item.path]: e.target.value }))}
                                   />
                                 ) : (
-                                  <pre className="max-h-48 overflow-auto rounded bg-theme-bg-app p-2 text-[10px] leading-relaxed text-theme-text-secondary custom-scrollbar">{displayContent || '无内容'}</pre>
+                                  <pre className="max-h-48 overflow-auto rounded bg-theme-elevated p-2 text-[10px] leading-relaxed text-theme-text-secondary custom-scrollbar">{displayContent || '无内容'}</pre>
                                 )}
                               </div>
                             )}
@@ -1946,11 +1946,11 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
               </div>
             </form>
 
-            <div className="flex shrink-0 gap-2 border-t border-theme-border bg-theme-bg-app px-4 py-3 md:px-5">
+            <div className="flex shrink-0 gap-2 border-t border-theme-border bg-theme-surface px-4 py-3 md:px-5">
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                className="flex-1 rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-semibold text-theme-text-secondary transition hover:bg-theme-elevated"
+                className="flex-1 rounded-lg border border-theme-border bg-theme-elevated px-4 py-2.5 text-sm font-semibold text-theme-text-secondary transition hover:bg-theme-elevated"
               >
                 取消
               </button>
@@ -1996,14 +1996,14 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                 <X size={16} />
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-auto bg-theme-bg-app p-3 custom-scrollbar">
+            <div className="min-h-0 flex-1 overflow-auto bg-theme-surface p-3 custom-scrollbar">
               <pre className="whitespace-pre-wrap break-words text-[11px] leading-relaxed text-theme-text-primary">{payloadPreviewText || '{}'}</pre>
             </div>
-            <div className="flex justify-end gap-2 border-t border-theme-border bg-theme-bg-app px-4 py-3">
+            <div className="flex justify-end gap-2 border-t border-theme-border bg-theme-surface px-4 py-3">
               <button
                 type="button"
                 onClick={() => setIsPayloadPreviewOpen(false)}
-                className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"
+                className="rounded-lg border border-theme-border bg-theme-elevated px-4 py-2 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"
               >
                 关闭
               </button>

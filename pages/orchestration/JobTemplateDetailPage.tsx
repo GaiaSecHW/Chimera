@@ -223,7 +223,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">发布范围</label>
                 <select
                   disabled={!isEditMode}
-                  className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary disabled:opacity-70 disabled:bg-theme-elevated"
+                  className="w-full px-4 py-3 bg-theme-elevated rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary disabled:opacity-70 disabled:bg-theme-elevated"
                   value={formData.scope} onChange={e => setFormData({...formData, scope: e.target.value as any})}
                 >
                   <option value="project">仅限当前项目 (Project-only)</option>
@@ -429,7 +429,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">拉取策略 (Image Pull Policy)</label>
                       <select
                         disabled={!isEditMode}
-className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-medium disabled:opacity-70 disabled:bg-theme-elevated"
+className="w-full px-4 py-2 bg-theme-elevated rounded-xl border border-theme-border outline-none text-xs font-medium disabled:opacity-70 disabled:bg-theme-elevated"
                          value={container.image_pull_policy}
                         onChange={e => {
                           const n = [...formData.containers];

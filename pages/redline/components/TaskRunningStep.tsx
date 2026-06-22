@@ -250,7 +250,7 @@ export const TaskRunningStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, 
                   {agent.agentName || agent.agentId}
                 </span>
                 {agent.agentType && (
-                  <span className="px-2 py-0.5 text-xs font-medium rounded-full border bg-theme-bg-app text-theme-text-secondary border-theme-border">
+                  <span className="px-2 py-0.5 text-xs font-medium rounded-full border bg-theme-elevated text-theme-text-secondary border-theme-border">
                     {agent.agentType}
                   </span>
                 )}

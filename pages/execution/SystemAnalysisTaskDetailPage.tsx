@@ -347,7 +347,7 @@ function MarkdownContent({ content }: { content: string }) {
           h2: ({ children }) => <h2 className="mb-3 text-lg font-semibold text-theme-text-primary last:mb-0">{children}</h2>,
           h3: ({ children }) => <h3 className="mb-2 text-base font-semibold text-theme-text-primary last:mb-0">{children}</h3>,
           blockquote: ({ children }) => (
-            <blockquote className="mb-3 border-l-4 border-theme-border bg-theme-bg-app px-4 py-2 italic text-theme-text-secondary last:mb-0">
+            <blockquote className="mb-3 border-l-4 border-theme-border bg-theme-elevated px-4 py-2 italic text-theme-text-secondary last:mb-0">
               {children}
             </blockquote>
           ),
@@ -435,7 +435,7 @@ function timelineLevelTone(level?: string | null) {
   if (normalized === 'error') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
   if (normalized === 'warning' || normalized === 'warn') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
   if (normalized === 'success') return 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400';
-  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function isAgentKillTimelineEvent(eventType?: string | null) {
@@ -464,7 +464,7 @@ function timelineEventCategoryTone(eventType?: string | null) {
   if (category === 'task_mutation') return 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400';
   if (category === 'failure') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
   if (category === 'stage_progress') return 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400';
-  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function timelineEventTypeTone(eventType?: string | null) {
@@ -475,7 +475,7 @@ function timelineEventTypeTone(eventType?: string | null) {
   if (normalized === 'task_cancel_requested_noop') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
   if (normalized === 'timeline_cleared' || normalized === 'timeline_event_deleted') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
   if (normalized === 'task_deleted') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
-  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function formatTimelineEventTypeLabel(eventType?: string | null) {
@@ -2043,7 +2043,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
               )}
             />
             {executionModeInfo ? (
-              <div className="mt-4 rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+              <div className="mt-4 rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">任务执行模式</div>
                 <div className="mt-2 text-sm font-semibold text-theme-text-primary">{executionModeInfo.label}</div>
                 <div className="mt-1 text-xs text-theme-text-muted">{executionModeInfo.hint}</div>
@@ -2130,7 +2130,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                               st === 'completed' ? 'border-emerald-500 bg-emerald-500/15 text-emerald-400'
                                 : st === 'running' ? 'border-blue-500 bg-blue-500/15 text-blue-400'
                                   : st === 'failed' ? 'border-red-400 bg-red-500/15 text-red-400'
-                                    : 'border-theme-border bg-theme-bg-app text-theme-text-muted'
+                                    : 'border-theme-border bg-theme-elevated text-theme-text-muted'
                             }`}>
                               {st === 'completed' ? <CheckCircle2 size={16} className="text-emerald-500" />
                                 : st === 'running' ? <Loader2 size={14} className="animate-spin text-blue-500" />
@@ -2144,7 +2144,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                               </div>
                               <p className="mt-1 text-xs text-theme-text-muted">{step.desc}</p>
                               {st === 'completed' && metrics.length > 0 ? (
-                                <div className="mt-3 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">
+                                <div className="mt-3 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">
                                   <div className="text-[10px] font-medium tracking-[0.12em] text-theme-text-muted">
                                     {metrics.map((item) => item.label).join(' / ')}
                                   </div>
@@ -2188,7 +2188,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     <p className="mt-1 text-xs text-theme-text-muted">按需加载当前任务的活跃会话，避免首屏阻塞。</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
+                    <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
                       {sessionsLoaded ? `${activeSessions.length} 个活跃会话` : '未加载'}
                     </span>
                     {!sessionsLoaded ? (
@@ -2214,7 +2214,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   </div>
                 ) : activeSessions.length > 0 ? (
                   <div className="mt-4 overflow-hidden rounded-2xl border border-theme-border">
-                    <div className="divide-y divide-theme-border bg-theme-bg-app">
+                    <div className="divide-y divide-theme-border bg-theme-surface">
                       {activeSessions.map((session) => (
                         <button
                           key={session.relative_path}
@@ -2402,7 +2402,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   <div className="overflow-hidden rounded-2xl border border-theme-border">
                     <div className="overflow-x-auto">
                       <table className="min-w-[1120px] w-full divide-y divide-theme-border text-left text-xs">
-                        <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
+                        <thead className="bg-theme-elevated text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                           <tr>
                             <th className="w-14 px-3 py-2">#</th>
                             <th className="w-44 px-3 py-2">时间</th>
@@ -2415,7 +2415,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             <th className="w-36 px-3 py-2 text-right">操作</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-theme-border bg-theme-bg-app">
+                        <tbody className="divide-y divide-theme-border bg-theme-surface">
                           {pagedTimelineItems.map((event, index) => {
                             const expanded = expandedTimelineEventId === event.id;
                             const payload = event.payload || event.payload_json || {};
@@ -2465,7 +2465,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                     <td colSpan={9} className="px-3 py-3">
                                       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                                         {timelinePayloadRows(payload).slice(0, 12).map((row) => (
-                                          <div key={row.key} className="min-w-0 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs">
+                                          <div key={row.key} className="min-w-0 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs">
                                             <div className="font-bold capitalize text-theme-text-muted">{row.label}</div>
                                             <div className="mt-1 break-all font-mono text-theme-text-secondary">{row.value}</div>
                                           </div>
@@ -2481,14 +2481,14 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         </tbody>
                       </table>
                     </div>
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-theme-border bg-theme-bg-app px-4 py-3 text-xs font-semibold text-theme-text-muted">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-theme-border bg-theme-surface px-4 py-3 text-xs font-semibold text-theme-text-muted">
                       <div>第 {normalizedTimelinePage} / {timelineTotalPages} 页</div>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => setTimelinePage((current) => Math.max(1, current - 1))}
                           disabled={normalizedTimelinePage <= 1}
-                          className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-40"
+                          className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-40"
                         >
                           上一页
                         </button>
@@ -2496,7 +2496,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                           type="button"
                           onClick={() => setTimelinePage((current) => Math.min(timelineTotalPages, current + 1))}
                           disabled={normalizedTimelinePage >= timelineTotalPages}
-                          className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-40"
+                          className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-40"
                         >
                           下一页
                         </button>
@@ -2565,7 +2565,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                 className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                                   selected
  ? 'border-theme-border bg-theme-surface text-white'
-                                    : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-bg-app'
+                                    : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                                 }`}
                               >
                                 <div className="flex items-start justify-between gap-3">
@@ -2582,7 +2582,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                         : 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400'
                                       : selected
                                         ? 'border-slate-500 bg-theme-elevated text-slate-100'
-                                        : 'border-theme-border bg-theme-bg-app text-theme-text-muted'
+                                        : 'border-theme-border bg-theme-elevated text-theme-text-muted'
                                   }`}>
                                     {session.is_active ? '活跃' : '历史'}
                                   </span>
@@ -2784,7 +2784,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                           className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                             selection.type === 'report'
  ? 'border-theme-border bg-theme-surface text-white'
-                              : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-bg-app'
+                              : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                           }`}
                         >
                           <div className="text-sm font-semibold">总报告</div>
@@ -2801,7 +2801,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
  className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                                 selected
  ? 'border-theme-border bg-theme-surface text-white'
-                                  : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:border-theme-border hover:bg-theme-elevated'
+                                  : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:border-theme-border hover:bg-theme-elevated'
                               }`}
                             >
                               <div className="flex items-start justify-between gap-3">
@@ -2916,7 +2916,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                 <div className="text-xs font-bold text-theme-text-secondary">文件列表</div>
                                 <div className="mt-1 text-[11px] text-theme-text-muted">{selectedModule.file_count} 个文件</div>
                               </div>
-                              <span className="rounded-full border border-theme-border bg-theme-bg-app px-2 py-0.5 text-[11px] font-bold text-theme-text-secondary">#{selectedModule.rank}</span>
+                              <span className="rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[11px] font-bold text-theme-text-secondary">#{selectedModule.rank}</span>
                             </div>
                             <div className="mt-3 max-h-[380px] space-y-2 overflow-auto pr-1">
                               {selectedModule.files.length > 0 ? selectedModule.files.map((file) => (
@@ -3127,10 +3127,10 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                               <span className={`rounded-full border px-3 py-1 font-bold ${evaluationStatusTone(selectedEvaluationRound.status)}`}>
                                 {evaluationStatusLabel(selectedEvaluationRound.status)}
                               </span>
-                              <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 font-bold text-theme-text-secondary">
+                              <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 font-bold text-theme-text-secondary">
                                 {stageLabel(selectedEvaluationRound.stage)}
                               </span>
-                              <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 font-mono font-bold text-theme-text-secondary">
+                              <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 font-mono font-bold text-theme-text-secondary">
                                 Stage Round {selectedEvaluationRound.stage_round ?? '-'}
                               </span>
                             </div>
@@ -3196,7 +3196,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                               <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Judge 评审</h3>
                               <p className="mt-1 text-xs text-theme-text-muted">展示本轮所有 Judge 的评分、通过状态、会话文件和反馈摘要</p>
                             </div>
-                            <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-xs font-bold text-theme-text-secondary">
+                            <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-xs font-bold text-theme-text-secondary">
                               {selectedEvaluationRound.judges?.length || 0} 个 Judge
                             </span>
                           </div>
@@ -3210,7 +3210,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                       <button
                                         type="button"
                                         onClick={() => setSelectedEvaluationJudgeKey(`${judge.judge_id || index}::${judge.model || ''}`)}
-                                        className={`rounded-full border px-2 py-0.5 font-bold ${selectedEvaluationJudgeKey ===`${judge.judge_id || index}::${judge.model || ''}` ? 'border-cyan-300 bg-cyan-500/15 text-cyan-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'}`}
+                                        className={`rounded-full border px-2 py-0.5 font-bold ${selectedEvaluationJudgeKey ===`${judge.judge_id || index}::${judge.model || ''}` ? 'border-cyan-300 bg-cyan-500/15 text-cyan-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'}`}
                                       >
                                         查看会话
                                       </button>
@@ -3218,7 +3218,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                     <span className={`rounded-full px-2 py-0.5 font-bold ${judge.passed ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
                                       {judge.passed ? '通过' : '未通过'}
                                     </span>
-                                    <span className="rounded-full bg-theme-bg-app px-2 py-0.5 font-bold text-theme-text-secondary">评分 {formatNumber(judge.score)}</span>
+                                    <span className="rounded-full bg-theme-elevated px-2 py-0.5 font-bold text-theme-text-secondary">评分 {formatNumber(judge.score)}</span>
                                   </div>
                                 </div>
                                 <div className="mt-2 break-all font-mono text-[11px] text-theme-text-muted">{judge.model || '-'}</div>
@@ -3329,7 +3329,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
                     <div className="mt-4 overflow-x-auto rounded-2xl border border-theme-border">
                       <table className="min-w-[1120px] w-full text-left text-xs">
-                        <thead className="bg-theme-bg-app text-[11px] uppercase tracking-[0.14em] text-theme-text-muted">
+                        <thead className="bg-theme-elevated text-[11px] uppercase tracking-[0.14em] text-theme-text-muted">
                           <tr>
                             <th className="px-3 py-3">Round</th>
                             <th className="px-3 py-3">Stage Round</th>
@@ -3361,7 +3361,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                     setSelectedEvaluationRoundKey(evaluationRoundKey(round));
                                   }
                                 }}
-                                className="cursor-pointer bg-theme-bg-app transition hover:bg-theme-elevated"
+                                className="cursor-pointer bg-theme-elevated transition hover:bg-theme-elevated"
                               >
                                 <td className="px-3 py-3 font-mono font-bold text-theme-text-primary">#{round.round ?? '-'}</td>
                                 <td className="px-3 py-3 font-mono text-theme-text-secondary">{round.stage_round ?? '-'}</td>

@@ -461,7 +461,7 @@ export const ServicesWorkspace: React.FC<{
                 </div>
 
                 {(item.meta?.association_note || item.meta?.bind_stage || item.meta?.module_role) && (
-                  <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-xs text-theme-text-secondary">
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-xs text-theme-text-secondary">
                     <div className="font-medium text-theme-text-secondary">服务元数据</div>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {item.meta?.bind_stage && <span>阶段：{labelOf(item.meta.bind_stage, STAGE_LABELS)}</span>}

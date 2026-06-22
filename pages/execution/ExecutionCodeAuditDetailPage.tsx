@@ -232,7 +232,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
   return (
     <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in slide-in-from-right duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
       {/* Detail Header - More Compact */}
- <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-theme-bg-app p-6 rounded-xl border border-theme-border shadow-slate-200/40">
+ <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-theme-surface p-6 rounded-xl border border-theme-border shadow-slate-200/40">
         <div className="flex items-center gap-6">
           <button
             onClick={onBack}
@@ -312,7 +312,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
               type="button"
               onClick={() => setActiveTab(tab.key)}
               className={`rounded-xl px-3 py-2 text-[11px] font-semibold uppercase tracking-widest transition ${
-                activeTab === tab.key ? 'bg-blue-600 text-white' : 'bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
+                activeTab === tab.key ? 'bg-blue-600 text-white' : 'bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
               }`}
             >
               {tab.label}
@@ -326,7 +326,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
         {activeTab === 'overview' && (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
            {/* Telemetry Section */}
- <div className="bg-theme-bg-app p-8 rounded-xl border border-theme-border space-y-6">
+ <div className="bg-theme-surface p-8 rounded-xl border border-theme-border space-y-6">
               <div className="flex items-center justify-between">
                  <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
                    <Activity size={16} className="text-blue-500" /> K8S Telemetry
@@ -374,7 +374,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
            </div>
 
            {/* Credentials Section */}
-           <div className="bg-theme-bg-app p-8 rounded-xl border border-theme-border space-y-6">
+           <div className="bg-theme-surface p-8 rounded-xl border border-theme-border space-y-6">
               <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
                 <Lock size={16} className="text-amber-500" /> Access Credentials
               </h4>
@@ -420,7 +420,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
         )}
 
         {activeTab === 'mounts' && (
- <div className="bg-theme-bg-app p-8 rounded-xl border border-theme-border space-y-6">
+ <div className="bg-theme-surface p-8 rounded-xl border border-theme-border space-y-6">
             <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
               <HardDrive size={16} className="text-indigo-500" /> 挂载明细
             </h4>
@@ -452,7 +452,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
         )}
 
         {activeTab === 'llm' && (
- <div className="bg-theme-bg-app p-8 rounded-xl border border-theme-border space-y-6">
+ <div className="bg-theme-surface p-8 rounded-xl border border-theme-border space-y-6">
           <div className="flex items-center justify-between">
             <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
               <Bot size={16} className="text-violet-500" /> LLM Provider Binding
@@ -623,7 +623,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
       {/* Confirmation Modals */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-surface w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-10 text-center space-y-8">
               <div className="w-24 h-24 bg-red-500/15 text-red-400 rounded-xl flex items-center justify-center mx-auto shadow-inner">
                 <Trash2 size={48} />
@@ -659,7 +659,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
 
       {showRebuildConfirm && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-surface w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-10 text-center space-y-8">
               <div className="w-24 h-24 bg-amber-500/15 text-amber-400 rounded-xl flex items-center justify-center mx-auto shadow-inner">
                 <RefreshCw size={48} className="animate-spin-slow" />

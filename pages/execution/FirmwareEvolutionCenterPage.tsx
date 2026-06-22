@@ -1332,7 +1332,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                   <h3 className="mt-2 text-lg font-semibold text-theme-text-primary">进化效果对比</h3>
                   <p className="mt-1 text-xs text-theme-text-muted">按轮次展示工具解包耗时和 token 消耗，用于判断工具是否更快、更省 token。</p>
                 </div>
-                <span className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-xs font-bold text-theme-text-secondary">
+                <span className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-xs font-bold text-theme-text-secondary">
                   <BarChart3 size={12} />
                   {effectRows.length} 轮
                 </span>
@@ -1457,7 +1457,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <StatCard label="轮次" value={`${activeJob.current_round ?? 0}/${activeJob.max_rounds}`} tone="border-blue-500/20 bg-blue-500/15 text-blue-400" />
             <StatCard label="阶段" value={stageLabel(activeJob.current_stage)} tone="border-violet-500/20 bg-violet-500/15 text-violet-400" />
-            <StatCard label="耗时" value={fmtDuration(activeJob.started_at, activeJob.completed_at)} tone="border-theme-border bg-theme-bg-app text-theme-text-secondary" />
+            <StatCard label="耗时" value={fmtDuration(activeJob.started_at, activeJob.completed_at)} tone="border-theme-border bg-theme-elevated text-theme-text-secondary" />
             <StatCard label="会话数" value={sessions?.items?.length ?? '-'} tone="border-emerald-500/20 bg-emerald-500/15 text-emerald-400" />
             <div className="rounded-2xl border border-theme-border bg-theme-surface p-5 md:col-span-2 xl:col-span-4">
               <div className="text-sm font-semibold text-theme-text-primary">运行路径</div>
@@ -1536,7 +1536,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                               className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                                 selected
                                   ? 'border-theme-border bg-theme-surface text-white'
-                                  : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-bg-app'
+                                  : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                               }`}
                             >
                               <div className="flex items-start justify-between gap-3">
@@ -1632,7 +1632,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
       {showingDetail ? renderDetail() : (
         <div className="space-y-4">
           <div className="grid gap-3 md:grid-cols-4">
-            <StatCard label="总计" value={stats.total} tone="border-theme-border bg-theme-bg-app text-theme-text-primary" />
+            <StatCard label="总计" value={stats.total} tone="border-theme-border bg-theme-surface text-theme-text-primary" />
             <StatCard label="运行中" value={stats.running} tone="border-blue-500/20 bg-blue-500/15 text-blue-400" />
             <StatCard label="成功" value={stats.success} tone="border-emerald-500/20 bg-emerald-500/15 text-emerald-400" />
             <StatCard label="失败/取消" value={stats.failed} tone="border-red-500/20 bg-red-500/15 text-red-400" />
@@ -1666,7 +1666,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
             ) : (
               <div className="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
                 <div className="overflow-hidden rounded-2xl border border-theme-border">
-                  <div className="border-b border-theme-border bg-theme-bg-app px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-theme-text-muted">文件树</div>
+                  <div className="border-b border-theme-border bg-theme-elevated px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-theme-text-muted">文件树</div>
                   <div className="max-h-[36rem] overflow-auto p-2">
                     {runtimeTree.length === 0 ? (
                       <div className="px-3 py-8 text-center text-sm text-theme-text-muted">暂无可展示节点</div>
@@ -1676,7 +1676,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                   </div>
                 </div>
                 <div className="overflow-hidden rounded-2xl border border-theme-border">
-                  <div className="border-b border-theme-border bg-theme-bg-app px-4 py-3">
+                  <div className="border-b border-theme-border bg-theme-elevated px-4 py-3">
                     <div className="text-xs font-semibold uppercase tracking-[0.14em] text-theme-text-muted">文件预览</div>
                     <div className="mt-1 break-all font-mono text-[11px] text-theme-text-secondary">{runtimeSelectedPath || '-'}</div>
                     {runtimeSelectedPath ? (
@@ -1688,7 +1688,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                       </div>
                     ) : null}
                   </div>
-                  <div className="max-h-[36rem] overflow-auto bg-theme-bg-app">
+                  <div className="max-h-[36rem] overflow-auto bg-theme-surface">
                     {runtimePreviewLoading ? (
                       <div className="flex items-center gap-2 px-4 py-10 text-sm text-theme-text-muted"><Loader2 size={14} className="animate-spin" />加载预览中...</div>
                     ) : runtimePreviewError ? (

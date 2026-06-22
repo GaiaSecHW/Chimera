@@ -1174,7 +1174,7 @@ export const CasesWorkspace: React.FC<any> = ({
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="px-2 py-1 rounded-lg bg-indigo-500/15 text-[10px] font-semibold uppercase tracking-widest text-indigo-400">{item.resultType}</span>
-                              <span className="px-2 py-1 rounded-lg bg-theme-bg-app text-[10px] font-semibold uppercase tracking-widest text-theme-text-secondary">{item.status}</span>
+                              <span className="px-2 py-1 rounded-lg bg-theme-elevated text-[10px] font-semibold uppercase tracking-widest text-theme-text-secondary">{item.status}</span>
                             </div>
                             <div className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">置信度 {item.confidence}</div>
                           </div>
@@ -1205,11 +1205,11 @@ export const CasesWorkspace: React.FC<any> = ({
                         </div>
                       </div>
                       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 mt-4">
-                        <div className="rounded-2xl bg-theme-bg-app p-3">
+                        <div className="rounded-2xl bg-theme-elevated p-3">
                           <div className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">结果元数据</div>
                           <pre className="mt-2 text-xs text-theme-text-secondary whitespace-pre-wrap break-words">{JSON.stringify(item.result_meta, null, 2)}</pre>
                         </div>
-                        <div className="rounded-2xl bg-theme-bg-app p-3">
+                        <div className="rounded-2xl bg-theme-elevated p-3">
                           <div className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">原始内容与建议</div>
                           <pre className="mt-2 text-xs text-theme-text-secondary whitespace-pre-wrap break-words">{JSON.stringify({ suggested_stage: item.suggested_stage, suggested_decision: item.suggested_decision, raw_payload: item.raw_payload }, null, 2)}</pre>
                         </div>
@@ -1274,7 +1274,7 @@ export const CasesWorkspace: React.FC<any> = ({
                   <button
                     type="button"
                     onClick={() => setShowPanelEditor((prev) => !prev)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-bg-app px-2.5 py-1.5 text-[11px] font-medium text-theme-text-secondary"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-elevated px-2.5 py-1.5 text-[11px] font-medium text-theme-text-secondary"
                   >
                     <Plus size={12} />
                     新增 Panel
@@ -1306,11 +1306,11 @@ export const CasesWorkspace: React.FC<any> = ({
                   </div>
                 )}
                 {customPanels.length === 0 ? (
-                  <div className="rounded-xl bg-theme-bg-app px-3 py-3 text-sm text-theme-text-muted">暂无自定义 Panel</div>
+                  <div className="rounded-xl bg-theme-surface px-3 py-3 text-sm text-theme-text-muted">暂无自定义 Panel</div>
                 ) : (
                   <div className="grid gap-2.5 md:grid-cols-2">
                     {customPanels.map((panel) => (
-                      <div key={panel.id} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-3">
+                      <div key={panel.id} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
                         <div className="flex items-start justify-between gap-2">
                           <div className="text-sm font-semibold text-theme-text-primary">{panel.title}</div>
                           <button

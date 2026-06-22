@@ -90,7 +90,7 @@ const DEFAULT_BUTTON_CLASS =
 
 const DEFAULT_DATAFLOW_VULN_RUNS_ROOT = '/app/secflow-app-dataflow-vuln-scan';
 const DEFAULT_DATAFLOW_VULN_MODEL = 'local_minimax/MiniMax/MiniMax-M2.5';
-const FORM_INPUT_CLASS = 'w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-semibold text-theme-text-primary outline-none focus:border-emerald-500';
+const FORM_INPUT_CLASS = 'w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-sm font-semibold text-theme-text-primary outline-none focus:border-emerald-500';
 const REVIEW_PROFILE_OPTIONS = [
   { value: 'fast', label: '快速筛选' },
   { value: 'balanced', label: '平衡挖掘' },
@@ -1099,26 +1099,26 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                                 key={item}
                                 type="button"
                                 onClick={() => setMode(item)}
-                                className={`rounded-xl border px-3 py-2 text-xs font-medium ${mode === item ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'}`}
+                                className={`rounded-xl border px-3 py-2 text-xs font-medium ${mode === item ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'}`}
                               >
                                 {item === 'binary' ? '二进制任务模式' : '源码任务模式'}
                               </button>
                             ))}
                           </div>
                         ) : modeOptions.length === 1 ? (
-                          <div className="mt-4 inline-flex rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-medium text-theme-text-secondary">
+                          <div className="mt-4 inline-flex rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-medium text-theme-text-secondary">
                             {modeOptions[0] === 'binary' ? '二进制任务模式' : '源码任务模式'}
                           </div>
                         ) : null}
                       </div>
 
-                      <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
-                        <div className="flex items-center justify-between gap-3 border-b border-theme-border bg-theme-bg-app px-4 py-3">
+                      <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
+                        <div className="flex items-center justify-between gap-3 border-b border-theme-border bg-theme-elevated px-4 py-3">
                           <div>
                             <div className="text-sm font-semibold text-theme-text-primary">候选输入</div>
                             <div className="mt-1 text-xs text-theme-text-muted">可选 {selectableCandidates.length} / 总计 {candidates.length}</div>
                           </div>
-                          <button type="button" onClick={toggleAll} className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated">
+                          <button type="button" onClick={toggleAll} className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated">
                             {selectedCandidates.length === selectableCandidates.length ? '取消全选' : '全选'}
                           </button>
                         </div>
@@ -1135,7 +1135,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                               const checked = selectedKeys.has(candidate.key);
                               const disabled = Boolean(candidate.disabledReason);
                               return (
-                                <label key={candidate.key} className={`flex items-start gap-3 px-4 py-3 ${disabled ? 'bg-theme-bg-app text-theme-text-muted' : 'hover:bg-theme-elevated'}`}>
+                                <label key={candidate.key} className={`flex items-start gap-3 px-4 py-3 ${disabled ? 'bg-theme-surface text-theme-text-muted' : 'hover:bg-theme-elevated'}`}>
                                   <input
                                     type="checkbox"
                                     disabled={disabled}

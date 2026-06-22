@@ -282,7 +282,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">发布范围</label>
                 <select
                   disabled={!isEditMode}
-                  className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary disabled:opacity-70 disabled:bg-theme-elevated"
+                  className="w-full px-4 py-3 bg-theme-elevated rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary disabled:opacity-70 disabled:bg-theme-elevated"
                   value={formData.scope} onChange={e => setFormData({...formData, scope: e.target.value as any})}
                 >
                   <option value="project">仅限当前项目 (Project-only)</option>
@@ -352,7 +352,7 @@ className="form-input w-20 text-xs font-mono disabled:opacity-70 disabled:bg-the
                     />
                     <select
                       disabled={!isEditMode}
-                      className="w-24 px-4 py-2 bg-theme-bg-app rounded-xl border-none outline-none text-xs font-medium disabled:opacity-70 disabled:bg-theme-elevated"
+                      className="w-24 px-4 py-2 bg-theme-elevated rounded-xl border-none outline-none text-xs font-medium disabled:opacity-70 disabled:bg-theme-elevated"
                       value={p.protocol} onChange={e => {
                         const n = [...formData.service_ports];
                         n[pIdx].protocol = e.target.value;
@@ -390,7 +390,7 @@ className="form-input w-20 text-xs font-mono disabled:opacity-70 disabled:bg-the
                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">Service 类型</label>
                 <select
                   disabled={!isEditMode}
-                  className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary disabled:opacity-70 disabled:bg-theme-elevated"
+                  className="w-full px-4 py-3 bg-theme-elevated rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary disabled:opacity-70 disabled:bg-theme-elevated"
                   value={formData.service_type} onChange={e => setFormData({...formData, service_type: e.target.value as any})}
                 >
                   <option value="ClusterIP">ClusterIP</option>
@@ -770,7 +770,7 @@ className="form-input w-20 text-xs font-mono disabled:opacity-70 disabled:bg-the
                       <div className="grid grid-cols-3 gap-2">
                         <select
                           disabled={!isEditMode}
-                          className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-medium disabled:opacity-70 disabled:bg-theme-elevated"
+                          className="px-3 py-1.5 bg-theme-elevated rounded-lg outline-none text-[10px] font-medium disabled:opacity-70 disabled:bg-theme-elevated"
                           value={container.liveness_probe.type}
                           onChange={e => {
                             const n = [...formData.containers];
@@ -824,7 +824,7 @@ className="form-input w-20 text-xs font-mono disabled:opacity-70 disabled:bg-the
                         )}
                       </div>
                       <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mt-2">
-                         <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                         <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                            <span className="text-[8px] font-medium text-theme-text-muted uppercase">Delay</span>
                            <input
                              disabled={!isEditMode}
@@ -837,7 +837,7 @@ className="form-input w-20 text-xs font-mono disabled:opacity-70 disabled:bg-the
                              }}
                            />
                          </div>
-                         <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                         <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                            <span className="text-[8px] font-medium text-theme-text-muted uppercase">Period</span>
                            <input
                              disabled={!isEditMode}
@@ -850,7 +850,7 @@ className="form-input w-20 text-xs font-mono disabled:opacity-70 disabled:bg-the
                              }}
                            />
                          </div>
-                         <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                         <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                            <span className="text-[8px] font-medium text-theme-text-muted uppercase">Timeout</span>
                            <input
                              disabled={!isEditMode}
@@ -863,7 +863,7 @@ className="form-input w-20 text-xs font-mono disabled:opacity-70 disabled:bg-the
                              }}
                            />
                          </div>
-                         <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                         <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                            <span className="text-[8px] font-medium text-theme-text-muted uppercase">Fail</span>
                            <input
                              disabled={!isEditMode}
@@ -876,7 +876,7 @@ className="form-input w-20 text-xs font-mono disabled:opacity-70 disabled:bg-the
                              }}
                            />
                          </div>
-                         <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                         <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                            <span className="text-[8px] font-medium text-theme-text-muted uppercase">Succ</span>
                            <input
                              disabled={!isEditMode}
@@ -897,7 +897,7 @@ className="form-input w-20 text-xs font-mono disabled:opacity-70 disabled:bg-the
                       <div className="grid grid-cols-3 gap-2">
                         <select
                           disabled={!isEditMode}
-                          className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-medium disabled:opacity-70 disabled:bg-theme-elevated"
+                          className="px-3 py-1.5 bg-theme-elevated rounded-lg outline-none text-[10px] font-medium disabled:opacity-70 disabled:bg-theme-elevated"
                           value={container.readiness_probe.type}
                           onChange={e => {
                             const n = [...formData.containers];
@@ -951,7 +951,7 @@ className="form-input w-20 text-xs font-mono disabled:opacity-70 disabled:bg-the
                         )}
                       </div>
                       <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mt-2">
-                         <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                         <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                            <span className="text-[8px] font-medium text-theme-text-muted uppercase">Delay</span>
                            <input
                              disabled={!isEditMode}
@@ -964,7 +964,7 @@ className="form-input w-20 text-xs font-mono disabled:opacity-70 disabled:bg-the
                              }}
                            />
                          </div>
-                         <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                         <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                            <span className="text-[8px] font-medium text-theme-text-muted uppercase">Period</span>
                            <input
                              disabled={!isEditMode}
@@ -977,7 +977,7 @@ className="form-input w-20 text-xs font-mono disabled:opacity-70 disabled:bg-the
                              }}
                            />
                          </div>
-                         <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                         <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                            <span className="text-[8px] font-medium text-theme-text-muted uppercase">Timeout</span>
                            <input
                              disabled={!isEditMode}
@@ -990,7 +990,7 @@ className="form-input w-20 text-xs font-mono disabled:opacity-70 disabled:bg-the
                              }}
                            />
                          </div>
-                         <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                         <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                            <span className="text-[8px] font-medium text-theme-text-muted uppercase">Fail</span>
                            <input
                              disabled={!isEditMode}
@@ -1003,7 +1003,7 @@ className="form-input w-20 text-xs font-mono disabled:opacity-70 disabled:bg-the
                              }}
                            />
                          </div>
-                         <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                         <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                            <span className="text-[8px] font-medium text-theme-text-muted uppercase">Succ</span>
                            <input
                              disabled={!isEditMode}

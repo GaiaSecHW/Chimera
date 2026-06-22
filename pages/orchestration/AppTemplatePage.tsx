@@ -263,7 +263,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
           <div className="flex gap-4">
             <button
               onClick={loadTemplates}
-              className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all active:scale-95 group"
+              className="p-4 bg-theme-surface border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all active:scale-95 group"
             >
               <RefreshCw size={20} className={loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
             </button>
@@ -342,7 +342,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
             {paginatedItems.map(t => (
               <div
                 key={t.id}
- className="group relative bg-theme-bg-app hover:bg-theme-bg-app border-2 border-theme-border hover:border-blue-500/20 rounded-xl p-6 transition-all cursor-pointer"
+ className="group relative bg-theme-surface hover:bg-theme-surface border-2 border-theme-border hover:border-blue-500/20 rounded-xl p-6 transition-all cursor-pointer"
                 onClick={() => onNavigateToDetail(t.id)}
               >
                 {/* Header */}
@@ -486,7 +486,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
             <select
               value={pageSize}
               onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
-              className="px-3 py-2 bg-theme-bg-app border border-theme-border rounded-xl text-sm font-medium text-theme-text-secondary outline-none focus:border-blue-500 transition-all"
+              className="px-3 py-2 bg-theme-elevated border border-theme-border rounded-xl text-sm font-medium text-theme-text-secondary outline-none focus:border-blue-500 transition-all"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -530,7 +530,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
       {/* Registration Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
- <div className="bg-theme-bg-app w-full max-w-4xl rounded-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]">
+ <div className="bg-theme-surface w-full max-w-4xl rounded-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]">
             <div className="p-8 border-b border-theme-border bg-slate-100/30 flex items-center justify-between shrink-0">
                <div className="flex items-center gap-4">
  <div className="w-14 h-14 bg-theme-surface text-white rounded-xl flex items-center justify-center">
@@ -559,7 +559,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">发布范围</label>
                     <select
-                      className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary"
+                      className="w-full px-4 py-3 bg-theme-elevated rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary"
                       value={formData.scope} onChange={e => setFormData({...formData, scope: e.target.value as any})}
                     >
                       <option value="project">仅限当前项目 (Project-only)</option>
@@ -658,7 +658,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">Service 类型</label>
                     <select
-                      className="w-full px-4 py-3 bg-theme-bg-app rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary"
+                      className="w-full px-4 py-3 bg-theme-elevated rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary"
                       value={formData.service_type} onChange={e => setFormData({...formData, service_type: e.target.value as any})}
                     >
                       <option value="ClusterIP">ClusterIP</option>
@@ -832,7 +832,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                           <div className="space-y-1.5">
                             <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">拉取策略 (Image Pull Policy)</label>
                             <select
-className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-border outline-none text-xs font-medium"
+className="w-full px-4 py-2 bg-theme-elevated rounded-xl border border-theme-border outline-none text-xs font-medium"
                                value={container.image_pull_policy}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -1155,7 +1155,7 @@ className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-borde
                             <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">存活探针 (Liveness Probe)</label>
                             <div className="grid grid-cols-3 gap-2">
                               <select
-                                className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-medium"
+                                className="px-3 py-1.5 bg-theme-elevated rounded-lg outline-none text-[10px] font-medium"
                                 value={container.liveness_probe.type}
                                 onChange={e => {
                                   const n = [...formData.containers];
@@ -1206,7 +1206,7 @@ className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-borde
                               )}
                             </div>
                             <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mt-2">
-                               <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                               <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                                  <span className="text-[8px] font-medium text-theme-text-muted uppercase">Delay</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
@@ -1218,7 +1218,7 @@ className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-borde
                                    }}
                                  />
                                </div>
-                               <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                               <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                                  <span className="text-[8px] font-medium text-theme-text-muted uppercase">Period</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
@@ -1230,7 +1230,7 @@ className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-borde
                                    }}
                                  />
                                </div>
-                               <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                               <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                                  <span className="text-[8px] font-medium text-theme-text-muted uppercase">Timeout</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
@@ -1242,7 +1242,7 @@ className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-borde
                                    }}
                                  />
                                </div>
-                               <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                               <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                                  <span className="text-[8px] font-medium text-theme-text-muted uppercase">Fail</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
@@ -1254,7 +1254,7 @@ className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-borde
                                    }}
                                  />
                                </div>
-                               <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                               <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                                  <span className="text-[8px] font-medium text-theme-text-muted uppercase">Succ</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
@@ -1273,7 +1273,7 @@ className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-borde
                             <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">就绪探针 (Readiness Probe)</label>
                             <div className="grid grid-cols-3 gap-2">
                               <select
-                                className="px-3 py-1.5 bg-theme-bg-app rounded-lg outline-none text-[10px] font-medium"
+                                className="px-3 py-1.5 bg-theme-elevated rounded-lg outline-none text-[10px] font-medium"
                                 value={container.readiness_probe.type}
                                 onChange={e => {
                                   const n = [...formData.containers];
@@ -1324,7 +1324,7 @@ className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-borde
                               )}
                             </div>
                             <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mt-2">
-                               <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                               <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                                  <span className="text-[8px] font-medium text-theme-text-muted uppercase">Delay</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
@@ -1336,7 +1336,7 @@ className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-borde
                                    }}
                                  />
                                </div>
-                               <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                               <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                                  <span className="text-[8px] font-medium text-theme-text-muted uppercase">Period</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
@@ -1348,7 +1348,7 @@ className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-borde
                                    }}
                                  />
                                </div>
-                               <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                               <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                                  <span className="text-[8px] font-medium text-theme-text-muted uppercase">Timeout</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
@@ -1360,7 +1360,7 @@ className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-borde
                                    }}
                                  />
                                </div>
-                               <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                               <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                                  <span className="text-[8px] font-medium text-theme-text-muted uppercase">Fail</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
@@ -1372,7 +1372,7 @@ className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-borde
                                    }}
                                  />
                                </div>
-                               <div className="flex items-center justify-between px-2 py-1 bg-theme-bg-app rounded-lg">
+                               <div className="flex items-center justify-between px-2 py-1 bg-theme-elevated rounded-lg">
                                  <span className="text-[8px] font-medium text-theme-text-muted uppercase">Succ</span>
                                  <input
                                    type="number" className="w-8 bg-transparent text-right outline-none text-[10px] font-mono"
@@ -1423,7 +1423,7 @@ className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-borde
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-theme-bg-app rounded-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="bg-theme-surface rounded-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
               <div className="w-20 h-20 bg-red-500/15 text-red-500 rounded-lg flex items-center justify-center mx-auto mb-6">
                 <Trash2 size={40} />
@@ -1433,7 +1433,7 @@ className="w-full px-4 py-2 bg-theme-bg-app rounded-xl border border-theme-borde
                 您确定要删除这个应用模板吗？此操作无法撤销。
               </p>
             </div>
-            <div className="p-8 bg-theme-bg-app flex gap-4">
+            <div className="p-8 bg-theme-surface flex gap-4">
               <button
                 onClick={() => {
                   setIsDeleteModalOpen(false);

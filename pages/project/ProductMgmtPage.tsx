@@ -218,7 +218,7 @@ export const ProductMgmtPage: React.FC = () => {
         className={`w-full rounded-2xl border px-4 py-3 text-left transition-all ${
           selectedProductId === node.id
             ? 'border-blue-500 bg-blue-500/15 text-blue-400'
-            : 'border-theme-border bg-theme-bg-app hover:border-theme-border'
+            : 'border-theme-border bg-theme-surface hover:border-theme-border'
         }`}
         style={{ marginLeft: depth * 16 }}
       >

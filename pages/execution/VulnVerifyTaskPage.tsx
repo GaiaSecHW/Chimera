@@ -224,7 +224,7 @@ function resolveCaseSourceRoot(item: PendingVerifyCase): string | null {
 function getFilterChipClassName(active: boolean): string {
   return active
  ? 'border-violet-300 bg-violet-500/15 text-violet-400 '
-    : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:border-theme-border hover:bg-theme-elevated';
+    : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:border-theme-border hover:bg-theme-elevated';
 }
 
 function getTaskVerdictCounts(task: VulnVerifyTask): { confirmed: number; ruledOut: number; unresolved: number } {
@@ -752,7 +752,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                   type="button"
                   onClick={() => void fetchPendingVerifyCases()}
                   disabled={pendingCasesLoading || batchCreating}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-semibold text-theme-text-secondary disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-semibold text-theme-text-secondary disabled:opacity-50"
                 >
                   <RefreshCw size={13} className={pendingCasesLoading ? 'animate-spin' : ''} />刷新待验证漏洞
                 </button>
@@ -784,7 +784,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                   value={batchObjectFilter}
                   onChange={(event) => setBatchObjectFilter(event.target.value)}
                   placeholder="筛选对象定位，例如 openGauss"
-                  className="w-full rounded-lg border border-theme-border bg-theme-bg-app py-2 pl-9 pr-9 text-xs text-theme-text-secondary placeholder:text-theme-text-muted"
+                  className="w-full rounded-lg border border-theme-border bg-theme-elevated py-2 pl-9 pr-9 text-xs text-theme-text-secondary placeholder:text-theme-text-muted"
                 />
                 {batchObjectFilter ? (
                   <button type="button" onClick={() => setBatchObjectFilter('')} className="absolute right-2 top-1.5 rounded p-1 text-theme-text-muted hover:text-theme-text-secondary"><X size={13} /></button>
@@ -793,7 +793,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
             </div>
 
             {batchResult ? (
-              <div className="mt-4 rounded-2xl border border-theme-border bg-theme-bg-app p-4 text-sm">
+              <div className="mt-4 rounded-2xl border border-theme-border bg-theme-surface p-4 text-sm">
                 <div className="font-semibold text-theme-text-primary">批量创建结果：成功 {batchResult.success} 个，失败 {batchResult.failed} 个</div>
                 {batchResult.failed ? (
                   <div className="mt-3 space-y-2 text-xs text-rose-400">
@@ -808,7 +808,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               </div>
             ) : null}
 
-            <div className="mt-4 overflow-hidden rounded-2xl border border-theme-border bg-theme-bg-app">
+            <div className="mt-4 overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
               {pendingCasesLoading ? (
                 <div className="flex items-center gap-2 p-8 text-sm text-theme-text-muted"><Loader2 size={14} className="animate-spin" />加载待验证漏洞...</div>
               ) : pendingCases.length === 0 ? (
@@ -818,7 +818,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               ) : (
                 <div className="max-h-[360px] overflow-auto">
                   <table className="w-full min-w-[920px] text-left text-xs">
-                    <thead className="sticky top-0 bg-theme-bg-app text-theme-text-muted">
+                    <thead className="sticky top-0 bg-theme-elevated text-theme-text-muted">
                       <tr className="border-b border-theme-border">
                         <th className="w-12 px-4 py-3">
                           <input
@@ -887,18 +887,18 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               <p className="mt-1 text-xs text-theme-text-muted">点击任务名称或查看按钮打开任务详情、结果和产物。</p>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-secondary">
+              <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs text-theme-text-secondary">
                 <input type="checkbox" checked={autoRefreshEnabled} onChange={(e) => setAutoRefreshEnabled(e.target.checked)} />
                 自动刷新
               </label>
-              <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-secondary">
+              <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs text-theme-text-secondary">
                 间隔
                 <input
                   type="number"
                   min={5}
                   value={refreshIntervalSec}
                   onChange={(e) => setRefreshIntervalSec(Math.max(5, Number(e.target.value || 5)))}
-                  className="w-16 rounded border border-theme-border bg-theme-bg-app px-2 py-1 text-xs text-theme-text-secondary"
+                  className="w-16 rounded border border-theme-border bg-theme-elevated px-2 py-1 text-xs text-theme-text-secondary"
                 />
                 秒
               </label>
@@ -911,7 +911,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                   setPage(1);
                 }}
                 disabled={!hasFilters}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-semibold text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-semibold text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <X size={13} />
                 清空筛选
@@ -938,7 +938,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                   placeholder="搜索任务"
-                  className="w-48 rounded-lg border border-theme-border bg-theme-bg-app py-1.5 pl-8 pr-3 text-xs text-theme-text-secondary placeholder:text-theme-text-muted"
+                  className="w-48 rounded-lg border border-theme-border bg-theme-elevated py-1.5 pl-8 pr-3 text-xs text-theme-text-secondary placeholder:text-theme-text-muted"
                 />
               </div>
               <select
@@ -980,7 +980,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               </span>
             ) : null}
             {search.trim() ? (
-              <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-muted">
+              <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs text-theme-text-muted">
                 关键词：{search.trim()}
               </span>
             ) : null}
@@ -1072,7 +1072,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
       {batchConfirmOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !batchCreating && setBatchConfirmOpen(false)} />
-          <div className="relative z-10 w-full max-w-md rounded-2xl border border-theme-border bg-theme-bg-app p-6 shadow-2xl">
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-theme-border bg-theme-surface p-6 shadow-2xl">
             <div className="flex items-start gap-3">
               <div className="rounded-2xl bg-violet-500/15 p-3 text-violet-400">
                 <ShieldCheck size={22} />

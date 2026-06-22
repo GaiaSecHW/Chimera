@@ -56,7 +56,7 @@ const mdComponents: Components = {
   th: ({ children }) => <th className="border border-theme-border px-3 py-2 font-bold text-theme-text-primary">{children}</th>,
   td: ({ children }) => <td className="border border-theme-border px-3 py-2 align-top text-theme-text-primary">{children}</td>,
   code: ({ children, className }) => className
-    ? <code className="block overflow-x-auto rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 font-mono text-xs text-theme-text-primary">{children}</code>
+    ? <code className="block overflow-x-auto rounded-lg border border-theme-border bg-theme-elevated px-4 py-3 font-mono text-xs text-theme-text-primary">{children}</code>
     : <code className="rounded bg-theme-surface px-1.5 py-0.5 font-mono text-[0.9em] text-theme-text-primary">{children}</code>,
   pre: ({ children }) => <pre className="mb-3 last:mb-0">{children}</pre>,
   hr: () => <hr className="my-4 border-theme-border" />,

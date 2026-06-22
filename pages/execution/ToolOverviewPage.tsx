@@ -830,8 +830,8 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
                   <button type="button" onClick={() => setSelectedAppId(app.id)} className="min-w-0 flex-1 text-left">
                     <h3 className="truncate text-lg font-semibold text-theme-text-primary">{app.name}</h3>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-medium text-theme-text-secondary">{engineLabel(app.engine)}</span>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">{app.isPublic ? <Globe size={11} className="text-emerald-400" /> : <Lock size={11} />}{app.isPublic ? '公开' :`私有 · ${effectiveUser?.department_name ||`部门${app.departmentId ?? ''}`}`}</span>
+                      <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-medium text-theme-text-secondary">{engineLabel(app.engine)}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">{app.isPublic ? <Globe size={11} className="text-emerald-400" /> : <Lock size={11} />}{app.isPublic ? '公开' :`私有 · ${effectiveUser?.department_name ||`部门${app.departmentId ?? ''}`}`}</span>
                     </div>
                   </button>
                   <div className="flex shrink-0 items-center gap-1">

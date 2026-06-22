@@ -573,7 +573,7 @@ export const AppInstancePage: React.FC<{
       ) : (
  <div className="overflow-hidden rounded-xl border border-theme-border bg-theme-surface">
           <table className="w-full">
-            <thead className="border-b border-theme-border bg-theme-bg-app">
+            <thead className="border-b border-theme-border bg-theme-elevated">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-theme-text-muted">实例名称</th>
                 <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-theme-text-muted">模板</th>
@@ -633,7 +633,7 @@ export const AppInstancePage: React.FC<{
       )}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-8">
- <div className="max-h-[94vh] w-full max-w-5xl overflow-auto rounded-2xl bg-theme-bg-app">
+ <div className="max-h-[94vh] w-full max-w-5xl overflow-auto rounded-2xl bg-theme-surface">
             {createStep === 'select-template' ? (
               <>
                 <div className="border-b border-theme-border p-6">
@@ -684,7 +684,7 @@ export const AppInstancePage: React.FC<{
                     <div className="py-12 text-center text-theme-text-muted">暂无可用模板</div>
                   ) : filteredTemplates.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-theme-border bg-slate-50/80 px-6 py-14 text-center">
- <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-theme-bg-app text-theme-text-faint">
+ <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-theme-surface text-theme-text-faint">
                         <Search size={22} />
                       </div>
                       <div className="text-base font-medium text-theme-text-secondary">没有找到匹配的模板</div>
@@ -729,7 +729,7 @@ export const AppInstancePage: React.FC<{
                                       {template.tags.slice(0, 4).map((tag) => (
                                         <span
                                           key={`${template.id}-${tag.tag_key}`}
-                                          className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-medium text-theme-text-secondary"
+                                          className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-medium text-theme-text-secondary"
                                         >
                                           {tag.tag_label}
                                         </span>
@@ -776,7 +776,7 @@ export const AppInstancePage: React.FC<{
                                 setTemplatePageSize(Number(event.target.value));
                                 setTemplatePage(1);
                               }}
-                              className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-medium text-theme-text-secondary outline-none focus:border-blue-500"
+                              className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-secondary outline-none focus:border-blue-500"
                             >
                               <option value={5}>5</option>
                               <option value={10}>10</option>
@@ -792,7 +792,7 @@ export const AppInstancePage: React.FC<{
                             >
                               <ChevronLeft size={18} />
                             </button>
-                            <span className="rounded-xl bg-theme-bg-app px-4 py-2 text-sm font-semibold text-theme-text-primary ring-1 ring-theme-border">
+                            <span className="rounded-xl bg-theme-elevated px-4 py-2 text-sm font-semibold text-theme-text-primary ring-1 ring-theme-border">
                               {templatePage} / {templateTotalPages}
                             </span>
                             <button
@@ -879,7 +879,7 @@ export const AppInstancePage: React.FC<{
                           const key =`${container.name}.${mount.mount_path}`;
                           const config = inputVolumeMountConfigs[key] || createMountConfig(mount.read_only ?? true);
                           return (
-                            <div key={key} className="rounded-xl border border-purple-500/20 bg-theme-bg-app p-4">
+                            <div key={key} className="rounded-xl border border-purple-500/20 bg-theme-surface p-4">
                               <div className="mb-3 text-sm font-medium text-theme-text-secondary">挂载路径：{mount.mount_path}<span className="ml-2 text-xs text-theme-text-muted">容器：{container.name}</span></div>
                               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                 <select value={config.pvc_name} onChange={(event) => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...config, pvc_name: event.target.value } })} className="form-select">
@@ -910,13 +910,13 @@ export const AppInstancePage: React.FC<{
                       </button>
                     </div>
                     {additionalPvcMounts.length === 0 ? (
- <div className="rounded-xl border border-dashed border-amber-500/20 bg-theme-bg-app px-4 py-4 text-sm text-amber-400">
+ <div className="rounded-xl border border-dashed border-amber-500/20 bg-theme-surface px-4 py-4 text-sm text-amber-400">
                         如需额外挂载 PVC，可以在这里选择公共 PVC 资源并填写容器内挂载路径。
                       </div>
                     ) : (
                       <div className="space-y-4">
                         {additionalPvcMounts.map((mount, index) => (
-                          <div key={index} className="rounded-xl border border-amber-500/20 bg-theme-bg-app p-4">
+                          <div key={index} className="rounded-xl border border-amber-500/20 bg-theme-surface p-4">
                             <div className="mb-3 flex items-center justify-between gap-3">
                               <div className="text-sm font-medium text-theme-text-secondary">附加 PVC 挂载 #{index + 1}</div>
                               <button
@@ -980,19 +980,19 @@ export const AppInstancePage: React.FC<{
                         'ingress-binding',
                         '勾选后系统会基于当前 Service 自动生成域名，并在创建后自动初始化、启动实例。',
                         {
- button: 'border-green-300 bg-theme-bg-app text-green-400 hover:border-green-400 hover:bg-theme-bg-app focus:ring-green-300',
- panel: 'border-green-500/20 bg-theme-bg-app',
+ button: 'border-green-300 bg-theme-elevated text-green-400 hover:border-green-400 hover:bg-theme-elevated focus:ring-green-300',
+ panel: 'border-green-500/20 bg-theme-elevated',
                           text: 'text-green-400',
                         },
                         'mr-2 md:mr-3'
                       )}
                       <label className="inline-flex cursor-pointer items-center">
                         <input type="checkbox" checked={enableIngress} onChange={(event) => setEnableIngress(event.target.checked)} className="sr-only peer" />
- <div className="relative h-6 w-11 rounded-full bg-theme-elevated transition-all after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-theme-border after:bg-theme-bg-app after:transition-all after:content-[''] peer-checked:bg-green-600 peer-checked:after:translate-x-full peer-checked:after:border-theme-border" />
+ <div className="relative h-6 w-11 rounded-full bg-theme-elevated transition-all after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-theme-border after:bg-theme-surface after:transition-all after:content-[''] peer-checked:bg-green-600 peer-checked:after:translate-x-full peer-checked:after:border-theme-border" />
                       </label>
                     </div>
                     {enableIngress && (
- <div className="rounded-xl border border-dashed border-green-300 bg-theme-bg-app px-4 py-3 text-sm text-green-400">
+ <div className="rounded-xl border border-dashed border-green-300 bg-theme-surface px-4 py-3 text-sm text-green-400">
                         默认使用`nginx` Ingress，域名规则会按当前 Service 自动生成。创建完成后可直接在实例详情的“访问”页点击“访问服务”按钮。
                       </div>
                     )}
@@ -1015,7 +1015,7 @@ export const AppInstancePage: React.FC<{
       )}
       {isUninitModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
- <div className="w-full max-w-md overflow-hidden rounded-2xl bg-theme-bg-app animate-in zoom-in-95 duration-200">
+ <div className="w-full max-w-md overflow-hidden rounded-2xl bg-theme-surface animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
               <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-xl bg-orange-500/15 text-orange-400">
                 <RotateCcw size={40} />
@@ -1027,7 +1027,7 @@ export const AppInstancePage: React.FC<{
                 警告：所有的非持久化数据将全部丢失！
               </p>
             </div>
-            <div className="flex gap-4 bg-theme-bg-app p-8">
+            <div className="flex gap-4 bg-theme-surface p-8">
               <button
                 onClick={() => {
                   setIsUninitModalOpen(false);
@@ -1051,7 +1051,7 @@ export const AppInstancePage: React.FC<{
       )}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-8">
- <div className="w-full max-w-md rounded-2xl bg-theme-bg-app">
+ <div className="w-full max-w-md rounded-2xl bg-theme-surface">
             <div className="p-8">
               <div className="mb-6 flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-500/15"><AlertCircle className="text-red-400" size={24} /></div>
