@@ -14,7 +14,7 @@ export const VulnVerificationDetailPage: React.FC<VulnPageProps> = ({ projectId,
   const targetCaseId = useMemo(() => localStorage.getItem(VERIFICATION_DETAIL_TARGET_KEY) || '', []);
 
   return (
-  <div className="min-h-screen bg-theme-bg-app animate-in fade-in duration-300">
+  <div className="min-h-screen bg-theme-app animate-in fade-in duration-300">
       <PageHeader
         title="验证详情"
         back={{ label: '返回验证列表', onClick: () => onNavigateToView?.('vuln-verification') }}

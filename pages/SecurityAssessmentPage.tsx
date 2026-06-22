@@ -74,7 +74,7 @@ export const SecurityAssessmentPage: React.FC = () => {
                       <td className="px-8 py-5 text-right">
                         <div className={`text-[10px] font-medium px-3 py-1.5 rounded-full inline-block ${
                           item.status === '已完成' ? 'bg-green-500/15 text-green-400' :
-                          item.status === '进行中' ? 'bg-blue-500/15 text-blue-400' : 'bg-theme-bg-app text-theme-text-muted'
+                          item.status === '进行中' ? 'bg-blue-500/15 text-blue-400' : 'bg-theme-elevated text-theme-text-muted'
                         }`}>
                           {item.status}
                         </div>

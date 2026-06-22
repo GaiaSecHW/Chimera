@@ -104,7 +104,7 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
                 type="button"
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 disabled={page <= 1}
-                className="inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-xs disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 text-xs disabled:opacity-40"
               >
                 <ChevronLeft size={14} />
                 上一页
@@ -113,7 +113,7 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
                 type="button"
                 onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={page >= totalPages}
-                className="inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-xs disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 text-xs disabled:opacity-40"
               >
                 下一页
                 <ChevronRight size={14} />
@@ -121,7 +121,7 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
             </div>
           </div>
           <table className="w-full text-left">
-            <thead className="bg-theme-bg-app text-[11px] text-theme-text-muted uppercase tracking-widest">
+            <thead className="bg-theme-elevated text-[11px] text-theme-text-muted uppercase tracking-widest">
               <tr>
                 <th className="px-6 py-4">节点</th>
                 <th className="px-4 py-4">IP</th>

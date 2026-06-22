@@ -282,7 +282,7 @@ export const ServiceTerminalWindowPage: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-screen bg-theme-bg-app text-slate-100 flex flex-col">
+    <div className="h-screen w-screen bg-theme-elevated text-slate-100 flex flex-col">
       <div className="px-4 py-3 border-b border-theme-border bg-slate-900/95 flex items-start gap-3">
         <div className="flex items-start gap-2 min-w-0 flex-1">
           <TerminalSquare size={16} className="text-blue-400" />

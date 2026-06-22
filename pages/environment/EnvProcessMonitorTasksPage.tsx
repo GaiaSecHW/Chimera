@@ -304,7 +304,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
               <button onClick={() => void loadData()} disabled={loading || !projectId} className="px-4 py-3 rounded-lg border border-theme-border bg-theme-surface hover:bg-theme-elevated text-theme-text-secondary text-xs font-medium uppercase tracking-wider flex items-center gap-2">{loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}刷新</button>
               <button onClick={() => void clearCurrent('selected')} disabled={!projectId || clearing || (mode === 'platform' ? selectedHistorySyncIds.size === 0 : selectedLiveTaskKeys.size === 0)} className="px-4 py-3 rounded-lg border border-rose-500/20 bg-rose-500/15 hover:bg-rose-600 hover:text-white text-rose-400 text-xs font-medium uppercase tracking-wider flex items-center gap-2 disabled:opacity-50">{clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}清理选中</button>
               {mode === 'live' && (<button onClick={() => void clearCurrent('filtered')} disabled={!projectId || clearing} className="px-4 py-3 rounded-lg border border-amber-500/20 bg-amber-500/15 hover:bg-amber-600 hover:text-white text-amber-400 text-xs font-medium uppercase tracking-wider flex items-center gap-2 disabled:opacity-50">{clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}清理筛选节点</button>)}
-              <button onClick={() => void clearCurrent('all')} disabled={!projectId || clearing} className="px-4 py-3 rounded-lg border border-rose-300 bg-theme-bg-app hover:bg-rose-600 hover:text-white text-rose-400 text-xs font-medium uppercase tracking-wider flex items-center gap-2 disabled:opacity-50">{clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}全量清理</button>
+              <button onClick={() => void clearCurrent('all')} disabled={!projectId || clearing} className="px-4 py-3 rounded-lg border border-rose-300 bg-theme-elevated hover:bg-rose-600 hover:text-white text-rose-400 text-xs font-medium uppercase tracking-wider flex items-center gap-2 disabled:opacity-50">{clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}全量清理</button>
             </div>}
         />
 
@@ -334,7 +334,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                     key={`${node.agent_key}:${node.service_name}`}
                     type="button"
                     onClick={() => toggleAgent(node.agent_key)}
-                    className={`text-left p-3 rounded-xl border ${checked ? 'border-blue-400 bg-blue-500/15' : 'border-theme-border bg-theme-bg-app hover:bg-theme-elevated'}`}
+                    className={`text-left p-3 rounded-xl border ${checked ? 'border-blue-400 bg-blue-500/15' : 'border-theme-border bg-theme-elevated hover:bg-theme-elevated'}`}
                   >
                     <div className="flex items-center gap-2">
                       {checked ? <CheckSquare size={14} className="text-blue-400" /> : <Square size={14} className="text-theme-text-muted" />}
@@ -350,7 +350,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
 
         <div className="rounded-xl border border-theme-border bg-theme-surface overflow-hidden">
           <table className="w-full text-left">
-            <thead className="bg-theme-bg-app text-[11px] uppercase tracking-widest text-theme-text-muted">
+            <thead className="bg-theme-elevated text-[11px] uppercase tracking-widest text-theme-text-muted">
               <tr>
                 {mode === 'platform' ? (
                   <>
@@ -501,7 +501,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
 
       {detailOpen && (
         <div className="fixed inset-0 z-50 bg-black/30" onClick={() => setDetailOpen(false)}>
- <div className="absolute inset-y-0 right-0 w-[min(980px,92vw)] bg-theme-bg-app border-l border-theme-border flex flex-col" onClick={(event) => event.stopPropagation()}>
+ <div className="absolute inset-y-0 right-0 w-[min(980px,92vw)] bg-theme-elevated border-l border-theme-border flex flex-col" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border">
               <div>
                 <h3 className="text-xl font-semibold text-theme-text-primary">同步任务详情</h3>

@@ -821,7 +821,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   }
 
   return (
- <div className="min-h-[calc(100vh-5rem)] bg-theme-bg-app p-4 md:p-6 xl:p-8">
+ <div className="min-h-[calc(100vh-5rem)] bg-theme-elevated p-4 md:p-6 xl:p-8">
       <div className="flex min-h-[calc(100vh-7rem)] w-full flex-col gap-5">
         <PageHeader title="测试对象" description="统一管理与查看当前项目的测试输入对象，包括文档、代码、软件和其他资料的上传与状态追踪" />
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -836,7 +836,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   setSelectedType(inputType);
                   setPage(1);
                 }}
- className={`rounded-xl border p-5 text-left transition ${selectedType === inputType ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-bg-app text-theme-text-primary hover:border-theme-border'}`}
+ className={`rounded-xl border p-5 text-left transition ${selectedType === inputType ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-elevated text-theme-text-primary hover:border-theme-border'}`}
               >
  <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.2em] ${selectedType === inputType ? 'border-theme-border bg-theme-elevated text-white' : meta.tone}`}>
                   {meta.icon}
@@ -873,7 +873,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                 </button>
                 <button
                   onClick={() => openCreateModal(selectedType === 'all' ? 'document' : selectedType)}
- className="inline-flex items-center gap-2 rounded-lg bg-theme-bg-app px-4 py-3 text-sm font-semibold text-white transition hover:bg-theme-elevated"
+ className="inline-flex items-center gap-2 rounded-lg bg-theme-elevated px-4 py-3 text-sm font-semibold text-white transition hover:bg-theme-elevated"
                 >
                   <Plus size={16} />
                   新建上传
@@ -931,7 +931,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
           <div className="mt-5 flex-1 overflow-hidden rounded-xl border border-theme-border bg-theme-surface">
             <div className="h-full overflow-auto">
               <table className="min-w-full divide-y divide-theme-border">
-                <thead className="bg-theme-bg-app text-left text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">
+                <thead className="bg-theme-elevated text-left text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">
                   <tr>
                     <th className="px-4 py-4">类型</th>
                     <th className="px-4 py-4">上传记录</th>
@@ -941,7 +941,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                     <th className="px-4 py-4 text-right">操作</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-theme-border bg-theme-bg-app text-sm">
+                <tbody className="divide-y divide-theme-border bg-theme-elevated text-sm">
                   {loading ? (
                     <tr><td colSpan={6} className="px-6 py-20 text-center"><Loader2 className="mx-auto animate-spin text-theme-text-muted" size={32} /></td></tr>
                   ) : filteredRecords.length === 0 ? (
@@ -1052,7 +1052,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                                 </div>
 
                                 {isDetailLoading ? (
-                                  <div className="mt-5 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
+                                  <div className="mt-5 rounded-xl border border-dashed border-theme-border bg-theme-elevated px-4 py-8 text-center text-sm text-theme-text-muted">
                                     <Loader2 className="mx-auto mb-3 animate-spin text-theme-text-muted" size={24} />
                                     正在加载批次历史...
                                   </div>
@@ -1061,7 +1061,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                                     {detailError}
                                   </div>
                                 ) : batches.length === 0 ? (
-                                  <div className="mt-5 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
+                                  <div className="mt-5 rounded-xl border border-dashed border-theme-border bg-theme-elevated px-4 py-8 text-center text-sm text-theme-text-muted">
                                     该上传记录暂无批次历史。
                                   </div>
                                 ) : (
@@ -1073,15 +1073,15 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                                             <div className="flex flex-wrap items-center gap-2">
                                               <span className="text-sm font-semibold text-theme-text-primary">批次 #{index + 1}</span>
                                               <StatusBadge status={batch.status} />
-                                              <span className="rounded-full bg-theme-bg-app px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">{batch.mode}</span>
+                                              <span className="rounded-full bg-theme-elevated px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">{batch.mode}</span>
                                             </div>
                                             <div className="mt-2 text-xs text-theme-text-muted">batch_id: <span className="font-mono text-theme-text-secondary">{batch.batch_id}</span></div>
                                           </div>
                                           <div className="flex flex-wrap gap-2 text-xs font-semibold text-theme-text-muted">
-                                            <span className="rounded-full bg-theme-bg-app px-3 py-1">提交 {batch.submitted_file_count} 个</span>
-                                            <span className="rounded-full bg-theme-bg-app px-3 py-1">处理 {batch.processed_file_count} 个</span>
-                                            <span className="rounded-full bg-theme-bg-app px-3 py-1">{formatUploadBytes(batch.processed_size_bytes)}</span>
-                                            <span className="rounded-full bg-theme-bg-app px-3 py-1">保留原包：{batch.keep_original ? '是' : '否'}</span>
+                                            <span className="rounded-full bg-theme-elevated px-3 py-1">提交 {batch.submitted_file_count} 个</span>
+                                            <span className="rounded-full bg-theme-elevated px-3 py-1">处理 {batch.processed_file_count} 个</span>
+                                            <span className="rounded-full bg-theme-elevated px-3 py-1">{formatUploadBytes(batch.processed_size_bytes)}</span>
+                                            <span className="rounded-full bg-theme-elevated px-3 py-1">保留原包：{batch.keep_original ? '是' : '否'}</span>
                                           </div>
                                         </div>
 
@@ -1147,7 +1147,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
         const latestBatch = detail?.latest_batch || record.latest_batch || null;
         return (
           <div className="fixed inset-0 z-[125] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-theme-bg-app">
+ <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-theme-elevated">
               <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
                 <div>
                   <div className="text-sm font-medium uppercase tracking-[0.18em] text-theme-text-muted">上传记录详情</div>
@@ -1251,7 +1251,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   <section className="rounded-xl border border-theme-border bg-theme-surface p-5">
                     <div className="text-sm font-semibold text-theme-text-primary">批次历史</div>
                     {isDetailLoading ? (
-                      <div className="mt-5 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
+                      <div className="mt-5 rounded-xl border border-dashed border-theme-border bg-theme-elevated px-4 py-8 text-center text-sm text-theme-text-muted">
                         <Loader2 className="mx-auto mb-3 animate-spin text-theme-text-muted" size={24} />
                         正在加载批次历史...
                       </div>
@@ -1260,7 +1260,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                         {detailError}
                       </div>
                     ) : batches.length === 0 ? (
-                      <div className="mt-5 rounded-xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
+                      <div className="mt-5 rounded-xl border border-dashed border-theme-border bg-theme-elevated px-4 py-8 text-center text-sm text-theme-text-muted">
                         该上传记录暂无批次历史。
                       </div>
                     ) : (
@@ -1270,7 +1270,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-sm font-semibold text-theme-text-primary">批次 #{index + 1}</span>
                               <StatusBadge status={batch.status} />
-                              <span className="rounded-full bg-theme-bg-app px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">{batch.mode}</span>
+                              <span className="rounded-full bg-theme-elevated px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">{batch.mode}</span>
                             </div>
                             <div className="mt-2 text-xs text-theme-text-muted">batch_id: <span className="font-mono text-theme-text-secondary">{batch.batch_id}</span></div>
                             <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -1308,7 +1308,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   关闭
                 </button>
                 {canOpenDirectory ? (
-                  <button type="button" onClick={() => openProjectPath(record.target_path)} className="rounded-lg bg-theme-bg-app px-4 py-3 text-sm font-semibold text-white">
+                  <button type="button" onClick={() => openProjectPath(record.target_path)} className="rounded-lg bg-theme-elevated px-4 py-3 text-sm font-semibold text-white">
                     打开目录
                   </button>
                 ) : null}
@@ -1323,7 +1323,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
           <form onSubmit={(event) => {
             event.preventDefault();
             void submitUpload();
- }} className="w-full max-w-2xl overflow-hidden rounded-2xl bg-theme-bg-app">
+ }} className="w-full max-w-2xl overflow-hidden rounded-2xl bg-theme-elevated">
             <div className="border-b border-theme-border px-6 py-5">
               <div className="text-sm font-medium uppercase tracking-[0.2em] text-theme-text-muted">{isAppendMode ? '追加上传' : '新建上传'}</div>
               <div className="mt-2 text-2xl font-bold text-theme-text-primary">{INPUT_TYPE_META[activeInputType].label}测试对象</div>
@@ -1346,8 +1346,8 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                     保留原始文件，不自动解压
                   </label>
 
-                  <div className="rounded-[1.25rem] border border-dashed border-theme-border bg-theme-bg-app px-4 py-5 text-center">
- <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg bg-theme-bg-app text-theme-text-secondary">
+                  <div className="rounded-[1.25rem] border border-dashed border-theme-border bg-theme-elevated px-4 py-5 text-center">
+ <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg bg-theme-elevated text-theme-text-secondary">
                       <Upload size={22} />
                     </div>
                     <div className="mt-3 text-sm font-semibold text-theme-text-primary">{keepOriginal ? '上传原始文件' : '上传压缩包'}</div>
@@ -1360,7 +1360,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="rounded-lg bg-theme-bg-app px-4 py-3 text-sm font-semibold text-white hover:bg-theme-elevated"
+                        className="rounded-lg bg-theme-elevated px-4 py-3 text-sm font-semibold text-white hover:bg-theme-elevated"
                       >
                         选择文件
                       </button>
@@ -1428,7 +1428,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
               >
                 后台运行
               </button>
-              <button type="submit" disabled={isUploading || (isAppendMode ? uploadQueue.length === 0 : !uploadDisplayName.trim())} className="rounded-lg bg-theme-bg-app px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
+              <button type="submit" disabled={isUploading || (isAppendMode ? uploadQueue.length === 0 : !uploadDisplayName.trim())} className="rounded-lg bg-theme-elevated px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
                 {isUploading ? <Loader2 size={16} className="mr-2 inline-block animate-spin" /> : null}
                 {isAppendMode ? '提交追加上传' : '创建上传记录'}
               </button>
@@ -1439,7 +1439,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
 
       {deleteTarget ? (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="w-full max-w-md rounded-2xl bg-theme-bg-app p-6">
+ <div className="w-full max-w-md rounded-2xl bg-theme-elevated p-6">
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-rose-500/15 text-rose-400">
                 <AlertCircle size={22} />
