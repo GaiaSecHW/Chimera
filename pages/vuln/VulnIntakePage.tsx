@@ -352,28 +352,30 @@ const getLatestAutoVerifyTaskRef = (detail: any, timeline: any[], fallbackProjec
 };
 
 const STAGE_TEXT: Record<string, string> = {
-  receive: '接收',
-  triage: '研判',
-  validation: '研判',
+  receive: '已接收',
+  triage: '研判中',
+  validation: '研判中',
   finished: '已结束',
 };
 
 const STATUS_TEXT: Record<string, string> = {
-  intake_created: '接收',
-  files_collecting: '接收',
-  ready_for_triage: '接收',
-  waiting: '接收',
-  ai_assessing: '研判',
-  manual_assessing: '研判',
-  awaiting_manual_gate: '研判',
-  queued: '研判',
-  poc_generating: '研判',
-  exp_generating: '研判',
-  reproducing: '研判',
-  evidence_collecting: '研判',
-  triage_completed: '已结束',
-  validation_completed: '已结束',
+  pending: '已接收',
+  assessing: '研判中',
   finished: '已结束',
+  intake_created: '已接收',
+  files_collecting: '已接收',
+  ready_for_triage: '已接收',
+  waiting: '已接收',
+  ai_assessing: '研判中',
+  manual_assessing: '研判中',
+  awaiting_manual_gate: '研判中',
+  queued: '研判中',
+  poc_generating: '研判中',
+  exp_generating: '研判中',
+  reproducing: '研判中',
+  evidence_collecting: '研判中',
+  triage_completed: '研判中',
+  validation_completed: '研判中',
 };
 
 const DECISION_TEXT: Record<string, string> = {
@@ -393,8 +395,7 @@ const CONCLUSION_TEXT: Record<string, string> = {
 
 const toUserVulnStatusText = (itemOrStage?: any, status?: string) => {
   if (itemOrStage && typeof itemOrStage === 'object') {
-    const conclusion = itemOrStage.finished_reason || itemOrStage.final_result || itemOrStage.validation_result || itemOrStage.result_summary?.validation_result;
-    if (conclusion && conclusion !== 'analyzing') return '已结束';
+    if (itemOrStage.current_stage === 'finished' || itemOrStage.finished_reason) return '已结束';
     status = itemOrStage.current_status;
     itemOrStage = itemOrStage.current_stage;
   }

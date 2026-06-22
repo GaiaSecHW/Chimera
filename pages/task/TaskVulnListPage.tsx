@@ -61,9 +61,9 @@ const renderSeverity = (severity?: string | null) => {
 };
 
 const STAGE_LABEL: Record<string, string> = {
-  receive: '接收',
-  triage: '研判',
-  validation: '验证',
+  receive: '已接收',
+  triage: '研判中',
+  validation: '研判中',
   finished: '已结束',
 };
 
