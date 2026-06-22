@@ -2703,7 +2703,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   };
 
   return (
-    <div className="animate-in fade-in space-y-5 p-6 pb-16 duration-500 xl:p-8 xl:pb-20">
+    <div className="space-y-4 px-5 py-5 md:px-6 2xl:px-8">
       {feedbackNodes}
       {!selectedSuspicionId ? (
         <>

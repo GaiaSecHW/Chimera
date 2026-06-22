@@ -164,47 +164,41 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
     }));
 
     return (
-      <div className="space-y-3">
-        {/* 输入类型 + 是否解压 */}
-        <div className={compact ? 'flex items-center gap-4' : 'space-y-3'}>
-          <label className={compact ? 'flex items-center gap-2 text-sm font-semibold' : 'block text-sm font-semibold'} style={{ color: 'var(--uploader-label-color, #d6def0)' }}>
-            输入类型
-            <select
-              value={inputType}
-              onChange={(e) => setInputType(e.target.value as InputType)}
-              className={compact ? 'rounded-lg px-2 py-1.5 text-sm outline-none' : 'mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none'}
-              style={{
-                backgroundColor: 'var(--uploader-input-bg, #18233a)',
-                color: 'var(--uploader-input-color, #d6def0)',
-                border: '1px solid var(--uploader-border, #26324a)',
-              }}
-            >
-              {INPUT_TYPE_ORDER.map((type) => (
-                <option key={type} value={type}>{INPUT_TYPE_META[type].label}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--uploader-label-color, #d6def0)' }}>
-            <input
-              type="checkbox"
-              checked={keepOriginal}
-              onChange={(e) => setKeepOriginal(e.target.checked)}
-              className="h-4 w-4 rounded"
-            />
-            保留原始文件，不自动解压
-          </label>
+      <div className="space-y-4">
+        {/* 输入类型 */}
+        <div className="space-y-1.5">
+          <label className="form-label">输入类型</label>
+          <select
+            value={inputType}
+            onChange={(e) => setInputType(e.target.value as InputType)}
+            className="form-select w-full"
+          >
+            {INPUT_TYPE_ORDER.map((type) => (
+              <option key={type} value={type}>{INPUT_TYPE_META[type].label}</option>
+            ))}
+          </select>
         </div>
 
+        {/* 是否解压 */}
+        <label className="flex items-center gap-2 text-sm font-medium text-theme-text-secondary">
+          <input
+            type="checkbox"
+            checked={keepOriginal}
+            onChange={(e) => setKeepOriginal(e.target.checked)}
+            className="h-4 w-4 rounded border-theme-border"
+          />
+          保留原始文件，不自动解压
+        </label>
+
         {/* 文件选择 */}
-        <div className="rounded-xl border border-dashed px-4 py-4 text-center" style={{ borderColor: 'var(--uploader-border, #26324a)' }}>
-          <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg" style={{ color: 'var(--uploader-label-color, #d6def0)' }}>
+        <div className="rounded-xl border border-dashed border-theme-border px-4 py-4 text-center">
+          <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg bg-theme-elevated text-theme-text-muted">
             <Upload size={20} />
           </div>
-          <div className="mt-2 text-sm font-semibold" style={{ color: 'var(--uploader-input-color, #d6def0)' }}>
+          <div className="mt-2 text-sm font-semibold text-theme-text-primary">
             {keepOriginal ? '上传原始文件' : '上传压缩包'}
           </div>
-          <div className="mt-1 text-xs leading-5" style={{ color: 'var(--uploader-muted, #72809a)' }}>
+          <div className="mt-1 text-xs leading-5 text-theme-text-muted">
             {keepOriginal
               ? '当前保留原始文件模式下，支持上传任意文件，一次可选择多个文件。'
               : '支持 zip / tar / tar.gz / tgz / tar.bz2 / tbz2 / tar.xz / txz，一次可选择多个文件。'}
@@ -213,12 +207,7 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="rounded-lg px-4 py-2 text-sm font-semibold"
-              style={{
-                backgroundColor: 'var(--uploader-btn-bg, #18233a)',
-                color: 'var(--uploader-input-color, #d6def0)',
-                border: '1px solid var(--uploader-border, #26324a)',
-              }}
+              className="btn btn-secondary"
             >
               选择文件
             </button>
@@ -236,29 +225,29 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
         {/* 上传队列 */}
         <div className="space-y-2">
           {uploadQueue.length === 0 ? (
-            <div className="rounded-lg px-3 py-3 text-sm" style={{ color: 'var(--uploader-muted, #72809a)', border: '1px solid var(--uploader-border, #26324a)' }}>
+            <div className="rounded-lg border border-theme-border bg-theme-surface px-3 py-3 text-sm text-theme-text-muted">
               还没有选择上传文件。
             </div>
           ) : (
             uploadQueue.map((item) => (
-              <div key={item.id} className="rounded-lg px-3 py-3" style={{ border: '1px solid var(--uploader-border, #26324a)' }}>
+              <div key={item.id} className="rounded-lg border border-theme-border px-3 py-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold" style={{ color: 'var(--uploader-input-color, #d6def0)' }}>{item.file.name}</div>
-                    <div className="mt-0.5 text-xs" style={{ color: 'var(--uploader-muted, #72809a)' }}>
+                    <div className="truncate text-sm font-semibold text-theme-text-primary">{item.file.name}</div>
+                    <div className="mt-0.5 text-xs text-theme-text-muted">
                       {formatUploadBytes(item.file.size)} · {formatSpeed(item.speedBytesPerSec)}
                     </div>
                   </div>
-                  <div className="text-xs font-semibold" style={{ color: 'var(--uploader-muted, #72809a)' }}>
+                  <div className="text-xs font-semibold text-theme-text-muted">
                     {item.error || item.status}
                   </div>
                 </div>
-                <div className="mt-2 h-1.5 rounded-full" style={{ backgroundColor: 'var(--uploader-input-bg, #18233a)' }}>
+                <div className="mt-2 h-1.5 rounded-full bg-theme-elevated">
                   <div
                     className="h-1.5 rounded-full"
                     style={{
                       width: `${item.progress}%`,
-                      backgroundColor: item.status === 'failed' ? '#f15d5d' : 'var(--uploader-accent, #4f73ff)',
+                      backgroundColor: item.status === 'failed' ? '#f15d5d' : '#4f73ff',
                     }}
                   />
                 </div>

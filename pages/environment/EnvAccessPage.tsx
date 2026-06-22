@@ -279,9 +279,9 @@ export const EnvAccessPage: React.FC<{ projectId: string }> = ({ projectId }) =>
   }, [accessInfo, notify, projectId]);
 
   return (
-    <div className="min-h-full bg-theme-elevated px-8 py-8">
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4">
       {feedbackNodes}
-      <div className="mx-auto max-w-7xl space-y-6">
+      <div className="space-y-4">
         <PageHeader
           title="环境接入"
           description="面向测试环境的接入入口。选择部署方式后，在目标节点或集群执行命令，上线后的 Agent 会进入环境管理页面。"

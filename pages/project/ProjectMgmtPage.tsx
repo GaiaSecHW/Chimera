@@ -634,25 +634,18 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       )}
 
       {/* Search bar */}
-      <div
-        className="flex items-center gap-2 rounded-lg px-3"
-        style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
-      >
-        <Search size={16} style={{ color: LK.muted }} />
+      <div className="relative flex items-center">
+        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
         <input
           type="text"
           placeholder="搜索项目名称、负责人、归属部门、产品路径、版本号..."
-          className="w-full bg-transparent py-2.5 text-sm outline-none"
-          style={{ color: LK.inkSoft }}
+          className="form-input w-full pl-10 pr-10"
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
         />
         <button
           onClick={toggleSelectAll}
-          className="p-1.5 transition-colors"
-          style={{ color: isAllSelected ? LK.primary : LK.muted }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = LK.primarySoft)}
-          onMouseLeave={(e) => (e.currentTarget.style.color = isAllSelected ? LK.primary : LK.muted)}
+          className="absolute right-3 text-theme-text-muted transition-colors hover:text-theme-primary"
           title={isAllSelected ? '取消全选可管理项目' : '全选可管理项目'}
         >
           {isAllSelected ? <CheckSquare size={16} /> : <Square size={16} />}

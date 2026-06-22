@@ -433,25 +433,20 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         })}
       </div>
 
-      <div
-        className="flex items-center gap-2 rounded-lg px-3"
-        style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
-      >
-        <Search size={16} style={{ color: LK.muted }} />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="搜索任务名、Harness、状态、下游任务 ID"
-          className="w-full bg-transparent py-2.5 text-sm outline-none"
-          style={{ color: LK.inkSoft }}
-        />
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="搜索任务名、Harness、状态、下游任务 ID"
+            className="form-input w-full pl-10"
+          />
+        </div>
         <select
           value={selectedAgentAppFilter}
           onChange={(e) => setSelectedAgentAppFilter(e.target.value)}
-          className="rounded-lg px-2 py-1 outline-none transition-colors text-sm"
-          style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-          onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-          onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+          className="form-select"
         >
           <option value="">全部 Harness</option>
           {agentApps.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
