@@ -2260,6 +2260,7 @@ export interface VirtualKey {
 export type ScheduleCenterUserTaskType =
   | 'binary_firmware_e2e'
   | 'source_scan_e2e'
+  | 'kg_source_vuln_scan_e2e'
   | 'binary_module_e2e'
   | 'ai4red'
   | 'ai4app_fast'
@@ -2489,6 +2490,7 @@ export interface ScheduleCenterUserTaskBulkDeleteResult {
 export type ScheduleRuntimeTaskType =
   | 'binary_firmware_e2e'
   | 'source_scan_e2e'
+  | 'kg_source_vuln_scan_e2e'
   | 'binary_module_e2e'
   | 'ai4red'
   | 'ai4app_fast'

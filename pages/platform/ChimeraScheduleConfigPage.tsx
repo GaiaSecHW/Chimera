@@ -18,6 +18,7 @@ import {
 const TASK_TYPE_ORDER: ScheduleRuntimeTaskType[] = [
   'binary_firmware_e2e',
   'source_scan_e2e',
+  'kg_source_vuln_scan_e2e',
   'binary_module_e2e',
   'ai4red',
   'ai4app_fast',
@@ -30,6 +31,7 @@ const TASK_TYPE_ORDER: ScheduleRuntimeTaskType[] = [
 const DEFAULT_CAPACITY_POOL_IDS: Record<ScheduleRuntimeTaskType, number[]> = {
   binary_firmware_e2e: [1],
   source_scan_e2e: [1],
+  kg_source_vuln_scan_e2e: [1],
   binary_module_e2e: [1],
   ai4red: [],
   ai4app_fast: [1],

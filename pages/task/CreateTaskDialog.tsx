@@ -47,6 +47,7 @@ const TASK_TYPES: readonly TaskTypeOption[] = [
   { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'cfg_db_vuln', label: 'CFG-挖掘工具', downstreamView: 'cfg-db-vuln-detail', modes: ['dragon-tail', 'ram-horn'] },
+  { value: 'kg_source_vuln_scan_e2e', label: '知识图谱-漏洞挖掘', downstreamView: 'kg-source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'ai4app_fast', label: 'AI4APP 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
   { value: 'ai4web_fast', label: 'AI4WEB 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
@@ -66,6 +67,7 @@ const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
   binary_module_e2e: 'file_list',
   source_scan_e2e: 'directory',
   cfg_db_vuln: 'directory',
+  kg_source_vuln_scan_e2e: 'directory',
   ai4red: 'directory',
   ai4app_fast: 'file',
   ai4app_deep: 'file',
@@ -174,6 +176,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [moduleName, setModuleName] = useState('');
   const [selectedAgentAppId, setSelectedAgentAppId] = useState('');
   const [instruction, setInstruction] = useState('');
+  const [knowledgeGraphUploadId, setKnowledgeGraphUploadId] = useState('');
+  const [knowledgeGraphDbName, setKnowledgeGraphDbName] = useState('');
   const [agentAppsLoadError, setAgentAppsLoadError] = useState('');
 
   /* --- input source toggle --- */
@@ -189,6 +193,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const rootBrowse = browseCache[''] || null;
   const isDirectorySelectionValid = directorySelectionTouched && selectedRelativePath !== null;
   const taskTypeMeta = useMemo(() => TASK_TYPES.find((item) => item.value === taskType) || TASK_TYPES[0], [taskType]);
+  const isKgSourceTask = taskType === 'kg_source_vuln_scan_e2e';
   const availableTaskTypes = useMemo(
     () => TASK_TYPES.filter((item) => item.modes.includes(mode as TaskMode)),
     [mode],
@@ -225,7 +230,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           (selectionMode === 'file' && selectedRelativePath) ||
           (selectionMode === 'file_list' && selectedRelativePaths.length > 0) ||
           (selectionMode === 'directory' && isDirectorySelectionValid)
-        ) && (taskType !== 'binary_module_e2e' || moduleName.trim())))
+        ) && (taskType !== 'binary_module_e2e' || moduleName.trim()) && (!isKgSourceTask || knowledgeGraphUploadId.trim() || knowledgeGraphDbName.trim())))
   );
 
 
@@ -299,6 +304,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setDirectorySelectionTouched(false);
     setInputBrowseError('');
     setInstruction('');
+    setKnowledgeGraphUploadId('');
+    setKnowledgeGraphDbName('');
     if (taskType !== 'sechps_tool') {
       setSelectedAgentAppId('');
     }
@@ -437,6 +444,12 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         };
       }
 
+      if (isKgSourceTask && !knowledgeGraphUploadId.trim() && !knowledgeGraphDbName.trim()) {
+        setError('请填写知识图谱 upload_id 或 db_name');
+        setSaving(false);
+        return;
+      }
+
       const sechpsInstruction = taskType === 'sechps_tool'
         ? resolveSechpsInstruction(instruction, selectedAgentApp?.startCommand)
         : '';
@@ -446,7 +459,11 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         description,
         input_upload_ids: [finalInputUploadId],
         input_binding: finalInputBinding,
-        policy: {},
+        policy: isKgSourceTask ? {
+          pipeline_profile: 'kg_source_vuln_scan',
+          knowledge_graph_upload_id: knowledgeGraphUploadId.trim() || undefined,
+          knowledge_graph_db_name: knowledgeGraphDbName.trim() || undefined,
+        } : {},
         dispatch_policy: {},
         module_name: taskType === 'binary_module_e2e' ? moduleName : undefined,
         agent_app_id: taskType === 'sechps_tool' ? (selectedAgentApp?.id || undefined) : undefined,
@@ -465,6 +482,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setModuleName('');
       setSelectedAgentAppId('');
       setInstruction('');
+      setKnowledgeGraphUploadId('');
+      setKnowledgeGraphDbName('');
       setSelectedRelativePath(null);
       setSelectedRelativePaths([]);
       setInputCurrentPath('');
@@ -769,6 +788,37 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   />
                 </label>
               ) : null}
+
+              {isKgSourceTask ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                    知识图谱 Upload ID
+                    <input
+                      value={knowledgeGraphUploadId}
+                      onChange={(e) => setKnowledgeGraphUploadId(e.target.value)}
+                      className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                      placeholder="upload_id，优先于 db_name"
+                    />
+                  </label>
+                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                    知识图谱 DB Name
+                    <input
+                      value={knowledgeGraphDbName}
+                      onChange={(e) => setKnowledgeGraphDbName(e.target.value)}
+                      className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                      placeholder="db_name，可选兜底"
+                    />
+                  </label>
+                  <div className="md:col-span-2 text-xs" style={{ color: LK.muted }}>至少填写一个；两者都填写时执行优先使用 upload_id。</div>
+                </div>
+              ) : null}
+
 
               {/* -------- 测试对象 section -------- */}
               <div>
