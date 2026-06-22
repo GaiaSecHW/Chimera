@@ -1222,7 +1222,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                     </div>
                   ) : null}
                   {created.length > 0 ? (
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+                    <div className="rounded-2xl border border-theme-border bg-theme-elevated p-4">
                       <div className="mb-3 text-sm font-semibold text-theme-text-primary">已创建任务</div>
                       <div className="space-y-2">
                         {created.map((item) => (
@@ -1230,7 +1230,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                             key={item.id}
                             type="button"
                             onClick={() => navigateTo(item.targetStage, item.id, navigate)}
-                            className="flex w-full items-start gap-2 rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2 text-left text-xs hover:bg-theme-bg-app"
+                            className="flex w-full items-start gap-2 rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-left text-xs hover:bg-theme-elevated"
                           >
                             <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-emerald-400" />
                             <span className="min-w-0">
@@ -1243,20 +1243,20 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                     </div>
                   ) : null}
                   {result ? (
-                    <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
+                    <div className="rounded-2xl border border-theme-border bg-theme-elevated p-4">
                       <button type="button" onClick={() => setShowRaw((value) => !value)} className="flex w-full items-center justify-between text-left text-xs font-medium text-theme-text-secondary">
                         结果原始摘要
                         {showRaw ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                       </button>
-                      {showRaw ? <pre className="mt-3 max-h-52 overflow-auto rounded-xl border border-theme-border bg-theme-bg-app p-3 text-[10px] text-theme-text-primary">{JSON.stringify(result, null, 2)}</pre> : null}
+                      {showRaw ? <pre className="mt-3 max-h-52 overflow-auto rounded-xl border border-theme-border bg-theme-elevated p-3 text-[10px] text-theme-text-primary">{JSON.stringify(result, null, 2)}</pre> : null}
                     </div>
                   ) : null}
                 </aside>
               </div>
             </div>
 
-            <footer className="flex flex-wrap items-center justify-end gap-3 border-t border-theme-border bg-theme-bg-app px-6 py-4">
-              <button type="button" onClick={() => setOpen(false)} className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
+            <footer className="flex flex-wrap items-center justify-end gap-3 border-t border-theme-border bg-theme-elevated px-6 py-4">
+              <button type="button" onClick={() => setOpen(false)} className="rounded-xl border border-theme-border bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
                 关闭
               </button>
               <button

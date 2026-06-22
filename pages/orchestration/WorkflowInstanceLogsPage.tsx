@@ -171,7 +171,7 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
               </div>
 
               <div className="grid gap-px bg-theme-elevated lg:grid-cols-2">
-                <div className="bg-theme-bg-app p-6 space-y-3">
+                <div className="bg-theme-elevated p-6 space-y-3">
                   <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-secondary">
                     <FileText size={16} />
                     初始化日志
@@ -184,7 +184,7 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
                   </pre>
                 </div>
 
-                <div className="bg-theme-bg-app p-6 space-y-3">
+                <div className="bg-theme-elevated p-6 space-y-3">
                   <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-secondary">
                     <FileText size={16} />
                     执行日志

@@ -174,7 +174,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
   }
 
   return (
-    <div className="flex flex-col h-full bg-theme-bg-app animate-in fade-in duration-500">
+    <div className="flex flex-col h-full bg-theme-surface animate-in fade-in duration-500">
       {/* Header */}
       <PageHeader
         title={template?.name}

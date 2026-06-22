@@ -310,7 +310,7 @@ export const AppInstanceDetailPage: React.FC<{
                 <div className="text-sm text-theme-text-primary">{instance.workflow_type}</div>
               </div>
             </div>
-            <div className="rounded-xl bg-theme-bg-app p-6">
+            <div className="rounded-xl bg-theme-elevated p-6">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-theme-text-primary">节点信息</h3>
                 <StatusBadge status={node.status} />
@@ -330,7 +330,7 @@ export const AppInstanceDetailPage: React.FC<{
           <div className="space-y-8">
             <div>
               <h3 className="mb-4 text-lg font-semibold text-theme-text-primary">Service 端口</h3>
-              <div className="rounded-xl bg-theme-bg-app p-6">
+              <div className="rounded-xl bg-theme-elevated p-6">
                 {instance.service_ports?.length ? instance.service_ports.map((port, index) => (
                   <div key={`${port.name}-${index}`} className="grid grid-cols-4 gap-4 border-t border-theme-border py-2 first:border-t-0">
                     <div className="text-sm text-theme-text-primary">{port.name}</div>
@@ -343,7 +343,7 @@ export const AppInstanceDetailPage: React.FC<{
             </div>
             <div>
               <h3 className="mb-4 text-lg font-semibold text-theme-text-primary">环境变量</h3>
-              <div className="rounded-xl bg-theme-bg-app p-6">
+              <div className="rounded-xl bg-theme-elevated p-6">
                 {instance.env_vars?.length ? instance.env_vars.map((env, index) => (
                   <div key={`${env.name}-${index}`} className="flex items-center justify-between border-t border-theme-border py-2 first:border-t-0">
                     <div className="font-mono text-sm text-theme-text-primary">{env.name}</div>
@@ -354,7 +354,7 @@ export const AppInstanceDetailPage: React.FC<{
             </div>
             <div>
               <h3 className="mb-4 text-lg font-semibold text-theme-text-primary">LLM 配置绑定</h3>
-              <div className="rounded-xl bg-theme-bg-app p-6">
+              <div className="rounded-xl bg-theme-elevated p-6">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div className="text-sm text-theme-text-muted">支持在实例详情里直接调整多个 LLM 绑定及配置文件注入。</div>
                   <div className="flex items-center gap-3">
@@ -395,7 +395,7 @@ export const AppInstanceDetailPage: React.FC<{
                           setIsEditingLlmBindings(true);
                           setLlmBindingsNotice(null);
                         }}
-                        className="rounded-xl bg-theme-bg-app px-4 py-2 text-sm font-medium text-blue-400 hover:bg-blue-500/15"
+                        className="rounded-xl bg-theme-elevated px-4 py-2 text-sm font-medium text-blue-400 hover:bg-blue-500/15"
                       >
                         编辑绑定
                       </button>
@@ -454,7 +454,7 @@ export const AppInstanceDetailPage: React.FC<{
             </div>
             <div>
               <h3 className="mb-4 text-lg font-semibold text-theme-text-primary">卷挂载</h3>
-              <div className="rounded-xl bg-theme-bg-app p-6">
+              <div className="rounded-xl bg-theme-elevated p-6">
                 {instance.volume_mounts?.length ? instance.volume_mounts.map((mount, index) => (
                   <div key={`${mount.pvc_name}-${index}`} className="border-t border-theme-border py-3 first:border-t-0">
                     <div className="font-semibold text-theme-text-primary">{mount.pvc_name}</div>
@@ -474,7 +474,7 @@ export const AppInstanceDetailPage: React.FC<{
               <>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                   {accessCards.map((card) => (
-                    <div key={card.label} className="rounded-xl bg-theme-bg-app p-4">
+                    <div key={card.label} className="rounded-xl bg-theme-elevated p-4">
                       <div className="text-[10px] font-medium uppercase text-theme-text-muted">{card.label}</div>
                       <div className="mt-1 break-all text-sm font-semibold text-theme-text-primary">{card.value}</div>
                     </div>

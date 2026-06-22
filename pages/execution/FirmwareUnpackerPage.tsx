@@ -317,7 +317,7 @@ function phaseNodeTone(status: string) {
   if (status === 'running') return 'border-blue-500 bg-blue-500/15 text-blue-400';
   if (status === 'failed') return 'border-red-400 bg-red-500/15 text-red-400';
   if (status === 'skipped') return 'border-amber-400 bg-amber-500/15 text-amber-400';
-  return 'border-theme-border bg-theme-bg-app text-theme-text-muted';
+  return 'border-theme-border bg-theme-elevated text-theme-text-muted';
 }
 
 function phaseTextTone(status: string) {
@@ -393,8 +393,8 @@ function roundStatusTone(status: string | null | undefined): string {
   if (['review_failed'].includes(raw)) return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
   if (['failed', 'error'].includes(raw)) return 'border-red-500/20 bg-red-500/15 text-red-400';
   if (['running', 'active'].includes(raw)) return 'border-blue-500/20 bg-blue-500/15 text-blue-400';
-  if (['cancelled', 'cancelling'].includes(raw)) return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
-  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+  if (['cancelled', 'cancelling'].includes(raw)) return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function inferTimelineTone(event: FirmwareTaskEvent) {
@@ -545,8 +545,8 @@ function evolutionStatusTone(status: string | null | undefined) {
   if (raw === 'running') return 'border-blue-500/20 bg-blue-500/15 text-blue-400';
   if (raw === 'pending') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
   if (raw === 'failed') return 'border-red-500/20 bg-red-500/15 text-red-400';
-  if (raw === 'cancelled') return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
-  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+  if (raw === 'cancelled') return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function evolutionStageLabel(stage: string | null | undefined) {
@@ -584,12 +584,12 @@ function TaskStatusBadge({ status }: { status: string }) {
     pending: { cls: 'bg-amber-500/15 text-amber-400 border-amber-500/20', label: '排队中' },
     running: { cls: 'bg-blue-500/15 text-blue-400 border-blue-500/20', label: '运行中' },
     cancelling: { cls: 'bg-orange-500/15 text-orange-400 border-orange-500/20', label: '取消中' },
-    cancelled: { cls: 'bg-theme-bg-app text-theme-text-muted border-theme-border', label: '已取消' },
+    cancelled: { cls: 'bg-theme-elevated text-theme-text-muted border-theme-border', label: '已取消' },
     success: { cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20', label: '成功' },
     failed: { cls: 'bg-red-500/15 text-red-400 border-red-500/20', label: '失败' },
     max_retries_reached: { cls: 'bg-red-500/15 text-red-400 border-red-500/20', label: '超限' },
   };
-  const { cls, label } = cfg[status] ?? { cls: 'bg-theme-bg-app text-theme-text-muted', label: status };
+  const { cls, label } = cfg[status] ?? { cls: 'bg-theme-elevated text-theme-text-muted', label: status };
   return (
     <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-bold ${cls}`}>
       {label}
@@ -664,7 +664,7 @@ function RoundAgentCard({
  <section className="rounded-2xl border border-theme-border bg-theme-surface p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="text-sm font-semibold text-theme-text-primary">{title}</div>
-        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${kind === 'reviewer' ? (round.reviewer.passed ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-amber-500/20 bg-amber-500/15 text-amber-400') : 'border-theme-border bg-theme-bg-app text-theme-text-secondary'}`}>
+        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${kind === 'reviewer' ? (round.reviewer.passed ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-amber-500/20 bg-amber-500/15 text-amber-400') : 'border-theme-border bg-theme-elevated text-theme-text-secondary'}`}>
           {statusNode}
         </span>
       </div>
@@ -786,15 +786,15 @@ function RoundDetailModal({
                 <RoundAgentCard title="执行器" round={round} kind="executor" />
                 <RoundAgentCard title="评审器" round={round} kind="reviewer" />
               </div>
-              <div className="rounded-[1.75rem] border border-theme-border bg-theme-bg-app p-4">
+              <div className="rounded-[1.75rem] border border-theme-border bg-theme-elevated p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-semibold text-theme-text-primary">{activeSummaryTitle}</div>
                   </div>
                   <div className="flex flex-wrap gap-2 text-[11px]">
-                    <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 font-bold text-theme-text-secondary">状态：{activeSummaryMeta.status}</span>
-                    <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 font-bold text-theme-text-secondary">耗时：{activeSummaryMeta.duration}</span>
-                    <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 font-bold text-theme-text-secondary">角色：{activeSummaryMeta.role}</span>
+                    <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 font-bold text-theme-text-secondary">状态：{activeSummaryMeta.status}</span>
+                    <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 font-bold text-theme-text-secondary">耗时：{activeSummaryMeta.duration}</span>
+                    <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 font-bold text-theme-text-secondary">角色：{activeSummaryMeta.role}</span>
                   </div>
                 </div>
                 <div className="mt-4 rounded-xl border border-theme-border bg-theme-surface p-5">
@@ -1904,7 +1904,7 @@ function TaskDetailPanel({
             <div className="flex flex-wrap items-center gap-2">
               <TaskStatusBadge status={task.status} />
               {task.worker_id && (
-                <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">
+                <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">
                   {task.worker_id}
                 </span>
               )}
@@ -2021,7 +2021,7 @@ function TaskDetailPanel({
               ) : (
                 <div className="space-y-3">
                   {progress.summary && (
-                    <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs text-theme-text-secondary">
+                    <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs text-theme-text-secondary">
                       {progress.summary}
                     </div>
                   )}
@@ -2061,7 +2061,7 @@ function TaskDetailPanel({
                               <button
                                 type="button"
                                 onClick={() => onOpenPhaseLog(task.id, layeredProgress.preprocess.key, layeredProgress.preprocess.label)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[10px] font-bold text-theme-text-secondary hover:bg-theme-elevated"
+                                className="inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-elevated px-2.5 py-1 text-[10px] font-bold text-theme-text-secondary hover:bg-theme-elevated"
                               >
                                 <Terminal size={11} /> 查看日志
                               </button>
@@ -2125,7 +2125,7 @@ function TaskDetailPanel({
                                             <button
                                               type="button"
                                               onClick={() => onOpenPhaseLog(task.id, node.phase.key, node.label)}
-                                              className="inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[10px] font-bold text-theme-text-secondary hover:bg-theme-elevated"
+                                              className="inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-elevated px-2.5 py-1 text-[10px] font-bold text-theme-text-secondary hover:bg-theme-elevated"
                                             >
                                               <Terminal size={11} /> 查看日志
                                             </button>
@@ -2134,7 +2134,7 @@ function TaskDetailPanel({
                                         {node.rounds && node.rounds.length > 0 ? (
                                           <div className="mt-3 space-y-1 rounded-xl border border-theme-border bg-theme-surface px-2 py-2 text-left">
                                             {node.rounds.map((roundPhase) => (
-                                              <div key={roundPhase.key} className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-2">
+                                              <div key={roundPhase.key} className="rounded-lg border border-theme-border bg-theme-elevated px-2 py-2">
                                                 <div className="flex items-center justify-between gap-2 text-[10px] text-theme-text-muted">
                                                   <span className="font-semibold text-theme-text-secondary">
                                                     第{roundPhase.current_round || Number(roundPhase.key.match(/_round_(\d+)$/)?.[1] || 0)}轮
@@ -2149,7 +2149,7 @@ function TaskDetailPanel({
                                                   <button
                                                     type="button"
                                                     onClick={() => onOpenPhaseLog(task.id, roundPhase.key, roundPhase.label)}
-                                                    className="inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-[10px] font-bold text-theme-text-secondary hover:bg-theme-elevated"
+                                                    className="inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 text-[10px] font-bold text-theme-text-secondary hover:bg-theme-elevated"
                                                   >
                                                     <Terminal size={11} /> 查看日志
                                                   </button>
@@ -2188,7 +2188,7 @@ function TaskDetailPanel({
                               <button
                                 type="button"
                                 onClick={() => onOpenPhaseLog(task.id, layeredProgress.cleanup.key, layeredProgress.cleanup.label)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[10px] font-bold text-theme-text-secondary hover:bg-theme-elevated"
+                                className="inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-elevated px-2.5 py-1 text-[10px] font-bold text-theme-text-secondary hover:bg-theme-elevated"
                               >
                                 <Terminal size={11} /> 查看日志
                               </button>
@@ -2215,13 +2215,13 @@ function TaskDetailPanel({
               ) : (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">
+                    <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">
                       <p className="text-[10px] text-theme-text-muted">CPU 占用</p>
                       <p className="mt-1 text-sm font-bold text-theme-text-primary">
                         {fmtPercent(resourceUsage.cpu_millicores, resourceUsage.pod_cpu_limit_millicores)}
                       </p>
                     </div>
-                    <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">
+                    <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">
                       <p className="text-[10px] text-theme-text-muted">内存占用</p>
                       <p className="mt-1 text-sm font-bold text-theme-text-primary">
                         {fmtPercent(resourceUsage.memory_mib, resourceUsage.pod_memory_limit_mib)}
@@ -2451,7 +2451,7 @@ function TaskDetailPanel({
 
                       <div className="mt-4 overflow-x-auto rounded-2xl border border-theme-border">
                         <table className="min-w-[1180px] w-full text-left text-xs">
-                          <thead className="bg-theme-bg-app text-[11px] uppercase tracking-[0.14em] text-theme-text-muted">
+                          <thead className="bg-theme-elevated text-[11px] uppercase tracking-[0.14em] text-theme-text-muted">
                             <tr>
                               <th className="px-3 py-3">Round</th>
                               <th className="px-3 py-3">状态</th>
@@ -2480,7 +2480,7 @@ function TaskDetailPanel({
                                       setSelectedMetricRound(round);
                                     }
                                   }}
-                                  className="cursor-pointer bg-theme-bg-app transition hover:bg-theme-elevated"
+                                  className="cursor-pointer bg-theme-elevated transition hover:bg-theme-elevated"
                                 >
                                   <td className="px-3 py-3 font-mono font-bold text-theme-text-primary">#{round.round}</td>
                                   <td className="px-3 py-3">
@@ -2625,7 +2625,7 @@ function TaskDetailPanel({
                 <div className="overflow-hidden rounded-2xl border border-theme-border">
                   <div className="overflow-x-auto">
                     <table className="min-w-[1080px] w-full divide-y divide-theme-border text-left text-xs">
-                      <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
+                      <thead className="bg-theme-elevated text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                         <tr>
                           <th className="w-14 px-3 py-2">#</th>
                           <th className="w-40 px-3 py-2">时间</th>
@@ -2637,7 +2637,7 @@ function TaskDetailPanel({
                           <th className="w-20 px-3 py-2 text-right">详情</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-theme-border bg-theme-bg-app">
+                      <tbody className="divide-y divide-theme-border bg-theme-elevated">
                         {timelineItems.map((event) => {
                           const expanded = expandedEventKey === event._key;
                           const detailRows = eventDetailRows(event.detail);
@@ -2666,7 +2666,7 @@ function TaskDetailPanel({
                                 </td>
                                 <td className="px-3 py-2">
                                   {event.stage_key ? (
-                                    <span className="inline-flex max-w-[110px] rounded-full border border-theme-border bg-theme-bg-app px-2 py-0.5 text-[11px] font-bold text-theme-text-secondary">
+                                    <span className="inline-flex max-w-[110px] rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[11px] font-bold text-theme-text-secondary">
                                       <span className="truncate">{phaseDisplayLabel(event.stage_key)}</span>
                                     </span>
                                   ) : (
@@ -2710,7 +2710,7 @@ function TaskDetailPanel({
                                     type="button"
                                     disabled={detailRows.length === 0}
                                     onClick={() => setExpandedEventKey(expanded ? null : event._key)}
-                                    className="inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-[11px] font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 text-[11px] font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-40"
                                   >
                                     <ChevronRight size={12} className={expanded ? 'rotate-90 transition-transform' : 'transition-transform'} />
                                     {detailRows.length > 0 ? '查看' : '无'}
@@ -2781,7 +2781,7 @@ function TaskDetailPanel({
                               className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                                 selected
                                   ? 'border-theme-border bg-theme-surface text-white'
-                                  : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-bg-app'
+                                  : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                               }`}
                             >
                               <div className="flex items-start justify-between gap-3">
@@ -2914,7 +2914,7 @@ function TaskDetailPanel({
                           className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                             selected
                               ? 'border-theme-border bg-theme-surface text-white'
-                              : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
+                              : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                           }`}
                         >
                           <div className="flex items-center justify-between gap-3">
@@ -3072,7 +3072,7 @@ function TaskDetailPanel({
                   ) : (
                     <div className="mt-4 overflow-auto rounded-2xl border border-theme-border">
                       <table className="min-w-full divide-y divide-theme-border text-left text-xs">
-                        <thead className="bg-theme-bg-app text-theme-text-muted">
+                        <thead className="bg-theme-elevated text-theme-text-muted">
                           <tr>
                             <th className="px-3 py-3">轮次</th>
                             <th className="px-3 py-3">状态</th>
@@ -3080,7 +3080,7 @@ function TaskDetailPanel({
                             <th className="px-3 py-3">是否换工具</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-theme-border bg-theme-bg-app">
+                        <tbody className="divide-y divide-theme-border bg-theme-elevated">
                           {activeEvolutionRounds.map((round) => {
                             const unpackSeconds = round.tool_unpack_duration_seconds ?? round.metrics?.tool_unpack_duration_seconds ?? null;
                             return (
@@ -3119,7 +3119,7 @@ function TaskDetailPanel({
                         <div key={`${item.session_file}-${item.role}-${item.name}`} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
                           <div className="flex items-center justify-between gap-3">
                             <div className="text-xs font-semibold text-theme-text-primary">{item.role}/{item.name}</div>
-                            <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${item.status === 'running' ? 'border-blue-500/20 bg-blue-500/15 text-blue-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary'}`}>
+                            <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${item.status === 'running' ? 'border-blue-500/20 bg-blue-500/15 text-blue-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary'}`}>
                               {item.status === 'running' ? '运行中' : '历史'}
                             </span>
                           </div>
@@ -3310,7 +3310,7 @@ function TaskDetailPanel({
                                       selected
                                         ? 'border-theme-border bg-theme-surface text-white'
                                         : doc.available
-                                          ? 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
+                                          ? 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                                           : 'border-theme-border bg-theme-elevated text-theme-text-muted'
                                     }`}
                                   >
@@ -3332,7 +3332,7 @@ function TaskDetailPanel({
                                 {resultDocumentState.selectedDoc === 'summary' ? '当前文档未生成' : '当前文档未生成'}
                               </div>
                             ) : (
- <div className="mt-4 rounded-[1.75rem] border border-theme-border bg-theme-bg-app p-6">
+ <div className="mt-4 rounded-[1.75rem] border border-theme-border bg-theme-elevated p-6">
                                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">
                                   {resultDocumentState.selectedDoc === 'summary' ? '报告总结' : '改进总结'}
                                 </div>
@@ -3341,7 +3341,7 @@ function TaskDetailPanel({
                                 </div>
                                 <div className="mt-5 rounded-xl border border-theme-border bg-theme-surface px-6 py-5">
                                   <div className="mb-4 flex items-center justify-between gap-3 border-b border-theme-border pb-3">
-                                    <div className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-muted">
+                                    <div className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-muted">
                                       {resultDocumentState.selectedDoc === 'summary' ? 'summary.md' : 'reason.md'}
                                     </div>
                                   </div>
@@ -3361,7 +3361,7 @@ function TaskDetailPanel({
                                       prose-blockquote:border-l-4 prose-blockquote:border-amber-300 prose-blockquote:bg-amber-500/15 prose-blockquote:px-4 prose-blockquote:py-3 prose-blockquote:italic prose-blockquote:text-theme-text-secondary
                                       prose-hr:border-theme-border
                                       prose-code:rounded prose-code:bg-theme-elevated prose-code:px-1.5 prose-code:py-0.5 prose-code:text-[13px] prose-code:font-semibold prose-code:text-rose-400
-                                      prose-pre:overflow-x-auto prose-pre:rounded-[1.25rem] prose-pre:border prose-pre:border-theme-border prose-pre:bg-theme-bg-app prose-pre:px-4 prose-pre:py-4 prose-pre:text-[13px] prose-pre:leading-6 prose-pre:text-theme-text-primary
+                                      prose-pre:overflow-x-auto prose-pre:rounded-[1.25rem] prose-pre:border prose-pre:border-theme-border prose-pre:bg-theme-elevated prose-pre:px-4 prose-pre:py-4 prose-pre:text-[13px] prose-pre:leading-6 prose-pre:text-theme-text-primary
                                       prose-pre:
                                       prose-table:block prose-table:w-full prose-table:overflow-x-auto
                                       prose-thead:border-b prose-thead:border-theme-border
@@ -4205,7 +4205,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                 onChange={(e) => setFilterSearch(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && fetchTasks(true, { searchOverride: filterSearch })}
                 placeholder="搜索固件路径..."
-                className="w-44 rounded-lg border border-theme-border bg-theme-bg-app py-1.5 pl-7 pr-8 text-xs text-theme-text-secondary outline-none focus:border-blue-300"
+                className="w-44 rounded-lg border border-theme-border bg-theme-elevated py-1.5 pl-7 pr-8 text-xs text-theme-text-secondary outline-none focus:border-blue-300"
               />
               {filterSearch && (
                 <button
@@ -4225,7 +4225,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
               onChange={(e) => setFilterWorker(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && fetchTasks(true, { workerOverride: filterWorker })}
               placeholder="Worker ID 过滤..."
-              className="w-36 rounded-lg border border-theme-border bg-theme-bg-app px-2.5 py-1.5 text-xs text-theme-text-secondary outline-none focus:border-blue-300"
+              className="w-36 rounded-lg border border-theme-border bg-theme-elevated px-2.5 py-1.5 text-xs text-theme-text-secondary outline-none focus:border-blue-300"
             />
 
             <button

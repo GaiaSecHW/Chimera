@@ -408,12 +408,12 @@ const agentStateDirList = (dirs?: Record<string, DataflowAgentStateDir> | null) 
   Object.values(dirs || {}).sort((left, right) => left.agent_id.localeCompare(right.agent_id));
 
 const vulnReportStatusLabel = (task: DataflowScanTask) => {
-  if (task.auto_report_vulnerabilities === false) return { label: '未开启', className: 'border-theme-border bg-theme-bg-app text-theme-text-muted' };
+  if (task.auto_report_vulnerabilities === false) return { label: '未开启', className: 'border-theme-border bg-theme-elevated text-theme-text-muted' };
   const status = String(task.vuln_report_status?.status || 'not_started');
   if (status === 'reported') return { label:`已上报 ${task.vuln_report_status?.reported || 0}`, className: 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' };
   if (status === 'partial_failed') return { label: '部分失败', className: 'border-amber-500/20 bg-amber-500/15 text-amber-400' };
   if (status === 'failed') return { label: '上报失败', className: 'border-rose-500/20 bg-rose-500/15 text-rose-400' };
-  if (status === 'empty') return { label: '无漏洞', className: 'border-theme-border bg-theme-bg-app text-theme-text-muted' };
+  if (status === 'empty') return { label: '无漏洞', className: 'border-theme-border bg-theme-elevated text-theme-text-muted' };
   return { label: '待上报', className: 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400' };
 };
 
@@ -503,7 +503,7 @@ function getExecutionSlotView(task: DataflowScanTask): {
       ownerLabel: '',
       ownerFull,
       detail: [dispatchStatus || status].filter(Boolean),
-      className: 'border-theme-border bg-theme-bg-app text-theme-text-secondary',
+      className: 'border-theme-border bg-theme-elevated text-theme-text-secondary',
     };
   }
   if (status === 'running' && ownerBackfilled && staleOwner) {
@@ -557,7 +557,7 @@ function getExecutionSlotView(task: DataflowScanTask): {
     ownerLabel: ownerLabel || '',
     ownerFull,
     detail: [dispatchStatus].filter(Boolean),
-    className: 'border-theme-border bg-theme-bg-app text-theme-text-secondary',
+    className: 'border-theme-border bg-theme-elevated text-theme-text-secondary',
   };
 }
 
@@ -590,7 +590,7 @@ const MetricCard: React.FC<{ label: string; value: React.ReactNode; icon: React.
   const toneMap: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info' | 'brand'> = {
     success: 'success', warning: 'warning', danger: 'danger', info: 'info', brand: 'brand',
     emerald: 'success', rose: 'danger', amber: 'warning', red: 'danger', green: 'success',
-    'bg-emerald-50/70': 'success', 'bg-rose-50/70': 'danger', 'bg-theme-bg-app': 'default',
+    'bg-emerald-50/70': 'success', 'bg-rose-50/70': 'danger', 'bg-theme-elevated': 'default',
   };
   return <StatisticCard label={label} value={value} icon={icon} hint={hint} tone={tone ? (toneMap[tone] ?? 'default') : 'default'} />;
 };
@@ -1210,7 +1210,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         ?`${slotSummary.detail_mode === 'detail' ? '明细' : '摘要'}更新于 ${new Date(slotSummary.updated_at).toLocaleTimeString('zh-CN')}`
         : '全局 worker 总执行槽位',
       border: 'border-theme-border',
-      bg: 'bg-theme-bg-app',
+      bg: 'bg-theme-elevated',
       text: 'text-theme-text-primary',
     },
     {
@@ -1322,7 +1322,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
           </button>
           <button
             onClick={() => void loadAll(page)}
-            className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+            className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
           >
             <RefreshCw size={16} />
             刷新
@@ -1336,7 +1336,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
           <MetricCard label="失败" value={stats.failed} icon={<AlertTriangle size={17} />} tone="bg-rose-50/70" />
         </section>
 
- <section className="rounded-[2rem] border border-theme-border bg-theme-bg-app p-5">
+ <section className="rounded-[2rem] border border-theme-border bg-theme-elevated p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <button
               type="button"
@@ -1347,7 +1347,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                 <h2 className="mt-2 text-2xl font-semibold tracking-tight text-theme-text-primary">执行槽位总览</h2>
                 <p className="mt-2 text-sm text-theme-text-muted">展示数据流漏洞挖掘服务全局 worker 槽位、活跃任务和心跳状态，不区分项目。</p>
               </div>
-              <span className="mt-1 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-theme-border bg-theme-bg-app text-theme-text-muted">
+              <span className="mt-1 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-theme-border bg-theme-elevated text-theme-text-muted">
                 {slotsPanelExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} className="rotate-[-90deg]" />}
               </span>
             </button>
@@ -1392,7 +1392,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                 {(slotSummary?.workers || []).map((worker) => (
                   <div
                     key={worker.worker_id}
-                    className={`min-w-[220px] rounded-2xl border px-4 py-3 ${worker.healthy ? 'border-theme-border bg-theme-bg-app' : 'border-rose-500/20 bg-rose-500/15'}`}
+                    className={`min-w-[220px] rounded-2xl border px-4 py-3 ${worker.healthy ? 'border-theme-border bg-theme-elevated' : 'border-rose-500/20 bg-rose-500/15'}`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="text-sm font-semibold text-theme-text-primary" title={worker.worker_id}>{worker.host_name || worker.worker_id}</div>
@@ -1407,7 +1407,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   </div>
                 ))}
                 {slotSummary && (slotSummary.workers || []).length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-6 text-sm text-theme-text-muted">
+                  <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated px-4 py-6 text-sm text-theme-text-muted">
                     当前未发现可用的漏洞挖掘 worker。
                   </div>
                 ) : null}
@@ -1422,7 +1422,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         </section>
 
         <section>
- <div className="rounded-lg border border-theme-border bg-theme-bg-app">
+ <div className="rounded-lg border border-theme-border bg-theme-elevated">
             <div className="border-b border-theme-border p-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
@@ -1434,7 +1434,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                 </div>
               </div>
               <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2">
+                <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">
                   <Search size={16} className="text-theme-text-muted" />
                   <input
                     value={runQuery}
@@ -1468,7 +1468,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     value={parentTaskIdFilter}
                     onChange={(event) => { setParentTaskIdFilter(event.target.value); setPage(1); }}
                     placeholder="筛选主任务 ID"
-                    className="w-40 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-medium text-theme-text-secondary outline-none placeholder:text-theme-text-muted"
+                    className="w-40 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-secondary outline-none placeholder:text-theme-text-muted"
                     title="按主任务 ID 筛选"
                   />
                   <select
@@ -1536,7 +1536,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                       type="button"
                       onClick={() => setSelectedTaskIds(new Set())}
                       disabled={batchDeleting}
-                      className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"
                     >
                       清除选择
                     </button>
@@ -1544,7 +1544,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                       type="button"
                       onClick={() => void handleBatchDelete()}
                       disabled={batchDeleting}
-                      className="inline-flex items-center gap-2 rounded-lg border border-rose-500/20 bg-theme-bg-app px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-500/15 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-lg border border-rose-500/20 bg-theme-elevated px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-500/15 disabled:opacity-50"
                     >
                       {batchDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                       批量删除（{selectedTaskIds.size}）
@@ -1613,7 +1613,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                             className="flex w-full items-center gap-3 rounded-lg text-left hover:bg-theme-elevated"
                             title={hasRun ? '按 Run 目录进入运行详情' : '查看任务记录，Run 初始化后会自动进入详情'}
                           >
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-theme-border bg-theme-bg-app text-theme-text-muted">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-theme-border bg-theme-elevated text-theme-text-muted">
                               {hasRun ? <FolderOpen size={17} /> : <FileSearch size={17} />}
                             </div>
                             <div className="min-w-0">
@@ -1710,7 +1710,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                             <button
                               type="button"
                               onClick={() => void handleDeleteTask(task)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-rose-500/20 bg-theme-bg-app px-2.5 py-1.5 text-xs font-bold text-rose-400 hover:bg-rose-500/15"
+                              className="inline-flex items-center gap-1 rounded-lg border border-rose-500/20 bg-theme-elevated px-2.5 py-1.5 text-xs font-bold text-rose-400 hover:bg-rose-500/15"
                               title="删除任务及其关联 Run"
                             >
                               <Trash2 size={13} />
@@ -1719,7 +1719,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                             <button
                               type="button"
                               onClick={() => void openTaskRowDetail(task)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/20 bg-theme-bg-app px-2.5 py-1.5 text-xs font-bold text-cyan-400 hover:bg-cyan-500/15"
+                              className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/20 bg-theme-elevated px-2.5 py-1.5 text-xs font-bold text-cyan-400 hover:bg-cyan-500/15"
                               title="进入详情"
                             >
                               详情
@@ -1771,7 +1771,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         </section>
 
         <section>
- <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-4">
+ <div className="rounded-lg border border-theme-border bg-theme-elevated px-4 py-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div className="text-sm font-semibold text-theme-text-primary">Profile / 参数配置</div>
@@ -1779,7 +1779,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
               </div>
               <button
                 onClick={() => navigate('/pentest-exec-dataflow-vuln-system-config')}
-                className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+                className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
               >
                 <Settings size={16} />
                 打开参数配置
@@ -1804,7 +1804,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
 
       {showSlotDetailModal ? (
         <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm" onClick={() => setShowSlotDetailModal(false)}>
- <div className="w-full max-w-5xl rounded-[2rem] border border-theme-border bg-theme-bg-app" onClick={(event) => event.stopPropagation()}>
+ <div className="w-full max-w-5xl rounded-[2rem] border border-theme-border bg-theme-elevated" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
               <div>
                 <h3 className="mt-2 text-2xl font-semibold tracking-tight text-theme-text-primary">执行槽位详情</h3>
@@ -1818,7 +1818,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                 <button
                   type="button"
                   onClick={() => setShowSlotDetailModal(false)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated"
                   aria-label="关闭执行槽位详情"
                 >
                   <X size={16} />
@@ -1827,7 +1827,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
             </div>
             <div className="max-h-[75vh] overflow-auto px-6 py-5">
               {(slotSummary?.workers || []).length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-10 text-center text-sm text-theme-text-muted">
+                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated px-4 py-10 text-center text-sm text-theme-text-muted">
                   当前未发现可用的漏洞挖掘 worker。
                 </div>
               ) : (
@@ -1836,7 +1836,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     const expanded = expandedSlotWorkerIds.includes(worker.worker_id);
                     const activeJobs = worker.active_jobs || [];
                     return (
-                      <section key={worker.worker_id} className={`overflow-hidden rounded-[1.5rem] border ${worker.healthy ? 'border-theme-border bg-theme-bg-app' : 'border-rose-500/20 bg-rose-50/70'}`}>
+                      <section key={worker.worker_id} className={`overflow-hidden rounded-[1.5rem] border ${worker.healthy ? 'border-theme-border bg-theme-elevated' : 'border-rose-500/20 bg-rose-50/70'}`}>
                         <button
                           type="button"
                           onClick={() => toggleSlotWorkerExpanded(worker.worker_id)}
@@ -1855,7 +1855,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                               <span>心跳 {formatDateTime(worker.last_heartbeat_at)}</span>
                             </div>
                           </div>
-                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-theme-border bg-theme-bg-app text-theme-text-muted">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-theme-border bg-theme-elevated text-theme-text-muted">
                             {expanded ? <ChevronDown size={16} /> : <ChevronUp size={16} className="rotate-90" />}
                           </div>
                         </button>
@@ -1866,7 +1866,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                                 明细拉取失败：{worker.error}
                               </div>
                             ) : activeJobs.length === 0 ? (
-                              <div className="rounded-2xl border border-dashed border-theme-border bg-theme-bg-app px-4 py-8 text-center text-sm text-theme-text-muted">
+                              <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated px-4 py-8 text-center text-sm text-theme-text-muted">
                                 当前无运行中的漏洞挖掘任务。
                               </div>
                             ) : (
@@ -1906,7 +1906,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                                         <button
                                           type="button"
                                           onClick={() => void openTaskDetail({ task_id: job.task_id || '', latest_execution_id: job.execution_id || '' })}
-                                          className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/20 bg-theme-bg-app px-3 py-1.5 text-xs font-bold text-cyan-400 hover:bg-cyan-500/15"
+                                          className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/20 bg-theme-elevated px-3 py-1.5 text-xs font-bold text-cyan-400 hover:bg-cyan-500/15"
                                         >
                                           进入任务
                                           <ChevronRight size={14} />
@@ -2147,7 +2147,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
       <div className="min-h-full bg-theme-elevated px-5 py-5 text-theme-text-primary lg:px-8 lg:py-7">
         {feedbackNodes}
         <div className="space-y-4">
- <div className="rounded-lg border border-theme-border bg-theme-bg-app p-6">
+ <div className="rounded-lg border border-theme-border bg-theme-elevated p-6">
             <div className="flex items-center gap-3 text-sm font-bold text-theme-text-secondary">
               <Loader2 size={16} className={detailLoading ? 'animate-spin' : ''} />
               {loadError ?`解析 Run 失败: ${loadError}` : '正在解析 Run...'}
@@ -2170,7 +2170,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
           >
             <button
               onClick={goBack}
-              className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+              className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
             >
               <ArrowLeft size={16} />
               返回列表
@@ -2178,13 +2178,13 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
             <button
               onClick={() => void resolveTaskRouteToRun(taskId, requestedExecutionId)}
               disabled={detailLoading}
-              className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-50"
             >
               {detailLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               重新解析
             </button>
           </PageHeader>
- <div className="rounded-lg border border-theme-border bg-theme-bg-app p-6">
+ <div className="rounded-lg border border-theme-border bg-theme-elevated p-6">
             <div className="flex items-center gap-3 text-sm font-bold text-theme-text-secondary">
               <Loader2 size={16} className={detailLoading ? 'animate-spin' : ''} />
               {loadError ||`正在查找任务 ${shortId(taskId, 20)} 对应的 Run...`}
@@ -2212,7 +2212,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
           <button
             type="button"
             onClick={goBack}
- className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated"
+ className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-4 py-2 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated"
           >
             <ArrowLeft size={16} />
             返回任务列表
@@ -2251,7 +2251,7 @@ const CreateTaskDialog: React.FC<{
   return (
     <>
       <div className="fixed inset-0 z-[260] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
- <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-theme-border bg-theme-bg-app">
+ <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-theme-border bg-theme-elevated">
           <div className="flex items-center justify-between border-b border-theme-border px-5 py-4">
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-400">New Scan Task</div>
@@ -2313,7 +2313,7 @@ const CreateTaskDialog: React.FC<{
             </div>
 
             <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
-              <div className="rounded-lg border border-theme-border bg-theme-bg-app p-4">
+              <div className="rounded-lg border border-theme-border bg-theme-elevated p-4">
                 <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-primary">
                   <FolderOpen size={16} />
                   Runs 根目录
@@ -2326,13 +2326,13 @@ const CreateTaskDialog: React.FC<{
                     placeholder={DEFAULT_DATAFLOW_VULN_RUNS_ROOT}
                     style={FORM_INPUT_STYLE}
                   />
-                  <button type="button" onClick={() => setPickerField('workspacePath')} className="shrink-0 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated">
+                  <button type="button" onClick={() => setPickerField('workspacePath')} className="shrink-0 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated">
                     选择
                   </button>
                 </div>
               </div>
 
-              <div className="rounded-lg border border-theme-border bg-theme-bg-app p-4">
+              <div className="rounded-lg border border-theme-border bg-theme-elevated p-4">
                 <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-primary">
                   <FolderOpen size={16} />
                   数据流目录
@@ -2345,13 +2345,13 @@ const CreateTaskDialog: React.FC<{
                     placeholder="/case-a/data_flow"
                     style={FORM_INPUT_STYLE}
                   />
-                  <button type="button" onClick={() => setPickerField('dataFlowPath')} className="shrink-0 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated">
+                  <button type="button" onClick={() => setPickerField('dataFlowPath')} className="shrink-0 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated">
                     选择
                   </button>
                 </div>
               </div>
 
-              <div className="rounded-lg border border-theme-border bg-theme-bg-app p-4">
+              <div className="rounded-lg border border-theme-border bg-theme-elevated p-4">
                 <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-primary">
                   <FolderOpen size={16} />
                   代码目录
@@ -2364,7 +2364,7 @@ const CreateTaskDialog: React.FC<{
                     placeholder="/case-a/source"
                     style={FORM_INPUT_STYLE}
                   />
-                  <button type="button" onClick={() => setPickerField('sourcePath')} className="shrink-0 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated">
+                  <button type="button" onClick={() => setPickerField('sourcePath')} className="shrink-0 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated">
                     选择
                   </button>
                 </div>
@@ -2447,7 +2447,7 @@ const CreateTaskDialog: React.FC<{
                   value={state.runtimeOverridesText}
                   onChange={(event) => onChange({ ...state, runtimeOverridesText: event.target.value })}
                   placeholder={'{\n"global": {"max_review_cycles": 4 }\n}'}
-                  className="mt-2 min-h-[150px] w-full rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 font-mono text-xs leading-5 text-theme-text-primary outline-none focus:border-cyan-600"
+                  className="mt-2 min-h-[150px] w-full rounded-lg border border-theme-border bg-theme-elevated px-4 py-3 font-mono text-xs leading-5 text-theme-text-primary outline-none focus:border-cyan-600"
                 />
               </label>
             </div>
@@ -2720,14 +2720,14 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
           setForm(blankProfileForm());
           setVersions([]);
         }}
-        className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+        className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
       >
         <Plus size={16} />
         新建 Profile
       </button>
       <button
         onClick={() => void load()}
-        className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+        className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
       >
         <RefreshCw size={16} />
         刷新
@@ -2825,7 +2825,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
 
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_minmax(680px,1fr)_420px]">
           <div className="space-y-4">
- <div className="rounded-lg border border-theme-border bg-theme-bg-app">
+ <div className="rounded-lg border border-theme-border bg-theme-elevated">
               <div className="border-b border-theme-border px-4 py-3 text-sm font-semibold text-theme-text-primary">Profile 列表</div>
               <div className="max-h-[640px] overflow-auto p-2">
                 {profiles.map((profile) => (
@@ -2836,7 +2836,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
                       setForm(formFromProfile(profile));
                     }}
                     className={`mb-2 w-full rounded-lg border p-3 text-left transition ${
-                      profile.profile_id === selectedProfileId ? 'border-cyan-300 bg-cyan-500/15' : 'border-theme-border bg-theme-bg-app hover:bg-theme-elevated'
+                      profile.profile_id === selectedProfileId ? 'border-cyan-300 bg-cyan-500/15' : 'border-theme-border bg-theme-elevated hover:bg-theme-elevated'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -2856,7 +2856,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
             </div>
 
             {selectedProfile ? (
- <div className="rounded-lg border border-theme-border bg-theme-bg-app p-4">
+ <div className="rounded-lg border border-theme-border bg-theme-elevated p-4">
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => void setDefaultProfile(selectedProfile)}
@@ -2879,7 +2879,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
           </div>
 
           <div className="space-y-4">
- <div className="rounded-lg border border-theme-border bg-theme-bg-app">
+ <div className="rounded-lg border border-theme-border bg-theme-elevated">
               <div className="border-b border-theme-border px-5 py-4">
                 <div className="text-sm font-semibold text-theme-text-primary">{form.profileId ? '编辑 Profile' : '新建 Profile'}</div>
                 <div className="mt-1 text-xs text-theme-text-muted">{form.profileId || '尚未保存'}</div>
@@ -2911,11 +2911,11 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
                   <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} style={{ ...FORM_INPUT_STYLE, minHeight: 72 }} />
                 </Field>
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  <label className="flex items-center gap-3 rounded-lg border border-theme-border bg-theme-bg-app p-3 text-sm font-bold text-theme-text-secondary">
+                  <label className="flex items-center gap-3 rounded-lg border border-theme-border bg-theme-elevated p-3 text-sm font-bold text-theme-text-secondary">
                     <input type="checkbox" checked={form.enabled} onChange={(event) => setForm({ ...form, enabled: event.target.checked })} />
                     启用 Profile
                   </label>
-                  <label className="flex items-center gap-3 rounded-lg border border-theme-border bg-theme-bg-app p-3 text-sm font-bold text-theme-text-secondary">
+                  <label className="flex items-center gap-3 rounded-lg border border-theme-border bg-theme-elevated p-3 text-sm font-bold text-theme-text-secondary">
                     <input type="checkbox" checked={form.isDefault} onChange={(event) => setForm({ ...form, isDefault: event.target.checked })} />
                     设为项目默认
                   </label>
@@ -2923,7 +2923,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
               </div>
             </div>
 
- <div className="rounded-lg border border-theme-border bg-theme-bg-app">
+ <div className="rounded-lg border border-theme-border bg-theme-elevated">
               <div className="space-y-5 p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -2956,7 +2956,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
               </div>
             </div>
 
- <div className="rounded-lg border border-theme-border bg-theme-bg-app">
+ <div className="rounded-lg border border-theme-border bg-theme-elevated">
               <div className="space-y-5 p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -2982,11 +2982,11 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
           </div>
 
           <div className="space-y-4">
- <div className="rounded-lg border border-theme-border bg-theme-bg-app">
+ <div className="rounded-lg border border-theme-border bg-theme-elevated">
               <div className="border-b border-theme-border px-4 py-3 text-sm font-semibold text-theme-text-primary">版本记录</div>
               <div className="max-h-72 overflow-auto p-3">
                 {versions.map((version) => (
-                  <div key={version.version_id} className="mb-2 rounded-lg border border-theme-border bg-theme-bg-app p-3">
+                  <div key={version.version_id} className="mb-2 rounded-lg border border-theme-border bg-theme-elevated p-3">
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-sm font-semibold text-theme-text-primary">v{version.version}</span>
                       <span className="text-xs text-theme-text-muted">{formatDateTime(version.created_at)}</span>
@@ -3001,7 +3001,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
         </section>
 
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
- <div className="rounded-lg border border-theme-border bg-theme-bg-app p-4 xl:col-span-2">
+ <div className="rounded-lg border border-theme-border bg-theme-elevated p-4 xl:col-span-2">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-primary"><Settings size={16} />调度与并发</div>
@@ -3018,7 +3018,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
             </div>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <Field label="Worker 发现方式">
-                <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-semibold text-theme-text-secondary">
+                <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-sm font-semibold text-theme-text-secondary">
                   registry（固定）
                 </div>
               </Field>
@@ -3060,12 +3060,12 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
               </Field>
             </div>
           </div>
- <div className="rounded-lg border border-theme-border bg-theme-bg-app p-4">
+ <div className="rounded-lg border border-theme-border bg-theme-elevated p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-theme-text-primary"><ServerCog size={16} />Agent 默认存储目录</div>
             {serviceConfig?.agent_storage?.agents?.length ? (
               <div className="overflow-auto">
                 <table className="w-full min-w-[640px] text-left text-sm">
-                  <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">
+                  <thead className="bg-theme-elevated text-[11px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">
                     <tr>
                       <th className="px-3 py-2">Agent</th>
                       <th className="px-3 py-2">Root</th>
@@ -3091,11 +3091,11 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
               <EmptyPanel title="暂无 Agent 存储配置" description="当前服务有效配置未返回可展示的 Agent 默认目录。" icon={<ServerCog size={22} />} />
             )}
           </div>
- <div className="rounded-lg border border-theme-border bg-theme-bg-app p-4">
+ <div className="rounded-lg border border-theme-border bg-theme-elevated p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-theme-text-primary"><Settings size={16} />项目有效配置</div>
             <JsonBlock value={effectiveConfig || {}} />
           </div>
- <div className="rounded-lg border border-theme-border bg-theme-bg-app p-4">
+ <div className="rounded-lg border border-theme-border bg-theme-elevated p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-theme-text-primary"><ServerCog size={16} />服务有效配置</div>
             <JsonBlock value={serviceConfig || {}} />
           </div>

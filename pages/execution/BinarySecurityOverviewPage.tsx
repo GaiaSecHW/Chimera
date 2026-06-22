@@ -925,7 +925,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
           <button
             type="button"
             onClick={() => setStageStatsExpanded((value) => !value)}
- className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-bold text-theme-text-secondary transition hover:border-theme-border hover:bg-theme-elevated"
+ className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-bold text-theme-text-secondary transition hover:border-theme-border hover:bg-theme-elevated"
             aria-expanded={stageStatsExpanded}
           >
             <BarChart3 size={14} />
@@ -1234,7 +1234,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                         key={tab.key}
                         type="button"
                         onClick={() => setCreateDialogTab(tab.key)}
- className={`rounded-[1.25rem] px-4 py-3 text-left transition ${active ? 'bg-theme-bg-app ring-1 ring-theme-border' : 'bg-transparent hover:bg-theme-elevated'}`}
+ className={`rounded-[1.25rem] px-4 py-3 text-left transition ${active ? 'bg-theme-elevated ring-1 ring-theme-border' : 'bg-transparent hover:bg-theme-elevated'}`}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className={`text-sm font-semibold ${active ? 'text-theme-text-primary' : 'text-theme-text-secondary'}`}>{tab.label}</div>

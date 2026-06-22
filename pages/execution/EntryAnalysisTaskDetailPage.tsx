@@ -187,7 +187,7 @@ function timelineLevelTone(level?: string | null) {
   if (normalized === 'error') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
   if (normalized === 'warning' || normalized === 'warn') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
   if (normalized === 'success') return 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400';
-  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function isAgentKillTimelineEvent(eventType?: string | null) {
@@ -710,7 +710,7 @@ function sessionRoleTone(role?: string) {
   if (role === 'r4_worker') return 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400';
   if (role === 'sub_worker') return 'border-violet-500/20 bg-violet-500/15 text-violet-400';
   if (role === 'master' || role === 'master_worker') return 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400';
-  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function getEntryAnalysisRiskPreset(riskKey: string): { label: string; description: string; statusReason: string } | null {
@@ -1335,7 +1335,7 @@ function FuncDetailPanel({
         onClick={(e) => e.stopPropagation()}
       >
         {/* 头部 */}
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-theme-border bg-theme-bg-app px-6 py-4">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-theme-border bg-theme-elevated px-6 py-4">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${roleColor}`}>
@@ -1423,7 +1423,7 @@ function FuncDetailPanel({
                 <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-theme-text-muted">污点详情 ({detail.taint_details.length})</h3>
                 <div className="overflow-hidden rounded-xl border border-theme-border">
                   <table className="w-full text-xs">
-                    <thead className="bg-theme-bg-app text-theme-text-muted">
+                    <thead className="bg-theme-elevated text-theme-text-muted">
                       <tr>
                         <th className="px-3 py-2 text-left font-semibold">参数/来源</th>
                         <th className="px-3 py-2 text-left font-semibold">类型</th>
@@ -1432,7 +1432,7 @@ function FuncDetailPanel({
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {detail.taint_details.map((t, i) => (
-                        <tr key={i} className="hover:bg-theme-bg-app">
+                        <tr key={i} className="hover:bg-theme-elevated">
                           <td className="px-3 py-2 font-mono text-theme-text-secondary">{t.param || t.source || '—'}</td>
                           <td className="px-3 py-2 text-theme-text-muted">{t.type || '—'}</td>
                           <td className="px-3 py-2 text-theme-text-secondary">{t.description || '—'}</td>
@@ -1557,7 +1557,7 @@ function MetricCard({ label, value, icon }: { label: string; value: React.ReactN
 }
 
 function MarkdownContent({ content }: { content: string }) {
-  return <article className="prose prose-slate max-w-none prose-headings:font-semibold prose-pre:bg-theme-bg-app prose-pre:text-slate-100 prose-code:text-rose-400"><ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown></article>;
+  return <article className="prose prose-slate max-w-none prose-headings:font-semibold prose-pre:bg-theme-elevated prose-pre:text-slate-100 prose-code:text-rose-400"><ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown></article>;
 }
 
 export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: string; onBack: () => void }> = ({ projectId, taskId, onBack }) => {
@@ -2533,11 +2533,11 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
               <section className="rounded-2xl border border-theme-border bg-theme-surface px-5 py-4 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">完整模式 · 流水线统计</div>
-                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">当前阶段：{activeStage}</span>
+                  <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-secondary">当前阶段：{activeStage}</span>
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
                   {([
-                    { label: '总文件数',   value: totalFiles || '-', border: 'border-theme-border', bg: 'bg-theme-bg-app',     text: 'text-theme-text-primary' },
+                    { label: '总文件数',   value: totalFiles || '-', border: 'border-theme-border', bg: 'bg-theme-elevated',     text: 'text-theme-text-primary' },
                     { label: '总函数数',   value: totalFuncs || '-',  border: 'border-theme-border', bg: 'bg-slate-50/80',   text: 'text-theme-text-secondary' },
                     { label: 'R1完成文件', value: r1Done || '-',    border: 'border-sky-500/20',   bg: 'bg-sky-500/15',       text: 'text-sky-400' },
                     { label: 'R2完成函数', value: r2Funcs || '-',    border: 'border-indigo-500/20',bg: 'bg-indigo-500/15',    text: 'text-indigo-400' },
@@ -2639,7 +2639,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                   const state = statusSteps[index];
                   const stat  = stageStats[index];
                   const borderColor = state === 'completed' ? 'border-emerald-400' : state === 'running' ? 'border-blue-400' : state === 'failed' ? 'border-red-400' : 'border-theme-border';
-                  const bgColor     = state === 'completed' ? 'bg-emerald-500/15'      : state === 'running' ? 'bg-blue-500/15'      : state === 'failed' ? 'bg-red-500/15'      : 'bg-theme-bg-app';
+                  const bgColor     = state === 'completed' ? 'bg-emerald-500/15'      : state === 'running' ? 'bg-blue-500/15'      : state === 'failed' ? 'bg-red-500/15'      : 'bg-theme-elevated';
                   const dotColor    = state === 'completed' ? 'bg-emerald-500 text-white' : state === 'running' ? 'bg-blue-500 text-white' : state === 'failed' ? 'bg-red-500 text-white' : 'bg-theme-elevated text-theme-text-muted';
                   const artifactFull = detail.output_path ? `${detail.output_path}/${detail.task_id}/${step.artifactSubpath}` : '';
                   const artifactFsPath = artifactFull ? extractFsRelPath(artifactFull, projectId) : null;
@@ -2720,26 +2720,26 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <button onClick={() => { setFuncEntryOnly((v) => !v); setFuncPage(0); }}
-                    className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold transition ${funcEntryOnly ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-bg-app'}`}>
+                    className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold transition ${funcEntryOnly ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated'}`}>
                     {funcEntryOnly ? '✓ 仅入口' : '仅入口'}
                   </button>
                   <span className="text-[11px] text-theme-text-faint">|</span>
                   <span className="text-[11px] text-theme-text-muted">每页</span>
                   {([50, 100, 200] as const).map((n) => (
                     <button key={n} onClick={() => { setFuncPageSize(n); setFuncPage(0); }}
-                      className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold transition ${funcPageSize === n ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-bg-app'}`}>
+                      className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold transition ${funcPageSize === n ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated'}`}>
                       {n}
                     </button>
                   ))}
                   <span className="ml-1 text-[11px] text-theme-text-muted">{funcPage + 1}/{Math.max(1, funcPageCount)} 页·{funcFiltered.length} 个</span>
-                  <button disabled={funcPage === 0} onClick={() => setFuncPage((p) => p - 1)} className="rounded-lg border border-theme-border px-2 py-1 text-[11px] font-bold text-theme-text-secondary disabled:opacity-40 hover:bg-theme-bg-app">‹</button>
-                  <button disabled={funcPage >= funcPageCount - 1} onClick={() => setFuncPage((p) => p + 1)} className="rounded-lg border border-theme-border px-2 py-1 text-[11px] font-bold text-theme-text-secondary disabled:opacity-40 hover:bg-theme-bg-app">›</button>
+                  <button disabled={funcPage === 0} onClick={() => setFuncPage((p) => p - 1)} className="rounded-lg border border-theme-border px-2 py-1 text-[11px] font-bold text-theme-text-secondary disabled:opacity-40 hover:bg-theme-elevated">‹</button>
+                  <button disabled={funcPage >= funcPageCount - 1} onClick={() => setFuncPage((p) => p + 1)} className="rounded-lg border border-theme-border px-2 py-1 text-[11px] font-bold text-theme-text-secondary disabled:opacity-40 hover:bg-theme-elevated">›</button>
                 </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[680px] text-xs">
                   <thead>
-                    <tr className="border-b border-theme-border bg-theme-bg-app text-[10px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
+                    <tr className="border-b border-theme-border bg-theme-elevated text-[10px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                       <th className="px-4 py-2.5 text-left">函数名</th>
                       <th className="px-3 py-2.5 text-center whitespace-nowrap">是否入口</th>
                       <th className="px-2 py-2.5 text-center" title="R2 准确性验证 Judge">R2</th>
@@ -2752,7 +2752,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {funcPageSlice.map((f) => (
-                      <tr key={f.func_hash} className={`transition ${f.is_entry ? 'bg-emerald-50/40 hover:bg-emerald-500/15' : 'hover:bg-theme-bg-app'}`}>
+                      <tr key={f.func_hash} className={`transition ${f.is_entry ? 'bg-emerald-50/40 hover:bg-emerald-500/15' : 'hover:bg-theme-elevated'}`}>
                         <td className="px-4 py-2 font-mono">
                           {f.is_entry ? (
                             <button
@@ -2777,8 +2777,8 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                             : f.r4 === 'remove'
                               ? <span className="inline-flex items-center rounded-full border border-orange-500/20 bg-orange-500/15 px-2 py-0.5 text-[9px] font-semibold text-orange-400">✗ 已过滤</span>
                               : f.r3 === 'skip'
-                                ? <span className="inline-flex items-center rounded-full border border-theme-border bg-theme-bg-app px-2 py-0.5 text-[9px] font-semibold text-theme-text-muted">— 无输入</span>
-                                : <span className="inline-flex items-center rounded-full border border-theme-border bg-theme-bg-app px-2 py-0.5 text-[9px] font-semibold text-theme-text-faint">未完成</span>
+                                ? <span className="inline-flex items-center rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[9px] font-semibold text-theme-text-muted">— 无输入</span>
+                                : <span className="inline-flex items-center rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[9px] font-semibold text-theme-text-faint">未完成</span>
                           }
                         </td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r2j} label="R2" /></td>
@@ -2811,16 +2811,16 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
               {funcPageCount > 1 ? (
                 <div className="flex items-center justify-center gap-2 border-t border-theme-border px-5 py-3">
                   <button disabled={funcPage === 0} onClick={() => setFuncPage(0)}
-                    className="rounded-lg border border-theme-border px-2 py-1 text-[11px] font-bold text-theme-text-secondary disabled:opacity-40 hover:bg-theme-bg-app">«</button>
+                    className="rounded-lg border border-theme-border px-2 py-1 text-[11px] font-bold text-theme-text-secondary disabled:opacity-40 hover:bg-theme-elevated">«</button>
                   <button disabled={funcPage === 0} onClick={() => setFuncPage((p) => p - 1)}
-                    className="rounded-lg border border-theme-border px-2 py-1 text-[11px] font-bold text-theme-text-secondary disabled:opacity-40 hover:bg-theme-bg-app">‹</button>
+                    className="rounded-lg border border-theme-border px-2 py-1 text-[11px] font-bold text-theme-text-secondary disabled:opacity-40 hover:bg-theme-elevated">‹</button>
                   <span className="text-[11px] text-theme-text-muted">
                     {funcPage + 1} / {funcPageCount}（共 {funcProgress.length} 个函数）
                   </span>
                   <button disabled={funcPage >= funcPageCount - 1} onClick={() => setFuncPage((p) => p + 1)}
-                    className="rounded-lg border border-theme-border px-2 py-1 text-[11px] font-bold text-theme-text-secondary disabled:opacity-40 hover:bg-theme-bg-app">›</button>
+                    className="rounded-lg border border-theme-border px-2 py-1 text-[11px] font-bold text-theme-text-secondary disabled:opacity-40 hover:bg-theme-elevated">›</button>
                   <button disabled={funcPage >= funcPageCount - 1} onClick={() => setFuncPage(funcPageCount - 1)}
-                    className="rounded-lg border border-theme-border px-2 py-1 text-[11px] font-bold text-theme-text-secondary disabled:opacity-40 hover:bg-theme-bg-app">»</button>
+                    className="rounded-lg border border-theme-border px-2 py-1 text-[11px] font-bold text-theme-text-secondary disabled:opacity-40 hover:bg-theme-elevated">»</button>
                 </div>
               ) : null}
             </section>
@@ -2848,7 +2848,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                 >
                   <RefreshCw size={14} className={runtimeSummaryLoading ? 'animate-spin' : ''} />
                 </button>
-                <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">{runtimeActiveSessionCount} 个活跃会话</span>
+                <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-secondary">{runtimeActiveSessionCount} 个活跃会话</span>
               </div>
             </div>
             {runtimeSummaryLoading && !runtimeSummary ? (
@@ -2856,7 +2856,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             ) : activeSessions.length > 0 ? (
               <div className="divide-y divide-theme-border">
                 {activeSessions.map((session) => (
-                  <button key={session.relative_path} type="button" onClick={() => openActiveAgentSession(session.relative_path)} className="w-full px-5 py-4 text-left transition hover:bg-theme-bg-app">
+                  <button key={session.relative_path} type="button" onClick={() => openActiveAgentSession(session.relative_path)} className="w-full px-5 py-4 text-left transition hover:bg-theme-elevated">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-semibold text-theme-text-primary">{session.display_name}</div>
@@ -2979,7 +2979,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                   <div className="overflow-hidden rounded-2xl border border-theme-border">
                     <div className="overflow-x-auto">
                       <table className="min-w-[1180px] w-full divide-y divide-theme-border text-left text-xs">
-                        <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
+                        <thead className="bg-theme-elevated text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                           <tr>
                             <th className="w-14 px-3 py-2">#</th>
                             <th className="w-44 px-3 py-2">

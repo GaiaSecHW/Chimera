@@ -226,9 +226,9 @@ const statusTone = (status?: string | null) => {
     case 'pending':
       return 'border-violet-500/20 bg-violet-500/15 text-violet-400';
     case 'skipped':
-      return 'border-theme-border bg-theme-bg-app text-theme-text-muted';
+      return 'border-theme-border bg-theme-elevated text-theme-text-muted';
     default:
-      return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+      return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
   }
 };
 
@@ -1604,18 +1604,18 @@ const graphNodeBadgeTone = (status: string) => {
 const graphNodeCardTone = (status: string, active: boolean) => {
   const normalized = String(status || '').toLowerCase();
   if (normalized === 'succeeded' || normalized === 'completed') {
-    return active ? 'border-emerald-300 bg-emerald-500/15' : 'border-emerald-500/20 bg-theme-bg-app';
+    return active ? 'border-emerald-300 bg-emerald-500/15' : 'border-emerald-500/20 bg-theme-elevated';
   }
   if (normalized === 'running' || normalized === 'queued') {
-    return active ? 'border-sky-300 bg-sky-500/15' : 'border-sky-500/20 bg-theme-bg-app';
+    return active ? 'border-sky-300 bg-sky-500/15' : 'border-sky-500/20 bg-theme-elevated';
   }
   if (normalized === 'failed' || normalized === 'timed_out' || normalized === 'cancelled') {
-    return active ? 'border-rose-300 bg-rose-500/15' : 'border-rose-500/20 bg-theme-bg-app';
+    return active ? 'border-rose-300 bg-rose-500/15' : 'border-rose-500/20 bg-theme-elevated';
   }
   if (normalized === 'skipped') {
-    return active ? 'border-theme-border bg-theme-elevated' : 'border-theme-border bg-theme-bg-app';
+    return active ? 'border-theme-border bg-theme-elevated' : 'border-theme-border bg-theme-elevated';
   }
-  return active ? 'border-amber-300 bg-amber-500/15' : 'border-amber-500/20 bg-theme-bg-app';
+  return active ? 'border-amber-300 bg-amber-500/15' : 'border-amber-500/20 bg-theme-elevated';
 };
 
 const buildTaskGraphFlow = (
@@ -1805,7 +1805,7 @@ const TaskGraphCanvasNode: React.FC<NodeProps<TaskGraphCanvasNodeType>> = ({ dat
       </span>
     </div>
     <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-theme-text-muted">
-      {data.model ? <span className="rounded-full border border-theme-border bg-theme-bg-app px-2 py-1 normal-case tracking-normal text-theme-text-muted">{data.model}</span> : null}
+      {data.model ? <span className="rounded-full border border-theme-border bg-theme-elevated px-2 py-1 normal-case tracking-normal text-theme-text-muted">{data.model}</span> : null}
       <span>{data.reportCount} outputs</span>
       {data.hasEventsJsonl ? <span>jsonl</span> : null}
       {data.hasLastMessage ? <span>message</span> : null}
@@ -1848,7 +1848,7 @@ const SessionMarkdownMessage: React.FC<{ content: string }> = ({ content }) => (
         h1: ({ children }) => <h1 className="mb-3 text-xl font-semibold text-theme-text-primary last:mb-0">{children}</h1>,
         h2: ({ children }) => <h2 className="mb-3 text-lg font-semibold text-theme-text-primary last:mb-0">{children}</h2>,
         h3: ({ children }) => <h3 className="mb-2 text-base font-semibold text-theme-text-primary last:mb-0">{children}</h3>,
-        blockquote: ({ children }) => <blockquote className="mb-3 border-l-4 border-theme-border bg-theme-bg-app px-4 py-2 italic text-theme-text-secondary last:mb-0">{children}</blockquote>,
+        blockquote: ({ children }) => <blockquote className="mb-3 border-l-4 border-theme-border bg-theme-elevated px-4 py-2 italic text-theme-text-secondary last:mb-0">{children}</blockquote>,
         table: ({ children }) => <div className="mb-3 overflow-x-auto last:mb-0"><table className="min-w-full border-collapse text-left text-xs">{children}</table></div>,
         thead: ({ children }) => <thead className="bg-theme-elevated">{children}</thead>,
         th: ({ children }) => <th className="border border-theme-border px-3 py-2 font-semibold text-theme-text-primary">{children}</th>,
@@ -2071,7 +2071,7 @@ const TaskSessionViewer: React.FC<{
       <div className="border-b border-theme-border px-6 py-5">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-xl font-semibold tracking-tight text-theme-text-primary">{sessionMeta.display_name}</h2>
-          <span className={`rounded-full border px-3 py-1 text-xs font-bold ${live ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary'}`}>
+          <span className={`rounded-full border px-3 py-1 text-xs font-bold ${live ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary'}`}>
             {live ? '实时连接中' : '历史会话'}
           </span>
         </div>
@@ -4107,13 +4107,13 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
               value={maxParallelDraft}
               onChange={(event) => setMaxParallelDraft(event.target.value)}
               disabled={!readyState?.ready || savingRuntimeConfig}
-              className="w-20 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 text-sm font-semibold text-theme-text-primary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-theme-elevated disabled:text-theme-text-muted"
+              className="w-20 rounded-lg border border-theme-border bg-theme-elevated px-2 py-1.5 text-sm font-semibold text-theme-text-primary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-theme-elevated disabled:text-theme-text-muted"
             />
             <button
               type="button"
               onClick={handleSaveMaxParallelTasks}
               disabled={!readyState?.ready || savingRuntimeConfig || String(runtimeConfig?.max_parallel_tasks || capabilities?.max_parallel_tasks || '') === maxParallelDraft.trim()}
-              className="rounded-lg bg-theme-bg-app px-3 py-1.5 text-xs font-bold text-white transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg bg-theme-elevated px-3 py-1.5 text-xs font-bold text-white transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
             >
               {savingRuntimeConfig ? '保存中' : '保存'}
             </button>
@@ -4158,7 +4158,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                 <button
                   type="button"
                   onClick={() => setCreateModalOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-lg bg-theme-bg-app px-3 py-2 text-sm font-bold text-white transition hover:bg-theme-elevated"
+                  className="inline-flex items-center gap-2 rounded-lg bg-theme-elevated px-3 py-2 text-sm font-bold text-white transition hover:bg-theme-elevated"
                 >
                   <Plus size={16} />
                   新建任务
@@ -4167,7 +4167,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   type="button"
                   onClick={handleRefreshTasks}
                   disabled={taskQueueLoading || !workspaceId}
-                  className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {taskQueueLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
                   刷新
@@ -4202,7 +4202,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     type="button"
                     onClick={handleBatchCancelTasks}
                     disabled={batchActingTasks || cancellableSelectedTasks.length === 0}
-                    className="inline-flex items-center gap-2 rounded-lg border border-amber-500/20 bg-theme-bg-app px-3 py-2 text-sm font-bold text-amber-400 transition hover:bg-amber-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-lg border border-amber-500/20 bg-theme-elevated px-3 py-2 text-sm font-bold text-amber-400 transition hover:bg-amber-500/15 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {batchActingTasks ? <Loader2 size={15} className="animate-spin" /> : <XCircle size={15} />}
                     批量停止 {cancellableSelectedTasks.length > 0 ?`(${cancellableSelectedTasks.length})` : ''}
@@ -4211,7 +4211,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     type="button"
                     onClick={handleBatchRetryTasks}
                     disabled={batchActingTasks || actionableSelectedTasks.length === 0}
-                    className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {batchActingTasks ? <Loader2 size={15} className="animate-spin" /> : <RotateCcw size={15} />}
                     批量重试 {actionableSelectedTasks.length > 0 ?`(${actionableSelectedTasks.length})` : ''}
@@ -4220,7 +4220,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     type="button"
                     onClick={handleBatchDeleteTasks}
                     disabled={batchActingTasks || actionableSelectedTasks.length === 0}
-                    className="inline-flex items-center gap-2 rounded-lg border border-rose-500/20 bg-theme-bg-app px-3 py-2 text-sm font-bold text-rose-400 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-lg border border-rose-500/20 bg-theme-elevated px-3 py-2 text-sm font-bold text-rose-400 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {batchActingTasks ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
                     批量删除 {actionableSelectedTasks.length > 0 ?`(${actionableSelectedTasks.length})` : ''}
@@ -4230,7 +4230,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       type="button"
                       onClick={handleClearSelectedTasks}
                       disabled={batchActingTasks}
-                      className="rounded-lg px-3 py-2 text-sm font-bold text-theme-text-muted transition hover:bg-theme-bg-app hover:text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-lg px-3 py-2 text-sm font-bold text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       清空选择
                     </button>
@@ -4240,7 +4240,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
             </div>
 
             <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_180px_180px_auto]">
-              <div className="flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5">
+              <div className="flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5">
                 <Search size={16} className="text-theme-text-muted" />
                 <input
                   value={taskKeyword}
@@ -4278,7 +4278,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   setTaskStageFilter('all');
                 }}
                 disabled={!taskKeyword && taskStatusFilter === 'all' && taskStageFilter === 'all'}
-                className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
               >
                 清空筛选
               </button>
@@ -4286,20 +4286,20 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
 
             <div className="mt-4 max-h-[840px] space-y-3 overflow-auto pr-1">
               {taskQueueLoading ? (
-                <div className="flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold text-theme-text-secondary">
+                <div className="flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-4 py-3 text-sm font-semibold text-theme-text-secondary">
                   <Loader2 size={16} className="animate-spin" />
                   正在加载任务列表和工作区上下文...
                 </div>
               ) : !serviceReady ? (
-                <div className="rounded-lg border border-dashed border-theme-border bg-theme-bg-app px-4 py-12 text-center text-sm font-semibold text-theme-text-muted">
+                <div className="rounded-lg border border-dashed border-theme-border bg-theme-elevated px-4 py-12 text-center text-sm font-semibold text-theme-text-muted">
                   等待服务就绪后加载任务列表。
                 </div>
               ) : tasks.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-theme-border bg-theme-bg-app px-4 py-12 text-center text-sm font-semibold text-theme-text-muted">
+                <div className="rounded-lg border border-dashed border-theme-border bg-theme-elevated px-4 py-12 text-center text-sm font-semibold text-theme-text-muted">
                   当前项目还没有 IPC 漏洞扫描任务。
                 </div>
               ) : filteredTasks.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-theme-border bg-theme-bg-app px-4 py-12 text-center text-sm font-semibold text-theme-text-muted">
+                <div className="rounded-lg border border-dashed border-theme-border bg-theme-elevated px-4 py-12 text-center text-sm font-semibold text-theme-text-muted">
                   没有符合当前筛选条件的任务。
                 </div>
               ) : (
@@ -4317,7 +4317,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   return (
                     <div
                       key={item.task_id}
- className={`rounded-lg border transition ${checked ? 'border-sky-300 bg-sky-500/15 ' : active ? 'border-sky-300 bg-sky-50/70 ' : 'border-theme-border bg-theme-bg-app hover:border-theme-border hover:bg-theme-elevated'}`}
+ className={`rounded-lg border transition ${checked ? 'border-sky-300 bg-sky-500/15 ' : active ? 'border-sky-300 bg-sky-50/70 ' : 'border-theme-border bg-theme-elevated hover:border-theme-border hover:bg-theme-elevated'}`}
                     >
                       <div className="flex items-start gap-3 px-4 py-4">
                         <input
@@ -4349,27 +4349,27 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2">
                             {rowRuntimeLoading ? (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">
+                              <span className="inline-flex items-center gap-1 rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">
                                 <Loader2 size={12} className="animate-spin" />
                                 加载执行配置
                               </span>
                             ) : rowRuntimeSummary ? (
                               <>
                                 {rowRuntimeSummary.executorMode ? (
-                                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
+                                  <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
                                     执行器 {formatExecutorMode(rowRuntimeSummary.executorMode)}
                                   </span>
                                 ) : null}
-                                <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
+                                <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
                                   Model {rowModel || '(default)'}
                                 </span>
                                 {rowProviderKeys.slice(0, 2).map((providerKey, index) => (
-                                  <span key={`${item.task_id}-${providerKey}-${index}`} className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
+                                  <span key={`${item.task_id}-${providerKey}-${index}`} className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
                                     Provider {index + 1} · {displayProviderName(providerKey, rowProviderSnapshotMap)}
                                   </span>
                                 ))}
                                 {rowProviderKeys.length > 2 ? (
-                                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">
+                                  <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">
                                     +{rowProviderKeys.length - 2} Provider
                                   </span>
                                 ) : null}
@@ -4379,24 +4379,24 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           {isCompletedTaskStatus(item.status) ? (
                             <div className="mt-3 flex flex-wrap gap-2">
                               {rowAuditedResultLoading ? (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">
+                                <span className="inline-flex items-center gap-1 rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">
                                   <Loader2 size={12} className="animate-spin" />
                                   解析 audited-result
                                 </span>
                               ) : rowAuditedResult ? (
                                 <>
-                                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
+                                  <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
                                     vulnerabilities_found {rowAuditedResult.vulnerabilitiesFound}
                                   </span>
-                                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
+                                  <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
                                     pocs_developed {rowAuditedResult.pocsDeveloped}
                                   </span>
-                                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
+                                  <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
                                     info_findings {rowAuditedResult.infoFindings}
                                   </span>
                                 </>
                               ) : (
-                                <span className="rounded-full border border-dashed border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">
+                                <span className="rounded-full border border-dashed border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">
                                   未解析到 audited-result.json
                                 </span>
                               )}
@@ -4487,30 +4487,30 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusTone(selectedTask.status)}`}>
                     {formatTaskStatus(selectedTask.status)}
                   </span>
-                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-xs font-bold text-theme-text-secondary">
+                  <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-xs font-bold text-theme-text-secondary">
                     {formatInputKind(selectedTask.input_ref.kind)}
                   </span>
-                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-xs font-bold text-theme-text-secondary">
+                  <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-xs font-bold text-theme-text-secondary">
                     {formatPipelineMode(selectedTask.pipeline_mode)}
                   </span>
                   {selectedTask.current_stage ? (
-                    <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-xs font-bold text-theme-text-secondary">
+                    <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-xs font-bold text-theme-text-secondary">
                       当前阶段 {formatStageLabel(selectedTask.current_stage)}
                     </span>
                   ) : null}
                   {currentExecutorMode ? (
-                    <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-xs font-bold text-theme-text-secondary">
+                    <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-xs font-bold text-theme-text-secondary">
                       执行器 {formatExecutorMode(currentExecutorMode)}
                     </span>
                   ) : null}
-                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-xs font-bold text-theme-text-secondary">
+                  <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-xs font-bold text-theme-text-secondary">
                     Model {currentModelName || '(default)'}
                   </span>
                   {currentProviderKeys.map((providerKey, index) => {
                     const snapshot = currentProviderSnapshotMap.get(providerKey);
                     const displayName = String(snapshot?.display_name || providerKey).trim() || providerKey;
                     return (
-                      <span key={`${providerKey}-${index}`} className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-xs font-bold text-theme-text-secondary">
+                      <span key={`${providerKey}-${index}`} className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-xs font-bold text-theme-text-secondary">
                         Provider {index + 1} · {displayName}
                       </span>
                     );
@@ -4663,7 +4663,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     ) : (
                       <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
                         <div className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-                          <div className="h-[440px] bg-theme-bg-app">
+                          <div className="h-[440px] bg-theme-elevated">
                             <ReactFlow
                               nodes={taskGraphFlow.nodes}
                               edges={taskGraphFlow.edges}
@@ -4906,7 +4906,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           当前没有可展示的会话文件。
                         </div>
                       ) : isJsonlPath(selectedSessionSummary.path) ? (
-                        <div className="min-h-[520px] bg-theme-bg-app p-4">
+                        <div className="min-h-[520px] bg-theme-elevated p-4">
                           {sessionWarnings.length > 0 ? (
                             <div className="mb-3 rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-3 text-xs font-semibold text-amber-400">
                               会话中有 {sessionWarnings.length} 行未能按 JSONL 解析，已作为原始输出保留。
@@ -5017,7 +5017,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                                 <div className="truncate text-sm font-semibold text-theme-text-primary">{item.display_name}</div>
                                 <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">{item.relative_path}</div>
                               </div>
-                              <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-theme-text-secondary">
+                              <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-theme-text-secondary">
                                 {item.artifact_kind}
                               </span>
                             </div>
@@ -5079,7 +5079,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                 type="button"
                 onClick={() => setCreateModalOpen(false)}
                 disabled={creating}
-                className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <XCircle size={16} />
                 关闭
@@ -5118,7 +5118,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           type="button"
                           onClick={handleSelectVisibleProjectPaths}
                           disabled={filteredProjectInputItems.length === 0}
-                          className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           全选当前
                         </button>
@@ -5126,7 +5126,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           type="button"
                           onClick={handleClearSelectedProjectPaths}
                           disabled={selectedProjectItems.length === 0}
-                          className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           清空选择
                         </button>
@@ -5134,7 +5134,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     </div>
 
                     <div className="mt-3 flex flex-col gap-2 md:flex-row">
-                      <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5">
+                      <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5">
                         <Search size={16} className="text-theme-text-muted" />
                         <input
                           value={presetKeyword}
@@ -5147,7 +5147,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         type="button"
                         onClick={handleRefreshCatalog}
                         disabled={refreshingCatalog || !workspaceId}
-                        className="inline-flex items-center justify-center gap-1 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center justify-center gap-1 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {refreshingCatalog ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                         刷新预设列表
@@ -5166,13 +5166,13 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         }}
                         disabled={!canCreateCustomProject}
                         placeholder="添加自定义路径，例如 foundation/multimedia/media_library"
-                        className="min-w-0 flex-1 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-theme-elevated disabled:text-theme-text-muted"
+                        className="min-w-0 flex-1 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-theme-elevated disabled:text-theme-text-muted"
                       />
                       <button
                         type="button"
                         onClick={handleAddCustomProjectPath}
                         disabled={!canCreateCustomProject || !customPath.trim()}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-theme-bg-app px-3 py-2.5 text-sm font-bold text-white transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-theme-elevated px-3 py-2.5 text-sm font-bold text-white transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <Plus size={15} />
                         添加路径
@@ -5183,7 +5183,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     ) : null}
 
                     {refreshJob ? (
-                      <div className="mt-3 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary">
+                      <div className="mt-3 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-semibold text-theme-text-secondary">
                         目录刷新任务：{refreshJob.status}
                         {refreshJob.discovered_count != null ?` · 发现 ${refreshJob.discovered_count} 个项目` : ''}
                         {refreshJob.error_message ?` · ${refreshJob.error_message}` : ''}
@@ -5192,20 +5192,20 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
 
                     <div className="mt-3 max-h-[410px] space-y-2 overflow-auto pr-1">
                       {projectListLoading ? (
-                        <div className="flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3 text-sm font-semibold text-theme-text-secondary">
+                        <div className="flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-4 py-3 text-sm font-semibold text-theme-text-secondary">
                           <Loader2 size={16} className="animate-spin" />
                           正在加载项目列表...
                         </div>
                       ) : !serviceReady ? (
-                        <div className="rounded-lg border border-dashed border-theme-border bg-theme-bg-app px-4 py-6 text-sm font-semibold text-theme-text-muted">
+                        <div className="rounded-lg border border-dashed border-theme-border bg-theme-elevated px-4 py-6 text-sm font-semibold text-theme-text-muted">
                           等待服务就绪后加载项目路径列表。
                         </div>
                       ) : projectInputItems.length > 0 && filteredProjectInputItems.length === 0 ? (
-                        <div className="rounded-lg border border-dashed border-theme-border bg-theme-bg-app px-4 py-6 text-sm font-semibold text-theme-text-muted">
+                        <div className="rounded-lg border border-dashed border-theme-border bg-theme-elevated px-4 py-6 text-sm font-semibold text-theme-text-muted">
                           当前筛选条件下没有匹配路径。清空搜索关键字后可查看全部 {projectInputItems.length} 个可选路径。
                         </div>
                       ) : filteredProjectInputItems.length === 0 ? (
-                        <div className="rounded-lg border border-dashed border-theme-border bg-theme-bg-app px-4 py-6 text-sm font-semibold text-theme-text-muted">
+                        <div className="rounded-lg border border-dashed border-theme-border bg-theme-elevated px-4 py-6 text-sm font-semibold text-theme-text-muted">
                           当前没有可选路径，可刷新预设列表或添加自定义路径。
                         </div>
                       ) : (
@@ -5223,19 +5223,19 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                                   handleToggleProjectPath(item.path);
                                 }
                               }}
- className={`block w-full rounded-lg border px-4 py-3 text-left transition ${active ? 'border-sky-500 bg-sky-500/15 ring-2 ring-sky-100' : 'border-theme-border bg-theme-bg-app hover:border-theme-border hover:bg-theme-elevated'}`}
+ className={`block w-full rounded-lg border px-4 py-3 text-left transition ${active ? 'border-sky-500 bg-sky-500/15 ring-2 ring-sky-100' : 'border-theme-border bg-theme-elevated hover:border-theme-border hover:bg-theme-elevated'}`}
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                   <div className="flex flex-wrap items-center gap-2">
                                     <span className="truncate text-sm font-semibold text-theme-text-primary">{item.displayName}</span>
-                                    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] ${item.source === 'preset' ? 'border-blue-500/20 bg-blue-500/15 text-blue-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary'}`}>
+                                    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] ${item.source === 'preset' ? 'border-blue-500/20 bg-blue-500/15 text-blue-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary'}`}>
                                       {item.source === 'preset' ? '预设' : '自定义'}
                                     </span>
                                   </div>
                                   <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">{item.path}</div>
                                 </div>
-                                <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${active ? 'border-sky-500/20 bg-theme-bg-app text-sky-400' : 'border-theme-border bg-theme-bg-app text-theme-text-muted'}`}>
+                                <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${active ? 'border-sky-500/20 bg-theme-elevated text-sky-400' : 'border-theme-border bg-theme-elevated text-theme-text-muted'}`}>
                                   {active ? <CheckCircle2 size={13} /> : null}
                                   {active ? '已选择' : '未选择'}
                                 </span>
@@ -5301,7 +5301,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         aria-expanded={customGraphExpanded}
                         className="flex min-w-0 flex-1 items-start gap-3 text-left"
                       >
-                        <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-theme-border bg-theme-bg-app text-theme-text-secondary">
+                        <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-theme-border bg-theme-elevated text-theme-text-secondary">
                           {customGraphExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                         </span>
                         <span className="min-w-0">
@@ -5312,13 +5312,13 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         </span>
                       </button>
                       <div className="flex flex-wrap gap-2">
-                        <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-theme-text-secondary">
+                        <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-theme-text-secondary">
                           {graphSourceType === 'inline_json' ? 'Inline JSON' :`Python · ${builderSourceMode === 'entry' ? 'Entry' : 'Code'}`}
                         </span>
-                        <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-theme-text-secondary">
+                        <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-theme-text-secondary">
                           {customGraphNodeIds.length} Nodes
                         </span>
-                        <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-theme-text-secondary">
+                        <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-theme-text-secondary">
                           {reportOutputDrafts.length} Outputs
                         </span>
                       </div>
@@ -5336,10 +5336,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <span className="rounded-full border border-sky-500/20 bg-theme-bg-app px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-400">
+                        <span className="rounded-full border border-sky-500/20 bg-theme-elevated px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-400">
                           {customGraphNodeIds.length} Nodes
                         </span>
-                        <span className="rounded-full border border-sky-500/20 bg-theme-bg-app px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-400">
+                        <span className="rounded-full border border-sky-500/20 bg-theme-elevated px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-400">
                           {reportOutputDrafts.length} Outputs
                         </span>
                       </div>
@@ -5365,7 +5365,7 @@ className="form-input w-full"
                       </label>
                     </div>
 
-                    <div className="mt-3 rounded-lg border border-sky-500/20 bg-theme-bg-app px-3 py-2 text-xs font-medium leading-6 text-theme-text-secondary">
+                    <div className="mt-3 rounded-lg border border-sky-500/20 bg-theme-elevated px-3 py-2 text-xs font-medium leading-6 text-theme-text-secondary">
                       <div>这里填写的是原始 AgentFlow 图定义。chimera 只会预渲染`[[ ... ]]`，然后把剩余内容原样交给 AgentFlow。</div>
                       <div className="mt-2">提交前由 chimera 渲染：`[[ task.repo_root ]]`、`[[ task.project_path ]]`、`[[ task.attempt_root ]]`、`[[ task.report_outputs["audit_report"].absolute_path ]]`、`[[ task.poc_runtime.hdc_bin ]]`、`[[ task.poc_runtime.helper_bin ]]`。</div>
                       <div className="mt-2">
@@ -5383,7 +5383,7 @@ className="form-input w-full"
                           type="button"
                           onClick={() => void handleValidateInlineGraph()}
                           disabled={validatingGraph}
-                          className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
+                          className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {validatingGraph ? '校验中...' : '校验 JSON'}
                         </button>
@@ -5393,7 +5393,7 @@ className="form-input w-full"
                           type="button"
                           onClick={handleValidatePythonBuilderCode}
                           disabled={validatingGraph}
-                          className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
+                          className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {validatingGraph ? '校验中...' : '校验 Python'}
                         </button>
@@ -5401,14 +5401,14 @@ className="form-input w-full"
                       <button
                         type="button"
                         onClick={() => focusGraphEditor('inline_json')}
-                        className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${graphSourceType === 'inline_json' ? 'border-sky-300 bg-sky-500/15 text-sky-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'}`}
+                        className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${graphSourceType === 'inline_json' ? 'border-sky-300 bg-sky-500/15 text-sky-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'}`}
                       >
                         编辑 Graph JSON
                       </button>
                       <button
                         type="button"
                         onClick={() => focusGraphEditor('python_code')}
-                        className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${graphSourceType === 'python_builder' && builderSourceMode === 'code' ? 'border-sky-300 bg-sky-500/15 text-sky-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'}`}
+                        className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${graphSourceType === 'python_builder' && builderSourceMode === 'code' ? 'border-sky-300 bg-sky-500/15 text-sky-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'}`}
                       >
                         编辑 Python Code
                       </button>
@@ -5422,7 +5422,7 @@ className="form-input w-full"
                           value={inlineJsonText}
                           onChange={(event) => setInlineJsonText(event.target.value)}
                           rows={16}
-                          className="w-full rounded-lg border border-sky-500/20 bg-theme-bg-app px-3 py-2.5 font-mono text-xs text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                          className="w-full rounded-lg border border-sky-500/20 bg-theme-elevated px-3 py-2.5 font-mono text-xs text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                         />
                       </label>
                     ) : (
@@ -5439,7 +5439,7 @@ className="form-input w-full"
                               value={pythonBuilderCode}
                               onChange={(event) => setPythonBuilderCode(event.target.value)}
                               rows={16}
-                              className="w-full rounded-lg border border-sky-500/20 bg-theme-bg-app px-3 py-2.5 font-mono text-xs text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                              className="w-full rounded-lg border border-sky-500/20 bg-theme-elevated px-3 py-2.5 font-mono text-xs text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                             />
                           </label>
                         )}
@@ -5491,14 +5491,14 @@ className="form-input w-full"
                           value={templateDescription}
                           onChange={(event) => setTemplateDescription(event.target.value)}
                           placeholder="模板描述，可选，仅作为备注"
-                          className="mt-3 w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2.5 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                          className="mt-3 w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                         />
                         <div className="mt-3 flex flex-wrap gap-2">
                           <button
                             type="button"
                             onClick={handleSaveTemplate}
                             disabled={templatesLoading}
-                            className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             保存当前模板
                           </button>
@@ -5506,7 +5506,7 @@ className="form-input w-full"
                             type="button"
                             onClick={handleLoadTemplate}
                             disabled={!selectedTemplateId || templatesLoading}
-                            className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             加载模板
                           </button>
@@ -5514,7 +5514,7 @@ className="form-input w-full"
                             type="button"
                             onClick={() => void handleDeleteTemplate()}
                             disabled={!selectedTemplateId || templatesLoading}
-                            className="rounded-lg border border-rose-500/20 bg-theme-bg-app px-3 py-2 text-xs font-bold text-rose-400 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-lg border border-rose-500/20 bg-theme-elevated px-3 py-2 text-xs font-bold text-rose-400 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             删除模板
                           </button>
@@ -5533,17 +5533,17 @@ className="form-input w-full"
                             <button
                               type="button"
                               onClick={handleResetReportOutputs}
-                              className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
+                              className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
                             >
                               恢复默认
                             </button>
-                            <span className="inline-flex items-center rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-semibold text-theme-text-muted">
+                            <span className="inline-flex items-center rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-semibold text-theme-text-muted">
                               节点从图 JSON 或输出配置自动推导
                             </span>
                             <button
                               type="button"
                               onClick={handleAddReportOutput}
-                              className="rounded-lg bg-theme-bg-app px-3 py-1.5 text-xs font-bold text-white transition hover:bg-theme-elevated"
+                              className="rounded-lg bg-theme-elevated px-3 py-1.5 text-xs font-bold text-white transition hover:bg-theme-elevated"
                             >
                               新增输出
                             </button>
@@ -5551,30 +5551,30 @@ className="form-input w-full"
                         </div>
                         <div className="mt-3 space-y-3">
                           {reportOutputDrafts.length === 0 ? (
-                            <div className="rounded-lg border border-dashed border-theme-border bg-theme-bg-app px-4 py-4 text-sm font-semibold text-theme-text-muted">
+                            <div className="rounded-lg border border-dashed border-theme-border bg-theme-elevated px-4 py-4 text-sm font-semibold text-theme-text-muted">
                               当前没有自定义输出。提交时会按当前图节点生成默认输出。
                             </div>
                           ) : (
                             reportOutputDrafts.map((item, index) => (
-                              <div key={item.key} className="rounded-lg border border-theme-border bg-theme-bg-app p-3">
+                              <div key={item.key} className="rounded-lg border border-theme-border bg-theme-elevated p-3">
                                 <div className="grid gap-3 xl:grid-cols-[1fr_1fr_1fr]">
                                   <label className="block">
                                     <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">Output ID</div>
-                                    <input value={item.outputId} onChange={(event) => handleUpdateReportOutput(item.key, 'outputId', event.target.value)} className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+                                    <input value={item.outputId} onChange={(event) => handleUpdateReportOutput(item.key, 'outputId', event.target.value)} className="w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
                                   </label>
                                   <label className="block">
                                     <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">Node ID</div>
-                                    <input value={item.nodeId} onChange={(event) => handleUpdateReportOutput(item.key, 'nodeId', event.target.value)} className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+                                    <input value={item.nodeId} onChange={(event) => handleUpdateReportOutput(item.key, 'nodeId', event.target.value)} className="w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
                                   </label>
                                   <label className="block">
                                     <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">Title</div>
-                                    <input value={item.title} onChange={(event) => handleUpdateReportOutput(item.key, 'title', event.target.value)} className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+                                    <input value={item.title} onChange={(event) => handleUpdateReportOutput(item.key, 'title', event.target.value)} className="w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
                                   </label>
                                 </div>
                                 <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_140px_120px_auto]">
                                   <label className="block">
                                     <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">Path</div>
-                                    <input value={item.path} onChange={(event) => handleUpdateReportOutput(item.key, 'path', event.target.value)} placeholder="exports/audit-report.md" className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+                                    <input value={item.path} onChange={(event) => handleUpdateReportOutput(item.key, 'path', event.target.value)} placeholder="exports/audit-report.md" className="w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
                                   </label>
                                   <label className="block">
                                     <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">Format</div>
@@ -5586,7 +5586,7 @@ className="form-input w-full"
                                   </label>
                                   <label className="block">
                                     <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">Order</div>
-                                    <input value={item.order} onChange={(event) => handleUpdateReportOutput(item.key, 'order', event.target.value)} className="w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+                                    <input value={item.order} onChange={(event) => handleUpdateReportOutput(item.key, 'order', event.target.value)} className="w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-semibold text-theme-text-secondary outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
                                   </label>
                                   <div className="flex items-end justify-between gap-3">
                                     <label className="inline-flex items-center gap-2 text-sm font-semibold text-theme-text-secondary">
@@ -5625,7 +5625,7 @@ className="form-input w-full"
                         type="button"
                         onClick={handleRefreshProviders}
                         disabled={providerPanelLoading || !serviceReady}
-                        className="inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {providerPanelLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                         刷新 Provider
@@ -5657,7 +5657,7 @@ className="form-input w-full"
                       </div>
                     ) : null}
                     {providerPanelLoading ? (
-                      <div className="mt-3 flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-muted">
+                      <div className="mt-3 flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-semibold text-theme-text-muted">
                         <Loader2 size={14} className="animate-spin" />
                         正在同步 Provider 列表...
                       </div>
@@ -5665,15 +5665,15 @@ className="form-input w-full"
 
                     <div className="mt-3 max-h-[260px] space-y-2 overflow-auto pr-1">
                       {!serviceReady ? (
-                        <div className="rounded-lg border border-dashed border-theme-border bg-theme-bg-app px-4 py-4 text-sm font-semibold text-theme-text-muted">
+                        <div className="rounded-lg border border-dashed border-theme-border bg-theme-elevated px-4 py-4 text-sm font-semibold text-theme-text-muted">
                           等待服务就绪后加载 Provider。
                         </div>
                       ) : !selectedProvider ? (
-                        <div className="rounded-lg border border-dashed border-theme-border bg-theme-bg-app px-4 py-4 text-sm font-semibold text-theme-text-muted">
+                        <div className="rounded-lg border border-dashed border-theme-border bg-theme-elevated px-4 py-4 text-sm font-semibold text-theme-text-muted">
                           当前未选择 Provider。chimera 不会注入任何 provider env/file/model，AgentFlow 或 OpenCode 将按自身默认行为执行。
                         </div>
                       ) : (
-                        <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
+                        <div className="rounded-lg border border-theme-border bg-theme-elevated px-4 py-3">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
@@ -5695,13 +5695,13 @@ className="form-input w-full"
                           </div>
                           {(selectedProvider.mapped_env_keys?.length || 0) > 0 || (selectedProvider.mapped_file_paths?.length || 0) > 0 ? (
                             <div className="mt-3 grid gap-2 md:grid-cols-2">
-                              <div className="rounded-lg bg-theme-bg-app px-3 py-2">
+                              <div className="rounded-lg bg-theme-elevated px-3 py-2">
                                 <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">Mapped Env Keys</div>
                                 <div className="mt-1 break-all text-xs font-semibold text-theme-text-secondary">
                                   {selectedProvider.mapped_env_keys?.join(', ') || '-'}
                                 </div>
                               </div>
-                              <div className="rounded-lg bg-theme-bg-app px-3 py-2">
+                              <div className="rounded-lg bg-theme-elevated px-3 py-2">
                                 <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">Mapped File Paths</div>
                                 <div className="mt-1 break-all text-xs font-semibold text-theme-text-secondary">
                                   {selectedProvider.mapped_file_paths?.join(', ') || '-'}
@@ -5724,18 +5724,18 @@ className="form-input w-full"
                       </div>
                     </div>
                     <div className="mt-4 space-y-3 text-sm">
-                      <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-4 py-3">
                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">已选路径</div>
                         <div className="mt-2 font-semibold text-theme-text-primary">{selectedProjectItems.length} 个任务</div>
                       </div>
-                      <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-4 py-3">
                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">目标路径</div>
                         <div className="mt-2 max-h-44 space-y-2 overflow-auto">
                           {selectedProjectItems.length === 0 ? (
                             <div className="text-xs font-semibold text-theme-text-muted">尚未选择路径</div>
                           ) : (
                             selectedProjectItems.map((item) => (
-                              <div key={item.path} className="rounded-lg bg-theme-bg-app px-3 py-2">
+                              <div key={item.path} className="rounded-lg bg-theme-elevated px-3 py-2">
                                 <div className="font-mono text-xs text-theme-text-secondary break-all">{item.path}</div>
                                 <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-theme-text-muted">
                                   {item.source === 'preset' ? '预设项目' : '自定义路径'}
@@ -5745,17 +5745,17 @@ className="form-input w-full"
                           )}
                         </div>
                       </div>
-                      <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-4 py-3">
                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Model</div>
                         <div className="mt-2 break-all font-mono text-xs text-theme-text-secondary">{modelName.trim() || providerFallbackModel || '(default)'}</div>
                       </div>
-                      <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-4 py-3">
                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Provider</div>
                         <div className="mt-2 max-h-48 space-y-2 overflow-auto">
                           {!selectedProvider ? (
                             <div className="text-xs font-semibold text-theme-text-muted">尚未选择 Provider</div>
                           ) : (
-                            <div className="rounded-lg bg-theme-bg-app px-3 py-2">
+                            <div className="rounded-lg bg-theme-elevated px-3 py-2">
                               <div className="text-xs font-semibold text-theme-text-primary">{selectedProvider.display_name || selectedProvider.provider_key}</div>
                               <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">{selectedProvider.provider_key}</div>
                               <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-theme-text-muted">
@@ -5765,7 +5765,7 @@ className="form-input w-full"
                           )}
                         </div>
                       </div>
-                      <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-4 py-3">
                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">报告输出</div>
                         <div className="mt-2 font-semibold text-theme-text-primary">{reportOutputDrafts.length} 个</div>
                         <div className="mt-2 max-h-40 space-y-2 overflow-auto">
@@ -5773,7 +5773,7 @@ className="form-input w-full"
                             <div className="text-xs font-semibold text-theme-text-muted">未自定义，提交后按当前图节点生成默认输出。</div>
                           ) : (
                             reportOutputDrafts.map((item) => (
-                              <div key={item.key} className="rounded-lg bg-theme-bg-app px-3 py-2">
+                              <div key={item.key} className="rounded-lg bg-theme-elevated px-3 py-2">
                                 <div className="text-xs font-semibold text-theme-text-primary">{item.title || item.outputId || '(untitled)'}</div>
                                 <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">{item.path || '-'}</div>
                                 <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-theme-text-muted">
@@ -5784,7 +5784,7 @@ className="form-input w-full"
                           )}
                         </div>
                       </div>
-                      <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-4 py-3">
                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Graph Source</div>
                         <div className="mt-2 font-semibold text-theme-text-primary">{graphSourceType === 'inline_json' ? 'Inline JSON' :`Python Builder · ${builderSourceMode === 'entry' ? 'Entry' : 'Code'}`}</div>
                         <div className="mt-2 max-h-32 space-y-2 overflow-auto">
@@ -5792,14 +5792,14 @@ className="form-input w-full"
                             <div className="text-xs font-semibold text-theme-text-muted">当前没有可推导的节点；可直接在图 JSON 中写`nodes[].id`，或在`report_outputs` 里填写`node_id`。</div>
                           ) : (
                             customGraphNodeIds.map((nodeId) => (
-                              <div key={nodeId} className="rounded-lg bg-theme-bg-app px-3 py-2 text-[11px] font-bold text-theme-text-secondary">
+                              <div key={nodeId} className="rounded-lg bg-theme-elevated px-3 py-2 text-[11px] font-bold text-theme-text-secondary">
                                 {nodeId}
                               </div>
                             ))
                           )}
                         </div>
                       </div>
-                      <div className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-3">
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-4 py-3">
                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">说明</div>
                         <div className="mt-2 text-sm font-medium leading-6 text-theme-text-secondary">
                           批量创建时每个路径对应一个独立任务。输入路径保持固定，执行图和输出报告都由本页配置驱动；前端只按`report_outputs` 回收和展示文件。
@@ -5817,7 +5817,7 @@ className="form-input w-full"
                 type="button"
                 onClick={() => setCreateModalOpen(false)}
                 disabled={creating}
-                className="rounded-lg border border-theme-border bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg border border-theme-border bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
               >
                 取消
               </button>
@@ -5825,7 +5825,7 @@ className="form-input w-full"
                 type="button"
                 onClick={handleCreateTask}
                 disabled={creating || !workspaceId || selectedProjectItems.length === 0 || !supportsAgentflowExecutor}
-                className="inline-flex items-center gap-2 rounded-lg bg-theme-bg-app px-4 py-2.5 text-sm font-bold text-white transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg bg-theme-elevated px-4 py-2.5 text-sm font-bold text-white transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                 创建{selectedProjectItems.length > 0 ?` ${selectedProjectItems.length}` : ''}个任务
@@ -5838,14 +5838,14 @@ className="form-input w-full"
       {previewArtifact ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
  <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-            <div className="shrink-0 border-b border-theme-border bg-theme-bg-app px-5 py-4">
+            <div className="shrink-0 border-b border-theme-border bg-theme-elevated px-5 py-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full border border-sky-500/20 bg-sky-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-400">
                       {previewArtifact.artifact_kind}
                     </span>
-                    <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-theme-text-muted">
+                    <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-theme-text-muted">
                       {formatStageLabel(previewArtifact.stage_name)}
                     </span>
                     {previewArtifactContent?.truncated ? (
@@ -5867,7 +5867,7 @@ className="form-input w-full"
                     href={previewArtifact.preview_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
+                    className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
                   >
                     打开原始
                   </a>
@@ -5875,14 +5875,14 @@ className="form-input w-full"
                     href={previewArtifact.download_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
+                    className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-bold text-theme-text-secondary transition hover:bg-theme-elevated"
                   >
                     下载
                   </a>
                   <button
                     type="button"
                     onClick={handleCloseArtifactPreview}
-                    className="inline-flex items-center gap-1 rounded-lg bg-theme-bg-app px-3 py-2 text-xs font-bold text-white transition hover:bg-theme-elevated"
+                    className="inline-flex items-center gap-1 rounded-lg bg-theme-elevated px-3 py-2 text-xs font-bold text-white transition hover:bg-theme-elevated"
                   >
                     <XCircle size={14} />
                     关闭

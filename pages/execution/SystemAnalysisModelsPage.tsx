@@ -207,7 +207,7 @@ const ProviderCard: React.FC<{
               <select
                 value={config.api}
                 onChange={(e) => onChange({ ...config, api: e.target.value })}
-                className="w-full rounded-lg border border-theme-border px-3 py-2 text-sm bg-theme-bg-app"
+                className="w-full rounded-lg border border-theme-border px-3 py-2 text-sm bg-theme-elevated"
               >
                 {API_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
@@ -339,7 +339,7 @@ export const SystemAnalysisModelsPage: React.FC = () => {
                   <button
                     key={ref}
                     onClick={() => { navigator.clipboard.writeText(ref).catch(() => {}); notify(`已复制 ${ref}`, 'success'); }}
-                    className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-mono text-theme-text-secondary hover:border-cyan-300 hover:bg-cyan-500/15 hover:text-cyan-400 transition-colors"
+                    className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-mono text-theme-text-secondary hover:border-cyan-300 hover:bg-cyan-500/15 hover:text-cyan-400 transition-colors"
                     title="点击复制"
                   >
                     {ref}

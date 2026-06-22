@@ -406,7 +406,7 @@ function renderStageItemDetailValue(label: string, value: string, projectId?: st
   return (
     <div className="mt-2 space-y-2">
       {lines.map((line, index) => (
-        <div key={`${label}-${line}-${index}`} className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-2">
+        <div key={`${label}-${line}-${index}`} className="rounded-lg border border-theme-border bg-theme-elevated px-2 py-2">
           <ProjectDirectoryValue path={line} projectId={projectId} />
         </div>
       ))}
@@ -427,7 +427,7 @@ function archiveJobSourcePath(job: {
 const stageItemTone = (selected: boolean) => (
   selected
  ? 'border-sky-300 bg-gradient-to-br from-sky-50 via-slate-50 to-cyan-50 '
-    : 'border-theme-border bg-slate-50/70 hover:border-theme-border hover:bg-theme-bg-app'
+    : 'border-theme-border bg-slate-50/70 hover:border-theme-border hover:bg-theme-elevated'
 );
 
 const detailPanelTone = { borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '12px', color: LK.inkSoft };
@@ -1310,7 +1310,7 @@ const reasonToneClass = (tone: TaskStatusReason['tone']) => {
     case 'error':
       return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
     case 'muted':
-      return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+      return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
     default:
       return 'border-sky-500/20 bg-sky-500/15 text-sky-400';
   }
@@ -1673,7 +1673,7 @@ function AbnormalReasonCard({
           <div className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-60">异常原因</div>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <div className="text-sm font-semibold">{reason.title}</div>
- <span className="rounded-full border border-current/15 bg-theme-bg-app px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]">
+ <span className="rounded-full border border-current/15 bg-theme-elevated px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]">
               {reason.code}
             </span>
           </div>
@@ -1696,7 +1696,7 @@ function AbnormalReasonCard({
       {history && history.length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
           {history.slice(0, 3).map((item) => (
- <span key={item.event_id} className="rounded-full border border-current/10 bg-theme-bg-app px-2.5 py-1 font-semibold">
+ <span key={item.event_id} className="rounded-full border border-current/10 bg-theme-elevated px-2.5 py-1 font-semibold">
               {item.reason.code} · {fmt(item.created_at)}
             </span>
           ))}
@@ -1758,7 +1758,7 @@ function ManualOperationStateCard({ state }: { state: ManualOperationState }) {
   return (
     <div className={`rounded-2xl border px-4 py-3 ${manualOperationTone(state.overall)}`}>
       <div className="flex flex-wrap items-center gap-3">
- <span className="rounded-full border border-current/20 bg-theme-bg-app px-3 py-1 text-[11px] font-medium">
+ <span className="rounded-full border border-current/20 bg-theme-elevated px-3 py-1 text-[11px] font-medium">
           {manualOperationLabel(state.overall)}
         </span>
         <span className="text-sm font-semibold">{state.summary || '-'}</span>
@@ -2020,13 +2020,13 @@ function ApiKeysPanel({
                       <h3 className="text-lg font-semibold text-theme-text-primary">{STAGE_LABELS[stageName] || stageName}</h3>
                       <p className="mt-1 text-xs text-theme-text-muted">当前阶段派生的 work key 与关联子任务。</p>
                     </div>
-                    <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-xs font-semibold text-theme-text-secondary">
+                    <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-xs font-semibold text-theme-text-secondary">
                       {rows.length} 条
                     </span>
                   </div>
                   <div className="overflow-x-auto rounded-2xl border border-theme-border">
                     <table className="min-w-[1040px] w-full divide-y divide-theme-border text-left text-xs">
-                      <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
+                      <thead className="bg-theme-elevated text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                         <tr>
                           <th className="px-3 py-2">阶段</th>
                           <th className="px-3 py-2">服务</th>
@@ -2039,7 +2039,7 @@ function ApiKeysPanel({
                           <th className="px-3 py-2">创建时间</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-theme-border bg-theme-bg-app">
+                      <tbody className="divide-y divide-theme-border bg-theme-elevated">
                         {rows.map((workKey: BinarySecurityWorkKeySnapshot, index) => (
                           <tr key={`${stageName}:${workKey.stage_item_id || index}:${workKey.agent_task_key_id || ''}`} className="hover:bg-slate-100/80">
                             <td className="px-3 py-2 font-bold text-theme-text-primary">{STAGE_LABELS[stageName] || stageName}</td>
@@ -3661,9 +3661,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               <div key={taskItem.id} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3 text-xs text-theme-text-secondary">
                 <div className="font-bold text-theme-text-primary">{taskItem.elf_path}</div>
                 <div className="mt-2 grid grid-cols-1 gap-2 xl:grid-cols-3">
-                  <div className="rounded-lg bg-theme-bg-app px-2.5 py-2">阶段：{taskItem.phase_label || taskItem.phase || '-'}</div>
-                  <div className="rounded-lg bg-theme-bg-app px-2.5 py-2">状态：{taskItem.status}</div>
-                  <div className="rounded-lg bg-theme-bg-app px-2.5 py-2">输出：{taskItem.output_dir}</div>
+                  <div className="rounded-lg bg-theme-elevated px-2.5 py-2">阶段：{taskItem.phase_label || taskItem.phase || '-'}</div>
+                  <div className="rounded-lg bg-theme-elevated px-2.5 py-2">状态：{taskItem.status}</div>
+                  <div className="rounded-lg bg-theme-elevated px-2.5 py-2">输出：{taskItem.output_dir}</div>
                 </div>
               </div>
             ))}
@@ -3708,7 +3708,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }>,
     emptyText: string,
   ) => (
- <section className="binary-security-modules-table rounded-[1.75rem] border border-theme-border bg-theme-bg-app">
+ <section className="binary-security-modules-table rounded-[1.75rem] border border-theme-border bg-theme-elevated">
       <div className="flex flex-col gap-3 border-b border-theme-border px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="text-sm font-semibold text-theme-text-primary">{isBinaryModuleTask ? '模块输入表' : '全部模块表'}</div>
@@ -3717,7 +3717,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           </div>
         </div>
         <div className="flex flex-wrap gap-2 text-[11px] font-bold">
-          <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1.5 text-theme-text-secondary">总计 {rows.length}</span>
+          <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1.5 text-theme-text-secondary">总计 {rows.length}</span>
           <span className="rounded-full border border-rose-500/20 bg-rose-500/15 px-3 py-1.5 text-rose-400">候选 {rows.filter((row) => row.candidate).length}</span>
           <span className="rounded-full border border-emerald-500/20 bg-emerald-500/15 px-3 py-1.5 text-emerald-400">已选 {rows.filter((row) => row.selected).length}</span>
           {requiresModuleConfirmation ? (
@@ -3781,7 +3781,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-theme-border text-left text-xs">
-            <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
+            <thead className="bg-theme-elevated text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
               <tr>
                 {requiresModuleConfirmation ? <th className="w-16 px-4 py-3">勾选</th> : null}
                 <th className="min-w-[220px] px-4 py-3">
@@ -3803,7 +3803,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-theme-border bg-theme-bg-app">
+            <tbody className="divide-y divide-theme-border bg-theme-elevated">
               {filteredAndSortedModuleRows.map(({ module, moduleKey, sourceTags, candidate, selected }) => {
                 const checked = selectedModuleKeys.includes(moduleKey);
                 const fileCount = moduleContractNumber(module, 'file_count');
@@ -3824,7 +3824,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     key={moduleKey}
                     onClick={() => void openModuleReportDialog(moduleKey, moduleContractText(module, 'module_name') || moduleKey)}
                     className={`cursor-pointer transition hover:bg-sky-50/70 ${
-                      rowActive ? 'bg-sky-50/80 ring-1 ring-inset ring-sky-500/20' : checked ? 'bg-amber-50/60' : selected ? 'bg-emerald-50/40' : 'bg-theme-bg-app'
+                      rowActive ? 'bg-sky-50/80 ring-1 ring-inset ring-sky-500/20' : checked ? 'bg-amber-50/60' : selected ? 'bg-emerald-50/40' : 'bg-theme-elevated'
                     }`}
                   >
                     {requiresModuleConfirmation ? (
@@ -3862,21 +3862,21 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                 ? 'border-rose-500/20 bg-rose-500/15 text-rose-400'
                                 : tag === '已选'
                                   ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400'
-                                  : 'border-theme-border bg-theme-bg-app text-theme-text-secondary'
+                                  : 'border-theme-border bg-theme-elevated text-theme-text-secondary'
                             }`}
                           >
                             {tag}
                           </span>
                         ))}
                         {!selectable && requiresModuleConfirmation ? (
-                          <span className="inline-flex rounded-full border border-theme-border bg-theme-bg-app px-2 py-1 text-[11px] font-semibold text-theme-text-muted">
+                          <span className="inline-flex rounded-full border border-theme-border bg-theme-elevated px-2 py-1 text-[11px] font-semibold text-theme-text-muted">
                             不可勾选
                           </span>
                         ) : null}
                       </div>
                     </td>
                     <td className="px-4 py-3 align-top">
-                      <div className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
                         <FileText size={12} />
                         {reportStatusLabel}
                       </div>
@@ -3924,10 +3924,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 <div>
                   <h3 className="text-2xl font-bold tracking-tight text-theme-text-primary">{selectedModuleReportDetail?.module_name || selectedModuleReportTarget.moduleName}</h3>
                   <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold">
-                    <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-theme-text-secondary">{selectedModuleReportTarget.moduleKey}</span>
+                    <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-theme-text-secondary">{selectedModuleReportTarget.moduleKey}</span>
                     {selectedModuleReportDetail?.risk_level ? <span className="rounded-full border border-rose-500/20 bg-rose-500/15 px-3 py-1 text-rose-400">风险 {selectedModuleReportDetail.risk_level}</span> : null}
-                    {selectedModuleReportDetail?.risk_score !== undefined && selectedModuleReportDetail?.risk_score !== null ? <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-theme-text-secondary">分数 {selectedModuleReportDetail.risk_score}</span> : null}
-                    {selectedModuleReportDetail?.file_count !== undefined && selectedModuleReportDetail?.file_count !== null ? <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-theme-text-secondary">文件 {selectedModuleReportDetail.file_count}</span> : null}
+                    {selectedModuleReportDetail?.risk_score !== undefined && selectedModuleReportDetail?.risk_score !== null ? <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-theme-text-secondary">分数 {selectedModuleReportDetail.risk_score}</span> : null}
+                    {selectedModuleReportDetail?.file_count !== undefined && selectedModuleReportDetail?.file_count !== null ? <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-theme-text-secondary">文件 {selectedModuleReportDetail.file_count}</span> : null}
                     {(selectedModuleReportDetail?.source_tags || []).map((tag) => (
                       <span key={`${selectedModuleReportTarget.moduleKey}-${tag}`} className="rounded-full border border-sky-500/20 bg-sky-500/15 px-3 py-1 text-sky-400">{tag}</span>
                     ))}
@@ -4176,7 +4176,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         <div className="text-sm text-theme-text-muted">加载中...</div>
       ) : detail ? (
         <>
- <section className="rounded-[1.75rem] border border-theme-border bg-theme-bg-app p-4">
+ <section className="rounded-[1.75rem] border border-theme-border bg-theme-elevated p-4">
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.85fr)] xl:items-start">
               <div className="min-w-0">
                 <h1 className="text-2xl font-bold tracking-tight text-theme-text-primary">{detail.name}</h1>
@@ -4370,7 +4370,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   className={`rounded-[1.2rem] px-4 py-3 text-left transition ${
                     activeTab === tab.key
  ? 'bg-theme-surface text-white shadow-slate-200'
-                      : 'bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
+                      : 'bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                   }`}
                 >
                   <div className="text-sm font-semibold">{tab.label}</div>
@@ -4405,7 +4405,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     当前存在未保存的策略修改。请在对应模块内分别保存。
                   </div>
                 ) : null}
-                <div className="mt-5 rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3 text-sm">
+                <div className="mt-5 rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3 text-sm">
                   <div className="font-semibold text-theme-text-primary">当前推进模式：{pipelineModeLabel(detail.policy?.pipeline_mode)}</div>
                   <div className="mt-1 text-theme-text-muted">{pipelineModeHint(detail.policy?.pipeline_mode)}</div>
                 </div>
@@ -4887,7 +4887,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       >
                         {stage.abnormal_reason ? (
                           <div className="mb-2">
- <span className="inline-flex max-w-full rounded-full border border-current/15 bg-theme-bg-app px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
+ <span className="inline-flex max-w-full rounded-full border border-current/15 bg-theme-elevated px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
                               <span className="truncate">{stage.abnormal_reason.code}</span>
                             </span>
                           </div>
@@ -4916,7 +4916,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                 <span className="shrink-0 whitespace-nowrap text-right font-semibold">{durationLabel(stage.started_at, stage.finished_at)}</span>
                               </div>
                             </div>
- <div className="rounded-full border border-current/20 bg-theme-bg-app px-2 py-1 text-center text-[10px] font-medium leading-none">
+ <div className="rounded-full border border-current/20 bg-theme-elevated px-2 py-1 text-center text-[10px] font-medium leading-none">
                               {formatBinarySecurityStatus(stage.status_label || archiveStatusLabel(stage.status))}
                             </div>
                           </>
@@ -4951,7 +4951,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                 <span className="shrink-0 whitespace-nowrap text-right font-semibold">{durationLabel(stage.started_at, stage.finished_at)}</span>
                               </div>
                             </div>
- <div className="mt-3 rounded-full border border-current/20 bg-theme-bg-app px-3 py-1 text-center text-[11px] font-medium">
+ <div className="mt-3 rounded-full border border-current/20 bg-theme-elevated px-3 py-1 text-center text-[11px] font-medium">
                               {formatBinarySecurityStatus(stage.status_label || stage.status)}
                             </div>
                             <div className="mt-3 flex items-center justify-between gap-2">
@@ -5121,7 +5121,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(job.archive_status === 'archived' || job.archive_status === 'applying' ? 'running' : job.archive_status)}`}>
                               {archiveStatusLabel(job.archive_status)}
                             </span>
-                            <span className="rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">
+                            <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">
                               尝试 {job.attempts || 0}
                             </span>
                           </div>
@@ -5294,7 +5294,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                    className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
 	                      stageStatusFilter === 'all'
 	                        ? 'border-theme-border bg-theme-surface text-white'
-	                        : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
+	                        : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
 	                    }`}
 	                  >
 	                    全部 {stageItemsTotal}
@@ -5307,7 +5307,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                      className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
 	                        stageStatusFilter === option.status
 	                          ? 'border-theme-border bg-theme-surface text-white'
-	                          : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
+	                          : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
 	                      }`}
 	                    >
 	                      {formatBinarySecurityStatus(option.status)} {option.count}
@@ -5315,14 +5315,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                  ))}
 	                </div>
 	                <div className="flex flex-wrap items-center gap-2 text-xs">
-	                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 font-bold text-theme-text-secondary">
+	                  <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-2 font-bold text-theme-text-secondary">
 	                    已选 {selectedVisibleStageItems.length} / 当前页 {visibleStageItems.length}
 	                  </span>
 	                  <button
 	                    type="button"
 	                    disabled={visibleStageItems.length === 0}
 	                    onClick={() => setSelectedStageItemIds(visibleStageItems.map((item) => item.id))}
-	                    className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 font-semibold text-theme-text-secondary disabled:opacity-50"
+	                    className="rounded-full border border-theme-border bg-theme-elevated px-3 py-2 font-semibold text-theme-text-secondary disabled:opacity-50"
 	                  >
 	                    全选当前页
 	                  </button>
@@ -5330,7 +5330,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                    type="button"
 	                    disabled={selectedStageItemIds.length === 0}
 	                    onClick={() => setSelectedStageItemIds([])}
-	                    className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 font-semibold text-theme-text-secondary disabled:opacity-50"
+	                    className="rounded-full border border-theme-border bg-theme-elevated px-3 py-2 font-semibold text-theme-text-secondary disabled:opacity-50"
 	                  >
 	                    清空选择
 	                  </button>
@@ -5351,7 +5351,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     <span className="ml-2 text-theme-text-muted">共 {stageItemsTotal} 条，每页 {stageItemsPerPage} 条</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <label className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary">
+                    <label className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-semibold text-theme-text-secondary">
                       每页
                       <select
                         value={stageItemsPerPage}
@@ -5371,7 +5371,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       type="button"
                       disabled={stageItemsPageLoading || stageItemsCurrentPage <= 1}
                       onClick={() => setStageItemsCurrentPage((current) => Math.max(1, current - 1))}
-                      className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary disabled:opacity-50"
+                      className="rounded-full border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-semibold text-theme-text-secondary disabled:opacity-50"
                     >
                       上一页
                     </button>
@@ -5379,7 +5379,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       type="button"
                       disabled={stageItemsPageLoading || stageItemsCurrentPage >= stageItemsTotalPages}
                       onClick={() => setStageItemsCurrentPage((current) => Math.min(stageItemsTotalPages, current + 1))}
-                      className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary disabled:opacity-50"
+                      className="rounded-full border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-semibold text-theme-text-secondary disabled:opacity-50"
                     >
                       下一页
                     </button>
@@ -5403,7 +5403,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                <div className="overflow-hidden rounded-xl border border-theme-border">
 	                  <div className="overflow-x-auto">
 	                    <table className="min-w-[1200px] w-full divide-y divide-theme-border text-left text-xs">
-	                      <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
+	                      <thead className="bg-theme-elevated text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
 	                        <tr>
 	                          <th className="w-14 px-3 py-3">
 	                            <input
@@ -5449,7 +5449,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           <th className="w-52 px-3 py-3 text-right">操作</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-theme-border bg-theme-bg-app">
+                      <tbody className="divide-y divide-theme-border bg-theme-elevated">
 	                        {visibleStageItems.map((item) => {
 	                          const detailSupport = downstreamDetailSupport(item.stage_name, item.downstream_task_id, stageItemMissingDownstreamReason(item));
 	                          const expanded = expandedStageItemId === item.id;
@@ -5487,7 +5487,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                         {stageItemDisplayDownstreamStatus(item)}
                                       </span>
                                       {!item.downstream_task_id && item.downstream_binding_message ? (
-                                        <span className="inline-flex w-fit rounded-full border border-theme-border bg-theme-bg-app px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
+                                        <span className="inline-flex w-fit rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary">
                                           {item.downstream_binding_message}
                                         </span>
                                       ) : null}
@@ -5566,7 +5566,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                     <button
                                       type="button"
                                       onClick={() => setExpandedStageItemId(expanded ? null : item.id)}
-                                      className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-[11px] font-medium text-theme-text-secondary transition hover:bg-theme-elevated"
+                                      className="rounded-full border border-theme-border bg-theme-elevated px-3 py-2 text-[11px] font-medium text-theme-text-secondary transition hover:bg-theme-elevated"
                                     >
                                       {expanded ? '收起详情' : '查看详情'}
                                     </button>
@@ -5600,7 +5600,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                       </button>
                                     ) : (
                                       <span
-                                        className="inline-flex items-center gap-1 rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-[11px] font-bold text-theme-text-muted"
+                                        className="inline-flex items-center gap-1 rounded-full border border-theme-border bg-theme-elevated px-3 py-2 text-[11px] font-bold text-theme-text-muted"
                                         title={detailSupport.reason}
                                       >
                                         <Info className="h-3.5 w-3.5" />
@@ -5839,14 +5839,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
                 {requiresModuleConfirmation ? (
                   <div className="mt-4 flex flex-wrap items-center gap-3">
-                    <span className="rounded-full border border-amber-500/20 bg-theme-bg-app px-3 py-2 text-xs font-bold text-amber-400">
+                    <span className="rounded-full border border-amber-500/20 bg-theme-elevated px-3 py-2 text-xs font-bold text-amber-400">
                       当前已勾选 {selectedModuleKeys.length} 个模块
                     </span>
                     <button
                       type="button"
                       onClick={selectAllVisibleModules}
                       disabled={selectableModuleKeys.length === 0}
-                      className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary"
+                      className="rounded-full border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-semibold text-theme-text-secondary"
                     >
                       全选全部模块
                     </button>
@@ -5854,7 +5854,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       type="button"
                       onClick={clearAllSelectedModules}
                       disabled={selectedModuleKeys.length === 0}
-                      className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary"
+                      className="rounded-full border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-semibold text-theme-text-secondary"
                     >
                       清空勾选
                     </button>
@@ -5913,8 +5913,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap items-center gap-3">
-                <button type="button" onClick={() => setSelectedEntryKeys((entrySelection?.candidate_entries || []).map((item) => String(item.entry_key || '').trim()).filter(Boolean))} className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary">全选候选入口</button>
-                <button type="button" onClick={() => setSelectedEntryKeys([])} className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-2 text-xs font-semibold text-theme-text-secondary">清空勾选</button>
+                <button type="button" onClick={() => setSelectedEntryKeys((entrySelection?.candidate_entries || []).map((item) => String(item.entry_key || '').trim()).filter(Boolean))} className="rounded-full border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-semibold text-theme-text-secondary">全选候选入口</button>
+                <button type="button" onClick={() => setSelectedEntryKeys([])} className="rounded-full border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-semibold text-theme-text-secondary">清空勾选</button>
                 <button type="button" onClick={() => void confirmEntrySelection()} disabled={actionLoading === 'confirm-entries' || selectedEntryKeys.length === 0 || !entryConfirmSupported} className="rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">
                   {actionLoading === 'confirm-entries' ? '确认中...' : '确认并继续'}
                 </button>
@@ -6016,7 +6016,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 <div className="overflow-hidden rounded-2xl border border-theme-border">
                   <div className="overflow-x-auto">
                     <table className="min-w-[1080px] w-full divide-y divide-theme-border text-left text-xs">
-                      <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
+                      <thead className="bg-theme-elevated text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                         <tr>
                           <th className="w-14 px-3 py-2">#</th>
                           <th className="w-44 px-3 py-2">时间</th>
@@ -6028,7 +6028,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           <th className="w-36 px-3 py-2 text-right">操作</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-theme-border bg-theme-bg-app">
+                      <tbody className="divide-y divide-theme-border bg-theme-elevated">
                         {pagedTimelineItems.map((event) => {
                           const expanded = expandedEventKey === event._key;
                           const isAbnormalReasonEvent = event.event_type === 'abnormal_reason_recorded';
@@ -6057,7 +6057,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                 </td>
                                 <td className="px-3 py-2">
                                   {event.stage_name ? (
-                                    <span className="inline-flex max-w-[110px] rounded-full border border-theme-border bg-theme-bg-app px-2 py-0.5 text-[11px] font-bold text-theme-text-secondary">
+                                    <span className="inline-flex max-w-[110px] rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[11px] font-bold text-theme-text-secondary">
                                       <span className="truncate">{STAGE_LABELS[event.stage_name] || event.stage_name}</span>
                                     </span>
                                   ) : (

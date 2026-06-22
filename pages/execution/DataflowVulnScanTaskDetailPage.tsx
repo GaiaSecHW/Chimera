@@ -156,7 +156,7 @@ function sessionRoleTone(role?: string) {
   if (role === 'judge') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
   if (role === 'sub_worker') return 'border-violet-500/20 bg-violet-500/15 text-violet-400';
   if (role === 'master' || role === 'master_worker') return 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400';
-  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function stageLabel(stage?: string): string {
@@ -175,7 +175,7 @@ function timelineLevelTone(level?: string | null) {
   if (normalized === 'error') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
   if (normalized === 'warning' || normalized === 'warn') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
   if (normalized === 'success') return 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400';
-  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function isAgentKillTimelineEvent(eventType?: string | null) {
@@ -204,14 +204,14 @@ function timelineEventCategoryTone(eventType?: string | null) {
   if (category === 'task_mutation') return 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400';
   if (category === 'failure') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
   if (category === 'stage_progress') return 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400';
-  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function timelineEventTypeTone(eventType?: string | null) {
   const normalized = String(eventType || '').trim();
   if (normalized === 'agent_process_manual_kill') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
   if (normalized === 'agent_process_bulk_manual_kill') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
-  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function formatTimelineEventTypeLabel(eventType?: string | null) {
@@ -399,7 +399,7 @@ function traceNodeTone(status?: string) {
   if (status === 'running' || status === 'queued') return 'border-blue-500/20 bg-blue-500/15 text-blue-400';
   if (status === 'failed' || status === 'error') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
   if (status === 'depth_limit' || status === 'cycle' || status === 'skipped') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
-  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function flattenTraceTree(node?: DataflowVulnTraceTreeNode | null): DataflowVulnTraceTreeNode[] {
@@ -426,7 +426,7 @@ function pruneReasonTone(reason?: string | null): string {
   if (r === 'merged_equivalent_taint_validation' || r === 'already_analyzed') return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20';
   if (r === 'invalid_name') return 'bg-rose-500/15 text-rose-400 border-rose-500/20';
   if (r === 'not_in_source_root_funcdb' || r === 'external' || r.startsWith('external') || r === 'stdlib skip') return 'bg-amber-500/15 text-amber-400 border-amber-500/20';
-  return 'bg-theme-bg-app text-theme-text-secondary border-theme-border';
+  return 'bg-theme-elevated text-theme-text-secondary border-theme-border';
 }
 
 function PrunedBranchBadge({ node, level = 0 }: { node: DataflowVulnTraceTreeNode; level?: number }) {
@@ -504,7 +504,7 @@ function TraceTreeNodeCard({
 }
 
 function MarkdownContent({ content }: { content: string }) {
-  return <article className="prose prose-slate max-w-none prose-headings:font-semibold prose-pre:border prose-pre:border-theme-border prose-pre:bg-theme-bg-app prose-pre:text-theme-text-primary prose-code:text-rose-400"><ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown></article>;
+  return <article className="prose prose-slate max-w-none prose-headings:font-semibold prose-pre:border prose-pre:border-theme-border prose-pre:bg-theme-elevated prose-pre:text-theme-text-primary prose-code:text-rose-400"><ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown></article>;
 }
 
 export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskId: string; onBack: () => void }> = ({ projectId, taskId, onBack }) => {
@@ -1004,8 +1004,8 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                   <p className="mt-1 text-xs text-theme-text-muted">展示当前任务仍处于活跃状态的智能体会话与角色，点击可查看实时会话。</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">{activeSessions.length} 个活跃会话</span>
-                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
+                  <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-secondary">{activeSessions.length} 个活跃会话</span>
+                  <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
                     展示 {activeAgentRangeStart}-{activeAgentRangeEnd} / {filteredActiveSessions.length}
                   </span>
                 </div>
@@ -1037,7 +1037,7 @@ className="form-select ml-2 text-xs"
                   </div>
                   {filteredActiveSessions.length > 0 ? (
                     <div className="mt-4 overflow-hidden rounded-2xl border border-theme-border">
-                      <div className="divide-y divide-theme-border bg-theme-bg-app">
+                      <div className="divide-y divide-theme-border bg-theme-elevated">
                         {pagedActiveSessions.map((session) => (
                           <button key={session.relative_path} type="button" onClick={() => openActiveAgentSession(session.relative_path)} className="w-full px-4 py-4 text-left transition hover:bg-theme-elevated">
                             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1152,7 +1152,7 @@ className="form-select ml-2 text-xs"
                 <div className="overflow-hidden rounded-2xl border border-theme-border">
                   <div className="overflow-x-auto">
                     <table className="min-w-[1180px] w-full divide-y divide-theme-border text-left text-xs">
-                      <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
+                      <thead className="bg-theme-elevated text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                         <tr>
                           <th className="w-14 px-3 py-2">#</th>
                           <th className="w-44 px-3 py-2">时间</th>
@@ -1165,7 +1165,7 @@ className="form-select ml-2 text-xs"
                           <th className="w-36 px-3 py-2 text-right">操作</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-theme-border bg-theme-bg-app">
+                      <tbody className="divide-y divide-theme-border bg-theme-elevated">
                         {pagedTimelineItems.map((event, index) => {
                           const expanded = expandedTimelineEventId === event.id;
                           const payload = event.payload || {};
@@ -1208,7 +1208,7 @@ className="form-select ml-2 text-xs"
                                   <td colSpan={9} className="px-3 py-3">
                                     <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                                       {timelinePayloadRows(payload).slice(0, 12).map((row) => (
-                                        <div key={row.key} className="min-w-0 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs">
+                                        <div key={row.key} className="min-w-0 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs">
                                           <div className="font-bold capitalize text-theme-text-muted">{row.label}</div>
                                           <div className="mt-1 break-all font-mono text-theme-text-secondary">{row.value}</div>
                                         </div>

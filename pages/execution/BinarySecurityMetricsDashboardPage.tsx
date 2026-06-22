@@ -2336,28 +2336,28 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
       label: '待处理事件',
       value: snapshot.pendingDepth,
       hint: snapshot.oldestPendingAge == null ? '未采集' :`最老 ${formatSeconds(snapshot.oldestPendingAge)}`,
-      tone: (snapshot.pendingDepth || 0) > 0 ? 'border-amber-500/20 bg-amber-500/15 text-amber-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary',
+      tone: (snapshot.pendingDepth || 0) > 0 ? 'border-amber-500/20 bg-amber-500/15 text-amber-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary',
       icon: <Database size={15} />,
     },
     {
       label: '处理中',
       value: snapshot.processingDepth,
       hint: snapshot.oldestProcessingAge == null ? '未采集' :`最老 ${formatSeconds(snapshot.oldestProcessingAge)}`,
-      tone: (snapshot.processingDepth || 0) > 0 ? 'border-sky-500/20 bg-sky-500/15 text-sky-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary',
+      tone: (snapshot.processingDepth || 0) > 0 ? 'border-sky-500/20 bg-sky-500/15 text-sky-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary',
       icon: <Activity size={15} />,
     },
     {
       label: '可重试',
       value: snapshot.retryableDepth,
       hint: snapshot.oldestRetryableAge == null ? '未采集' :`最老 ${formatSeconds(snapshot.oldestRetryableAge)}`,
-      tone: (snapshot.retryableDepth || 0) > 0 ? 'border-orange-500/20 bg-orange-500/15 text-orange-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary',
+      tone: (snapshot.retryableDepth || 0) > 0 ? 'border-orange-500/20 bg-orange-500/15 text-orange-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary',
       icon: <RefreshCw size={15} />,
     },
     {
       label: '死信事件',
       value: snapshot.deadLetterDepth,
       hint: snapshot.oldestDeadLetterAge == null ? '未采集' :`最老 ${formatSeconds(snapshot.oldestDeadLetterAge)}`,
-      tone: (snapshot.deadLetterDepth || 0) > 0 ? 'border-rose-500/20 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary',
+      tone: (snapshot.deadLetterDepth || 0) > 0 ? 'border-rose-500/20 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary',
       icon: <ShieldAlert size={15} />,
     },
   ];
@@ -3774,7 +3774,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 type="button"
                 onClick={() => setActiveSecondaryTab(tab.key)}
                 className={`rounded-2xl px-4 py-2.5 text-sm font-semibold transition ${
- active ? 'bg-teal-600 text-white' : 'bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
+ active ? 'bg-teal-600 text-white' : 'bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                 }`}
               >
                 {tab.label}
@@ -3949,7 +3949,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
                   <div className="mt-4 overflow-x-auto">
                     <table className="min-w-full divide-y divide-theme-border text-left text-sm">
-                      <thead className="bg-theme-bg-app">
+                      <thead className="bg-theme-elevated">
                         <tr>
                           <th style={{ padding: '8px 12px', fontWeight: 600, color: LK.muted }}>分段</th>
                           <th style={{ padding: '8px 12px', fontWeight: 600, color: LK.muted }}>调用次数</th>
@@ -4032,7 +4032,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               </div>
 
               <div className="grid gap-4 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
- <div className="rounded-[1.6rem] border border-teal-500/20 bg-theme-bg-app p-4">
+ <div className="rounded-[1.6rem] border border-teal-500/20 bg-theme-elevated p-4">
                   <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>负载与成本</div>
                   <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>Queue / Runtime / Token</h3>
                   <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -4046,7 +4046,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   </div>
                 </div>
 
- <div className="rounded-[1.6rem] border border-teal-500/20 bg-theme-bg-app p-4">
+ <div className="rounded-[1.6rem] border border-teal-500/20 bg-theme-elevated p-4">
                   <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>失败与调度</div>
                   <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>Failure Category / Dispatch</h3>
                   <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -4084,7 +4084,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </div>
               </div>
 
- <div className="rounded-[1.6rem] border border-teal-500/20 bg-theme-bg-app p-4">
+ <div className="rounded-[1.6rem] border border-teal-500/20 bg-theme-elevated p-4">
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
                     <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>执行槽位明细</h3>
@@ -4104,7 +4104,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <button
                       type="button"
                       onClick={() => setSelectedDfaWorkerFilter('')}
-                      className="rounded-full border border-cyan-500/20 bg-theme-bg-app px-2 py-1 font-semibold text-cyan-400 hover:bg-cyan-500/15"
+                      className="rounded-full border border-cyan-500/20 bg-theme-elevated px-2 py-1 font-semibold text-cyan-400 hover:bg-cyan-500/15"
                     >
                       清除筛选
                     </button>
@@ -4218,7 +4218,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     面向服务级聚合快照，重点看排队、执行、轮次、Worker/Judge 负载以及失败归因；这里不是单任务的 R1/R2/R3/R4 详情页，而是集群级健康视图。
                   </p>
                 </div>
- <span className="inline-flex rounded-full border border-indigo-500/20 bg-theme-bg-app px-3 py-1 text-xs font-semibold text-indigo-400">
+ <span className="inline-flex rounded-full border border-indigo-500/20 bg-theme-elevated px-3 py-1 text-xs font-semibold text-indigo-400">
                   retry {formatNumber(metricValueByName(viewModel.rows, 'chimera_ea_retry_total'))} / timeout {formatNumber(metricValueByName(viewModel.rows, 'chimera_ea_timeout_total'))}
                 </span>
               </div>
@@ -4326,7 +4326,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <button
                       type="button"
                       onClick={() => setSelectedEntryWorkerFilter('')}
-                      className="rounded-full border border-indigo-500/20 bg-theme-bg-app px-2 py-1 font-semibold text-indigo-400 hover:bg-indigo-500/15"
+                      className="rounded-full border border-indigo-500/20 bg-theme-elevated px-2 py-1 font-semibold text-indigo-400 hover:bg-indigo-500/15"
                     >
                       清除筛选
                     </button>
@@ -4450,7 +4450,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       type="button"
                       onClick={() => setSelectedEntryStage('all')}
                       className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
-                        selectedEntryStage === 'all' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-bg-app'
+                        selectedEntryStage === 'all' ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                       }`}
                     >
                       全部阶段
@@ -4461,7 +4461,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         type="button"
                         onClick={() => setSelectedEntryStage(item.stage as 'R1' | 'R2' | 'R3' | 'R4')}
                         className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
-                          selectedEntryStage === item.stage ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-bg-app'
+                          selectedEntryStage === item.stage ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                         }`}
                       >
                         {item.stage}
@@ -4500,7 +4500,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     }}
                     disabled={!focusedEntryStageRow}
                     className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-                      focusedEntryStageRow ? 'border-indigo-500/20 bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/15' : 'cursor-not-allowed border-theme-border bg-theme-bg-app text-theme-text-muted'
+                      focusedEntryStageRow ? 'border-indigo-500/20 bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/15' : 'cursor-not-allowed border-theme-border bg-theme-elevated text-theme-text-muted'
                     }`}
                   >
                     在原始指标中过滤当前阶段
@@ -4617,10 +4617,10 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   </p>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
- <span className="inline-flex rounded-full border border-cyan-500/20 bg-theme-bg-app px-3 py-1 text-xs font-semibold text-cyan-400">
+ <span className="inline-flex rounded-full border border-cyan-500/20 bg-theme-elevated px-3 py-1 text-xs font-semibold text-cyan-400">
                     覆盖率 {b2sBusinessViewModel.coverageRate == null ? '-' :`${formatNumber(b2sBusinessViewModel.coverageRate, 1)}%`}
                   </span>
- <span className="inline-flex rounded-full border border-cyan-500/20 bg-theme-bg-app px-3 py-1 text-xs font-semibold text-cyan-400">
+ <span className="inline-flex rounded-full border border-cyan-500/20 bg-theme-elevated px-3 py-1 text-xs font-semibold text-cyan-400">
                     最近样本 {formatTime(b2sBusinessViewModel.latestSeenAt)}
                   </span>
                 </div>
@@ -4696,7 +4696,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     观察 ELF 级缓存请求、命中、绕过、覆盖和当前缓存条目数量，辅助判断相同输入是否被有效复用。
                   </p>
                 </div>
- <span className="inline-flex rounded-full border border-emerald-500/20 bg-theme-bg-app px-3 py-1 text-xs font-semibold text-emerald-400">
+ <span className="inline-flex rounded-full border border-emerald-500/20 bg-theme-elevated px-3 py-1 text-xs font-semibold text-emerald-400">
                   命中率 {b2sCacheViewModel.hitRate == null ? '-' :`${formatNumber(b2sCacheViewModel.hitRate, 1)}%`}
                 </span>
               </div>
@@ -4728,7 +4728,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     以运行总览、阶段健康、AI 成本、并发治理和质量收益为主视图，优先回答“卡在哪、贵不贵、并发是否打满、失败是否集中”。
                   </p>
                 </div>
- <span className="inline-flex rounded-full border border-sky-500/20 bg-theme-bg-app px-3 py-1 text-xs font-semibold text-sky-400">
+ <span className="inline-flex rounded-full border border-sky-500/20 bg-theme-elevated px-3 py-1 text-xs font-semibold text-sky-400">
                   worker {formatNumber(systemWorkerDetailState.data?.worker_count)} / slots {formatNumber(systemWorkerDetailState.data?.total_capacity)}
                 </span>
               </div>
@@ -4743,7 +4743,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 ))}
               </div>
 
- <div className="rounded-[1.4rem] border border-sky-500/20 bg-theme-bg-app px-4 py-3">
+ <div className="rounded-[1.4rem] border border-sky-500/20 bg-theme-elevated px-4 py-3">
                 <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>快速摘要</div>
                 <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
                   {systemAnalysisViewModel.compactSummary.map((item) => (
@@ -4755,7 +4755,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </div>
               </div>
 
- <div className="rounded-[1.6rem] border border-sky-500/20 bg-theme-bg-app p-4">
+ <div className="rounded-[1.6rem] border border-sky-500/20 bg-theme-elevated p-4">
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
                     <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>执行槽位明细</h3>
@@ -4775,7 +4775,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <button
                       type="button"
                       onClick={() => setSelectedSystemWorkerFilter('')}
-                      className="rounded-full border border-sky-500/20 bg-theme-bg-app px-2 py-1 font-semibold text-sky-400 hover:bg-sky-500/15"
+                      className="rounded-full border border-sky-500/20 bg-theme-elevated px-2 py-1 font-semibold text-sky-400 hover:bg-sky-500/15"
                     >
                       清除筛选
                     </button>
@@ -4885,7 +4885,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>阶段健康</div>
                       <h3 style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>Stage 健康矩阵</h3>
                     </div>
-                    <span className="inline-flex rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-muted">
+                    <span className="inline-flex rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-muted">
                       runs / duration / score / cost
                     </span>
                   </div>
@@ -5157,7 +5157,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     优先展示任务状态、队列积压、Worker 在线能力、并发槽位和清理异常；原始 Prometheus 样本仍保留在下方用于排障。
                   </p>
                 </div>
- <span className="inline-flex rounded-full border border-amber-500/20 bg-theme-bg-app px-3 py-1 text-xs font-semibold text-amber-400">
+ <span className="inline-flex rounded-full border border-amber-500/20 bg-theme-elevated px-3 py-1 text-xs font-semibold text-amber-400">
                   专属聚合视图
                 </span>
               </div>
@@ -5188,7 +5188,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   { title: 'Worker 与并发槽位', data: firmwareUnpackerViewModel.workerChart },
                   { title: 'HTTP 请求 Top 6', data: firmwareUnpackerViewModel.httpTop.map((item) => ({ ...item, fill: '#0f766e' })) },
                 ].map((chart) => (
- <div key={chart.title} className="rounded-[1.6rem] border border-amber-500/20 bg-theme-bg-app p-4">
+ <div key={chart.title} className="rounded-[1.6rem] border border-amber-500/20 bg-theme-elevated p-4">
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>{chart.title}</div>
                     <div className="mt-3 h-64">
                       {chart.data.some((item) => item.value > 0) ? (
@@ -5214,7 +5214,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               </div>
 
               <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
- <div className="rounded-[1.6rem] border border-amber-500/20 bg-theme-bg-app p-4">
+ <div className="rounded-[1.6rem] border border-amber-500/20 bg-theme-elevated p-4">
                   <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>异常 / 调度 / 清理</div>
                   <div className="mt-3 grid gap-2 md:grid-cols-2">
                     {firmwareUnpackerViewModel.operations.map((item) => (
@@ -5226,7 +5226,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     ))}
                   </div>
                 </div>
- <div className="rounded-[1.6rem] border border-amber-500/20 bg-theme-bg-app p-4">
+ <div className="rounded-[1.6rem] border border-amber-500/20 bg-theme-elevated p-4">
                   <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>AI / Token / Cost</div>
                   <div className="mt-3 grid gap-2">
                     {firmwareUnpackerViewModel.aiSummary.map((item) => (
@@ -5257,7 +5257,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>热点指标</div>
                     <h2 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>关键样本 Top 8</h2>
                   </div>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-muted">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-muted">
                     <BarChart3 size={12} />
                     当前快照
                   </span>
@@ -5347,7 +5347,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 <button
                   type="button"
                   onClick={() => setSelectedDfaWorkerFilter('')}
-                  className="rounded-full border border-cyan-500/20 bg-theme-bg-app px-2 py-1 font-semibold text-cyan-400 hover:bg-cyan-500/15"
+                  className="rounded-full border border-cyan-500/20 bg-theme-elevated px-2 py-1 font-semibold text-cyan-400 hover:bg-cyan-500/15"
                 >
                   清除筛选
                 </button>
@@ -5360,7 +5360,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 <button
                   type="button"
                   onClick={() => setSelectedSystemWorkerFilter('')}
-                  className="rounded-full border border-sky-500/20 bg-theme-bg-app px-2 py-1 font-semibold text-sky-400 hover:bg-sky-500/15"
+                  className="rounded-full border border-sky-500/20 bg-theme-elevated px-2 py-1 font-semibold text-sky-400 hover:bg-sky-500/15"
                 >
                   清除筛选
                 </button>
@@ -5373,7 +5373,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 <button
                   type="button"
                   onClick={() => setSelectedEntryWorkerFilter('')}
-                  className="rounded-full border border-indigo-500/20 bg-theme-bg-app px-2 py-1 font-semibold text-indigo-400 hover:bg-indigo-500/15"
+                  className="rounded-full border border-indigo-500/20 bg-theme-elevated px-2 py-1 font-semibold text-indigo-400 hover:bg-indigo-500/15"
                 >
                   清除筛选
                 </button>
@@ -5442,11 +5442,11 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </p>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
- <span className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
+ <span className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
                   <TrendingUp size={12} />
                   历史窗口 {formatNumber(reducerViewModel.timeSeries.length)} 点
                 </span>
- <span className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
+ <span className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
                   <GitBranch size={12} />
                   30s 自动刷新可形成连续曲线
                 </span>
@@ -5471,13 +5471,13 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   label: '快照年龄',
                   value: formatSeconds(reducerViewModel.snapshotMeta.ageSeconds),
                   hint: 'Redis reducer snapshot age',
-                  tone: (reducerViewModel.snapshotMeta.ageSeconds || 0) > 30 ? 'border-amber-500/20 bg-amber-500/15 text-amber-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary',
+                  tone: (reducerViewModel.snapshotMeta.ageSeconds || 0) > 30 ? 'border-amber-500/20 bg-amber-500/15 text-amber-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary',
                 },
                 {
                   label: '历史曲线说明',
                   value: '浏览器会话',
                   hint: '下方曲线只保留当前浏览器会话内的短时历史，不是持久化时序库趋势。',
-                  tone: 'border-theme-border bg-theme-bg-app text-theme-text-secondary',
+                  tone: 'border-theme-border bg-theme-elevated text-theme-text-secondary',
                 },
               ].map((item) => (
  <div key={item.label} className={`rounded-[1.4rem] border px-4 py-4 ${item.tone}`}>
@@ -5508,7 +5508,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>队列走势</div>
                     <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>Pending / Retryable / Dead Letter</h3>
                   </div>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-muted">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-muted">
                     <BarChart3 size={12} />
                     客户端历史
                   </span>
@@ -5661,7 +5661,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold ${
                       (agentState.runtimeSummary?.killable_residual_processes || 0) > 0
                         ? 'border-rose-500/20 bg-rose-500/15 text-rose-400 hover:bg-rose-500/15'
-                        : 'border-theme-border bg-theme-bg-app text-theme-text-muted'
+                        : 'border-theme-border bg-theme-elevated text-theme-text-muted'
                     }`}
                   >
                     <ShieldAlert size={14} />
@@ -5674,7 +5674,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold ${
                       (agentState.runtimeSummary?.killable_unknown_processes || 0) > 0
                         ? 'border-amber-500/20 bg-amber-500/15 text-amber-400 hover:bg-amber-500/15'
-                        : 'border-theme-border bg-theme-bg-app text-theme-text-muted'
+                        : 'border-theme-border bg-theme-elevated text-theme-text-muted'
                     }`}
                   >
                     <TimerReset size={14} />
@@ -5784,7 +5784,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               ) : filteredDfaPods.length ? (
                 filteredDfaPods.map((pod) => {
                   return (
- <section key={pod.pod_name} className={`rounded-[1.8rem] border ${pod.healthy ? 'border-theme-border bg-theme-bg-app' : 'border-rose-500/20 bg-rose-50/40'}`}>
+ <section key={pod.pod_name} className={`rounded-[1.8rem] border ${pod.healthy ? 'border-theme-border bg-theme-elevated' : 'border-rose-500/20 bg-rose-50/40'}`}>
                       <button
                         type="button"
                         onClick={() => openAgentPodDialog(activeServiceKey, pod.pod_name)}
@@ -5824,7 +5824,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                             <div style={{ marginTop: '8px', fontSize: '12px', color: LK.error }}>{pod.error}</div>
                           ) : null}
                         </div>
-                        <div className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-xs font-bold text-theme-text-secondary">
+                        <div className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-xs font-bold text-theme-text-secondary">
                           查看详情
                         </div>
                       </button>
@@ -5862,7 +5862,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   <button
                     type="button"
                     onClick={closeAgentPodDialog}
- className="absolute right-4 top-4 z-10 rounded-full border border-theme-border bg-theme-bg-app p-2 text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-primary"
+ className="absolute right-4 top-4 z-10 rounded-full border border-theme-border bg-theme-elevated p-2 text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-primary"
                     title="关闭"
                     aria-label="关闭"
                   >
@@ -5902,8 +5902,8 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         disabled={activeAgentPodKillablePids.length === 0}
                         className={`rounded-xl border px-4 py-2 text-sm font-bold ${
                           activeAgentPodKillablePids.length
-                            ? 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
-                            : 'border-theme-border bg-theme-bg-app text-theme-text-muted'
+                            ? 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
+                            : 'border-theme-border bg-theme-elevated text-theme-text-muted'
                         }`}
                       >
                         {allKillableSelectedForActivePod ? '取消全选可终止进程' : '全选可终止进程'}
@@ -5915,7 +5915,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                         className={`rounded-xl border px-4 py-2 text-sm font-bold ${
                           selectedKillablePidsForActivePod.length
                             ? 'border-rose-500/20 bg-rose-500/15 text-rose-400 hover:bg-rose-500/15'
-                            : 'border-theme-border bg-theme-bg-app text-theme-text-muted'
+                            : 'border-theme-border bg-theme-elevated text-theme-text-muted'
                         }`}
                       >
                         终止选中进程（{selectedKillablePidsForActivePod.length}）
@@ -6126,7 +6126,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                                           ? process.owner_kind === 'suspected_orphan' || process.owner_kind === 'unknown'
                                             ? 'border-amber-500/20 bg-amber-500/15 text-amber-400 hover:bg-amber-500/15'
                                             : 'border-rose-500/20 bg-rose-500/15 text-rose-400 hover:bg-rose-500/15'
-                                          : 'border-theme-border bg-theme-bg-app text-theme-text-muted'
+                                          : 'border-theme-border bg-theme-elevated text-theme-text-muted'
                                       }`}
                                       title={process.kill_allowed ? undefined : process.kill_block_reason || '当前进程不满足终止条件'}
                                     >
@@ -6212,7 +6212,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                           {BINARY_SECURITY_CANONICAL_AI_METRICS.map((item) => {
                             const hit = effectiveAiViewModel.rows.some((row) => row.name.includes(item.key.replace(/-/gu, '_')) || (row.help || '').includes(item.label));
                             return (
-                              <span key={item.key} className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${hit ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-theme-border bg-theme-bg-app text-theme-text-muted'}`}>
+                              <span key={item.key} className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${hit ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-theme-border bg-theme-elevated text-theme-text-muted'}`}>
                                 {item.label}
                               </span>
                             );

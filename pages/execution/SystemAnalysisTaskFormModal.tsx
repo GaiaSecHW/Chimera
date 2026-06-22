@@ -222,7 +222,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
 
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={creating ? undefined : onClose} />
- <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-theme-border bg-theme-bg-app">
+ <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-theme-border bg-theme-elevated">
           <div className="space-y-4 p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-theme-text-primary">{title}</h2>
@@ -301,7 +301,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
               />
             </label>
 
-            <div className="rounded-xl border border-theme-border bg-theme-bg-app p-4">
+            <div className="rounded-xl border border-theme-border bg-theme-elevated p-4">
               <p className="text-xs font-semibold text-theme-text-secondary">分析模式</p>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 {[
@@ -311,7 +311,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                   <label
                     key={option.value}
                     className={`cursor-pointer rounded-xl border px-3 py-2 text-sm ${
-                      form.analysis_mode === option.value ? 'border-cyan-300 bg-cyan-500/15 text-cyan-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary'
+                      form.analysis_mode === option.value ? 'border-cyan-300 bg-cyan-500/15 text-cyan-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary'
                     }`}
                   >
                     <input
@@ -336,7 +336,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
               </div>
             </div>
 
-            <div className="space-y-3 rounded-xl border border-theme-border bg-theme-bg-app p-4">
+            <div className="space-y-3 rounded-xl border border-theme-border bg-theme-elevated p-4">
               <p className="text-xs font-semibold text-theme-text-secondary">分析范围 <span className="font-normal text-theme-text-muted">(覆盖服务默认配置，默认 all)</span></p>
               <div>
                 <p className="mb-1.5 text-xs text-theme-text-muted">文件类型</p>
@@ -410,7 +410,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                         }
                         setForm((prev) => ({ ...prev, security_focus_categories: next }));
                       }}
-                      className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${selected ? 'border-rose-400 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-bg-app text-theme-text-muted hover:border-theme-border'}`}
+                      className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${selected ? 'border-rose-400 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-elevated text-theme-text-muted hover:border-theme-border'}`}
                     >
                       {label}
                     </button>
@@ -427,7 +427,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                     key={value}
                     type="button"
                     onClick={() => setForm((prev) => ({ ...prev, module_granularity: value }))}
-                    className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${form.module_granularity === value ? 'border-rose-400 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-bg-app text-theme-text-muted hover:border-theme-border'}`}
+                    className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${form.module_granularity === value ? 'border-rose-400 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-elevated text-theme-text-muted hover:border-theme-border'}`}
                   >
                     {label}
                   </button>
@@ -443,7 +443,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                     key={value}
                     type="button"
                     onClick={() => setForm((prev) => ({ ...prev, filter_engine: value as 'script' | 'agent' }))}
-                    className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${form.filter_engine === value ? 'border-rose-400 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-bg-app text-theme-text-muted hover:border-theme-border'}`}
+                    className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${form.filter_engine === value ? 'border-rose-400 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-elevated text-theme-text-muted hover:border-theme-border'}`}
                   >
                     {label}
                   </button>
@@ -481,7 +481,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                     className={`rounded-xl border px-3 py-2 text-left transition-colors ${
                       form.enable_final_check_mode === value
                         ? 'border-rose-400 bg-rose-500/15 text-rose-400'
-                        : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
+                        : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                     }`}
                   >
                     <span className="block text-sm font-semibold">{label}</span>
@@ -518,7 +518,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                     className={`rounded-xl border px-3 py-2 text-left transition-colors ${
                       form.continue_on_module_failure_mode === value
                         ? 'border-rose-400 bg-rose-500/15 text-rose-400'
-                        : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-elevated'
+                        : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                     }`}
                   >
                     <span className="block text-sm font-semibold">{label}</span>

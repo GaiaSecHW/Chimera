@@ -223,7 +223,7 @@ export const WorkflowInstancePage: React.FC<{
                 批量删除 ({selectedIds.length})
               </button>
             )}
-            <button onClick={() => loadInstances()} className="p-4 bg-theme-bg-app border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all">
+            <button onClick={() => loadInstances()} className="p-4 bg-theme-elevated border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all">
               <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
             </button>
             <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 px-6 py-4 bg-theme-surface text-white rounded-lg hover:bg-theme-elevated transition-all font-medium">
@@ -470,7 +470,7 @@ export const WorkflowInstancePage: React.FC<{
 
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-theme-bg-app rounded-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="bg-theme-surface rounded-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 border-b border-theme-border">
               <h3 className="text-2xl font-bold text-theme-text-primary">创建空白实例</h3>
               <p className="text-sm text-theme-text-muted mt-2 font-medium">创建一个不包含任何节点的空白工作流实例，稍后可添加节点。</p>
@@ -518,7 +518,7 @@ export const WorkflowInstancePage: React.FC<{
       {/* Uninitialize Confirmation Modal */}
       {isUninitModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-theme-bg-app rounded-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="bg-theme-surface rounded-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
               <div className="w-20 h-20 bg-orange-500/15 text-orange-400 rounded-lg flex items-center justify-center mx-auto mb-6">
                 <RotateCcw size={40} />
@@ -531,7 +531,7 @@ export const WorkflowInstancePage: React.FC<{
                 警告：所有的非持久化数据将全部丢失！
               </p>
             </div>
-            <div className="p-8 bg-theme-bg-app flex gap-4">
+            <div className="p-8 bg-theme-elevated flex gap-4">
               <button
                 onClick={() => {
                   setIsUninitModalOpen(false);
@@ -557,7 +557,7 @@ export const WorkflowInstancePage: React.FC<{
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-theme-bg-app rounded-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="bg-theme-surface rounded-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
               <div className="w-20 h-20 bg-red-500/15 text-red-400 rounded-lg flex items-center justify-center mx-auto mb-6">
                 <Trash2 size={40} />
@@ -569,7 +569,7 @@ export const WorkflowInstancePage: React.FC<{
                   :`您确定要删除选中的 ${selectedIds.length} 个工作流实例吗？此操作将批量清理所有关联资源。`}
               </p>
             </div>
-            <div className="p-8 bg-theme-bg-app flex gap-4">
+            <div className="p-8 bg-theme-elevated flex gap-4">
               <button
                 onClick={() => {
                   setIsDeleteModalOpen(false);

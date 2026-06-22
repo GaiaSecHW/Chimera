@@ -386,7 +386,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
            </div>
 
            {/* Storage Persistence */}
- <div className="bg-theme-bg-app p-8 rounded-xl border border-theme-border space-y-6 overflow-hidden relative">
+ <div className="bg-theme-elevated p-8 rounded-xl border border-theme-border space-y-6 overflow-hidden relative">
               <Database className="absolute right-[-10px] bottom-[-10px] w-20 h-20 opacity-5" />
               <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-[0.25em] flex items-center gap-2">
                 <HardDrive size={16} className="text-indigo-500" /> Persistence Mapping

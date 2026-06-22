@@ -135,9 +135,9 @@ function stageStepTone(stepKey: string, state: StepStatus) {
     };
   }
   return {
-    card: 'border-theme-border bg-theme-bg-app',
-    dot: 'border-theme-border bg-theme-bg-app text-theme-text-muted',
-    badge: 'border-theme-border bg-theme-bg-app text-theme-text-muted',
+    card: 'border-theme-border bg-theme-elevated',
+    dot: 'border-theme-border bg-theme-elevated text-theme-text-muted',
+    badge: 'border-theme-border bg-theme-elevated text-theme-text-muted',
   };
 }
 
@@ -209,7 +209,7 @@ function sessionRoleTone(role?: string) {
   if (role === 'judge') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
   if (role === 'sub_worker') return 'border-violet-500/20 bg-violet-500/15 text-violet-400';
   if (role === 'master' || role === 'master_worker') return 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400';
-  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function stageLabel(stage?: string): string {
@@ -236,7 +236,7 @@ function timelineLevelTone(level?: string | null) {
   if (normalized === 'error') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
   if (normalized === 'warning' || normalized === 'warn') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
   if (normalized === 'success') return 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400';
-  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function isAgentKillTimelineEvent(eventType?: string | null) {
@@ -265,14 +265,14 @@ function timelineEventCategoryTone(eventType?: string | null) {
   if (category === 'task_mutation') return 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400';
   if (category === 'failure') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
   if (category === 'stage_progress') return 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400';
-  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function timelineEventTypeTone(eventType?: string | null) {
   const normalized = String(eventType || '').trim();
   if (normalized === 'agent_process_manual_kill') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
   if (normalized === 'agent_process_bulk_manual_kill') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
-  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function formatTimelineEventTypeLabel(eventType?: string | null) {
@@ -446,7 +446,7 @@ function MetricCard({ label, value, icon }: { label: string; value: React.ReactN
 }
 
 function MarkdownContent({ content }: { content: string }) {
-  return <article className="prose prose-slate max-w-none prose-headings:font-semibold prose-pre:border prose-pre:border-theme-border prose-pre:bg-theme-bg-app prose-pre:text-theme-text-primary prose-code:text-rose-400"><ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown></article>;
+  return <article className="prose prose-slate max-w-none prose-headings:font-semibold prose-pre:border prose-pre:border-theme-border prose-pre:bg-theme-elevated prose-pre:text-theme-text-primary prose-code:text-rose-400"><ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown></article>;
 }
 
 export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: string; onBack: () => void }> = ({ projectId, taskId, onBack }) => {
@@ -961,8 +961,8 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                   <p className="mt-1 text-xs text-theme-text-muted">展示当前任务仍处于活跃状态的智能体会话与角色，点击可查看实时会话。</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">{activeSessions.length} 个活跃会话</span>
-                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
+                  <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-secondary">{activeSessions.length} 个活跃会话</span>
+                  <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
                     展示 {activeAgentRangeStart}-{activeAgentRangeEnd} / {filteredActiveSessions.length}
                   </span>
                 </div>
@@ -994,7 +994,7 @@ className="form-select ml-2 text-xs"
                   </div>
                   {filteredActiveSessions.length > 0 ? (
                     <div className="mt-4 overflow-hidden rounded-2xl border border-theme-border">
-                      <div className="divide-y divide-theme-border bg-theme-bg-app">
+                      <div className="divide-y divide-theme-border bg-theme-elevated">
                         {pagedActiveSessions.map((session) => (
                           <button key={session.relative_path} type="button" onClick={() => openActiveAgentSession(session.relative_path)} className="w-full px-4 py-4 text-left transition hover:bg-theme-elevated">
                             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1128,7 +1128,7 @@ className="form-select ml-2 text-xs"
                 <div className="overflow-hidden rounded-2xl border border-theme-border">
                   <div className="overflow-x-auto">
                     <table className="min-w-[1180px] w-full divide-y divide-theme-border text-left text-xs">
-                      <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
+                      <thead className="bg-theme-elevated text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                         <tr>
                           <th className="w-14 px-3 py-2">#</th>
                           <th className="w-44 px-3 py-2">时间</th>
@@ -1141,7 +1141,7 @@ className="form-select ml-2 text-xs"
                           <th className="w-36 px-3 py-2 text-right">操作</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-theme-border bg-theme-bg-app">
+                      <tbody className="divide-y divide-theme-border bg-theme-elevated">
                         {pagedTimelineItems.map((event, index) => {
                           const expanded = expandedTimelineEventId === event.id;
                           const payload = event.payload || {};
@@ -1176,7 +1176,7 @@ className="form-select ml-2 text-xs"
                                   <td colSpan={9} className="px-3 py-3">
                                     <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                                       {timelinePayloadRows(payload).slice(0, 12).map((row) => (
-                                        <div key={row.key} className="min-w-0 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs">
+                                        <div key={row.key} className="min-w-0 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs">
                                           <div className="font-bold capitalize text-theme-text-muted">{row.label}</div>
                                           <div className="mt-1 break-all font-mono text-theme-text-secondary">{row.value}</div>
                                         </div>
@@ -1247,8 +1247,8 @@ className="form-select ml-2 text-xs"
                           </h2>
                           <div className="mt-2 flex flex-wrap gap-2 text-xs">
                             <span className={`rounded-full border px-3 py-1 font-bold ${evaluationStatusTone(selectedEvaluationRound.status)}`}>{selectedEvaluationRound.status || '-'}</span>
-                            <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 font-bold text-theme-text-secondary">{stageLabel(selectedEvaluationRound.stage)}</span>
-                            <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 font-mono font-bold text-theme-text-secondary">阶段轮次 {selectedEvaluationRound.stage_round ?? '-'}</span>
+                            <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 font-bold text-theme-text-secondary">{stageLabel(selectedEvaluationRound.stage)}</span>
+                            <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 font-mono font-bold text-theme-text-secondary">阶段轮次 {selectedEvaluationRound.stage_round ?? '-'}</span>
                           </div>
                         </div>
                         <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-xs text-theme-text-muted">
@@ -1301,7 +1301,7 @@ className="form-select ml-2 text-xs"
                             <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Judge 评审</h3>
                             <p className="mt-1 text-xs text-theme-text-muted">展示本轮所有 Judge 的评分、通过状态和反馈摘要</p>
                           </div>
-                          <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-xs font-bold text-theme-text-secondary">{selectedEvaluationRound.judges?.length || 0} 个 Judge</span>
+                          <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-xs font-bold text-theme-text-secondary">{selectedEvaluationRound.judges?.length || 0} 个 Judge</span>
                         </div>
                         <div className="mt-4 space-y-3">
                           {(selectedEvaluationRound.judges || []).map((judge: any, index: number) => (
@@ -1310,7 +1310,7 @@ className="form-select ml-2 text-xs"
                                 <div className="font-mono text-xs font-bold text-theme-text-secondary">{judge.judge_id ||`judge-${index + 1}`}</div>
                                 <div className="flex flex-wrap gap-2 text-[11px]">
                                   <span className={`rounded-full px-2 py-0.5 font-bold ${judge.passed ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>{judge.passed ? '通过' : '未通过'}</span>
-                                  <span className="rounded-full bg-theme-bg-app px-2 py-0.5 font-bold text-theme-text-secondary">评分 {formatNumber(judge.score)}</span>
+                                  <span className="rounded-full bg-theme-elevated px-2 py-0.5 font-bold text-theme-text-secondary">评分 {formatNumber(judge.score)}</span>
                                 </div>
                               </div>
                               <div className="mt-2 break-all font-mono text-[11px] text-theme-text-muted">{judge.model || '-'}</div>
@@ -1354,7 +1354,7 @@ className="form-select ml-2 text-xs"
                     </div>
                     <div className="mt-4 overflow-auto rounded-2xl border border-theme-border">
                       <table className="min-w-full divide-y divide-theme-border text-left text-xs">
-                        <thead className="bg-theme-bg-app text-theme-text-muted">
+                        <thead className="bg-theme-elevated text-theme-text-muted">
                           <tr>
                             <th className="px-3 py-3">轮次</th>
                             <th className="px-3 py-3">阶段</th>
@@ -1367,7 +1367,7 @@ className="form-select ml-2 text-xs"
                             <th className="px-3 py-3">任务实际开始时间</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-theme-border bg-theme-bg-app">
+                        <tbody className="divide-y divide-theme-border bg-theme-elevated">
                           {filteredRounds.map((round) => (
                             <tr key={evaluationRoundKey(round)} onClick={() => setSelectedEvaluationRoundKey(evaluationRoundKey(round))} className="cursor-pointer hover:bg-theme-elevated">
                               <td className="px-3 py-3 font-mono text-theme-text-secondary">{round.round}</td>

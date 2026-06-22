@@ -565,7 +565,7 @@ function getExecutionSlotView(task: AppDfaTaskItem, autoRefreshEnabled: boolean)
       ownerLabel: '',
       ownerFull,
       detail: [dispatchStatus || 'terminal'].filter(Boolean),
-      className: 'border-theme-border bg-theme-bg-app text-theme-text-secondary',
+      className: 'border-theme-border bg-theme-elevated text-theme-text-secondary',
     };
   }
   if (autoRefreshEnabled && status === 'running' && ownerFull && isLeaseExpired(task.execution_lease_until)) {
@@ -605,7 +605,7 @@ function getExecutionSlotView(task: AppDfaTaskItem, autoRefreshEnabled: boolean)
     ownerLabel: ownerLabel || '',
     ownerFull,
     detail: [dispatchStatus].filter(Boolean),
-    className: 'border-theme-border bg-theme-bg-app text-theme-text-secondary',
+    className: 'border-theme-border bg-theme-elevated text-theme-text-secondary',
   };
 }
 
@@ -1207,7 +1207,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
       value: slotSummary?.total_capacity ?? '-',
       hint: slotSummary?.updated_at ?`更新于 ${new Date(slotSummary.updated_at).toLocaleTimeString('zh-CN')}` : '当前项目可见 worker 的总执行槽位',
       border: 'border-theme-border',
-      bg: 'bg-theme-bg-app',
+      bg: 'bg-theme-elevated',
       text: 'text-theme-text-primary',
     },
     {
@@ -1282,7 +1282,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={closeModal} />
  <div className="relative z-10 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl border border-theme-border bg-theme-surface overflow-hidden">
             {/* Modal header */}
-            <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-theme-border bg-theme-bg-app shrink-0">
+            <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-theme-border bg-theme-elevated shrink-0">
               {detail ? (
                 <div className="flex items-center gap-2.5 min-w-0">
                   <h2 className="text-lg font-semibold text-theme-text-primary truncate">{detail.task_name}</h2>
@@ -1367,7 +1367,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                             ${st === 'completed' ? 'border-violet-500 bg-violet-500/15 text-violet-400'
                               : st === 'running'   ? 'border-blue-500 bg-blue-500/15 text-blue-400'
                               : st === 'failed'    ? 'border-red-400 bg-red-500/15 text-red-400'
-                              : 'border-theme-border bg-theme-bg-app text-theme-text-muted'}`}>
+                              : 'border-theme-border bg-theme-elevated text-theme-text-muted'}`}>
                             {st === 'completed' ? <CheckCircle2 size={16} className="text-violet-500" />
                               : st === 'running'  ? <Loader2 size={14} className="animate-spin text-blue-500" />
                               : st === 'failed'   ? <XCircle size={16} className="text-red-500" />
@@ -1424,15 +1424,15 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                         value={runningAgentNameFilter}
                         onChange={(event) => setRunningAgentNameFilter(event.target.value)}
                         placeholder="筛选智能体 / 模型 / 函数"
-                        className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs text-theme-text-secondary outline-none focus:border-violet-400"
+                        className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs text-theme-text-secondary outline-none focus:border-violet-400"
                       />
-                      <div className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-[11px] text-theme-text-muted">
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-[11px] text-theme-text-muted">
                         每页 {RUNNING_AGENT_PAGE_SIZE} 条
                       </div>
                     </div>
                   </div>
                   {pagedRunningAgents.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-theme-border bg-theme-bg-app px-4 py-6 text-sm text-theme-text-muted">
+                    <div className="rounded-lg border border-dashed border-theme-border bg-theme-elevated px-4 py-6 text-sm text-theme-text-muted">
                       {runningAgents.length === 0 ? '当前没有处于运行中的智能体。' : '没有匹配当前筛选条件的运行中智能体。'}
                     </div>
                   ) : (
@@ -1470,7 +1470,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                               type="button"
                               onClick={() => setRunningAgentPage((current) => Math.max(1, current - 1))}
                               disabled={runningAgentPage <= 1}
-                              className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-40"
+                              className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               上一页
                             </button>
@@ -1478,7 +1478,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                               type="button"
                               onClick={() => setRunningAgentPage((current) => Math.min(runningAgentTotalPages, current + 1))}
                               disabled={runningAgentPage >= runningAgentTotalPages}
-                              className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-40"
+                              className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               下一页
                             </button>
@@ -1498,7 +1498,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                         {dfaTree.status === 'running' ? '分析中…' :`已完成`}
                       </span>
                     </h3>
-                    <div className="rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 max-h-72 overflow-auto">
+                    <div className="rounded-lg border border-theme-border bg-theme-elevated px-2 py-1.5 max-h-72 overflow-auto">
                       <DfaTreeNodeView node={dfaTree} depth={0} />
                     </div>
                   </div>
@@ -1524,13 +1524,13 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   </button>
                   {logsExpanded ? (
                     logLines.length === 0 ? (
-                      <div className="rounded-lg bg-theme-bg-app border border-theme-border px-3 py-3 text-xs text-theme-text-muted">
+                      <div className="rounded-lg bg-theme-elevated border border-theme-border px-3 py-3 text-xs text-theme-text-muted">
                         {detail.status === 'pending' ? '任务尚未开始，暂无日志' : '暂无阶段事件（日志在任务运行期间每3个事件刷新一次）'}
                       </div>
                     ) : (
                       <div
                         ref={logScrollRef}
-                        className="rounded-lg bg-theme-bg-app border border-theme-border px-3 py-2 text-xs text-theme-text-faint font-mono max-h-64 overflow-auto space-y-0.5 leading-relaxed"
+                        className="rounded-lg bg-theme-elevated border border-theme-border px-3 py-2 text-xs text-theme-text-faint font-mono max-h-64 overflow-auto space-y-0.5 leading-relaxed"
                       >
                         {logLines.map((line, idx) => (
                           <div key={idx} className={
@@ -1574,7 +1574,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
         <p className="mt-2 text-sm text-theme-text-muted">追踪污点传播路径，识别敏感数据流向危险函数的安全风险。</p>
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
-            { label: '总任务', value: taskStats.total, bg: 'bg-theme-bg-app', text: 'text-theme-text-primary', border: 'border-theme-border' },
+            { label: '总任务', value: taskStats.total, bg: 'bg-theme-elevated', text: 'text-theme-text-primary', border: 'border-theme-border' },
             { label: '运行中', value: taskStats.running + taskStats.pending, bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/20' },
             { label: '已通过', value: taskStats.passed, bg: 'bg-violet-500/15', text: 'text-violet-400', border: 'border-violet-500/20' },
             { label: '失败/取消', value: taskStats.failed + taskStats.error + taskStats.cancelled, bg: 'bg-red-500/15', text: 'text-red-400', border: 'border-red-500/20' },
@@ -1637,7 +1637,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                     key={worker.worker_id}
                     className={`rounded-2xl border px-4 py-3 ${
                       worker.healthy
-                        ? 'border-theme-border bg-theme-bg-app'
+                        ? 'border-theme-border bg-theme-elevated'
                         : 'border-rose-500/20 bg-rose-500/15'
                     }`}
                   >
@@ -1682,7 +1682,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       type="button"
                       onClick={() => setSlotWorkerPage((current) => Math.max(1, current - 1))}
                       disabled={slotWorkerPageSafe <= 1}
-                      className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-40 hover:bg-theme-elevated"
+                      className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-40 hover:bg-theme-elevated"
                     >
                       上一页
                     </button>
@@ -1691,7 +1691,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       type="button"
                       onClick={() => setSlotWorkerPage((current) => Math.min(slotWorkerTotalPages, current + 1))}
                       disabled={slotWorkerPageSafe >= slotWorkerTotalPages}
-                      className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-40 hover:bg-theme-elevated"
+                      className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-40 hover:bg-theme-elevated"
                     >
                       下一页
                     </button>
@@ -1764,7 +1764,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       <section
                         key={worker.worker_id}
                         className={`overflow-hidden rounded-xl border ${
-                          worker.healthy ? 'border-theme-border bg-theme-bg-app' : 'border-rose-500/20 bg-rose-50/70'
+                          worker.healthy ? 'border-theme-border bg-theme-elevated' : 'border-rose-500/20 bg-rose-50/70'
                         }`}
                       >
                         <button
@@ -1873,7 +1873,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       type="button"
                       onClick={() => setSlotWorkerPage((current) => Math.max(1, current - 1))}
                       disabled={slotWorkerPageSafe <= 1}
-                      className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-40 hover:bg-theme-elevated"
+                      className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-40 hover:bg-theme-elevated"
                     >
                       上一页
                     </button>
@@ -1882,7 +1882,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       type="button"
                       onClick={() => setSlotWorkerPage((current) => Math.min(slotWorkerTotalPages, current + 1))}
                       disabled={slotWorkerPageSafe >= slotWorkerTotalPages}
-                      className="rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-40 hover:bg-theme-elevated"
+                      className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-40 hover:bg-theme-elevated"
                     >
                       下一页
                     </button>
@@ -1901,7 +1901,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
             <h2 className="text-lg font-semibold text-theme-text-primary">任务列表 <span className="text-sm font-normal text-theme-text-muted">({total})</span></h2>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-secondary">
+            <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs text-theme-text-secondary">
               <input
                 type="checkbox"
                 checked={autoRefreshEnabled}
@@ -1909,7 +1909,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
               />
               自动刷新
             </label>
-            <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-secondary">
+            <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs text-theme-text-secondary">
               间隔
               <input
                 type="number"
@@ -1920,7 +1920,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   const value = Number(e.target.value);
                   setRefreshIntervalSec(Number.isFinite(value) ? Math.max(5, Math.floor(value)) : 5);
                 }}
-                className="w-16 rounded border border-theme-border bg-theme-bg-app px-2 py-1 text-xs text-theme-text-secondary"
+                className="w-16 rounded border border-theme-border bg-theme-elevated px-2 py-1 text-xs text-theme-text-secondary"
               />
               秒
             </label>
@@ -1950,7 +1950,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
               value={parentTaskIdFilter}
               onChange={(e) => { setParentTaskIdFilter(e.target.value); setPage(1); }}
               placeholder="筛选主任务ID"
-              className="w-44 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs text-theme-text-secondary placeholder:text-theme-text-muted"
+              className="w-44 rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs text-theme-text-secondary placeholder:text-theme-text-muted"
               title="按主任务 ID 筛选"
             />
             <select
@@ -2194,7 +2194,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                           t.parent_task_id
                             ? parentTaskIdFilter === t.parent_task_id
                             : modeFilter === getTaskMode(t),
-                          'inline-flex max-w-full items-center rounded-md border border-theme-border bg-theme-bg-app px-2.5 py-1 font-mono text-xs font-semibold text-theme-text-secondary'
+                          'inline-flex max-w-full items-center rounded-md border border-theme-border bg-theme-elevated px-2.5 py-1 font-mono text-xs font-semibold text-theme-text-secondary'
                         )}
                         title={
                           t.parent_task_id
@@ -2311,7 +2311,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   入口清单路径 <span className="text-theme-text-muted">(functions.list)</span>
                   <div className="mt-1 flex gap-1">
                     <input
-                      className="flex-1 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-mono"
+                      className="flex-1 rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-mono"
                       value={form.entry_list_path}
                       onChange={(e) => setForm((p) => ({ ...p, entry_list_path: e.target.value }))}
                       placeholder="/data/files/<project>/...output/functions.list"
@@ -2320,7 +2320,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       type="button"
                       title="浏览文件"
                       onClick={() => { setPickerTarget('entrylist'); setPickerOpen(true); }}
-                      className="flex items-center gap-1 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1.5 text-xs text-theme-text-secondary hover:bg-theme-elevated shrink-0"
+                      className="flex items-center gap-1 rounded-lg border border-theme-border bg-theme-elevated px-2 py-1.5 text-xs text-theme-text-secondary hover:bg-theme-elevated shrink-0"
                     >
                       <FolderOpen size={12} />浏览
                     </button>
@@ -2369,7 +2369,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   <label className="block text-xs text-theme-text-muted">
                     模块路径 <span className="text-theme-text-muted">(自动填入或手填)</span>
                     <input
-                      className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-mono"
+                      className="mt-1 w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-mono"
                       value={form.source_file}
                       onChange={(e) => setForm((p) => ({ ...p, source_file: e.target.value }))}
                       placeholder="libipsec.c"
@@ -2378,7 +2378,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   <label className="block text-xs text-theme-text-muted">
                     入口函数名 <span className="text-red-500">*</span>
                     <input
-                      className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-mono"
+                      className="mt-1 w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-mono"
                       value={form.function_name}
                       onChange={(e) => setForm((p) => ({ ...p, function_name: e.target.value }))}
                       placeholder="IPSEC_SOCKI_PipeMsg"
@@ -2390,7 +2390,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                 <label className="block text-xs text-theme-text-muted">
                   污点参数 <span className="text-theme-text-muted">(逗号分隔，自动填入或手填；留空则分析全部参数)</span>
                   <input
-                    className="mt-1 w-full rounded-lg border border-theme-border bg-theme-bg-app px-3 py-1.5 text-xs font-mono"
+                    className="mt-1 w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-mono"
                     value={form.taint_vars}
                     onChange={(e) => setForm((p) => ({ ...p, taint_vars: e.target.value }))}
                     placeholder="pipe_id,pipe_type,msg_type"

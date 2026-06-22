@@ -39,13 +39,13 @@ type FormatterSet = {
 const CHART_GRID = '#26324a';
 
 const EmptyCard: React.FC<{ text: string }> = ({ text }) => (
-  <div className="flex h-full min-h-[220px] items-center justify-center rounded-[2rem] border border-dashed border-theme-border bg-theme-bg-app px-6 text-center text-sm text-theme-text-muted">
+  <div className="flex h-full min-h-[220px] items-center justify-center rounded-[2rem] border border-dashed border-theme-border bg-theme-elevated px-6 text-center text-sm text-theme-text-muted">
     {text}
   </div>
 );
 
 export const HeadlineMetricCard: React.FC<{ label: string; value: string; hint: string; tone: string }> = ({ label, value, hint, tone }) => (
- <div className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+ <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
     <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">{label}</div>
     <div className={`mt-2 text-2xl font-semibold ${tone}`}>{value}</div>
     <div className="mt-1 text-xs text-theme-text-muted">{hint}</div>
@@ -65,7 +65,7 @@ export const DataflowVulnObservabilitySection: React.FC<{
   formatters: FormatterSet;
   viewModel: DataflowVulnOverviewViewModel;
 }> = ({ formatters, viewModel }) => (
- <section className="space-y-4 rounded-[2rem] border border-rose-500/20 bg-theme-bg-app p-5">
+ <section className="space-y-4 rounded-[2rem] border border-rose-500/20 bg-theme-elevated p-5">
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div>
         <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-rose-400">Dataflow Vuln Observability</div>
@@ -74,16 +74,16 @@ export const DataflowVulnObservabilitySection: React.FC<{
           这部分优先回答四个问题：当前 run 是否在推进、漏洞产出是否在收敛、是否进入平台期、运行时调用面是否在放大失败或输出截断。
         </p>
       </div>
- <span className="inline-flex rounded-full border border-rose-500/20 bg-theme-bg-app px-3 py-1 text-xs font-medium text-rose-400">dataflow-vuln MVP</span>
+ <span className="inline-flex rounded-full border border-rose-500/20 bg-theme-elevated px-3 py-1 text-xs font-medium text-rose-400">dataflow-vuln MVP</span>
     </div>
 
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
- <div className="rounded-[1.6rem] border border-rose-500/20 bg-theme-bg-app p-4">
+ <div className="rounded-[1.6rem] border border-rose-500/20 bg-theme-elevated p-4">
         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">漏洞产出与评审收敛</div>
         <h3 className="mt-2 text-lg font-semibold tracking-tight text-theme-text-primary">Latest Cycle Snapshot</h3>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {viewModel.cycleCards.map((item) => (
-            <div key={item.label} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+            <div key={item.label} className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
               <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">{item.label}</div>
               <div className={`mt-2 text-xl font-semibold ${item.tone}`}>{item.value}</div>
               <div className="mt-1 text-xs text-theme-text-muted">{item.hint}</div>
@@ -92,7 +92,7 @@ export const DataflowVulnObservabilitySection: React.FC<{
         </div>
       </div>
 
- <div className="rounded-[1.6rem] border border-rose-500/20 bg-theme-bg-app p-4">
+ <div className="rounded-[1.6rem] border border-rose-500/20 bg-theme-elevated p-4">
         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">平台期与闭环状态</div>
         <h3 className="mt-2 text-lg font-semibold tracking-tight text-theme-text-primary">Plateau / Closure Flags</h3>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -112,19 +112,19 @@ export const DataflowVulnObservabilitySection: React.FC<{
       </div>
     </div>
 
- <div className="rounded-[1.6rem] border border-rose-500/20 bg-theme-bg-app p-4">
+ <div className="rounded-[1.6rem] border border-rose-500/20 bg-theme-elevated p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">运行时调用面</div>
           <h3 className="mt-2 text-lg font-semibold tracking-tight text-theme-text-primary">Runtime Trace By Mode</h3>
         </div>
-        <span className="inline-flex rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-muted">
+        <span className="inline-flex rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-muted">
           calls / attempts / duration / truncation
         </span>
       </div>
       <div className="mt-4 overflow-auto rounded-2xl border border-theme-border">
         <table className="min-w-full divide-y divide-theme-border text-left text-xs">
-          <thead className="bg-theme-bg-app text-theme-text-muted">
+          <thead className="bg-theme-elevated text-theme-text-muted">
             <tr>
               <th className="px-3 py-3">模式</th>
               <th className="px-3 py-3">调用</th>
@@ -136,7 +136,7 @@ export const DataflowVulnObservabilitySection: React.FC<{
               <th className="px-3 py-3">输出字节</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-theme-border bg-theme-bg-app">
+          <tbody className="divide-y divide-theme-border bg-theme-elevated">
             {viewModel.runtimeModes.length ? (
               viewModel.runtimeModes.map((row) => (
                 <tr key={row.mode} className="hover:bg-theme-elevated">
@@ -173,7 +173,7 @@ export const DataflowVulnSignalsSection: React.FC<{
   viewModel: DataflowVulnOverviewViewModel;
 }> = ({ formatters, viewModel }) => (
   <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.95fr)]">
- <div className="rounded-[2rem] border border-rose-500/20 bg-theme-bg-app p-5">
+ <div className="rounded-[2rem] border border-rose-500/20 bg-theme-elevated p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">热点指标</div>
@@ -205,12 +205,12 @@ export const DataflowVulnSignalsSection: React.FC<{
       </div>
     </div>
 
- <div className="rounded-[2rem] border border-rose-500/20 bg-theme-bg-app p-5">
+ <div className="rounded-[2rem] border border-rose-500/20 bg-theme-elevated p-5">
       <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">关键摘要</div>
       <h2 className="mt-2 text-xl font-semibold tracking-tight text-theme-text-primary">运行与收敛摘要</h2>
       <div className="mt-4 space-y-3">
         {viewModel.insightCards.map((item) => (
-          <div key={item.label} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+          <div key={item.label} className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-theme-text-primary">{item.label}</div>
@@ -224,7 +224,7 @@ export const DataflowVulnSignalsSection: React.FC<{
 
       <div className="mt-5 grid gap-2 sm:grid-cols-2">
         {viewModel.runtimeModes.map((item) => (
-          <div key={item.mode} className="rounded-xl border border-theme-border bg-theme-bg-app px-3 py-2">
+          <div key={item.mode} className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-2">
             <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">{item.mode}</div>
             <div className="mt-1 text-base font-semibold text-theme-text-primary">
               {formatters.formatNumber(item.calls)} call / {formatters.formatSeconds(item.avgDurationSeconds)}
@@ -248,12 +248,12 @@ export const DataflowVulnAiSection: React.FC<{
     </section>
 
     <section className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
- <div className="rounded-[2rem] border border-fuchsia-500/20 bg-theme-bg-app p-5">
+ <div className="rounded-[2rem] border border-fuchsia-500/20 bg-theme-elevated p-5">
         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-fuchsia-500">Cycle / Review / Runtime</div>
         <h3 className="mt-2 text-xl font-semibold tracking-tight text-theme-text-primary">AI 分层摘要</h3>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {viewModel.phaseCards.map((item) => (
- <div key={item.label} className="rounded-2xl border border-fuchsia-500/20 bg-theme-bg-app px-4 py-3">
+ <div key={item.label} className="rounded-2xl border border-fuchsia-500/20 bg-theme-elevated px-4 py-3">
               <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">{item.label}</div>
               <div className={`mt-2 text-xl font-semibold ${item.tone}`}>{item.value}</div>
               <div className="mt-1 text-xs text-theme-text-muted">{item.hint}</div>
@@ -262,7 +262,7 @@ export const DataflowVulnAiSection: React.FC<{
         </div>
       </div>
 
- <div className="rounded-[2rem] border border-fuchsia-500/20 bg-theme-bg-app p-5">
+ <div className="rounded-[2rem] border border-fuchsia-500/20 bg-theme-elevated p-5">
         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Token / Cost</div>
         <h3 className="mt-2 text-xl font-semibold tracking-tight text-theme-text-primary">Token 结构</h3>
         <div className="mt-4 h-72">
@@ -288,7 +288,7 @@ export const DataflowVulnAiSection: React.FC<{
     </section>
 
     <section className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
- <div className="rounded-[2rem] border border-fuchsia-500/20 bg-theme-bg-app p-5">
+ <div className="rounded-[2rem] border border-fuchsia-500/20 bg-theme-elevated p-5">
         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">角色与插件</div>
         <h3 className="mt-2 text-xl font-semibold tracking-tight text-theme-text-primary">Agent / Plugin 活跃度</h3>
         <div className="mt-4 h-72">
@@ -312,12 +312,12 @@ export const DataflowVulnAiSection: React.FC<{
         </div>
       </div>
 
- <div className="rounded-[2rem] border border-fuchsia-500/20 bg-theme-bg-app p-5">
+ <div className="rounded-[2rem] border border-fuchsia-500/20 bg-theme-elevated p-5">
         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Plugin Review</div>
         <h3 className="mt-2 text-xl font-semibold tracking-tight text-theme-text-primary">插件结果摘要</h3>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {viewModel.reviewCards.map((item) => (
-            <div key={item.label} className="rounded-2xl border border-theme-border bg-theme-bg-app px-4 py-3">
+            <div key={item.label} className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
               <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">{item.label}</div>
               <div className={`mt-2 text-xl font-semibold ${item.tone}`}>{item.value}</div>
               <div className="mt-1 text-xs text-theme-text-muted">{item.hint}</div>
@@ -342,7 +342,7 @@ export const DataflowVulnSampleScopeFilter: React.FC<{
           type="button"
           onClick={() => onChange(item.key)}
           className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-            active ? 'border-rose-500/20 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-bg-app text-theme-text-secondary hover:bg-theme-bg-app'
+            active ? 'border-rose-500/20 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
           }`}
         >
           {item.label}

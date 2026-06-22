@@ -1410,7 +1410,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   })();
 
   return (
-    <div className="flex flex-col h-full bg-theme-bg-app animate-in fade-in duration-500">
+    <div className="flex flex-col h-full bg-theme-surface animate-in fade-in duration-500">
       {/* Header */}
       <PageHeader
         title={
@@ -1588,7 +1588,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                     setLoading(false);
                   }
                 }}
-                className="px-3 py-1.5 text-xs font-medium bg-theme-bg-app border border-yellow-300 text-yellow-400 rounded-lg hover:bg-yellow-500/15 transition-all"
+                className="px-3 py-1.5 text-xs font-medium bg-theme-elevated border border-yellow-300 text-yellow-400 rounded-lg hover:bg-yellow-500/15 transition-all"
               >
                 重新初始化
               </button>
@@ -1635,7 +1635,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
           {/* Context Menu */}
           {menu && (
             <div
- className="fixed bg-theme-bg-app border border-theme-border rounded-xl z-[100] py-2 min-w-[160px] animate-in zoom-in-95 duration-100"
+ className="fixed bg-theme-surface border border-theme-border rounded-xl z-[100] py-2 min-w-[160px] animate-in zoom-in-95 duration-100"
               style={{ top: menu.top, left: menu.left }}
               onClick={e => e.stopPropagation()}
             >
@@ -1771,7 +1771,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
         {/* Sidebar for Node Details */}
         {selectedNode && (
-          <div className="w-96 bg-theme-bg-app border-l border-theme-border flex flex-col shrink-0 animate-in slide-in-from-right-8">
+          <div className="w-96 bg-theme-surface border-l border-theme-border flex flex-col shrink-0 animate-in slide-in-from-right-8">
             <div className="p-5 border-b border-theme-border flex items-center justify-between">
               <h3 className="font-semibold text-theme-text-primary">节点详情</h3>
               {isEditMode && (
@@ -1818,7 +1818,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                       <label className="text-[9px] font-medium text-theme-text-muted uppercase tracking-widest">环境变量</label>
                       <div className="space-y-1.5">
                         {selectedNode.data.input_env_vars.map((ev: any, i: number) => (
-                          <div key={i} className="p-2 bg-theme-bg-app rounded-lg border border-theme-border">
+                          <div key={i} className="p-2 bg-theme-elevated rounded-lg border border-theme-border">
                             <div className="text-[9px] font-medium text-theme-text-muted uppercase">{ev.name}</div>
                             <div className="text-xs font-mono text-theme-text-secondary break-all">{ev.value || ev.default_value || '-'}</div>
                           </div>
@@ -1832,7 +1832,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                       <label className="text-[9px] font-medium text-theme-text-muted uppercase tracking-widest">存储挂载</label>
                       <div className="space-y-1.5">
                         {selectedNode.data.input_volume_mounts.map((vm: any, i: number) => (
-                          <div key={i} className="p-2 bg-theme-bg-app rounded-lg border border-theme-border">
+                          <div key={i} className="p-2 bg-theme-elevated rounded-lg border border-theme-border">
                             <div className="text-[9px] font-medium text-theme-text-muted uppercase">路径: {vm.mount_path}</div>
                             <div className="text-xs font-medium text-theme-text-secondary">PVC: {vm.pvc_name || '-'}</div>
                           </div>
@@ -1871,7 +1871,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                         {(container.command || container.args) && (
                           <div>
                             <label className="text-[8px] font-medium text-theme-text-muted uppercase">启动命令 & 参数</label>
-                            <div className="text-[10px] font-mono text-theme-text-secondary break-all bg-theme-bg-app p-1.5 rounded border border-theme-border space-y-1">
+                            <div className="text-[10px] font-mono text-theme-text-secondary break-all bg-theme-elevated p-1.5 rounded border border-theme-border space-y-1">
                               {container.command && (
                                 <div><span className="text-theme-text-muted">Command:</span> {Array.isArray(container.command) ? container.command.join(' ') : container.command}</div>
                               )}
@@ -1945,7 +1945,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                             <label className="text-[8px] font-medium text-theme-text-muted uppercase">服务端口</label>
                             <div className="flex flex-wrap gap-2 mt-1">
                               {selectedNodeTemplateDetails.service_ports.map((p: any, i: number) => (
- <div key={i} className="px-2 py-1 bg-theme-bg-app text-indigo-400 rounded-md text-[10px] font-medium border border-indigo-500/20">
+ <div key={i} className="px-2 py-1 bg-theme-elevated text-indigo-400 rounded-md text-[10px] font-medium border border-indigo-500/20">
                                   {p.name}: {p.port} → {p.target_port} <span className="text-[8px] text-theme-text-muted">({p.protocol})</span>
                                 </div>
                               ))}
@@ -1963,7 +1963,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               {!isEditMode && selectedNode.data.k8s_resource_name && (
                 <div className="pt-4 border-t border-theme-border">
                   <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">K8S 资源名称</label>
-                  <div className="mt-1 text-xs font-mono text-theme-text-secondary bg-theme-bg-app p-2 rounded-lg border border-theme-border break-all">
+                  <div className="mt-1 text-xs font-mono text-theme-text-secondary bg-theme-elevated p-2 rounded-lg border border-theme-border break-all">
                     {selectedNode.data.k8s_resource_name as string}
                   </div>
                 </div>
@@ -1976,7 +1976,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Uninitialize Confirmation Modal */}
       {isUninitModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-theme-bg-app rounded-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+ <div className="bg-theme-surface rounded-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
               <div className="w-20 h-20 bg-orange-500/15 text-orange-400 rounded-lg flex items-center justify-center mx-auto mb-6">
                 <RotateCcw size={40} />
@@ -1989,7 +1989,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 警告：所有的非持久化数据将全部丢失！
               </p>
             </div>
-            <div className="p-8 bg-theme-bg-app flex gap-4">
+            <div className="p-8 bg-theme-elevated flex gap-4">
               <button
                 onClick={() => setIsUninitModalOpen(false)}
                 className="flex-1 py-4 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl font-medium hover:bg-theme-elevated transition-all"
@@ -2012,7 +2012,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Add Node Modal */}
       {isAddNodeModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-theme-bg-app rounded-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-surface rounded-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-6 border-b border-theme-border flex items-center justify-between">
               <h3 className="text-xl font-semibold text-theme-text-primary">
                 {addNodeStep === 'select' ? '选择模板' :`配置节点: ${selectedTemplate?.name}`}
@@ -2105,7 +2105,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                     n[i] = { ...createNodeMountConfig(vm.mount_path, vm.read_only), source_type: 'pvc' };
                                     setNewNodeConfig({ ...newNodeConfig, volume_mounts: n });
                                   }}
-                                  className={`rounded-full px-3 py-1 text-[10px] font-medium ${vm.source_type === 'pvc' ? 'bg-blue-600 text-white' : 'bg-theme-bg-app text-theme-text-muted border border-theme-border'}`}
+                                  className={`rounded-full px-3 py-1 text-[10px] font-medium ${vm.source_type === 'pvc' ? 'bg-blue-600 text-white' : 'bg-theme-elevated text-theme-text-muted border border-theme-border'}`}
                                 >
                                   PVC
                                 </button>
@@ -2116,7 +2116,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                     n[i] = { ...createNodeMountConfig(vm.mount_path, true), source_type: 'project_file' };
                                     setNewNodeConfig({ ...newNodeConfig, volume_mounts: n });
                                   }}
-                                  className={`rounded-full px-3 py-1 text-[10px] font-medium ${vm.source_type === 'project_file' ? 'bg-blue-600 text-white' : 'bg-theme-bg-app text-theme-text-muted border border-theme-border'}`}
+                                  className={`rounded-full px-3 py-1 text-[10px] font-medium ${vm.source_type === 'project_file' ? 'bg-blue-600 text-white' : 'bg-theme-elevated text-theme-text-muted border border-theme-border'}`}
                                 >
                                   项目文件夹
                                 </button>
@@ -2127,7 +2127,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                 <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                                   <button
                                     type="button"
-                                    className="mt-1 flex items-center justify-between rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-sm font-medium text-theme-text-secondary hover:border-blue-400"
+                                    className="mt-1 flex items-center justify-between rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-secondary hover:border-blue-400"
                                     onClick={() => setDirectoryPickerTarget(vm.mount_path)}
                                   >
                                     <span className="truncate">{vm.subproject_id ?`${vm.subproject_name || '子项目'} ${vm.display_path || '/'}` : '选择项目文件夹'}</span>
@@ -2240,7 +2240,7 @@ className="form-select w-full mt-1 bg-transparent"
                             </div>
                             <div className="space-y-2">
                               {newNodeConfig.service_ports.map((sp, i) => (
-                                <div key={i} className="flex items-center gap-2 p-2 bg-theme-bg-app rounded-lg border border-indigo-500/20">
+                                <div key={i} className="flex items-center gap-2 p-2 bg-theme-elevated rounded-lg border border-indigo-500/20">
                                   <input
                                     type="text"
                                     className="form-input flex-1 text-xs font-mono"
@@ -2347,7 +2347,7 @@ className="form-select w-full mt-1 bg-transparent"
               )}
             </div>
 
-            <div className="p-6 border-t border-theme-border bg-theme-bg-app flex gap-3">
+            <div className="p-6 border-t border-theme-border bg-theme-elevated flex gap-3">
               <button
                 onClick={() => {
                   setIsAddNodeModalOpen(false);
@@ -2424,7 +2424,7 @@ className="form-select w-full mt-1 bg-transparent"
       {/* Status Modal */}
       {isStatusModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-theme-bg-app rounded-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-surface rounded-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-6 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-500/15 rounded-lg">
@@ -2451,19 +2451,19 @@ className="form-select w-full mt-1 bg-transparent"
               ) : nodeStatus ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-theme-bg-app rounded-xl">
+                    <div className="p-4 bg-theme-elevated rounded-xl">
                       <div className="text-[10px] font-medium text-theme-text-muted uppercase">Phase</div>
                       <div className="text-lg font-semibold text-theme-text-primary">{nodeStatus.phase}</div>
                     </div>
-                    <div className="p-4 bg-theme-bg-app rounded-xl">
+                    <div className="p-4 bg-theme-elevated rounded-xl">
                       <div className="text-[10px] font-medium text-theme-text-muted uppercase">Pod IP</div>
                       <div className="text-lg font-semibold text-theme-text-primary font-mono">{nodeStatus.pod_ip || '-'}</div>
                     </div>
-                    <div className="p-4 bg-theme-bg-app rounded-xl">
+                    <div className="p-4 bg-theme-elevated rounded-xl">
                       <div className="text-[10px] font-medium text-theme-text-muted uppercase">Host IP</div>
                       <div className="text-lg font-semibold text-theme-text-primary font-mono">{nodeStatus.host_ip || '-'}</div>
                     </div>
-                    <div className="p-4 bg-theme-bg-app rounded-xl">
+                    <div className="p-4 bg-theme-elevated rounded-xl">
                       <div className="text-[10px] font-medium text-theme-text-muted uppercase">Node</div>
                       <div className="text-lg font-semibold text-theme-text-primary truncate">{nodeStatus.node_name || '-'}</div>
                     </div>
@@ -2507,7 +2507,7 @@ className="form-select w-full mt-1 bg-transparent"
               ) : null}
             </div>
 
-            <div className="p-6 border-t border-theme-border bg-theme-bg-app flex justify-end">
+            <div className="p-6 border-t border-theme-border bg-theme-elevated flex justify-end">
               <button onClick={() => setIsStatusModalOpen(false)} className="px-8 py-3 bg-theme-elevated text-white rounded-xl font-medium hover:bg-theme-elevated transition-all">关闭</button>
             </div>
           </div>
@@ -2517,7 +2517,7 @@ className="form-select w-full mt-1 bg-transparent"
       {/* Events Modal */}
       {isEventsModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-theme-bg-app rounded-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-surface rounded-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-6 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-orange-500/15 rounded-lg">
@@ -2541,7 +2541,7 @@ className="form-select w-full mt-1 bg-transparent"
               ) : (
                 <div className="space-y-3">
                   {nodeEvents.map((event, i) => (
-                    <div key={i} className={`p-4 rounded-xl border ${event.type === 'Warning' ? 'bg-red-500/15 border-red-500/20' : 'bg-theme-bg-app border-theme-border'}`}>
+                    <div key={i} className={`p-4 rounded-xl border ${event.type === 'Warning' ? 'bg-red-500/15 border-red-500/20' : 'bg-theme-elevated border-theme-border'}`}>
                       <div className="flex items-center gap-2 mb-2">
                         {event.type === 'Warning' ? <AlertCircle size={14} className="text-red-500" /> : <CheckCircle size={14} className="text-green-500" />}
                         <span className="font-semibold text-theme-text-primary">{event.reason}</span>
@@ -2557,7 +2557,7 @@ className="form-select w-full mt-1 bg-transparent"
               )}
             </div>
 
-            <div className="p-6 border-t border-theme-border bg-theme-bg-app flex justify-end">
+            <div className="p-6 border-t border-theme-border bg-theme-elevated flex justify-end">
               <button onClick={() => setIsEventsModalOpen(false)} className="px-8 py-3 bg-theme-elevated text-white rounded-xl font-medium hover:bg-theme-elevated transition-all">关闭</button>
             </div>
           </div>
@@ -2567,7 +2567,7 @@ className="form-select w-full mt-1 bg-transparent"
       {/* Metrics Modal */}
       {isMetricsModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-theme-bg-app rounded-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-surface rounded-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-6 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-purple-500/15 rounded-lg">
@@ -2610,7 +2610,7 @@ className="form-select w-full mt-1 bg-transparent"
               ) : null}
             </div>
 
-            <div className="p-6 border-t border-theme-border bg-theme-bg-app flex justify-end">
+            <div className="p-6 border-t border-theme-border bg-theme-elevated flex justify-end">
               <button onClick={() => setIsMetricsModalOpen(false)} className="px-8 py-3 bg-theme-elevated text-white rounded-xl font-medium hover:bg-theme-elevated transition-all">关闭</button>
             </div>
           </div>
@@ -2723,7 +2723,7 @@ className="form-select w-full mt-1 bg-transparent"
       {/* Access Service Modal */}
       {isAccessModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-theme-bg-app rounded-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-surface rounded-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-6 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-cyan-500/15 rounded-lg">
@@ -2751,23 +2751,23 @@ className="form-select w-full mt-1 bg-transparent"
                 <div className="space-y-6">
                   {/* 服务基本信息 */}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-theme-bg-app rounded-xl">
+                    <div className="p-4 bg-theme-elevated rounded-xl">
                       <div className="text-[10px] font-medium text-theme-text-muted uppercase">Service名称</div>
                       <div className="text-lg font-semibold text-theme-text-primary">{serviceAccessInfo.name}</div>
                     </div>
-                    <div className="p-4 bg-theme-bg-app rounded-xl">
+                    <div className="p-4 bg-theme-elevated rounded-xl">
                       <div className="text-[10px] font-medium text-theme-text-muted uppercase">Service类型</div>
                       <div className="text-lg font-semibold text-theme-text-primary">{serviceAccessInfo.type}</div>
                     </div>
-                    <div className="p-4 bg-theme-bg-app rounded-xl">
+                    <div className="p-4 bg-theme-elevated rounded-xl">
                       <div className="text-[10px] font-medium text-theme-text-muted uppercase">Cluster IP</div>
                       <div className="text-lg font-semibold text-theme-text-primary font-mono">{serviceAccessInfo.cluster_ip || '-'}</div>
                     </div>
-                    <div className="p-4 bg-theme-bg-app rounded-xl">
+                    <div className="p-4 bg-theme-elevated rounded-xl">
                       <div className="text-[10px] font-medium text-theme-text-muted uppercase">Namespace</div>
                       <div className="text-lg font-semibold text-theme-text-primary">{serviceAccessInfo.namespace}</div>
                     </div>
-                    <div className="p-4 bg-theme-bg-app rounded-xl col-span-2">
+                    <div className="p-4 bg-theme-elevated rounded-xl col-span-2">
                       <div className="text-[10px] font-medium text-theme-text-muted uppercase">访问域名</div>
                       <div className="text-sm font-mono font-semibold text-theme-text-primary break-all">
                         {ingressAccessItems[0]?.host || '-'}
@@ -2880,7 +2880,7 @@ className="form-select w-full mt-1 bg-transparent"
               ) : null}
             </div>
 
-            <div className="p-6 border-t border-theme-border bg-theme-bg-app flex justify-end">
+            <div className="p-6 border-t border-theme-border bg-theme-elevated flex justify-end">
               <button onClick={() => setIsAccessModalOpen(false)} className="px-8 py-3 bg-theme-elevated text-white rounded-xl font-medium hover:bg-theme-elevated transition-all">关闭</button>
             </div>
           </div>
@@ -2890,7 +2890,7 @@ className="form-select w-full mt-1 bg-transparent"
       {/* Unsaved Changes Modal */}
       {showUnsavedChangesModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]">
- <div className="bg-theme-bg-app rounded-xl p-6 w-[400px] animate-in zoom-in-95 duration-200">
+ <div className="bg-theme-surface rounded-xl p-6 w-[400px] animate-in zoom-in-95 duration-200">
             <h3 className="text-lg font-semibold text-theme-text-primary mb-2">未保存的更改</h3>
             <p className="text-theme-text-secondary mb-6">您有未保存的更改，是否保存并退出？</p>
             <div className="flex justify-end gap-3">
@@ -3091,7 +3091,7 @@ className="form-select w-full mt-1 bg-transparent"
               }
             }`}</style>
           <div
- className="bg-theme-bg-app rounded-2xl w-full max-w-sm overflow-hidden"
+ className="bg-theme-surface rounded-2xl w-full max-w-sm overflow-hidden"
             style={{ animation: 'zoomIn 0.2s ease-out' }}
           >
             <div className="p-6 text-center">
