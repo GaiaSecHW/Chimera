@@ -383,6 +383,13 @@ const DECISION_TEXT: Record<string, string> = {
   unknown: '未知',
 };
 
+const CONCLUSION_TEXT: Record<string, string> = {
+  vulnerable: '是漏洞',
+  not_vulnerable: '非漏洞',
+  inconclusive: '无法判定',
+  manual_terminated: '人工终止',
+};
+
 const toUserVulnStatusText = (itemOrStage?: any, status?: string) => {
   if (itemOrStage && typeof itemOrStage === 'object') {
     const conclusion = itemOrStage.finished_reason || itemOrStage.final_result || itemOrStage.validation_result || itemOrStage.result_summary?.validation_result;
@@ -397,6 +404,7 @@ const toUserVulnStatusText = (itemOrStage?: any, status?: string) => {
 const toStageText = (value?: string) => (value ? STAGE_TEXT[value] || value : '未知');
 const toStatusText = (value?: string) => (value ? STATUS_TEXT[value] || value : '未知');
 const toDecisionText = (value?: string) => (value ? DECISION_TEXT[value] || value : '未知');
+const toConclusionText = (value?: string | null) => (value ? CONCLUSION_TEXT[value] || value : '');
 
 const DOWNLOAD_STATUS_TEXT: Record<string, string> = {
   pending: '等待处理中',
@@ -2079,7 +2087,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       <div className="rounded-xl p-4 bg-theme-elevated">
                         <div className="text-xs font-semibold text-theme-text-muted-soft">当前结论</div>
                         <div className="mt-1 text-sm font-semibold text-theme-text-primary">
-                          {displaySummary?.validation_result || resultSummary?.summary || toDecisionText(selectedDetail.decision_status)}
+                          {toConclusionText(displaySummary?.validation_result || selectedDetail.validation_result || selectedDetail.finished_reason) || resultSummary?.summary || toDecisionText(selectedDetail.decision_status)}
                         </div>
                       </div>
                       <div className="rounded-xl p-4 bg-theme-elevated">
@@ -2091,7 +2099,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   <DetailSectionCard title="状态流转与来源" subtitle="展示当前用户可见状态和来源任务上下文。">
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
                       <DetailMetricCard label="当前状态" value={toUserVulnStatusText(selectedDetail)} hint={selectedDetail.current_status || selectedDetail.current_stage || 'n/a'} />
-                      <DetailMetricCard label="处置状态" value={toDecisionText(selectedDetail.decision_status)} hint={selectedDetail.validation_result || '未验证'} />
+                      <DetailMetricCard label="处置状态" value={toDecisionText(selectedDetail.decision_status)} hint={toConclusionText(selectedDetail.validation_result || selectedDetail.finished_reason) || '未验证'} />
                       <DetailMetricCard label="来源服务" value={selectedDetail.source_service || displaySummary?.source_task?.service_name || '未提供'} hint={selectedDetail.created_by_type || 'n/a'} />
                       <DetailMetricCard label="来源任务" value={selectedDetail.source_task_id || displaySummary?.source_task?.task_id || '未提供'} hint={selectedDetail.source_execution_id || '无执行引用'} />
                     </div>
@@ -2839,13 +2847,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       </div>
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-theme-text-secondary">{toUserVulnStatusText(item)}</div>
-                        {item.finished_reason ? (
+                        {(item.finished_reason || item.validation_result || item.decision_status) ? (
                           <div className="mt-1 text-[10px] font-semibold text-theme-text-muted">
-                            结论: {item.finished_reason}
-                          </div>
-                        ) : item.decision_status ? (
-                          <div className="mt-1 text-[10px] font-semibold text-theme-text-muted">
-                            结论: {item.decision_status}
+                            结论: {toConclusionText(item.finished_reason || item.validation_result || item.decision_status)}
                           </div>
                         ) : null}
                       </div>
