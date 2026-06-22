@@ -94,6 +94,32 @@ export interface CfgCparserSession {
   audit_results: Record<string, CfgAuditResult>;
 }
 
+export interface CfgWalkFunction {
+  function_id: string;
+  name: string;
+  signature?: string | null;
+  file_path?: string | null;
+  start_line?: number | null;
+  end_line?: number | null;
+  code?: {
+    file?: string;
+    abs_path?: string;
+    start_line: number;
+    end_line: number;
+    focus_line?: number | null;
+    lines: { n: number; text: string }[];
+  } | null;
+  resolved: boolean;
+}
+
+export interface CfgWalkFunctionsResponse {
+  task_id: string;
+  available: boolean;
+  upload_id: string;
+  resolved_count: number;
+  functions: CfgWalkFunction[];
+}
+
 export const cfgGuidedExploreApi = {
   // ── Health ────────────────────────────────────────────────────────────────
   getHealth: async (): Promise<{ status: string } & ServiceHealthMeta> =>
@@ -201,6 +227,10 @@ export const cfgGuidedExploreApi = {
       `${BASE}/tasks/${encodeURIComponent(taskId)}/sessions/file?path=${encodeURIComponent(`cparser_sessions/${taskId}/session.json`)}`,
       { headers: getHeaders() },
     )),
+
+  // Resolve walked fids → real name/signature/code via codemap-manager + disk.
+  getWalkFunctions: async (taskId: string): Promise<CfgWalkFunctionsResponse> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/walk-functions`, { headers: getHeaders() })),
 
   listTaskSessions: async (taskId: string): Promise<{ task_id: string; items: AppDfaSessionMeta[] }> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions`, { headers: getHeaders() })),

@@ -14,7 +14,7 @@ import {
 
 import { api } from '../../clients/api';
 import type {
-  CfgAgentSession, CfgCparserSession, CfgCodemapQuery, CfgFunctionTaintState, CfgAuditResult,
+  CfgAgentSession, CfgCparserSession, CfgCodemapQuery, CfgFunctionTaintState, CfgAuditResult, CfgWalkFunction,
 } from '../../clients/cfgGuidedExplore';
 import {
   AppDfaTaskDetail,
@@ -167,6 +167,7 @@ interface WalkFn {
   taint?: CfgFunctionTaintState;
   audit?: CfgAuditResult;
   queries: CfgCodemapQuery[];
+  meta?: CfgWalkFunction;  // manager-resolved name/signature/code
 }
 
 /** Resolve a display name for a fid from any available source (taint > audit > callee/caller items > fid). */
@@ -187,7 +188,7 @@ function buildNameIndex(session?: CfgCparserSession | null): Map<string, string>
 /** Merge taint+audit into a walk ORDERED BY REVIEW SEQUENCE (audit timestamp,
  *  then taint discovery order). This reflects how the model walked from the
  *  source entry through taint propagation. */
-function mergeWalk(session?: CfgCparserSession | null, nameIdx?: Map<string, string>): WalkFn[] {
+function mergeWalk(session?: CfgCparserSession | null, nameIdx?: Map<string, string>, walkFns?: Record<string, CfgWalkFunction>): WalkFn[] {
   if (!session) return [];
   const ts = session.function_taint_states || {};
   const ar = session.audit_results || {};
@@ -199,11 +200,13 @@ function mergeWalk(session?: CfgCparserSession | null, nameIdx?: Map<string, str
   const allFids = new Set<string>([...Object.keys(ts), ...Object.keys(ar)]);
   const arr = Array.from(allFids).map((fid) => ({
     fid,
-    name: names.get(fid) || ts[fid]?.function || ar[fid]?.function || fid,
+    // manager-resolved name is authoritative, then session hints, then fid
+    name: walkFns?.[fid]?.name || names.get(fid) || ts[fid]?.function || ar[fid]?.function || fid,
     ts: ar[fid]?.timestamp,
     taint: ts[fid],
     audit: ar[fid],
     queries: queriesByFid.get(fid) || [],
+    meta: walkFns?.[fid],
   }));
   // Sort by audit timestamp (review order); entries without audit go last in taint-discovery order.
   const taintOrder = new Map(Object.keys(ts).map((f, i) => [f, i]));
@@ -349,6 +352,32 @@ function layoutGraph(walk: WalkFn[], edges: CallEdge[], selectedFid: string | nu
 }
 
 // ── Result: findings (reused look) ───────────────────────────────────────────
+function FunctionCodeBlock({ meta, focusLine }: { meta?: CfgWalkFunction; focusLine?: number | null }) {
+  if (!meta) return null;
+  const code = meta.code;
+  const focus = focusLine && focusLine > 0 ? focusLine : (code?.focus_line ?? null);
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-950">
+      <div className="flex items-center justify-between gap-2 border-b border-slate-800 px-3 py-2">
+        <span className="truncate font-mono text-[12px] text-slate-300">{meta.file_path || '源码'}{meta.start_line ? `:${meta.start_line}-${meta.end_line ?? ''}` : ''}</span>
+        {meta.signature ? <span className="hidden shrink-0 truncate font-mono text-[11px] text-slate-500 sm:block" title={meta.signature}>{meta.signature}</span> : null}
+      </div>
+      {code?.lines?.length ? (
+        <pre className="max-h-[460px] overflow-auto p-0 text-[13px] leading-6 text-slate-200">
+          {code.lines.map((ln) => (
+            <div key={ln.n} className={`grid grid-cols-[3.5rem_minmax(0,1fr)] gap-3 px-3 ${ln.n === focus ? 'bg-rose-500/25 text-rose-50' : ''}`}>
+              <span className="select-none text-right text-slate-500">{ln.n}</span>
+              <code className="whitespace-pre">{ln.text || ' '}</code>
+            </div>
+          ))}
+        </pre>
+      ) : (
+        <div className="px-3 py-4 text-[12px] text-slate-400">代码未能读取(文件未挂载或函数无行号信息)。签名: <span className="font-mono text-slate-300">{meta.signature || '—'}</span></div>
+      )}
+    </div>
+  );
+}
+
 function ToolCallRow({ q, nameIdx, index }: { q: CfgCodemapQuery; nameIdx: Map<string, string>; index?: number }) {
   const items = q.result?.callees || q.result?.callers || [];
   const kindLabel = q.result?.callees ? 'callees (被调用)' : q.result?.callers ? 'callers (调用者)' : null;
@@ -463,6 +492,8 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
   const [trace, setTrace] = useState<CfgAgentSession | null>(null);
   const [session, setSession] = useState<CfgCparserSession | null>(null);
   const [sessionMissing, setSessionMissing] = useState(false);
+  const [walkFns, setWalkFns] = useState<Record<string, CfgWalkFunction>>({});
+  const [graphOpen, setGraphOpen] = useState(true);
   const [result, setResult] = useState<AppDfaTaskResult | null>(null);
   const [resultLoading, setResultLoading] = useState(false);
   const [resultView, setResultView] = useState<'findings' | 'report' | 'json'>('findings');
@@ -498,6 +529,14 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
     try { setSession(await appApi.getCparserSession(taskId)); setSessionMissing(false); }
     catch { setSessionMissing(true); }
   };
+  const loadWalkFns = async () => {
+    try {
+      const r = await appApi.getWalkFunctions(taskId);
+      const map: Record<string, CfgWalkFunction> = {};
+      for (const f of r.functions || []) map[f.function_id] = f;
+      setWalkFns(map);
+    } catch { /* best-effort: names/code unavailable */ }
+  };
   const loadResult = async () => {
     if (resultLoading) return;
     setResultLoading(true);
@@ -522,7 +561,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
     } catch (err: any) { notify(`加载会话失败: ${err?.message || err}`, 'error'); }
   };
 
-  useEffect(() => { void loadDetail(); void loadTrace(); void loadSession(); }, [taskId]);
+  useEffect(() => { void loadDetail(); void loadTrace(); void loadSession(); void loadWalkFns(); }, [taskId]);
   useEffect(() => { const t = setInterval(() => setClockNow(Math.floor(Date.now() / 1000)), 1000); return () => clearInterval(t); }, []);
   useEffect(() => {
     if (activeTab === 'result' && !result && !resultLoading) void loadResult();
@@ -531,12 +570,16 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
   }, [activeTab, rawOpen, sessionDrawer]);
   useEffect(() => {
     if (detail?.status !== 'running') return;
-    const t = setInterval(() => { void loadDetail(); void loadTrace(); void loadSession(); if (rawOpen) void loadTimeline(); }, 10000);
+    const t = setInterval(() => { void loadDetail(); void loadTrace(); void loadSession(); void loadWalkFns(); if (rawOpen) void loadTimeline(); }, 10000);
     return () => clearInterval(t);
   }, [detail?.status, taskId, rawOpen]);
 
-  const nameIdx = useMemo(() => buildNameIndex(session), [session]);
-  const walk = useMemo(() => mergeWalk(session, nameIdx), [session, nameIdx]);
+  const nameIdx = useMemo(() => {
+    const idx = buildNameIndex(session);
+    for (const [fid, f] of Object.entries(walkFns)) if (f.name) idx.set(fid, f.name);
+    return idx;
+  }, [session, walkFns]);
+  const walk = useMemo(() => mergeWalk(session, nameIdx, walkFns), [session, nameIdx, walkFns]);
   const { edges: callEdges, realCount } = useMemo(() => buildCallEdges(walk, session, nameIdx), [walk, session, nameIdx]);
   const selectedFn = useMemo(() => walk.find((w) => w.fid === selectedFid) || walk[0] || null, [walk, selectedFid]);
   const queriesForSelected = useMemo(
@@ -600,7 +643,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => { void loadDetail(); void loadTrace(); void loadSession(); }} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100"><RefreshCw size={15} className={loading ? 'animate-spin' : ''} />刷新</button>
+            <button onClick={() => { void loadDetail(); void loadTrace(); void loadSession(); void loadWalkFns(); }} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100"><RefreshCw size={15} className={loading ? 'animate-spin' : ''} />刷新</button>
             {running ? <button onClick={() => void cancelTask()} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-slate-50 px-3.5 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50"><XCircle size={15} />取消</button> : null}
             {detail && !running ? <button onClick={() => void restartTask()} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-slate-50 px-3.5 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50"><RotateCcw size={15} />重试</button> : null}
             {detail ? <DownstreamTaskCreator projectId={projectId} sourceKind="dataflow_analysis" task={detail} buttonClassName="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100" /> : null}
@@ -676,23 +719,22 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
         </section>
       ) : activeTab === 'walk' ? (
         <section className="space-y-4">
-          {/* Call graph on top — the navigation surface */}
           {walk.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center text-sm text-slate-400">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div>
           ) : (
             <>
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-2.5 text-xs text-slate-500">
-                  <span className="font-semibold text-slate-600">污点传播 / 调用图</span>
-                  <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-5 bg-slate-500" />真实调用边 {callEdges.filter((e) => e.kind === 'call').length}</span>
-                  <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-5 border-t border-dashed border-slate-400" />审查顺序边 {callEdges.filter((e) => e.kind === 'flow').length}</span>
+              {/* Collapsible call graph */}
+              <details className="overflow-hidden rounded-2xl border border-slate-200 bg-white" open={graphOpen} onToggle={(e) => setGraphOpen((e.target as HTMLDetailsElement).open)}>
+                <summary className="flex cursor-pointer flex-wrap items-center gap-3 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50">
+                  <Network size={16} className="text-slate-500" />
+                  <span className="font-semibold">污点传播 / 调用图</span>
+                  <span className="text-xs text-slate-400">{walk.length} 函数 · {callEdges.filter((e) => e.kind === 'call').length} 调用边</span>
                   <span className="ml-auto inline-flex items-center gap-2 text-[11px]">
                     <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-300 bg-emerald-50" />安全</span>
                     <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-rose-400 bg-rose-50" />漏洞</span>
                   </span>
-                  {realCount === 0 ? <span className="rounded-full bg-amber-50 px-2 py-0.5 text-amber-700">无精确调用边(改动前运行),按审查顺序连接</span> : null}
-                </div>
-                <div className="h-[400px] bg-slate-50">
+                </summary>
+                <div className="h-[380px] border-t border-slate-100 bg-slate-50">
                   <ReactFlow
                     nodes={graph.nodes}
                     edges={graph.flowEdges}
@@ -705,13 +747,13 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                     <Controls showInteractive={false} />
                   </ReactFlow>
                 </div>
-              </div>
+              </details>
 
-              {/* Below: ordered review rail + selected-node detail */}
-              <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
+              {/* Left-right: ordered review list + selected detail (with code) */}
+              <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
                 <aside className="rounded-2xl border border-slate-200 bg-white p-3">
-                  <div className="px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">审查顺序 ({walk.length})</div>
-                  <ol className="relative max-h-[560px] space-y-0 overflow-auto pr-1">
+                  <div className="px-1 pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">审查顺序 ({walk.length})</div>
+                  <ol className="relative max-h-[calc(100vh-16rem)] space-y-0 overflow-auto pr-1">
                     {walk.map((w, i) => {
                       const sel = selectedFn?.fid === w.fid;
                       const vuln = isVulnResult(w.audit?.result);
@@ -719,15 +761,15 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                       return (
                         <li key={w.fid} className="relative flex gap-2.5">
                           <div className="relative flex flex-col items-center">
-                            <span className={`mt-2.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 text-[9px] font-bold ${vuln ? 'border-rose-400 bg-rose-50 text-rose-700' : w.audit ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-slate-300 bg-white text-slate-400'}`}>{i + 1}</span>
+                            <span className={`mt-2.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-bold ${vuln ? 'border-rose-400 bg-rose-50 text-rose-700' : w.audit ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-slate-300 bg-white text-slate-400'}`}>{i + 1}</span>
                             {!last ? <span className="w-px flex-1 bg-slate-200" /> : null}
                           </div>
-                          <button onClick={() => setSelectedFid(w.fid)} className={`mb-1.5 flex-1 rounded-xl border px-3 py-2 text-left transition ${sel ? 'border-slate-400 bg-slate-100 ring-1 ring-slate-300' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                          <button onClick={() => setSelectedFid(w.fid)} className={`mb-2 flex-1 rounded-xl border px-3 py-2.5 text-left transition ${sel ? 'border-slate-400 bg-slate-100 ring-1 ring-slate-300' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
                             <div className="flex items-center justify-between gap-2">
-                              <span className="truncate font-mono text-[13px] font-semibold text-slate-800">{w.name}</span>
-                              {vuln ? <Bug size={12} className="text-rose-500" /> : w.audit ? <ShieldCheck size={12} className="text-emerald-500" /> : null}
+                              <span className="truncate font-mono text-sm font-semibold text-slate-900">{w.name}</span>
+                              {vuln ? <Bug size={14} className="text-rose-500" /> : w.audit ? <ShieldCheck size={14} className="text-emerald-500" /> : null}
                             </div>
-                            <div className="mt-0.5 truncate text-[10px] text-slate-500">污点 {w.taint?.tainted_params_in?.length ? w.taint.tainted_params_in.join(', ') : '—'}{w.ts ? ` · ${w.ts.slice(11, 19)}` : ''}</div>
+                            <div className="mt-1 truncate text-xs text-slate-500">污点 {w.taint?.tainted_params_in?.length ? w.taint.tainted_params_in.join(', ') : '—'}{w.ts ? ` · ${w.ts.slice(11, 19)}` : ''}</div>
                           </button>
                         </li>
                       );
@@ -735,25 +777,29 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                   </ol>
                 </aside>
                 <div className="space-y-4">
-                  {!selectedFn ? <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-16 text-center text-sm text-slate-400">点击上方图节点或左侧函数,查看污点传播与模型推理</div> : (
+                  {!selectedFn ? <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-16 text-center text-sm text-slate-400">点击左侧函数或图节点,查看污点传播、模型推理与源码</div> : (
                     <>
-                      <SectionCard title={`#${selectedFn.order + 1} · ${selectedFn.name}`} icon={<Crosshair size={15} />} action={<FnBadge audit={selectedFn.audit} />}>
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          <InfoRow label="function_id" value={<span className="font-mono">{selectedFn.fid}</span>} />
-                          <InfoRow label="污点参数" value={selectedFn.taint?.tainted_params_in?.length ? <span className="font-mono text-rose-600">{selectedFn.taint.tainted_params_in.join(', ')}</span> : '—'} />
-                          {selectedFn.audit?.vuln_line ? <InfoRow label="漏洞行" value={<span className="font-mono text-rose-600">{selectedFn.audit.vuln_line}</span>} /> : null}
+                      <SectionCard title={`#${selectedFn.order + 1} · ${selectedFn.name}`} icon={<Crosshair size={16} />} action={<FnBadge audit={selectedFn.audit} />}>
+                        <div className="grid gap-2.5 sm:grid-cols-2">
+                          {selectedFn.meta?.signature ? <div className="sm:col-span-2"><InfoRow label="签名" value={<span className="font-mono text-[13px] text-slate-800">{selectedFn.meta.signature}</span>} /></div> : null}
+                          <InfoRow label="位置" value={selectedFn.meta?.file_path ? <span className="font-mono text-[13px]">{selectedFn.meta.file_path}:{selectedFn.meta.start_line}-{selectedFn.meta.end_line}</span> : '—'} />
+                          <InfoRow label="污点参数" value={selectedFn.taint?.tainted_params_in?.length ? <span className="font-mono text-[13px] text-rose-600">{selectedFn.taint.tainted_params_in.join(', ')}</span> : '—'} />
+                          {selectedFn.audit?.vuln_line ? <InfoRow label="漏洞行" value={<span className="font-mono text-[13px] text-rose-600">{selectedFn.audit.vuln_line}</span>} /> : null}
                           {selectedFn.audit?.confidence != null ? <InfoRow label="置信度" value={selectedFn.audit.confidence} /> : null}
-                          {selectedFn.ts ? <InfoRow label="审查时间" value={<span className="font-mono">{selectedFn.ts.slice(11, 19)}</span>} /> : null}
                         </div>
                       </SectionCard>
+                      <SectionCard title="函数源码" icon={<FileText size={16} />}>
+                        {selectedFn.meta ? <FunctionCodeBlock meta={selectedFn.meta} focusLine={selectedFn.audit?.vuln_line} />
+                          : <div className="text-sm text-slate-400">源码解析中…(需后端 walk-functions 接口)</div>}
+                      </SectionCard>
                       {selectedFn.taint?.desc ? (
-                        <SectionCard title="污点传播 (是什么 / 为什么 / 怎么样)" icon={<Network size={15} />}><ThreeElementDesc text={selectedFn.taint.desc} /></SectionCard>
+                        <SectionCard title="污点传播 (是什么 / 为什么 / 怎么样)" icon={<Network size={16} />}><ThreeElementDesc text={selectedFn.taint.desc} /></SectionCard>
                       ) : null}
                       {selectedFn.audit?.desc ? (
-                        <SectionCard title="模型审计推理 (think)" icon={<Search size={15} />}><ThreeElementDesc text={selectedFn.audit.desc} /></SectionCard>
+                        <SectionCard title="模型审计推理 (think)" icon={<Search size={16} />}><ThreeElementDesc text={selectedFn.audit.desc} /></SectionCard>
                       ) : null}
-                      <SectionCard title={`该函数的工具调用 (${queriesForSelected.length})`} icon={<Terminal size={15} />}>
-                        {queriesForSelected.length === 0 ? <div className="text-xs text-slate-400">无</div> : (
+                      <SectionCard title={`该函数的工具调用 (${queriesForSelected.length})`} icon={<Terminal size={16} />}>
+                        {queriesForSelected.length === 0 ? <div className="text-sm text-slate-400">无</div> : (
                           <div className="space-y-2">
                             {queriesForSelected.map((q, i) => <ToolCallRow key={i} q={q} nameIdx={nameIdx} />)}
                           </div>
