@@ -20,9 +20,19 @@ const SEV_COLOR: Record<string, string> = {
 };
 
 // reason buckets to help the user cut 1000s of candidates down to signal
-function isHighValue(reason?: string | null): boolean {
-  if (!reason) return false;
-  return /syscall_caller|name_match|register_callback|fops_table|parse_caller|extern_c|macro_export/.test(reason);
+// "High value" highlights entries more likely to carry attacker-controlled
+// input. The manager-based source detector reports channel/subkind
+// (NETWORK/IPC/FILE + net.*/ipc.*/file.read) plus a free-text Chinese reason,
+// so match those signals; the trailing patterns keep the older rule-based
+// reason tags working too.
+function isHighValue(e?: { reason?: string | null; channel?: string | null; entry_point_kind?: string | null } | null): boolean {
+  if (!e) return false;
+  const ch = (e.channel || '').toUpperCase();
+  if (ch === 'NETWORK' || ch === 'IPC') return true;
+  const kind = (e.entry_point_kind || '').toLowerCase();
+  if (/^(net\.|ipc\.|file\.)/.test(kind)) return true;
+  const reason = e.reason || '';
+  return /syscall_caller|name_match|register_callback|fops_table|parse_caller|extern_c|macro_export|外部|网络|输入|gRPC|socket|recv/i.test(reason);
 }
 
 export const CfgDbVulnDetailPage: React.FC<{ projectId: string; taskId: string; onBack: () => void }> = ({ projectId, taskId, onBack }) => {
@@ -36,7 +46,7 @@ export const CfgDbVulnDetailPage: React.FC<{ projectId: string; taskId: string; 
   const [loading, setLoading] = useState(true);
   const [fanningOut, setFanningOut] = useState(false);
   const [filter, setFilter] = useState('');
-  const [onlyHighValue, setOnlyHighValue] = useState(true);
+  const [onlyHighValue, setOnlyHighValue] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!taskId) return;
@@ -74,7 +84,7 @@ export const CfgDbVulnDetailPage: React.FC<{ projectId: string; taskId: string; 
     const all = entriesResp?.entries || [];
     const f = filter.trim().toLowerCase();
     return all.filter((e) => {
-      if (onlyHighValue && !isHighValue(e.reason)) return false;
+      if (onlyHighValue && !isHighValue(e)) return false;
       if (!f) return true;
       return (e.function_name || '').toLowerCase().includes(f)
         || (e.source_file || '').toLowerCase().includes(f)
@@ -180,6 +190,7 @@ export const CfgDbVulnDetailPage: React.FC<{ projectId: string; taskId: string; 
                         checked={visibleEntries.length > 0 && visibleEntries.every((e) => selected.has(entryKey(e)))}
                         onChange={toggleAllVisible} /></th>
                     <th className="text-left px-3 py-2">函数</th>
+                    <th className="text-left px-3 py-2">通道/类型</th>
                     <th className="text-left px-3 py-2">文件:行</th>
                     <th className="text-left px-3 py-2">reason</th>
                   </tr>
@@ -189,9 +200,13 @@ export const CfgDbVulnDetailPage: React.FC<{ projectId: string; taskId: string; 
                     <tr key={entryKey(e)} className="border-t hover:bg-gray-50">
                       <td className="px-3 py-1.5"><input type="checkbox" checked={selected.has(entryKey(e))} onChange={() => toggle(e)} /></td>
                       <td className="px-3 py-1.5 font-mono">{e.function_name}</td>
+                      <td className="px-3 py-1.5 text-xs">
+                        {e.channel && <span className="inline-block rounded bg-blue-50 text-blue-700 px-1.5 py-0.5 mr-1">{e.channel}</span>}
+                        <span className="text-gray-500">{e.entry_point_kind}</span>
+                      </td>
                       <td className="px-3 py-1.5 text-gray-500 font-mono text-xs">{e.source_file}:{e.line}</td>
                       <td className="px-3 py-1.5 text-xs">
-                        <span className={isHighValue(e.reason) ? 'text-emerald-700' : 'text-gray-400'}>{e.reason}</span>
+                        <span className={isHighValue(e) ? 'text-emerald-700' : 'text-gray-400'}>{e.reason}</span>
                       </td>
                     </tr>
                   ))}

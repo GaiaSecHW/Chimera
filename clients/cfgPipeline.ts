@@ -13,6 +13,9 @@ export interface CfgPipelineEntry {
   end_line?: number | null;
   signature?: string | null;
   entry_point_kind?: string | null;
+  channel?: string | null;
+  confidence?: string | null;
+  taint_params?: (number | string)[];
   reason?: string | null;
   status?: string | null;
 }
