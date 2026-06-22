@@ -23,6 +23,7 @@ import {
   Search,
   Send,
   ShieldAlert,
+  ShieldCheck,
   Sparkles,
   TerminalSquare,
   Trash2,
@@ -385,7 +386,7 @@ const DECISION_TEXT: Record<string, string> = {
 
 const CONCLUSION_TEXT: Record<string, string> = {
   vulnerable: '是漏洞',
-  not_vulnerable: '非漏洞',
+  not_vulnerable: '不是漏洞',
   inconclusive: '无法判定',
   manual_terminated: '人工终止',
 };
@@ -601,6 +602,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [selectedSuspicionIds, setSelectedSuspicionIds] = useState<string[]>([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [rowDeletingId, setRowDeletingId] = useState<string | null>(null);
+  const [confirmingCase, setConfirmingCase] = useState<any | null>(null);
+  const [manualConfirmResult, setManualConfirmResult] = useState<'vulnerable' | 'not_vulnerable'>('vulnerable');
+  const [manualConfirmReason, setManualConfirmReason] = useState('');
+  const [manualConfirmError, setManualConfirmError] = useState('');
+  const [manualConfirmSubmitting, setManualConfirmSubmitting] = useState(false);
   const [downloadJobs, setDownloadJobs] = useState<any[]>([]);
   const [downloadStats, setDownloadStats] = useState<any>({
     total: 0,
@@ -660,13 +666,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     const openTasks = (selectedDetail?.manual_tasks || []).filter(
       (item: any) => !['completed', 'closed'].includes(item.status),
     ).length;
+    const confirmed = Number(overview?.finished_reason_counts?.vulnerable || 0);
+    const ruledOut = Number(overview?.finished_reason_counts?.not_vulnerable ?? overview?.finished_reason_counts?.non_vulnerable ?? 0);
+    const total = Number(overview?.metrics?.total_cases || 0);
     return {
-      total: Number(overview?.metrics?.total_cases || 0),
-      pendingVerify: Number(overview?.stage_counts?.receive || 0) + Number(overview?.stage_counts?.triage || 0),
-      validating: Number(overview?.stage_counts?.validation || 0),
-      verified: Number(overview?.metrics?.finished_cases || 0),
-      confirmed: Number(overview?.finished_reason_counts?.vulnerable || 0),
-      ruledOut: Number(overview?.finished_reason_counts?.non_vulnerable || 0),
+      total,
+      confirmed,
+      ruledOut,
+      inconclusive: Math.max(0, total - confirmed - ruledOut),
       openTasks,
     };
   }, [overview, selectedDetail]);
@@ -692,7 +699,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     }
     if (selectedDetail.validation_result) {
       const completed = (confirmRecords || [])
-        .filter((record: any) => record && (record.status === 'completed' || record.result) && record.reason)
+        .filter((record: any) => record && (record.status === 'completed' || record.result))
         .sort((a: any, b: any) => (b.completed_at || b.created_at || '').localeCompare(a.completed_at || a.created_at || ''));
       const top = completed[0];
       return { source: 'engine', text: top?.reason || '', engineName: top?.engine_name || '' };
@@ -742,12 +749,20 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         severity: severityFilter === 'all' ? undefined : severityFilter,
         reporter_type: reporterTypeFilter === 'all' ? undefined : reporterTypeFilter,
         cvss_band: cvssBandFilter === 'all' ? undefined : cvssBandFilter,
-        final_result: finalResultFilter === 'all' ? undefined : (finalResultFilter as any),
         search: search.trim() || undefined,
         sort_field: sortField,
         sort_direction: sortDirection,
       };
-      if (taskFilter.length <= 1) {
+      const matchesFinalResult = (item: any) => {
+        if (finalResultFilter === 'all') return true;
+        const effective = String(item.finished_reason || item.validation_result || '').trim();
+        if (finalResultFilter === 'analyzing') return effective === '';
+        if (finalResultFilter === 'not_vulnerable') return effective === 'not_vulnerable' || effective === 'non_vulnerable';
+        if (finalResultFilter === 'inconclusive') return effective === 'inconclusive' || effective === 'manual_terminated';
+        return effective === finalResultFilter;
+      };
+      const needsClientFilter = finalResultFilter !== 'all';
+      if (taskFilter.length <= 1 && !needsClientFilter) {
         const response = await vulnApi.vuln.listCases({
           ...baseParams,
           source_task_id: taskFilter[0],
@@ -761,7 +776,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           setCurrentPage(response.page);
         }
       } else {
-        const fetchAllForTask = async (taskId: string): Promise<any[]> => {
+        const fetchAllForTask = async (taskId: string | undefined): Promise<any[]> => {
           const first = await vulnApi.vuln.listCases({
             ...baseParams,
             source_task_id: taskId,
@@ -782,8 +797,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           }
           return items;
         };
+        const taskIds = taskFilter.length > 0 ? taskFilter : [undefined];
         const chunks: any[][] = [];
-        for (const taskId of taskFilter) {
+        for (const taskId of taskIds) {
           if (requestSeq !== suspicionRequestSeq.current) return;
           chunks.push(await fetchAllForTask(taskId));
         }
@@ -793,9 +809,10 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           sortField,
           sortDirection,
         );
+        const filtered = needsClientFilter ? merged.filter(matchesFinalResult) : merged;
         const nextPage = pageOverride ?? currentPage;
-        setSuspicions(merged.slice((nextPage - 1) * pageSize, nextPage * pageSize));
-        setListTotal(merged.length);
+        setSuspicions(filtered.slice((nextPage - 1) * pageSize, nextPage * pageSize));
+        setListTotal(filtered.length);
       }
     } catch (err: any) {
       setError(err?.message || '加载漏洞列表失败');
@@ -1571,6 +1588,52 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     }
   };
 
+  const openManualConfirm = (item: any) => {
+    setConfirmingCase(item);
+    setManualConfirmResult('vulnerable');
+    setManualConfirmReason('');
+    setManualConfirmError('');
+  };
+
+  const closeManualConfirm = () => {
+    if (manualConfirmSubmitting) return;
+    setConfirmingCase(null);
+    setManualConfirmReason('');
+    setManualConfirmError('');
+  };
+
+  const submitManualConfirm = async () => {
+    if (!confirmingCase?.id) return;
+    const reason = manualConfirmReason.trim();
+    if (manualConfirmResult === 'not_vulnerable' && !reason) {
+      setManualConfirmError('确认不是漏洞时必须填写原因。');
+      return;
+    }
+    setManualConfirmSubmitting(true);
+    setManualConfirmError('');
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await vulnApi.vuln.finishCase(confirmingCase.id, {
+        finished_reason: manualConfirmResult,
+        summary: manualConfirmResult === 'vulnerable' ? '人工确认：是漏洞' : reason,
+      });
+      const caseId = confirmingCase.id;
+      setConfirmingCase(null);
+      setManualConfirmReason('');
+      setSelectedSuspicionIds((previous) => previous.filter((id) => id !== caseId));
+      await Promise.all([loadOverview(), loadSuspicions(currentPage)]);
+      if (selectedDetail?.id === caseId) {
+        await loadSuspicionDetail(caseId);
+      }
+      setSuccessMessage('漏洞终审结果已更新。');
+    } catch (err: any) {
+      setManualConfirmError(err?.message || '确认漏洞失败');
+    } finally {
+      setManualConfirmSubmitting(false);
+    }
+  };
+
   const handleCreateDownloadJob = async (reportIds: string[], mode: 'single' | 'batch') => {
     if (!projectId || reportIds.length === 0) return;
     setCreatingDownload(true);
@@ -1603,19 +1666,26 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         severity: severityFilter === 'all' ? undefined : severityFilter,
         reporter_type: reporterTypeFilter === 'all' ? undefined : reporterTypeFilter,
         cvss_band: cvssBandFilter === 'all' ? undefined : cvssBandFilter,
-        final_result: finalResultFilter === 'all' ? undefined : (finalResultFilter as any),
         search: search.trim() || undefined,
         sort_field: sortField,
         sort_direction: sortDirection,
       };
+      const matchesFinalResult = (item: any) => {
+        if (finalResultFilter === 'all') return true;
+        const effective = String(item.finished_reason || item.validation_result || '').trim();
+        if (finalResultFilter === 'analyzing') return effective === '';
+        if (finalResultFilter === 'not_vulnerable') return effective === 'not_vulnerable' || effective === 'non_vulnerable';
+        if (finalResultFilter === 'inconclusive') return effective === 'inconclusive' || effective === 'manual_terminated';
+        return effective === finalResultFilter;
+      };
       const ids: string[] = [];
       for (const taskId of taskFilter) {
         const first = await vulnApi.vuln.listCases({ ...baseParams, source_task_id: taskId, page: 1, page_size: 500 });
-        ids.push(...(first.items || []).map((item: any) => item.id).filter(Boolean));
+        ids.push(...(first.items || []).filter(matchesFinalResult).map((item: any) => item.id).filter(Boolean));
         const pages = Math.ceil(Number(first.total || 0) / 500);
         for (let page = 2; page <= pages; page += 1) {
           const next = await vulnApi.vuln.listCases({ ...baseParams, source_task_id: taskId, page, page_size: 500 });
-          ids.push(...(next.items || []).map((item: any) => item.id).filter(Boolean));
+          ids.push(...(next.items || []).filter(matchesFinalResult).map((item: any) => item.id).filter(Boolean));
         }
       }
       const reportIds = Array.from(new Set(ids));
@@ -1966,36 +2036,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               <div className="mt-1 text-xs font-semibold font-mono text-theme-text-faint">ID: {selectedDetail.id}</div>
               <p className="mt-1 line-clamp-2 text-sm leading-6 text-theme-text-muted">{selectedDetail.summary || '暂无摘要'}</p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {!detailEditMode ? (
-                <button
-                  type="button"
-                  onClick={() => setDetailEditMode(true)}
-                  className="btn btn-secondary btn-sm"
-                >
-                  编辑上报字段
-                </button>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleSaveDetailEdit}
-                    disabled={detailSaving}
-                    className="btn btn-primary btn-sm"
-                  >
-                    {detailSaving ? '保存中...' : '保存'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancelDetailEdit}
-                    disabled={detailSaving}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    取消
-                  </button>
-                </>
-              )}
-            </div>
           </div>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
@@ -2014,55 +2054,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">开放任务</div>
               <div className="mt-1 text-sm font-semibold tabular-nums text-theme-text-primary">{stats.openTasks}</div>
             </div>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2.5">
-            <button
-              type="button"
-              onClick={handleMarkReadyForTriage}
-              disabled={processingAction !== null || selectedDetail.current_stage !== 'receive'}
-              className="btn btn-sm text-white bg-state-info-soft text-state-info border-state-info-border inline-flex items-center gap-2 border"
-            >
-              <Check size={15} />
-              {processingAction === 'ready_for_triage' ? '处理中...' : '标记待验证'}
-            </button>
-            <button
-              type="button"
-              onClick={handleOpenAutoVerifyTask}
-              disabled={processingAction !== null || !selectedDetail?.id || (!latestAutoVerifyTask && selectedDetail.current_stage === 'finished')}
-              className="btn btn-primary btn-sm inline-flex items-center gap-2"
-            >
-              <FolderOpen size={15} />
-              {processingAction === 'verify' ? '处理中...' : latestAutoVerifyTask ? '跳转验证任务' : '生成验证任务'}
-            </button>
-            {latestAutoVerifyTask ? (
-              <button
-                type="button"
-                onClick={handleSyncAutoVerifyTask}
-                disabled={processingAction !== null || !selectedDetail?.id}
-                className="btn btn-sm bg-state-success-soft text-state-success border-state-success-border inline-flex items-center gap-2 border"
-              >
-                <RefreshCw size={15} className={processingAction === 'sync_verify' ? 'animate-spin' : ''} />
-                {processingAction === 'sync_verify' ? '同步中...' : '同步验证结果'}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={handleMarkFalsePositive}
-              disabled={processingAction !== null || selectedDetail.current_stage !== 'triage'}
-              className="btn btn-sm bg-state-warning-soft text-state-warning border-state-warning-border inline-flex items-center gap-2 border"
-            >
-              <ShieldAlert size={15} />
-              {processingAction === 'false_positive' ? '处理中...' : '标记非问题'}
-            </button>
-            <button
-              type="button"
-              onClick={handleDeleteSuspicion}
-              disabled={processingAction !== null}
-              className="btn btn-sm bg-state-danger-soft text-state-danger border-state-danger-border inline-flex items-center gap-2 border"
-            >
-              <X size={15} />
-              {processingAction === 'delete' ? '删除中...' : '删除漏洞'}
-            </button>
           </div>
         </div>
 
@@ -2133,14 +2124,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       </div>
                     </div>
                   </DetailSectionCard>
-                  <DetailSectionCard title="状态流转与来源" subtitle="展示当前用户可见状态和来源任务上下文。">
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <DetailMetricCard label="当前状态" value={toUserVulnStatusText(selectedDetail)} hint={selectedDetail.current_status || selectedDetail.current_stage || 'n/a'} />
-                      <DetailMetricCard label="处置状态" value={toDecisionText(selectedDetail.decision_status)} hint={toConclusionText(selectedDetail.validation_result || selectedDetail.finished_reason) || '未验证'} />
-                      <DetailMetricCard label="来源服务" value={selectedDetail.source_service || displaySummary?.source_task?.service_name || '未提供'} hint={selectedDetail.created_by_type || 'n/a'} />
-                      <DetailMetricCard label="来源任务" value={selectedDetail.source_task_id || displaySummary?.source_task?.task_id || '未提供'} hint={selectedDetail.source_execution_id || '无执行引用'} />
-                    </div>
-                  </DetailSectionCard>
                 </div>
                 <div className="space-y-4">
                   <DetailSectionCard title="识别信息" subtitle="用于快速识别、排查和交叉检索本条漏洞。">
@@ -2152,19 +2135,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       <div><span className="font-semibold text-theme-text-primary">报告更新时间：</span>{formatTime(displaySummary?.current_report_updated_at || selectedDetail.current_report_updated_at)}</div>
                       <div><span className="font-semibold text-theme-text-primary">创建时间：</span>{formatTime(selectedDetail.created_at)}</div>
                       <div><span className="font-semibold text-theme-text-primary">最近更新：</span>{formatTime(selectedDetail.updated_at)}</div>
-                    </div>
-                  </DetailSectionCard>
-                  <DetailSectionCard title="关键提示" subtitle="从报告和结果中提炼出的要点，方便快速浏览。">
-                    <div className="mt-3 space-y-2">
-                      {(Array.isArray(displaySummary?.key_points) ? displaySummary.key_points : []).length > 0 ? (
-                        (displaySummary.key_points as string[]).map((point, index) => (
-                          <div key={`${point}-${index}`} className="rounded-xl px-4 py-3 text-sm bg-theme-elevated text-theme-text-secondary">
-                            {point}
-                          </div>
-                        ))
-                      ) : (
-                        <div className="rounded-xl px-4 py-4 text-sm bg-theme-elevated text-theme-text-muted">当前没有提炼出的关键提示。</div>
-                      )}
                     </div>
                   </DetailSectionCard>
                 </div>
@@ -2349,188 +2319,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         <span className="text-[11px] font-semibold text-theme-text-muted-soft">复现提示（evidence.reproduction_hint）</span>
                         <textarea value={editableDetail?.evidence_reproduction_hint || ''} onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_reproduction_hint: event.target.value } : prev))} disabled={!detailEditMode || detailSaving} className="form-textarea min-h-[66px] resize-none" />
                       </label>
-                    </div>
-                  </DetailSectionCard>
-                  <DetailSectionCard
-                    title="漏洞文件"
-                    subtitle={selectedDetail.files_root_path || '未分配文件根路径'}
-                    compact
-                    actions={
-                      linkedFiles?.root_path ? (
-                        <button
-                          type="button"
-                          onClick={() => openLinkedFilesPath(linkedFiles.root_path)}
-                          className="btn btn-secondary btn-sm"
-                        >
-                          根目录
-                        </button>
-                      ) : null
-                    }
-                  >
- <div className="mt-3 overflow-hidden rounded-xl border border-theme-border bg-theme-surface">
-                      {linkedFilesLoading ? (
-                        <div className="px-4 py-8 text-sm text-theme-text-muted">正在加载关联文件...</div>
-                      ) : !linkedFiles ? (
-                        <div className="px-4 py-8 text-sm text-theme-text-muted">当前漏洞还没有可展示的文件目录。</div>
-                      ) : (
-                        <div className="flex h-full min-h-[360px] flex-col">
-                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-theme-border-subtle bg-theme-surface px-4 py-3">
-                            <div className="truncate text-xs font-semibold text-theme-text-secondary">当前路径：{linkedFiles.current_path}</div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => void handleCreateLinkedArchiveTask()}
-                                disabled={selectedLinkedPaths.length === 0 || linkedArchiveSubmitting}
-                                className="btn btn-primary btn-sm"
-                              >
-                                {linkedArchiveSubmitting ? '提交中...' :`打包下载(${selectedLinkedPaths.length})`}
-                              </button>
-                              <div className="search-bar">
-                                <Search size={12} className="text-theme-text-faint" />
-                                <input
-                                  value={linkedFileSearch}
-                                  onChange={(event) => setLinkedFileSearch(event.target.value)}
-                                  placeholder="搜索文件名/路径"
-                                  className="search-input text-xs"
-                                />
-                              </div>
-                              {linkedFiles.current_path !== linkedFiles.root_path && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const current = String(linkedFiles.current_path || '');
-                                    const parts = current.split('/').filter(Boolean);
-                                    const parent = parts.length <= 2 ? linkedFiles.root_path :`/${parts.slice(0, -1).join('/')}`;
-                                    openLinkedFilesPath(parent);
-                                  }}
-                                  className="btn btn-secondary btn-sm"
-                                >
-                                  上级目录
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => openLinkedFilesPath(linkedFiles.current_path)}
-                                className="btn btn-secondary btn-sm"
-                              >
-                                刷新
-                              </button>
-                            </div>
-                          </div>
-                          <div className="grid min-h-0 flex-1 xl:grid-cols-[360px_minmax(0,1fr)]">
-                            <div className="min-h-0 overflow-auto border-r border-theme-border-subtle p-3">
-                              <div className="grid grid-cols-[24px_minmax(0,1fr)_70px] gap-3 rounded-xl bg-theme-elevated px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">
-                                <div>选</div>
-                                <div>名称</div>
-                                <div>大小</div>
-                              </div>
-                              <div className="mt-2 space-y-1">
-                                {linkedDirectoryItems.map((directory: any) => (
-                                  <div
-                                    key={directory.id}
-                                    className="grid w-full grid-cols-[24px_minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-theme-elevated"
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedLinkedPaths.includes(directory.path)}
-                                      onChange={() => toggleLinkedPathSelection(directory.path)}
-                                      className="h-4 w-4"
-                                      aria-label={`选择目录 ${directory.name}`}
-                                    />
-                                    <span className="inline-flex min-w-0 items-center gap-2 truncate text-sm font-semibold text-theme-text-secondary">
-                                      <FolderOpen size={14} className="shrink-0 text-state-warning" />
-                                      <button
-                                        type="button"
-                                        onClick={() => openLinkedFilesPath(directory.path)}
-                                        className="truncate text-left"
-                                      >
-                                        {directory.name}
-                                      </button>
-                                    </span>
-                                    <span className="text-xs text-theme-text-muted">--</span>
-                                  </div>
-                                ))}
-                                {linkedFileItems.map((file: any) => {
-                                  const active = selectedLinkedFile?.id === file.id;
-                                  return (
-                                    <div
-                                      key={file.id}
-                                      className={`grid grid-cols-[24px_minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 ${active ? 'bg-brand-soft' : 'hover:bg-theme-elevated'}`}
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={selectedLinkedPaths.includes(file.path)}
-                                        onChange={() => toggleLinkedPathSelection(file.path)}
-                                        className="h-4 w-4"
-                                        aria-label={`选择文件 ${file.filename}`}
-                                      />
-                                      <button
-                                        type="button"
-                                        onClick={() => openLinkedTextPreview(file)}
-                                        className="min-w-0 text-left"
-                                      >
-                                        <div className="inline-flex min-w-0 items-center gap-2">
-                                          <FileCode2 size={13} className="shrink-0 text-theme-text-muted" />
-                                          <span className="truncate text-sm font-semibold text-theme-text-secondary">{file.filename}</span>
-                                        </div>
-                                        <div className="mt-0.5 truncate text-[10px] text-theme-text-muted">{file.path}</div>
-                                      </button>
-                                      <span className="text-xs text-theme-text-muted">{Math.max(0, Math.round(Number(file.size || 0) / 1024))}KB</span>
-                                    </div>
-                                  );
-                                })}
-                                {linkedDirectoryItems.length === 0 && linkedFileItems.length === 0 && (
-                                  <div className="rounded-xl border border-dashed border-theme-border px-4 py-8 text-center text-sm text-theme-text-muted">
-                                    当前目录没有匹配的文件或文件夹
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <div className="min-h-0">
-                              {selectedLinkedFile ? (
-                                <div className="grid h-full min-h-0 xl:grid-cols-[minmax(0,1fr)_240px]">
-                                  <div className="min-h-0 border-r border-theme-border-subtle p-4">
-                                    <div className="mb-3 inline-flex items-center gap-2 text-xs font-semibold text-theme-text-secondary">
-                                      <FileCode2 size={13} />
-                                      {selectedLinkedFile.filename}
-                                    </div>
-                                    <div className="h-[calc(100%-1.5rem)] min-h-[260px] overflow-auto">
-                                      {linkedFilePreviewLoading ? (
-                                        <div className="text-sm text-theme-text-muted">正在加载文件内容...</div>
-                                      ) : linkedFilePreviewError ? (
-                                        <div className="alert alert--warning">{linkedFilePreviewError}</div>
-                                      ) : (
-                                        <pre className="h-full overflow-auto rounded-xl border border-theme-border bg-theme-surface p-5 font-mono text-[12px] whitespace-pre-wrap text-theme-text-primary">{linkedFilePreview || ''}</pre>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="p-4 text-sm text-theme-text-secondary">
-                                    <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">文件信息</div>
-                                    <div className="mt-4 space-y-3">
-                                      <div><div className="text-xs text-theme-text-muted">文件名</div><div className="break-all font-semibold text-theme-text-primary">{selectedLinkedFile.filename}</div></div>
-                                      <div><div className="text-xs text-theme-text-muted">内容类型</div><div className="font-semibold text-theme-text-secondary">{selectedLinkedFile.content_type || '未知类型'}</div></div>
-                                      <div><div className="text-xs text-theme-text-muted">大小</div><div className="font-semibold text-theme-text-secondary">{Number(selectedLinkedFile.size || 0)} bytes</div></div>
-                                      <div><div className="text-xs text-theme-text-muted">路径</div><div className="break-all font-semibold text-theme-text-secondary">{selectedLinkedFile.path || '-'}</div></div>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleLinkedFileDownload(selectedLinkedFile.id, selectedLinkedFile.filename)}
-                                      className="btn btn-primary btn-sm mt-6"
-                                    >
-                                      <Download size={14} />
-                                      下载文件
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="flex h-full min-h-[320px] items-center justify-center text-sm text-theme-text-muted">
-                                  从左侧列表选择文件进行预览
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </DetailSectionCard>
                 </div>
@@ -2720,11 +2508,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           <>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
             <StatisticCard label="漏洞总数" value={stats.total} />
-            <StatisticCard label="待验证" value={stats.pendingVerify} />
-            <StatisticCard label="验证中" value={stats.validating} tone="warning" />
-            <StatisticCard label="已验证" value={stats.verified} tone="brand" />
             <StatisticCard label="漏洞" value={stats.confirmed} tone="danger" />
-            <StatisticCard label="非漏洞" value={stats.ruledOut} tone="success" />
+            <StatisticCard label="不是漏洞" value={stats.ruledOut} tone="success" />
+            <StatisticCard label="无法判定" value={stats.inconclusive} tone="warning" />
           </div>
 
           <div className="table-container">
@@ -2816,7 +2602,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
             <div className="space-y-4 px-5 py-4 xl:px-6">
               <div className="overflow-hidden rounded-xl border border-theme-border">
-                  <div className="grid grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_1.2fr_1.1fr_0.9fr] gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2.5">
+                  <div className="grid grid-cols-[0.4fr_1.5fr_2.2fr_0.9fr_1.1fr_0.7fr_1.2fr_1.1fr_0.9fr] gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2.5">
                   <div className="flex items-center justify-center">
                     <input
                       type="checkbox"
@@ -2826,14 +2612,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       className="h-4 w-4 cursor-pointer rounded border-theme-border"
                     />
                   </div>
-                  {renderSortHeader('标题 / 摘要', 'title')}
-                  <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">文件</div>
-                  {renderSortHeader('阶段 / 状态', 'current_stage')}
-                  {renderSortHeader('等级', 'severity')}
-                  {renderSortHeader('CVSS', 'cvss_score')}
-                  {renderSortHeader('上报者', 'reporter')}
-                  {renderSortHeader('对象', 'subject')}
                   <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">任务名称</div>
+                  {renderSortHeader('标题 / 摘要', 'title')}
+                  {renderSortHeader('阶段 / 状态', 'current_stage')}
+                  <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">漏洞确认状态</div>
+                  {renderSortHeader('等级', 'severity')}
+                  {renderSortHeader('工具', 'reporter')}
                   {renderSortHeader('更新时间', 'updated_at')}
                   <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">操作</div>
                 </div>
@@ -2854,7 +2638,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           setSelectedSuspicionId(item.id);
                         }
                       }}
-                      className="grid cursor-pointer grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_1.2fr_1.1fr_0.9fr] gap-3 border-b border-theme-border-subtle bg-theme-surface px-4 py-3.5 text-left transition hover:bg-theme-elevated last:border-b-0"
+                      className="grid cursor-pointer grid-cols-[0.4fr_1.5fr_2.2fr_0.9fr_1.1fr_0.7fr_1.2fr_1.1fr_0.9fr] gap-3 border-b border-theme-border-subtle bg-theme-surface px-4 py-3.5 text-left transition hover:bg-theme-elevated last:border-b-0"
                     >
                       <div className="flex items-center justify-center">
                         <input
@@ -2866,53 +2650,41 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           className="h-4 w-4 cursor-pointer rounded border-theme-border"
                         />
                       </div>
+                      <div className="min-w-0 text-sm font-semibold text-theme-text-secondary" title={getTaskName(item)}>
+                        <div className="truncate">{getTaskName(item)}</div>
+                      </div>
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-theme-text-primary">{item.title}</div>
                         <div className="mt-1 font-mono text-[11px] text-theme-text-faint">{item.id}</div>
                         <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-theme-text-muted">{item.summary || '暂无摘要'}</div>
                       </div>
-                      <div className="flex items-start justify-center">
-                        {item.has_artifact_files || hasArtifactFiles(item.artifacts) ? (
-                          <span title="含文件/文件夹" className="inline-flex items-center justify-center rounded-md bg-state-success-soft p-1 text-state-success">
-                            <FolderOpen size={14} />
-                          </span>
-                        ) : (
-                          <span title="无文件" className="inline-flex items-center justify-center rounded-md bg-theme-elevated p-1 text-theme-text-faint">
-                            <FolderOpen size={14} />
-                          </span>
-                        )}
-                      </div>
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-theme-text-secondary">{toUserVulnStatusText(item)}</div>
+                      </div>
+                      <div className="min-w-0">
                         {(item.finished_reason || item.validation_result || item.decision_status) ? (
                           <>
-                            <div className="mt-1 text-[10px] font-semibold text-theme-text-muted">
-                              结论: {toConclusionText(item.finished_reason || item.validation_result || item.decision_status)}
+                            <div className="text-sm font-semibold text-theme-text-secondary">
+                              {toConclusionText(item.finished_reason || item.validation_result || item.decision_status)}
                             </div>
                             {(item.finished_reason || item.validation_result) ? (
                               <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
-                                来源: {item.finished_reason ? '人工判定' : '引擎判定'}
+                                来源: {item.finished_reason ? '人工判定' : `${item.confirm_engine_name || '引擎'}判定`}
                               </div>
                             ) : null}
                           </>
-                        ) : null}
+                        ) : (
+                          <span className="text-sm text-theme-text-faint">—</span>
+                        )}
                       </div>
                       <div>
                         <span className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${toneOf(item.severity)}`}>
                           {item.severity}
                         </span>
                       </div>
-                      <div className="text-sm font-semibold text-theme-text-secondary">{Number(item.cvss_score || 0).toFixed(1)}</div>
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold text-theme-text-secondary">{item.reporter?.name || 'unknown'}</div>
                         <div className="mt-0.5 text-xs text-theme-text-faint">{item.reporter?.version || 'n/a'}</div>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-theme-text-secondary">{item.subject?.locator || 'unscoped asset'}</div>
-                        <div className="mt-0.5 text-xs text-theme-text-faint">{item.subject?.type || 'generic'}</div>
-                      </div>
-                      <div className="min-w-0 text-sm font-semibold text-theme-text-secondary" title={getTaskName(item)}>
-                        <div className="truncate">{getTaskName(item)}</div>
                       </div>
                       <div className="text-sm text-theme-text-muted">{formatTime(item.updated_at || item.created_at)}</div>
                       <div>
@@ -2921,13 +2693,27 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation();
+                              openManualConfirm(item);
+                            }}
+                            disabled={manualConfirmSubmitting || !!item.finished_reason}
+                            title={item.finished_reason ? '已终审' : '确认漏洞'}
+                            aria-label={`确认漏洞 ${item.title}`}
+                            className="btn btn-secondary btn-sm px-2"
+                          >
+                            <ShieldCheck size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
                               handleCreateDownloadJob([item.id], 'single');
                             }}
                             disabled={creatingDownload}
-                            className="btn btn-secondary btn-sm"
+                            title={creatingDownload ? '创建下载任务中' : '下载'}
+                            aria-label={`下载漏洞 ${item.title}`}
+                            className="btn btn-secondary btn-sm px-2"
                           >
-                            <Download size={12} />
-                            下载
+                            <Download size={14} />
                           </button>
                           <button
                             type="button"
@@ -2936,10 +2722,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                               handleDeleteSingleFromList(item.id, item.title);
                             }}
                             disabled={bulkDeleting || rowDeletingId === item.id}
-                            className="btn btn-ghost-danger btn-sm"
+                            title={rowDeletingId === item.id ? '删除中' : '删除'}
+                            aria-label={`删除漏洞 ${item.title}`}
+                            className="btn btn-ghost-danger btn-sm px-2"
                           >
-                            <Trash2 size={12} />
-                            {rowDeletingId === item.id ? '删除中' : '删除'}
+                            {rowDeletingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                           </button>
                         </div>
                       </div>
@@ -2984,6 +2771,69 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         </>
       ) : (
         renderDetailView()
+      )}
+
+      {confirmingCase && (
+        <DialogShell
+          title="确认漏洞"
+          subtitle="人工确认后会作为终审结果写入漏洞生命周期。"
+          onClose={closeManualConfirm}
+        >
+          <div className="grid gap-4">
+            <div className="rounded-xl border border-theme-border bg-theme-elevated/60 p-3">
+              <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">待确认漏洞</div>
+              <div className="mt-1 text-sm font-semibold text-theme-text-primary">{confirmingCase.title || '未命名漏洞'}</div>
+              <div className="mt-1 font-mono text-[11px] text-theme-text-faint">{confirmingCase.id}</div>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setManualConfirmResult('vulnerable');
+                  setManualConfirmError('');
+                }}
+                aria-pressed={manualConfirmResult === 'vulnerable'}
+                className={`rounded-xl border-2 px-4 py-3 text-left shadow-sm transition ${manualConfirmResult === 'vulnerable' ? 'border-state-success-border bg-state-success-soft text-state-success ring-2 ring-state-success-border' : 'border-theme-border bg-theme-surface text-theme-text-primary hover:bg-theme-elevated'}`}
+              >
+                <div className={`text-sm font-semibold ${manualConfirmResult === 'vulnerable' ? 'text-state-success' : 'text-theme-text-primary'}`}>是漏洞</div>
+                <div className={`mt-1 text-xs ${manualConfirmResult === 'vulnerable' ? 'text-state-success' : 'text-theme-text-muted'}`}>将终审结果标记为是漏洞。</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setManualConfirmResult('not_vulnerable');
+                  setManualConfirmError('');
+                }}
+                aria-pressed={manualConfirmResult === 'not_vulnerable'}
+                className={`rounded-xl border-2 px-4 py-3 text-left shadow-sm transition ${manualConfirmResult === 'not_vulnerable' ? 'border-state-danger-border bg-state-danger-soft text-state-danger ring-2 ring-state-danger-border' : 'border-theme-border bg-theme-surface text-theme-text-primary hover:bg-theme-elevated'}`}
+              >
+                <div className={`text-sm font-semibold ${manualConfirmResult === 'not_vulnerable' ? 'text-state-danger' : 'text-theme-text-primary'}`}>不是漏洞</div>
+                <div className={`mt-1 text-xs ${manualConfirmResult === 'not_vulnerable' ? 'text-state-danger' : 'text-theme-text-muted'}`}>需要填写确认原因。</div>
+              </button>
+            </div>
+            {manualConfirmResult === 'not_vulnerable' && (
+              <textarea
+                value={manualConfirmReason}
+                onChange={(event) => {
+                  setManualConfirmReason(event.target.value);
+                  if (manualConfirmError) setManualConfirmError('');
+                }}
+                aria-label="确认不是漏洞的原因"
+                placeholder="请输入确认不是漏洞的原因"
+                className="form-textarea min-h-[7rem]"
+              />
+            )}
+            {manualConfirmError && <div className="text-sm font-semibold text-state-danger">{manualConfirmError}</div>}
+            <div className="flex flex-wrap justify-end gap-3 pt-2">
+              <button type="button" onClick={closeManualConfirm} disabled={manualConfirmSubmitting} className="btn btn-secondary">
+                取消
+              </button>
+              <button type="button" onClick={submitManualConfirm} disabled={manualConfirmSubmitting} className="btn btn-primary">
+                {manualConfirmSubmitting ? '提交中...' : '确认提交'}
+              </button>
+            </div>
+          </div>
+        </DialogShell>
       )}
 
       {showCreateDialog && (
