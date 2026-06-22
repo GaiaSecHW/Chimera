@@ -226,26 +226,26 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
           <div className="space-y-4 p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-theme-text-primary">{title}</h2>
-              <button onClick={onClose} disabled={creating} className="rounded-lg p-1 text-theme-text-muted hover:text-theme-text-secondary disabled:opacity-50">
+              <button onClick={onClose} disabled={creating} className="btn-icon">
                 <X size={16} />
               </button>
             </div>
 
-            <label className="block text-sm text-theme-text-secondary">
+            <label className="form-label">
               任务名称 <span className="text-red-500">*</span>
               <input
-                className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 text-sm"
+                className="form-input"
                 value={form.task_name}
                 onChange={(e) => setForm((prev) => ({ ...prev, task_name: e.target.value }))}
                 placeholder="例：固件安全分析-2025"
               />
             </label>
 
-            <label className="block text-sm text-theme-text-secondary">
+            <label className="form-label">
               输入路径 <span className="text-red-500">*</span>
               <div className="mt-1 flex gap-1">
                 <input
-                  className="flex-1 rounded-lg border border-theme-border px-3 py-2 text-sm font-mono"
+                  className="form-input flex-1 font-mono"
                   value={form.input_path}
                   onChange={(e) => setForm((prev) => ({ ...prev, input_path: e.target.value }))}
                   placeholder="/data/files/<project>/<subproject>"
@@ -254,18 +254,18 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                   type="button"
                   title="从文件资源中选择目录"
                   onClick={() => { setPickerTarget('input'); setPickerOpen(true); }}
-                  className="flex shrink-0 items-center gap-1 rounded-lg border border-theme-border px-3 py-2 text-xs text-theme-text-secondary hover:bg-theme-elevated"
+                  className="btn-secondary"
                 >
                   <FolderOpen size={13} />浏览
                 </button>
               </div>
             </label>
 
-            <label className="block text-sm text-theme-text-secondary">
+            <label className="form-label">
               输出路径 <span className="text-red-500">*</span>
               <div className="mt-1 flex gap-1">
                 <input
-                  className="flex-1 rounded-lg border border-theme-border px-3 py-2 text-sm font-mono"
+                  className="form-input flex-1 font-mono"
                   value={form.output_path}
                   onChange={(e) => setForm((prev) => ({ ...prev, output_path: e.target.value }))}
                   placeholder="/data/files/<project>/<subproject>"
@@ -274,27 +274,27 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                   type="button"
                   title="从文件资源中选择目录"
                   onClick={() => { setPickerTarget('output'); setPickerOpen(true); }}
-                  className="flex shrink-0 items-center gap-1 rounded-lg border border-theme-border px-3 py-2 text-xs text-theme-text-secondary hover:bg-theme-elevated"
+                  className="btn-secondary"
                 >
                   <FolderOpen size={13} />浏览
                 </button>
               </div>
             </label>
 
-            <label className="block text-sm text-theme-text-secondary">
+            <label className="form-label">
               任务描述 <span className="text-theme-text-muted text-xs">(可选)</span>
               <input
-                className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 text-sm"
+                className="form-input"
                 value={form.task_description}
                 onChange={(e) => setForm((prev) => ({ ...prev, task_description: e.target.value }))}
                 placeholder="简要说明分析目标或背景"
               />
             </label>
 
-            <label className="block text-sm text-theme-text-secondary">
+            <label className="form-label">
               分析 Prompt <span className="text-theme-text-muted text-xs">(可选，不填则使用服务默认生成逻辑)</span>
               <textarea
-                className="mt-1 min-h-[120px] w-full rounded-lg border border-theme-border px-3 py-2 text-sm leading-6"
+                className="form-textarea min-h-[120px] leading-6"
                 value={form.prompt_content}
                 onChange={(e) => setForm((prev) => ({ ...prev, prompt_content: e.target.value }))}
                 placeholder="可复用原任务的 Prompt，或在此调整新的分析指令"
@@ -531,7 +531,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
             <button
               onClick={() => void handleCreate()}
               disabled={creating || !canSubmit}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-theme-surface px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              className="btn-primary btn-lg w-full"
             >
               {creating ? <Loader2 size={15} className="animate-spin" /> : null}
               {submitLabel}

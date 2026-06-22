@@ -318,7 +318,7 @@ export const DepartmentPage: React.FC = () => {
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
           {isAdmin() && (
-            <button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-lg font-medium flex items-center gap-3 hover:bg-blue-700 transition-all active:scale-95">
+            <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary btn-lg flex items-center gap-3">
               <Plus size={20} /> 创建新部门
             </button>
           )}
@@ -397,7 +397,7 @@ export const DepartmentPage: React.FC = () => {
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">部门名称 *</label>
+                <label className="form-label">部门名称 *</label>
                 <input
                   required
 placeholder="Department Name"
@@ -407,7 +407,7 @@ placeholder="Department Name"
                  />
                </div>
                <div className="space-y-1.5">
-                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">部门描述</label>
+                 <label className="form-label">部门描述</label>
                  <textarea
                   placeholder="Description"
                   rows={3}
@@ -417,7 +417,7 @@ placeholder="Department Name"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">上级部门</label>
+                <label className="form-label">上级部门</label>
                 <select
                   className="w-full px-6 py-4 bg-theme-elevated rounded-lg border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-theme-text-primary"
                   value={formData.parent_id}
@@ -429,7 +429,7 @@ placeholder="Department Name"
                   ))}
                 </select>
               </div>
- <button disabled={formLoading} className="w-full py-5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="btn-primary btn-lg btn-block flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <Building2 size={20} />}
                 确认创建部门
               </button>
@@ -453,7 +453,7 @@ placeholder="Department Name"
             </div>
             <form onSubmit={handleEdit} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">部门名称 *</label>
+                <label className="form-label">部门名称 *</label>
                 <input
                   required
 placeholder="Department Name"
@@ -463,7 +463,7 @@ placeholder="Department Name"
                  />
                </div>
                <div className="space-y-1.5">
-                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">部门描述</label>
+                 <label className="form-label">部门描述</label>
                  <textarea
                   placeholder="Description"
                   rows={3}
@@ -473,7 +473,7 @@ placeholder="Department Name"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">上级部门</label>
+                <label className="form-label">上级部门</label>
                 <select
                   className="w-full px-6 py-4 bg-theme-elevated rounded-lg border-none outline-none focus:ring-4 ring-amber-500/10 font-bold text-theme-text-primary"
                   value={formData.parent_id}
@@ -485,7 +485,7 @@ placeholder="Department Name"
                   ))}
                 </select>
               </div>
- <button disabled={formLoading} className="w-full py-5 bg-amber-600 text-white rounded-lg font-medium shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="btn-warning btn-lg btn-block flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <RefreshCw size={20} />}
                 立即更新部门
               </button>

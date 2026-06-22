@@ -818,10 +818,10 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
         description={<span className="italic">基于分布式容器化引擎的实时感知与安全探测底座</span>}
         actions={<div className="flex gap-4">
             <button onClick={handleRefreshAgents} disabled={!projectId || refreshingAgents} className="p-4 bg-theme-elevated border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all group active:scale-95 disabled:opacity-50"><RefreshCw size={20} className={(loading || refreshingAgents) ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} /></button>
-            <button onClick={handleCleanupOfflineWithK8s} disabled={isCleaning || !projectId} className="bg-rose-600 text-white px-6 py-4 rounded-lg font-semibold flex items-center gap-2 shadow-rose-500/20 hover:bg-rose-700 transition-all active:scale-95 disabled:opacity-50">{isCleaning ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}一键清空下线节点</button>
-            <button onClick={openBatchDeployModal} disabled={!projectId || selectedAgentKeys.size === 0} className="bg-emerald-600 text-white px-6 py-4 rounded-lg font-semibold flex items-center gap-2 shadow-emerald-500/20 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50"><Zap size={18} /> 批量部署服务</button>
-            <button onClick={handleForceSyncServices} disabled={!projectId || forceSyncing} className="bg-indigo-600 text-white px-6 py-4 rounded-lg font-semibold flex items-center gap-2 shadow-indigo-500/20 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50" title="强制同步服务状态">{forceSyncing ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}强制同步服务</button>
-            <button onClick={() => { setIntegrationType(null); setIsIntegrationModalOpen(true); }} disabled={!projectId} className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold flex items-center gap-2 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50"><Plus size={20} /> 接入新节点</button>
+            <button onClick={handleCleanupOfflineWithK8s} disabled={isCleaning || !projectId} className="btn-danger-soft btn-lg">{isCleaning ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}一键清空下线节点</button>
+            <button onClick={openBatchDeployModal} disabled={!projectId || selectedAgentKeys.size === 0} className="btn-success-soft btn-lg"><Zap size={18} /> 批量部署服务</button>
+            <button onClick={handleForceSyncServices} disabled={!projectId || forceSyncing} className="btn-primary btn-lg" title="强制同步服务状态">{forceSyncing ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}强制同步服务</button>
+            <button onClick={() => { setIntegrationType(null); setIsIntegrationModalOpen(true); }} disabled={!projectId} className="btn-primary btn-lg"><Plus size={20} /> 接入新节点</button>
           </div>}
       />
 
@@ -1343,7 +1343,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       {isBatchDeployModalOpen && (
         <div className="fixed inset-0 z-[119] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
  <div className="bg-theme-elevated w-full max-w-5xl rounded-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[88vh]">
-            <div className="p-8 border-b border-theme-border flex items-center justify-between">
+            <div className="p-6 border-b border-theme-border flex items-center justify-between">
               <div>
                 <h3 className="text-2xl font-bold text-theme-text-primary tracking-tight">批量部署环境模板服务</h3>
                 <p className="text-xs text-theme-text-muted font-semibold uppercase tracking-widest mt-1">
@@ -1355,7 +1355,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               </button>
             </div>
 
-            <div className="p-8 space-y-5 overflow-y-auto">
+            <div className="p-6 space-y-5 overflow-y-auto">
               <div className="flex items-center justify-between gap-4">
                 <div className="relative flex-1">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
@@ -1428,7 +1428,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               />
             </div>
 
-            <div className="p-8 bg-theme-elevated border-t border-theme-border flex items-center justify-between">
+            <div className="p-6 bg-theme-elevated border-t border-theme-border flex items-center justify-between">
               <p className="text-xs font-medium text-theme-text-muted">
                 本次将提交 <span className="text-blue-400 font-semibold">{selectedTemplateNames.size}</span> 个模板 ×
                 <span className="text-blue-400 font-semibold"> {selectedAgentKeys.size}</span> 个 Agent 的部署任务
@@ -1444,7 +1444,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 <button
                   onClick={executeBatchDeploy}
                   disabled={deployingBatch || selectedTemplateNames.size === 0 || selectedAgentKeys.size === 0}
-                  className="px-8 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                  className="btn-primary btn-lg"
                 >
                   {deployingBatch ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} />}
                   提交批量部署
@@ -1459,7 +1459,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       {isIntegrationModalOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
  <div className="bg-theme-elevated w-full max-w-2xl rounded-[3.5rem] overflow-hidden animate-in zoom-in-95 flex flex-col">
-              <div className="p-10 pb-8 border-b border-theme-border flex items-center justify-between">
+              <div className="p-6 pb-6 border-b border-theme-border flex items-center justify-between">
                 <div className="flex items-center gap-5">
  <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center text-white">
                      <Terminal size={28} />
@@ -1479,7 +1479,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <button
                       onClick={() => setIntegrationType('manual')}
- className="group p-8 bg-theme-elevated border-2 border-transparent hover:border-blue-600 rounded-xl text-left transition-all hover:bg-theme-elevated hover:"
+ className="group p-6 bg-theme-elevated border-2 border-transparent hover:border-blue-600 rounded-xl text-left transition-all hover:bg-theme-elevated hover:"
                     >
  <div className="w-12 h-12 bg-theme-elevated rounded-lg flex items-center justify-center text-theme-text-muted group-hover:text-blue-400 transition-colors mb-6">
                           <Terminal size={24} />
@@ -1493,7 +1493,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
 
                     <button
                       onClick={() => setIntegrationType('auto')}
- className="group p-8 bg-theme-elevated border-2 border-transparent hover:border-indigo-600 rounded-xl text-left transition-all hover:bg-theme-elevated relative overflow-hidden"
+ className="group p-6 bg-theme-elevated border-2 border-transparent hover:border-indigo-600 rounded-xl text-left transition-all hover:bg-theme-elevated relative overflow-hidden"
                     >
                        <div className="absolute top-6 right-6">
                           <span className="bg-amber-500/15 text-amber-400 px-3 py-1 rounded-full text-[9px] font-semibold uppercase tracking-widest">Developing</span>
@@ -1554,7 +1554,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                        </h5>
                        <div className="relative group">
                           <div className="absolute inset-0 bg-blue-600/5 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
- <div className="relative bg-theme-surface p-8 rounded-xl border border-slate-200/5 font-mono text-[11px] leading-relaxed group shadow-inner">
+ <div className="relative bg-theme-surface p-6 rounded-xl border border-slate-200/5 font-mono text-[11px] leading-relaxed group shadow-inner">
                              <p className="text-blue-300/90 break-all select-all font-mono">
                                {getIntegrationCommand()}
                              </p>
@@ -1601,7 +1601,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 )}
               </div>
 
-              <div className="p-10 bg-theme-elevated border-t border-theme-border flex justify-between items-center">
+              <div className="p-6 bg-theme-elevated border-t border-theme-border flex justify-between items-center">
                  {integrationType && (
                    <button
                      onClick={() => setIntegrationType(null)}
@@ -1613,7 +1613,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                  <div className="flex-1" />
                  <button
                    onClick={() => setIsIntegrationModalOpen(false)}
- className="px-10 py-4 bg-theme-surface text-white rounded-xl font-semibold text-sm hover:bg-theme-elevated transition-all"
+ className="btn-secondary btn-lg"
                  >
                    关闭界面
                  </button>

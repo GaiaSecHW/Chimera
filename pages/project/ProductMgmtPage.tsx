@@ -287,7 +287,7 @@ export const ProductMgmtPage: React.FC = () => {
                 resetProductForm();
                 resetVersionForm();
               }}
-              className="rounded-xl bg-theme-surface px-4 py-2 text-xs font-medium text-white"
+              className="btn-primary btn-sm"
             >
               <span className="inline-flex items-center gap-2">
                 <Plus size={14} />
@@ -323,19 +323,19 @@ export const ProductMgmtPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => openCreateChild(selectedProduct.id)}
-                  className="rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary"
+                  className="btn-secondary btn-sm"
                 >
                   新增子产品
                 </button>
                 <button
                   onClick={() => openEditProduct(selectedProduct)}
-                  className="rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary"
+                  className="btn-secondary btn-sm"
                 >
                   编辑产品
                 </button>
                 <button
                   onClick={() => void deleteProduct(selectedProduct)}
-                  className="rounded-xl border border-red-500/20 px-3 py-2 text-xs font-medium text-red-400"
+                  className="btn-danger btn-sm"
                 >
                   删除产品
                 </button>
@@ -343,7 +343,7 @@ export const ProductMgmtPage: React.FC = () => {
             )}
           </div>
 
-          <form onSubmit={submitProduct} className="space-y-4 rounded-2xl bg-theme-surface p-5">
+          <form onSubmit={submitProduct} className="space-y-4 rounded-2xl bg-theme-surface p-6">
             <div className="flex items-center gap-2 text-sm font-medium text-theme-text-secondary">
               <FolderTree size={16} />
               {editingProductId ? '编辑产品' : createChildForId ? '新增子产品' : '新增根产品'}
@@ -380,17 +380,17 @@ export const ProductMgmtPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-xl bg-theme-surface px-4 py-2 text-xs font-medium text-white"
+                className="btn-primary btn-sm"
               >
                 {saving ? '提交中...' : '保存产品'}
               </button>
-              <button type="button" onClick={resetProductForm} className="rounded-xl px-4 py-2 text-xs font-medium text-theme-text-muted">
+              <button type="button" onClick={resetProductForm} className="btn-ghost btn-sm">
                 重置
               </button>
             </div>
           </form>
 
-          <div className="space-y-4 rounded-2xl bg-theme-surface p-5">
+          <div className="space-y-4 rounded-2xl bg-theme-surface p-6">
             <div className="flex items-center gap-2 text-sm font-medium text-theme-text-secondary">
               <GitBranch size={16} />
               产品版本
@@ -421,10 +421,10 @@ export const ProductMgmtPage: React.FC = () => {
                       className="form-textarea w-full"
                     />
                     <div className="flex items-center gap-3">
-                      <button type="submit" disabled={saving} className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-medium text-white">
+                      <button type="submit" disabled={saving} className="btn-primary btn-sm">
                         {saving ? '提交中...' : editingVersionId ? '更新版本' : '新增版本'}
                       </button>
-                      <button type="button" onClick={resetVersionForm} className="rounded-xl px-4 py-2 text-xs font-medium text-theme-text-muted">
+                      <button type="button" onClick={resetVersionForm} className="btn-ghost btn-sm">
                         重置
                       </button>
                     </div>
@@ -447,10 +447,10 @@ export const ProductMgmtPage: React.FC = () => {
                             ) : null}
                           </div>
                           <div className="flex items-center gap-2">
-                            <button onClick={() => openEditVersion(version)} className="rounded-xl p-2 text-theme-text-muted hover:bg-theme-elevated hover:text-blue-400">
+                            <button onClick={() => openEditVersion(version)} className="btn-icon text-theme-text-muted hover:bg-theme-elevated hover:text-blue-400">
                               <Edit3 size={16} />
                             </button>
-                            <button onClick={() => void deleteVersion(version)} className="rounded-xl p-2 text-theme-text-muted hover:bg-red-500/15 hover:text-red-500">
+                            <button onClick={() => void deleteVersion(version)} className="btn-icon text-theme-text-muted hover:bg-red-500/15 hover:text-red-500">
                               <Trash2 size={16} />
                             </button>
                           </div>

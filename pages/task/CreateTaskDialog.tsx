@@ -611,7 +611,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
       >
         {/* header */}
-        <div className="flex items-start justify-between px-6 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div className="flex items-start justify-between px-6 py-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
           <div>
             <div className="text-lg font-semibold leading-7" style={{ color: LK.ink }}>
               创建任务
@@ -632,7 +632,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         </div>
 
         {/* tabs */}
-        <div className="px-6 py-2.5" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+        <div className="px-6 py-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
           <div className="flex flex-wrap gap-2">
             {CREATE_TABS.map((tab, index) => {
               const active = tab.key === activeCreateTab;
@@ -665,7 +665,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
         {/* body */}
         <div
-          className="min-h-0 flex-1 overflow-y-auto px-6 py-3 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]"
+          className="min-h-0 flex-1 overflow-y-auto px-6 py-4 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]"
         >
           {/* =============== TAB: basic =============== */}
             <div className="flex h-full flex-col space-y-3" style={{ display: activeCreateTab === 'basic' ? undefined : 'none' }}>
@@ -839,7 +839,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                           border: active ? `1px solid ${LK.primary}` : `1px solid ${LK.border}`,
                         }}
                         onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = LK.ink; }}
-                        onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = active ? LK.primary : LK.body; }}
+                        onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = LK.body; }}
                       >
                         {src === 'existing' ? '选择已有' : '直接上传'}
                       </button>
@@ -1031,23 +1031,18 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         </div>
 
         {/* footer */}
-          <div className="flex items-center justify-end gap-2 px-6 py-3" style={{ borderTop: `1px solid ${LK.border}` }}>
+          <div className="flex items-center justify-end gap-2 px-6 py-4" style={{ borderTop: `1px solid ${LK.border}` }}>
             <button
               onClick={onClose}
-              className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-              style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = LK.ink; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
+              className="btn-secondary rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+              style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
             >
               取消
             </button>
             <button
               onClick={() => void createTask()}
               disabled={saving || uploading || !canCreateTask}
-              className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
-              style={{ backgroundColor: LK.primary, color: '#ffffff' }}
-              onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
+              className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
             >
               {saving ? '创建中...' : uploading ? '上传中...' : '创建任务'}
             </button>

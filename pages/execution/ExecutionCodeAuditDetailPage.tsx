@@ -268,7 +268,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
           {instance?.access_url && currentStatus === 'running' && (
             <a
               href={instance.access_url} target="_blank" rel="noreferrer"
- className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-semibold text-xs hover:bg-blue-700 transition-all flex items-center gap-2 active:scale-95"
+ className="btn-primary flex items-center gap-2 active:scale-95"
             >
               LAUNCH VSCODE <ArrowUpRight size={16} />
             </a>
@@ -636,18 +636,18 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
                 </p>
               </div>
             </div>
-            <div className="px-10 pb-10 flex gap-4">
+            <div className="px-6 pb-6 flex gap-4">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={isActionProcessing}
-                className="flex-1 py-5 bg-theme-elevated text-theme-text-secondary rounded-2xl font-semibold hover:bg-theme-elevated transition-all"
+                className="flex-1 py-5 btn-secondary rounded-2xl font-semibold transition-all"
               >
                 保留实例
               </button>
               <button
                 onClick={handleDelete}
                 disabled={isActionProcessing}
- className="flex-1 py-5 bg-red-600 text-white rounded-2xl font-semibold hover:bg-red-700 flex items-center justify-center gap-3 shadow-red-500/30 active:scale-95 transition-all"
+ className="flex-1 py-5 btn-danger rounded-2xl font-semibold flex items-center justify-center gap-3 shadow-red-500/30 active:scale-95 transition-all"
               >
                 {isActionProcessing ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={20} />}
                 确认销毁
@@ -674,18 +674,18 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
                 </div>
               </div>
             </div>
-            <div className="px-10 pb-10 flex gap-4">
+            <div className="px-6 pb-6 flex gap-4">
               <button
                 onClick={() => setShowRebuildConfirm(false)}
                 disabled={isActionProcessing}
-                className="flex-1 py-5 bg-theme-elevated text-theme-text-secondary rounded-2xl font-semibold hover:bg-theme-elevated transition-all"
+                className="flex-1 py-5 btn-secondary rounded-2xl font-semibold transition-all"
               >
                 放弃操作
               </button>
               <button
                 onClick={handleRestart}
                 disabled={isActionProcessing}
- className="flex-1 py-5 bg-amber-600 text-white rounded-2xl font-semibold hover:bg-amber-700 flex items-center justify-center gap-3 shadow-amber-500/30 active:scale-95 transition-all"
+ className="flex-1 py-5 btn-warning rounded-2xl font-semibold flex items-center justify-center gap-3 shadow-amber-500/30 active:scale-95 transition-all"
               >
                 {isActionProcessing ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={20} />}
                 执行重建

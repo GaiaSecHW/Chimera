@@ -294,7 +294,7 @@ export const UserMgmtPage: React.FC = () => {
           <button onClick={openImportModal} className="bg-theme-surface backdrop-blur text-theme-text-secondary px-6 py-4 rounded-lg font-medium flex items-center gap-3 border border-theme-border hover:bg-theme-surface transition-all active:scale-95">
             <Upload size={18} /> 批量导入
           </button>
-          <button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-lg font-medium flex items-center gap-3 hover:bg-blue-700 transition-all active:scale-95">
+          <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary btn-lg flex items-center gap-3">
             <Plus size={20} /> 创建新用户
           </button>
         </div>}
@@ -503,7 +503,7 @@ export const UserMgmtPage: React.FC = () => {
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">用户名 *</label>
+                <label className="form-label">用户名 *</label>
                 <input
                   required
 placeholder="Username"
@@ -513,7 +513,7 @@ placeholder="Username"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">初始密码 *</label>
+                <label className="form-label">初始密码 *</label>
                 <input
                   type="password"
                   required
@@ -523,7 +523,7 @@ placeholder="••••••••"
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
               </div>
- <button disabled={formLoading} className="w-full py-5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="btn-primary btn-lg btn-block flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <UserCircle size={20} />}
                 确认创建身份
               </button>
@@ -545,7 +545,7 @@ placeholder="••••••••"
             </div>
             <form onSubmit={handleResetPassword} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">管理员密码验证 *</label>
+                <label className="form-label">管理员密码验证 *</label>
                 <input
                   type="password"
                   required
@@ -556,7 +556,7 @@ placeholder="Current Password"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">新密码 *</label>
+                <label className="form-label">新密码 *</label>
                 <input
                   type="password"
                   required
@@ -566,7 +566,7 @@ placeholder="New Password"
                   onChange={(e) => setResetData({ ...resetData, new_password: e.target.value })}
                 />
               </div>
- <button disabled={formLoading} className="w-full py-5 bg-amber-600 text-white rounded-lg font-medium shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="btn-warning btn-lg btn-block flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <RefreshCw size={20} />}
                 立即应用新凭据
               </button>
@@ -575,7 +575,7 @@ placeholder="New Password"
       {isImportModalOpen && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center p-6 bg-slate-950/65 backdrop-blur-md animate-in fade-in">
  <div className="w-full max-w-6xl bg-theme-surface rounded-2xl overflow-hidden animate-in zoom-in-95 max-h-[92vh] flex flex-col">
-            <div className="px-10 py-8 border-b border-theme-border flex items-center justify-between">
+            <div className="p-6 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
  <div className="w-14 h-14 rounded-lg bg-blue-600 text-white flex items-center justify-center">
                   <FileSpreadsheet size={26} />
@@ -609,7 +609,7 @@ placeholder="New Password"
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">统一初始密码</label>
+                        <label className="form-label">统一初始密码</label>
                         <input
                           type="password"
                           placeholder="可选，不填则按行密码或随机密码"
@@ -620,7 +620,7 @@ placeholder="New Password"
                         <p className="text-xs text-theme-text-muted font-medium">当某一行没有填写`password` 时，会优先使用这里的统一初始密码。</p>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">首次登录策略</label>
+                        <label className="form-label">首次登录策略</label>
                         <button
                           type="button"
                           onClick={() => setImportForcePasswordChange((value) => !value)}
@@ -632,11 +632,11 @@ placeholder="New Password"
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-4">
- <button onClick={() => void handleDownloadTemplate()} className="px-6 py-4 rounded-lg bg-theme-surface border border-theme-border font-medium text-theme-text-secondary flex items-center gap-3 hover:bg-theme-elevated">
+ <button onClick={() => void handleDownloadTemplate()} className="btn-secondary flex items-center gap-3">
                         <Download size={18} />
                         下载模板
                       </button>
- <button onClick={() => fileInputRef.current?.click()} className="px-6 py-4 rounded-lg bg-blue-600 text-white font-medium flex items-center gap-3 hover:bg-blue-700">
+ <button onClick={() => fileInputRef.current?.click()} className="btn-primary flex items-center gap-3">
                         <Upload size={18} />
                         选择文件
                       </button>
@@ -681,8 +681,8 @@ placeholder="New Password"
                       <p className="text-sm text-theme-text-muted font-medium">错误行不会进入导入阶段。请修正文件后重新预校验。</p>
                     </div>
                     <div className="flex gap-3">
-                      <button onClick={() => setImportStage('upload')} className="px-5 py-3 rounded-lg bg-theme-surface border border-theme-border font-medium text-theme-text-secondary">返回修改</button>
-                      <button disabled={importLoading || importPreview.error_rows > 0} onClick={() => void handleCommitImport()} className="px-6 py-3 rounded-lg bg-blue-600 text-white font-medium disabled:opacity-50 flex items-center gap-3">
+                      <button onClick={() => setImportStage('upload')} className="btn-secondary">返回修改</button>
+                      <button disabled={importLoading || importPreview.error_rows > 0} onClick={() => void handleCommitImport()} className="btn-primary disabled:opacity-50 flex items-center gap-3">
                         {importLoading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
                         确认导入
                       </button>

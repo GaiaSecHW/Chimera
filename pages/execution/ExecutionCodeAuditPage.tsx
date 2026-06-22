@@ -967,7 +967,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
             <button
               onClick={() => setIsCreateModalOpen(true)}
               disabled={!projectId}
-              className="rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-blue-700 disabled:opacity-50"
+              className="btn-primary"
             >
               部署审计环境
             </button>
@@ -1300,7 +1300,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
               </div>
             </div>
             <div className="px-10 pb-10 flex gap-4">
-              <button onClick={() => setRebuildConfirm({ show: false, name: null })} disabled={isActionLoading} className="flex-1 py-4 bg-theme-elevated text-theme-text-secondary rounded-2xl font-medium hover:bg-theme-elevated transition-all">取消</button>
+              <button onClick={() => setRebuildConfirm({ show: false, name: null })} disabled={isActionLoading} className="flex-1 py-4 btn-secondary rounded-2xl font-medium transition-all">取消</button>
  <button onClick={executeRebuild} disabled={isActionLoading} className="flex-1 py-4 bg-amber-600 text-white rounded-2xl font-medium hover:bg-amber-700 flex items-center justify-center gap-2 shadow-amber-500/20 active:scale-95 transition-all">
                 {isActionLoading ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />} 确认并重启
               </button>
@@ -1326,8 +1326,8 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
               </div>
             </div>
             <div className="px-10 pb-10 flex gap-4">
-              <button onClick={() => setDeleteConfirm({ show: false, names: [] })} disabled={isActionLoading} className="flex-1 py-4 bg-theme-elevated text-theme-text-secondary rounded-2xl font-medium hover:bg-theme-elevated transition-all">保留实例</button>
- <button onClick={executeDelete} disabled={isActionLoading} className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-medium hover:bg-red-700 flex items-center justify-center gap-2 shadow-red-500/20 active:scale-95 transition-all">
+              <button onClick={() => setDeleteConfirm({ show: false, names: [] })} disabled={isActionLoading} className="flex-1 py-4 btn-secondary rounded-2xl font-medium transition-all">保留实例</button>
+ <button onClick={executeDelete} disabled={isActionLoading} className="flex-1 py-4 btn-danger rounded-2xl font-medium flex items-center justify-center gap-2 shadow-red-500/20 active:scale-95 transition-all">
                 {isActionLoading ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />} 立即销毁
               </button>
             </div>

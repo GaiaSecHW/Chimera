@@ -2093,7 +2093,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             {canCopyCurrentTemplate && (
               <button
                 onClick={() => handleCopyTemplate(templateDetail.id)}
- className="px-8 py-4 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl font-semibold hover:bg-theme-elevated transition-all flex items-center gap-3 active:scale-95"
+ className="btn-secondary btn-lg"
               >
                 <Layers size={20} className="text-indigo-400" /> 复制模板
               </button>
@@ -2101,7 +2101,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             {canManageCurrentTemplate && (
               <button
                 onClick={() => handleRenameTemplate(templateDetail)}
- className="px-8 py-4 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl font-semibold hover:bg-theme-elevated transition-all flex items-center gap-3 active:scale-95"
+ className="btn-secondary btn-lg"
               >
                 <Edit3 size={20} className="text-emerald-400" /> 修改名称
               </button>
@@ -2109,27 +2109,27 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             {canManageCurrentTemplate && (
               <button
                 onClick={() => handleEditTemplateTags(templateDetail)}
- className="px-8 py-4 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl font-semibold hover:bg-theme-elevated transition-all flex items-center gap-3 active:scale-95"
+ className="btn-secondary btn-lg"
               >
                 <Tags size={20} className="text-amber-400" /> 修改 TAG
               </button>
             )}
             <button
               onClick={openDetailDeployModal}
- className="px-8 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all flex items-center gap-3 active:scale-95"
+              className="btn-primary btn-lg"
             >
               <Zap size={20} /> 部署到节点
             </button>
             <button
               onClick={handleDownloadAll}
- className="px-8 py-4 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl font-semibold hover:bg-theme-elevated transition-all flex items-center gap-3 active:scale-95"
+ className="btn-secondary btn-lg"
             >
               <Download size={20} className="text-blue-400" /> 下载全量包
             </button>
             <button
               onClick={() => handleDeleteTrigger(String(templateDetail.id))}
               disabled={!canManageCurrentTemplate}
- className="px-8 py-4 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-all flex items-center gap-3 shadow-red-500/20 active:scale-95"
+              className="btn-danger-soft btn-lg"
             >
               <Trash2 size={20} /> 销毁模板
             </button>
@@ -2407,7 +2407,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     <div className="text-sm text-red-400 mb-4">{parsedCompose.parse_error}</div>
                     <button
                       onClick={() => fetchParsedCompose(selectedTemplate!)}
-                      className="px-6 py-3 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition-all"
+                      className="btn-danger-soft"
                     >
                       重试解析
                     </button>
@@ -2650,7 +2650,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
         {isEditorOpen && editingFile && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
  <div className="bg-theme-surface w-full max-w-5xl h-[85vh] rounded-[3.5rem] border border-theme-border flex flex-col overflow-hidden animate-in zoom-in-95">
- <div className="px-12 py-8 border-b border-slate-200/5 flex items-center justify-between bg-slate-100/10">
+ <div className="px-6 py-6 border-b border-slate-200/5 flex items-center justify-between bg-slate-100/10">
                   <div className="flex items-center gap-5">
  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white">
                       <Edit3 size={24} />
@@ -2675,12 +2675,12 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                      spellCheck={false}
                    />
                 </div>
- <div className="px-12 py-8 bg-slate-100/10 border-t border-slate-200/5 flex justify-end gap-6">
- <button onClick={() => setIsEditorOpen(false)} className="px-10 py-4 bg-slate-100/10 text-theme-text-muted rounded-lg text-xs font-medium uppercase transition-all hover:bg-theme-elevated">放弃更改</button>
+ <div className="px-6 py-6 bg-slate-100/10 border-t border-slate-200/5 flex justify-end gap-6">
+ <button onClick={() => setIsEditorOpen(false)} className="btn-secondary">放弃更改</button>
                    <button
                      onClick={handleSaveFile}
                      disabled={isSavingFile}
- className="px-12 py-4 bg-blue-600 text-white rounded-lg text-xs font-medium uppercase hover:bg-blue-500 transition-all disabled:opacity-50 flex items-center gap-3"
+ className="btn-primary btn-lg"
                    >
                       {isSavingFile ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                       提交并更新资源
@@ -2705,7 +2705,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
         description="标准化、可复用的安全测试沙箱编排模版库"
         actions={<div className="flex gap-4">
             <button onClick={loadTemplates} className="p-4 bg-theme-elevated border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all"><RefreshCw size={20} className={loading ? 'animate-spin' : ''} /></button>
-            <button onClick={() => setIsUploadModalOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold flex items-center gap-2 hover:bg-blue-700 transition-all active:scale-95"><Plus size={20} /> 上传新模版</button>
+            <button onClick={() => setIsUploadModalOpen(true)} className="btn-primary btn-lg"><Plus size={20} /> 上传新模版</button>
           </div>}
       />
 
@@ -2717,7 +2717,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               <span className="text-sm font-semibold text-white">已选中 {selectedNames.size} 个模版资源</span>
            </div>
            <div className="flex gap-4">
-              <button onClick={openDeployModal} className="px-6 py-3 bg-blue-600 text-white rounded-xl text-xs font-semibold uppercase tracking-widest flex items-center gap-2 hover:bg-blue-500 transition-all">
+              <button onClick={openDeployModal} className="btn-primary">
                  <Zap size={16} /> 批量部署到 Agent
               </button>
               <button onClick={handleBatchDelete} className="px-6 py-3 bg-red-500/10 text-red-400 rounded-xl text-xs font-semibold uppercase tracking-widest flex items-center gap-2 hover:bg-red-500/20 transition-all">
@@ -3045,7 +3045,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               <form onSubmit={handleUploadSubmit} className="space-y-4">
                 {/* Template Name */}
                 <div>
-                  <label className="block text-xs font-medium text-theme-text-secondary uppercase tracking-widest mb-2">
+                  <label className="form-label">
                     模版名称 <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -3060,7 +3060,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
                 {/* Description */}
                 <div>
-                  <label className="block text-xs font-medium text-theme-text-secondary uppercase tracking-widest mb-2">
+                  <label className="form-label">
                     模版描述
                   </label>
                   <textarea
@@ -3073,7 +3073,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-theme-text-secondary uppercase tracking-widest mb-2">
+                  <label className="form-label">
                     TAG
                   </label>
                   <input
@@ -3088,7 +3088,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
                 {/* Template Type */}
                 <div>
-                  <label className="block text-xs font-medium text-theme-text-secondary uppercase tracking-widest mb-2">
+                  <label className="form-label">
                     模版类型
                   </label>
                   <div className="flex gap-3">
@@ -3135,7 +3135,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-theme-text-secondary uppercase tracking-widest mb-2">
+                  <label className="form-label">
                     模板可见性
                   </label>
                   <div className="flex gap-3">
@@ -3166,7 +3166,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
                 <div className="bg-theme-surface border border-theme-border rounded-xl p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-theme-text-secondary uppercase tracking-widest">
+                    <label className="form-label">
                       WEB端口（可选）
                     </label>
                     <button
@@ -3279,7 +3279,7 @@ className="form-select col-span-2 text-xs"
                 {/* File Upload or Editor */}
                 {uploadTab === 'file' ? (
                   <div>
-                    <label className="block text-xs font-medium text-theme-text-secondary uppercase tracking-widest mb-2">
+                    <label className="form-label">
                       上传文件 <span className="text-red-500">*</span>
                     </label>
                     <div
@@ -3349,7 +3349,7 @@ className="form-select col-span-2 text-xs"
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-xs font-medium text-theme-text-secondary uppercase tracking-widest mb-2">
+                    <label className="form-label">
                       YAML 内容 <span className="text-red-500">*</span>
                     </label>
                     <div className="bg-theme-surface rounded-xl p-5 relative">
@@ -3402,7 +3402,7 @@ spec:
               <button
                 onClick={handleUploadSubmit}
                 disabled={isUploading || !newTemplate.name.trim()}
- className="px-10 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all flex items-center gap-2 min-w-[140px] disabled:opacity-50 disabled:cursor-not-allowed"
+ className="btn-primary btn-lg"
               >
                 {isUploading ? (
                   <>
@@ -3425,7 +3425,7 @@ spec:
       {deleteConfirm.show && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
  <div className="bg-theme-elevated w-full max-w-lg rounded-2xl overflow-hidden animate-in zoom-in-95">
-            <div className="p-10">
+            <div className="p-6">
               <div className="flex items-center gap-5 mb-6">
                 <div className="w-16 h-16 bg-red-500/15 rounded-xl flex items-center justify-center">
                   <AlertTriangle size={32} className="text-red-400" />
@@ -3453,18 +3453,18 @@ spec:
               </div>
             </div>
 
-            <div className="p-10 pt-0 flex gap-4">
+            <div className="p-6 pt-0 flex gap-4">
               <button
                 onClick={() => setDeleteConfirm({ show: false, names: [] })}
                 disabled={isDeleting}
-                className="flex-1 px-8 py-4 bg-theme-elevated text-theme-text-secondary rounded-lg font-semibold hover:bg-theme-elevated transition-all disabled:opacity-50"
+                className="btn-secondary btn-lg flex-1"
               >
                 取消
               </button>
               <button
                 onClick={executeDelete}
                 disabled={isDeleting}
- className="flex-1 px-8 py-4 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all flex items-center justify-center gap-3 shadow-red-500/20 disabled:opacity-50"
+ className="btn-danger-soft btn-lg flex-1"
               >
                 {isDeleting ? (
                   <>

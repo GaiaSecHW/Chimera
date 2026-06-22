@@ -982,7 +982,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     type="button"
                     onClick={() => void handleBatchDelete()}
                     disabled={batchDeleting}
- className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 disabled:opacity-50"
+ className="btn-danger-soft"
                   >
                     {batchDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                     {batchDeleting ? '删除中...' : '批量删除'}
@@ -1283,7 +1283,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
             </div>
             <div className="space-y-5 p-6">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <label className="block text-sm font-bold text-theme-text-secondary">
+                <label className="form-label">
                   任务名称
                   <input
                     value={name}
@@ -1295,7 +1295,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     className="mt-2 w-full rounded-2xl border border-theme-border px-4 py-3 text-sm"
                   />
                 </label>
-                <label className="block text-sm font-bold text-theme-text-secondary">
+                <label className="form-label">
                   并行度
                   <input
                     type="number"
@@ -1370,7 +1370,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                   </div>
                 </div>
 
-                <label className="block text-sm font-bold text-theme-text-secondary">
+                <label className="form-label">
                   Provider
                   <select
                     value={llmProviderKey}

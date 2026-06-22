@@ -1977,7 +1977,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {isUninitModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
  <div className="bg-theme-surface rounded-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-8 text-center">
+            <div className="p-6 text-center">
               <div className="w-20 h-20 bg-orange-500/15 text-orange-400 rounded-lg flex items-center justify-center mx-auto mb-6">
                 <RotateCcw size={40} />
               </div>
@@ -1989,17 +1989,17 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 警告：所有的非持久化数据将全部丢失！
               </p>
             </div>
-            <div className="p-8 bg-theme-elevated flex gap-4">
+            <div className="p-6 bg-theme-elevated flex gap-4">
               <button
                 onClick={() => setIsUninitModalOpen(false)}
-                className="flex-1 py-4 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl font-medium hover:bg-theme-elevated transition-all"
+                className="btn-secondary"
               >
                 取消
               </button>
               <button
                 onClick={handleUninitialize}
                 disabled={loading}
- className="flex-1 py-4 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-all shadow-orange-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
+ className="flex-1 py-4 btn-danger-soft disabled:opacity-50"
               >
                 {loading && <Loader2 size={18} className="animate-spin" />}
                 确认反初始化

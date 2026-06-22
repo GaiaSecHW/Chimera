@@ -812,9 +812,9 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               {pendingCasesLoading ? (
                 <div className="flex items-center gap-2 p-8 text-sm text-theme-text-muted"><Loader2 size={14} className="animate-spin" />加载待验证漏洞...</div>
               ) : pendingCases.length === 0 ? (
-                <div className="p-10 text-center text-sm text-theme-text-muted">当前项目暂无待验证漏洞。</div>
+                <div className="p-6 text-center text-sm text-theme-text-muted">当前项目暂无待验证漏洞。</div>
               ) : filteredPendingCases.length === 0 ? (
-                <div className="p-10 text-center text-sm text-theme-text-muted">当前筛选条件下暂无待验证漏洞。</div>
+                <div className="p-6 text-center text-sm text-theme-text-muted">当前筛选条件下暂无待验证漏洞。</div>
               ) : (
                 <div className="max-h-[360px] overflow-auto">
                   <table className="w-full min-w-[920px] text-left text-xs">
@@ -1218,7 +1218,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                     <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
                       <h3 className="text-sm font-semibold text-theme-text-primary">产物文件</h3>
                       <div className="mt-3 max-h-[420px] space-y-2 overflow-auto pr-1">
-                        {artifacts.length === 0 ? <div className="rounded-2xl border border-dashed border-theme-border p-8 text-center text-xs text-theme-text-muted">暂无产物</div> : artifacts.map((file) => (
+                        {artifacts.length === 0 ? <div className="rounded-2xl border border-dashed border-theme-border p-6 text-center text-xs text-theme-text-muted">暂无产物</div> : artifacts.map((file) => (
                           <button key={file.path} onClick={() => void openArtifact(file.path)} className="w-full rounded-2xl border border-theme-border bg-theme-surface p-3 text-left hover:bg-theme-elevated">
                             <div className="flex items-center gap-2 text-xs font-semibold text-theme-text-secondary"><FileText size={14} /> <span className="break-all">{file.path}</span></div>
                             <div className="mt-1 text-[10px] text-theme-text-muted">{formatBytes(file.size)}</div>
@@ -1249,7 +1249,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                           </div>
                           <div className="mt-1 text-theme-text-secondary">{event.message}</div>
                         </div>
-                      )) : <div className="rounded-2xl border border-dashed border-theme-border p-8 text-center text-xs text-theme-text-muted">暂无事件</div>}
+                      )) : <div className="rounded-2xl border border-dashed border-theme-border p-6 text-center text-xs text-theme-text-muted">暂无事件</div>}
                     </div>
                   </div>
                 </div>

@@ -217,7 +217,7 @@ export const ProjectPage: React.FC = () => {
                 setFormData({ name: '', description: '', is_public: false, department_ids: [] });
                 setIsCreateModalOpen(true);
               }}
-              className="bg-blue-600 text-white px-8 py-4 rounded-lg font-medium flex items-center gap-3 hover:bg-blue-700 transition-all active:scale-95"
+              className="btn-primary btn-lg flex items-center gap-3"
             >
               <Plus size={20} /> 创建新项目
             </button>
@@ -386,7 +386,7 @@ export const ProjectPage: React.FC = () => {
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">项目名称 *</label>
+                <label className="form-label">项目名称 *</label>
                 <input
                   required
 placeholder="Project Name"
@@ -396,7 +396,7 @@ placeholder="Project Name"
                  />
                </div>
                <div className="space-y-1.5">
-                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">项目描述</label>
+                 <label className="form-label">项目描述</label>
                  <textarea
                   placeholder="Description"
                   rows={3}
@@ -406,7 +406,7 @@ placeholder="Project Name"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">项目类型 *</label>
+                <label className="form-label">项目类型 *</label>
                 <div className="flex gap-4">
                   <button
                     type="button"
@@ -441,7 +441,7 @@ placeholder="Project Name"
               </div>
               {!formData.is_public && (
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">绑定部门（多选）</label>
+                  <label className="form-label">绑定部门（多选）</label>
                   <div className="max-h-40 overflow-y-auto bg-theme-surface rounded-2xl p-4 space-y-2">
                     {selectableDepartments.map((dept) => (
                       <label key={dept.id} className="flex items-center gap-3 cursor-pointer">
@@ -468,7 +468,7 @@ placeholder="Project Name"
                   普通管理员只能选择所属部门及下级部门，公开项目仅支持超级管理员创建。
                 </p>
               )}
- <button disabled={formLoading} className="w-full py-5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="btn-primary btn-lg btn-block flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <FolderOpen size={20} />}
                 确认创建项目
               </button>
@@ -492,7 +492,7 @@ placeholder="Project Name"
             </div>
             <form onSubmit={handleEdit} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">项目名称 *</label>
+                <label className="form-label">项目名称 *</label>
                 <input
                   required
 placeholder="Project Name"
@@ -502,7 +502,7 @@ placeholder="Project Name"
                  />
                </div>
                <div className="space-y-1.5">
-                 <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">项目描述</label>
+                 <label className="form-label">项目描述</label>
                  <textarea
                   placeholder="Description"
                   rows={3}
@@ -512,7 +512,7 @@ placeholder="Project Name"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">项目类型 *</label>
+                <label className="form-label">项目类型 *</label>
                 <div className="flex gap-4">
                   <button
                     type="button"
@@ -550,7 +550,7 @@ placeholder="Project Name"
                   普通管理员不能将项目调整为公开项目，只能维护本部门树内已绑定的组织项目记录。
                 </p>
               )}
- <button disabled={formLoading} className="w-full py-5 bg-amber-600 text-white rounded-lg font-medium shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="btn-warning btn-lg btn-block flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <RefreshCw size={20} />}
                 立即更新项目
               </button>

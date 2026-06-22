@@ -273,7 +273,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
             </div>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="bg-theme-surface text-white px-8 py-4 rounded-lg font-semibold flex items-center gap-3 hover:bg-theme-elevated transition-all active:scale-95"
+              className="btn-secondary btn-lg"
             >
               <Plus size={20} /> 注册应用组件
             </button>
@@ -531,7 +531,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
       {isModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
  <div className="bg-theme-surface w-full max-w-4xl rounded-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]">
-            <div className="p-8 border-b border-theme-border bg-slate-100/30 flex items-center justify-between shrink-0">
+            <div className="p-6 border-b border-theme-border bg-slate-100/30 flex items-center justify-between shrink-0">
                <div className="flex items-center gap-4">
  <div className="w-14 h-14 bg-theme-surface text-white rounded-xl flex items-center justify-center">
                    <Plus size={28} />
@@ -1402,16 +1402,16 @@ className="w-full px-4 py-2 bg-theme-elevated rounded-xl border border-theme-bor
                </div>
             </form>
 
-            <div className="p-8 border-t border-theme-border bg-slate-100/50 flex gap-4 shrink-0">
+            <div className="p-6 border-t border-theme-border bg-slate-100/50 flex gap-4 shrink-0">
                <button
                  type="button" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}
-                 className="flex-1 py-3 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl font-semibold hover:bg-theme-elevated transition-all"
+                 className="btn-secondary"
                >
                  取消
                </button>
                <button
                  onClick={handleCreate} disabled={isSubmitting}
- className="flex-1 py-3 bg-theme-surface text-white rounded-xl font-semibold hover:bg-theme-elevated transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+ className="btn-primary disabled:opacity-50"
                >
                   {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <Zap size={20} className="text-amber-400" />}
                   确认注册组件
@@ -1424,7 +1424,7 @@ className="w-full px-4 py-2 bg-theme-elevated rounded-xl border border-theme-bor
       {isDeleteModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
  <div className="bg-theme-surface rounded-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-8 text-center">
+            <div className="p-6 text-center">
               <div className="w-20 h-20 bg-red-500/15 text-red-500 rounded-lg flex items-center justify-center mx-auto mb-6">
                 <Trash2 size={40} />
               </div>
@@ -1433,19 +1433,19 @@ className="w-full px-4 py-2 bg-theme-elevated rounded-xl border border-theme-bor
                 您确定要删除这个应用模板吗？此操作无法撤销。
               </p>
             </div>
-            <div className="p-8 bg-theme-surface flex gap-4">
+            <div className="p-6 bg-theme-surface flex gap-4">
               <button
                 onClick={() => {
                   setIsDeleteModalOpen(false);
                   setDeletingId(null);
                 }}
-                className="flex-1 py-4 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl font-medium hover:bg-theme-elevated transition-all"
+                className="btn-secondary"
               >
                 取消
               </button>
               <button
                 onClick={confirmDelete}
- className="flex-1 py-4 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-all shadow-red-500/20"
+ className="flex-1 py-4 btn-danger-soft"
               >
                 确认删除
               </button>

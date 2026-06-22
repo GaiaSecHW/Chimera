@@ -401,11 +401,8 @@ const PhaseCard: React.FC<{
 }> = ({ phase, message, onRetry }) => {
   const retryButton = (
     <button
-      className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
-      style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+      className="btn-primary inline-flex items-center gap-1.5 text-sm font-medium"
       onClick={onRetry}
-      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
     >
       <RefreshCw size={15} />
       重试

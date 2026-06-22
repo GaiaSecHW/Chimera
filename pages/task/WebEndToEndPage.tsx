@@ -483,7 +483,7 @@ const DeployScriptBlock: React.FC<{
           <div className="mt-1 text-sm" style={{ color: LK.body }}>{description}</div>
         </div>
       </div>
-      <button className="inline-flex shrink-0 items-center rounded-lg px-3 py-2 text-xs font-medium transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }} onClick={onCopy}>
+      <button className="btn-primary inline-flex shrink-0 items-center text-xs font-medium" onClick={onCopy}>
         <Copy size={13} className="mr-1" />
         复制
       </button>
@@ -527,7 +527,7 @@ const DeployAgentDialog: React.FC<{
           </button>
         </div>
 
-        <div className="px-6 pt-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
+        <div className="px-6 pt-4 pb-3" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
           <div className="inline-flex rounded-xl p-1" style={{ backgroundColor: LK.surfaceRaised }}>
             <button
               className={`rounded-lg px-4 py-2 text-sm font-medium ${activeTab === 'normal-node' ? '' : ''}`}
@@ -546,7 +546,7 @@ const DeployAgentDialog: React.FC<{
           </div>
         </div>
 
-        <div className="overflow-y-auto p-6">
+        <div className="overflow-y-auto p-4">
           {activeTab === 'normal-node' ? (
             <div className="space-y-4">
               <p className="text-sm leading-6" style={{ color: LK.body }}>在目标节点上执行以下命令，即可自动下载、安装并启动测试节点。</p>
@@ -600,7 +600,7 @@ const AccessEnvironmentPanel: React.FC<{ projectId: string; agents: Agent[]; sel
       title="接入环境"
       subtitle="选择单节点或 K8s 部署方式，将 Agent 接入当前项目。"
       action={(
-        <button className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }} onClick={onOpenDeploy}>
+        <button className="btn-primary inline-flex items-center text-sm font-medium" onClick={onOpenDeploy}>
           <Terminal size={15} className="mr-2" />
           接入环境
         </button>
@@ -633,7 +633,7 @@ const AccessEnvironmentPanel: React.FC<{ projectId: string; agents: Agent[]; sel
           <div className="mt-2 text-sm leading-6" style={{ color: LK.body }}>
             支持普通节点部署、代理模式部署和 K8s DaemonSet 部署。复制弹窗中的命令或 YAML 后在目标环境执行，Agent 上线后本页会自动展示状态、Web 应用和分析进度。
           </div>
-          <button className="mt-4 inline-flex items-center rounded-lg px-3 py-2 text-xs font-medium transition-colors" style={{ border: `1px solid ${LK.border}`, color: LK.body }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.body; }} onClick={onOpenDeploy}>
+          <button className="btn-secondary mt-4 inline-flex items-center text-xs font-medium" onClick={onOpenDeploy}>
             <Copy size={13} className="mr-1" />
             打开部署脚本
           </button>
@@ -659,11 +659,8 @@ const ProjectAccessInfoPanel: React.FC<{
       subtitle="填写被测 Web 界面的访问 URL、账号密码和必要说明，供分析流程使用。"
       action={(
         <button
-          className="inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+          className="btn-primary inline-flex items-center text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
           disabled={saving || loading}
-          onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-          onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
           onClick={onSave}
         >
           {saving ? <Loader2 size={15} className="mr-2 animate-spin" /> : <Save size={15} className="mr-2" />}
@@ -757,11 +754,8 @@ const OnlineAgentPanel: React.FC<{
                         查看应用
                       </button>
                       <button
-                        className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                        style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+                        className="btn-primary inline-flex items-center text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
                         disabled={!isAgentOnline(agent) || analyzing}
-                        onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-                        onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
                         onClick={() => onAnalyze(key)}
                       >
                         {analyzing ? <Loader2 size={13} className="mr-1 animate-spin" /> : <Play size={13} className="mr-1" />}
@@ -786,7 +780,7 @@ const AnalysisProgressPanel: React.FC<{ task?: AsyncTask | null; stages: Progres
       title="分析进度"
       subtitle="用用户可理解的阶段展示端到端分析当前进展。"
       action={failedStage && canRetry ? (
-        <button className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-medium transition-colors" style={{ border: `1px solid ${LK.error}40`, backgroundColor: 'rgba(241, 93, 93, 0.14)', color: LK.error }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(241, 93, 93, 0.26)'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(241, 93, 93, 0.14)'; }} onClick={onRetry}>
+        <button className="btn-danger-soft inline-flex items-center text-xs font-medium" onClick={onRetry}>
           <RefreshCw size={13} className="mr-1" />
           重试失败阶段
         </button>

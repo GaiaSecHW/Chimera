@@ -753,9 +753,9 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               {pendingLoading ? (
                 <div className="flex items-center gap-2 p-8 text-sm text-theme-text-muted"><Loader2 size={14} className="animate-spin" />加载待验证漏洞...</div>
               ) : pendingCases.length === 0 ? (
-                <div className="p-10 text-center text-sm text-theme-text-muted">当前项目暂无待验证漏洞。</div>
+                <div className="p-6 text-center text-sm text-theme-text-muted">当前项目暂无待验证漏洞。</div>
               ) : filteredCases.length === 0 ? (
-                <div className="p-10 text-center text-sm text-theme-text-muted">当前筛选条件下暂无待验证漏洞。</div>
+                <div className="p-6 text-center text-sm text-theme-text-muted">当前筛选条件下暂无待验证漏洞。</div>
               ) : (
                 <div className="min-h-0 flex-1 overflow-auto">
                   <table className="w-full min-w-[1180px] text-left text-xs">

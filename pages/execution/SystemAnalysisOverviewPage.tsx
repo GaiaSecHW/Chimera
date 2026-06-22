@@ -65,7 +65,7 @@ export const SystemAnalysisOverviewPage: React.FC<{ projectId: string }> = ({ pr
             <h1 className="mt-3 text-2xl font-semibold tracking-tight" style={{ color: LK.ink }}>环境概览</h1>
             <p className="mt-2 text-sm" style={{ color: LK.body }}>展示当前项目系统分析可用能力、近期任务与风险分布。</p>
           </div>
-          <button onClick={() => void loadData()} className="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:opacity-80" style={{ backgroundColor: LK.primary, color: '#ffffff' }}>刷新</button>
+          <button onClick={() => void loadData()} className="btn-primary">刷新</button>
         </div>
       </section>
 

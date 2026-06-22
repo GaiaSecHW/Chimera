@@ -145,7 +145,7 @@ export const RoleMgmtPage: React.FC = () => {
           <button onClick={fetchRoles} className="p-4 bg-theme-surface border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button onClick={() => { setEditingRole(null); setFormData({ name: '', description: '' }); setIsModalOpen(true); }} className="bg-indigo-600 text-white px-8 py-4 rounded-lg font-medium flex items-center gap-3 shadow-indigo-500/20 hover:bg-indigo-700 transition-all active:scale-95">
+          <button onClick={() => { setEditingRole(null); setFormData({ name: '', description: '' }); setIsModalOpen(true); }} className="btn-primary btn-lg flex items-center gap-3">
             <Plus size={20} /> 定义新角色
           </button>
         </div>}
@@ -214,7 +214,7 @@ export const RoleMgmtPage: React.FC = () => {
               </div>
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">角色标识名称 *</label>
+                    <label className="form-label">角色标识名称 *</label>
                     <input
                       required placeholder="e.g. security_auditor"
                       className="form-input w-full"
@@ -222,7 +222,7 @@ export const RoleMgmtPage: React.FC = () => {
                     />
                  </div>
                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">权限职责描述</label>
+                    <label className="form-label">权限职责描述</label>
                     <textarea
                       rows={3} placeholder="描述该角色所涵盖的功能边界与操作权限..."
                       className="form-textarea w-full resize-none"
@@ -230,8 +230,8 @@ export const RoleMgmtPage: React.FC = () => {
                     />
                  </div>
                  <div className="flex gap-4">
-                    <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-5 bg-theme-elevated text-theme-text-secondary rounded-lg font-medium hover:bg-theme-elevated transition-all">取消</button>
- <button disabled={formLoading} className="flex-1 py-5 bg-indigo-600 text-white rounded-lg font-medium shadow-indigo-500/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3">
+                    <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary btn-lg">取消</button>
+ <button disabled={formLoading} className="btn-primary btn-lg flex items-center justify-center gap-3">
                        {formLoading ? <Loader2 className="animate-spin" size={20} /> : <UserCheck size={20} />}
                        {editingRole ? '应用更改' : '立即定义'}
                     </button>

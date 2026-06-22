@@ -49,7 +49,7 @@ export const ReportsPage: React.FC = () => {
       <PageHeader
         title="安全审计报告"
         description="专业化漏洞管理与风险分析中心：支持一键导出与合规性溯源"
-        actions={<button className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-blue-700 active:scale-95"><Plus size={18} />生成新报告</button>}
+        actions={<button className="inline-flex items-center gap-2 btn-primary btn-lg"><Plus size={18} />生成新报告</button>}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

@@ -287,7 +287,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
             <button
               onClick={openCreateModal}
               disabled={!projectId}
-              className="flex items-center gap-2 bg-theme-surface text-white px-8 py-4 rounded-lg font-semibold hover:bg-theme-elevated transition-all active:scale-95 disabled:opacity-50"
+              className="btn-secondary btn-lg"
             >
               <Plus size={20} /> 新建上传记录
             </button>
@@ -512,7 +512,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
               <button
                 onClick={() => setDeleteConfirm({ show: false, ids: [], error: null })}
                 disabled={isDeleting}
-                className="flex-1 py-4 bg-theme-elevated text-theme-text-secondary rounded-lg font-semibold hover:bg-theme-elevated transition-all active:scale-95 disabled:opacity-50"
+                className="btn-secondary"
               >
                 {deleteConfirm.error ? '关闭' : '取消'}
               </button>
@@ -520,7 +520,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                 <button
                   onClick={executeDelete}
                   disabled={isDeleting}
- className="flex-1 py-4 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+	className="btn-danger-soft flex items-center justify-center gap-2"
                 >
                   {isDeleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
                   确认删除
@@ -531,7 +531,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
 
       {isUploadModalOpen && (
         <Modal open={isUploadModalOpen} onClose={() => !isUploadingBatch && setIsUploadModalOpen(false)} className="max-w-2xl">
- <div className="p-8 border-b border-theme-border bg-theme-surface flex items-center justify-between shrink-0">
+ <div className="p-6 border-b border-theme-border bg-theme-surface flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
  <div className="w-14 h-14 bg-blue-600 text-white rounded-xl flex items-center justify-center">
                   <Upload size={28} />
@@ -550,7 +550,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
               {!isAppendMode ? (
  <div className="bg-theme-elevated p-6 rounded-xl border border-theme-border space-y-3">
                   <label className="block">
-                    <p className="text-sm font-semibold text-theme-text-secondary">上传记录名称</p>
+                    <p className="form-label">上传记录名称</p>
                     <input
                       value={uploadDisplayName}
                       onChange={(e) => setUploadDisplayName(e.target.value)}
@@ -570,7 +570,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                     className="w-4 h-4 rounded border-theme-border text-blue-400 focus:ring-blue-500"
                   />
                   <div>
-                    <p className="text-sm font-semibold text-theme-text-secondary">保留原始文件，不自动解压</p>
+                    <p className="form-label">保留原始文件，不自动解压</p>
                     <p className="text-xs text-theme-text-muted">勾选后不解压，直接将用户上传的原始文件写入记录目录</p>
                   </div>
                 </label>
@@ -657,7 +657,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                 type="button"
                 onClick={() => setIsUploadModalOpen(false)}
                 disabled={isUploadingBatch}
- className="flex-1 py-4 bg-theme-elevated border border-theme-border text-theme-text-secondary rounded-xl font-semibold hover:bg-theme-elevated transition-all"
+ className="btn-secondary"
               >
                 取消
               </button>
@@ -665,7 +665,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                 type="button"
                 onClick={() => { void handleUploadSubmit({ runInBackground: true }); }}
                 disabled={isUploadingBatch || uploadQueue.filter((item) => item.status !== 'failed').length === 0 || (!isAppendMode && !uploadDisplayName.trim())}
- className="flex-1 py-4 bg-theme-elevated border border-theme-border text-theme-text-secondary rounded-xl font-semibold hover:bg-theme-elevated transition-all disabled:opacity-50"
+ className="btn-secondary"
               >
                 后台运行
               </button>
@@ -673,7 +673,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                 type="button"
                 onClick={() => { void handleUploadSubmit(); }}
                 disabled={isUploadingBatch || uploadQueue.filter((item) => item.status !== 'failed').length === 0 || (!isAppendMode && !uploadDisplayName.trim())}
- className="flex-1 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+ className="btn-primary flex items-center justify-center gap-2"
               >
                 {isUploadingBatch ? <Loader2 className="animate-spin" size={20} /> : <Upload size={20} />}
                 {isAppendMode ? '提交追加上传' : '创建上传记录'}

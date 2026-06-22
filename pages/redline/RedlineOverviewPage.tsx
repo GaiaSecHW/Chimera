@@ -205,7 +205,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
         title="红线验证"
         actions={<div className="flex items-center gap-2">
           <button onClick={fetchTasks} className="p-1.5 rounded-lg hover:bg-theme-surface-hover transition-colors" title="刷新"><RefreshCw className="h-4 w-4 text-theme-text-secondary" /></button>
-          <button onClick={openCreateDialog} className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1.5"><Plus className="h-4 w-4" />新建任务</button>
+          <button onClick={openCreateDialog} className="btn-primary flex items-center gap-1.5"><Plus className="h-4 w-4" />新建任务</button>
         </div>}
       />
 
@@ -319,7 +319,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
             <h3 className="text-base font-semibold text-theme-text-primary mb-4">新建任务</h3>
             <div className="flex flex-col gap-4">
               <div>
-                <label className="block text-sm text-theme-text-secondary mb-1">任务名称</label>
+                <label className="form-label">任务名称</label>
                 <input
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
@@ -328,7 +328,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
                 />
               </div>
               <div>
-                <label className="block text-sm text-theme-text-secondary mb-1">产品</label>
+                <label className="form-label">产品</label>
                 <select
                   value={formProduct}
                   onChange={(e) => handleProductChange(e.target.value)}
@@ -341,7 +341,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-theme-text-secondary mb-1">版本</label>
+                <label className="form-label">版本</label>
                 <select
                   value={formVersion}
                   onChange={(e) => setFormVersion(e.target.value)}
@@ -357,7 +357,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
             </div>
             <div className="flex justify-end gap-3 mt-6">
               <button onClick={closeDialogs} className="px-4 py-2 text-sm rounded-lg border border-theme-border text-theme-text-secondary hover:bg-theme-surface-hover">取消</button>
-              <button onClick={handleCreate} disabled={submitting || !formName.trim()} className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">确认</button>
+              <button onClick={handleCreate} disabled={submitting || !formName.trim()} className="btn-primary disabled:opacity-50">确认</button>
             </div>
           </div>
         </div>
@@ -370,7 +370,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
             <h3 className="text-base font-semibold text-theme-text-primary mb-4">编辑任务</h3>
             <div className="flex flex-col gap-4">
               <div>
-                <label className="block text-sm text-theme-text-secondary mb-1">任务名称</label>
+                <label className="form-label">任务名称</label>
                 <input
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
@@ -379,7 +379,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
                 />
               </div>
               <div>
-                <label className="block text-sm text-theme-text-secondary mb-1">产品</label>
+                <label className="form-label">产品</label>
                 <select
                   value={formProduct}
                   onChange={(e) => handleProductChange(e.target.value)}
@@ -392,7 +392,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-theme-text-secondary mb-1">版本</label>
+                <label className="form-label">版本</label>
                 <select
                   value={formVersion}
                   onChange={(e) => setFormVersion(e.target.value)}
@@ -408,7 +408,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
             </div>
             <div className="flex justify-end gap-3 mt-6">
               <button onClick={closeDialogs} className="px-4 py-2 text-sm rounded-lg border border-theme-border text-theme-text-secondary hover:bg-theme-surface-hover">取消</button>
-              <button onClick={handleEdit} disabled={submitting || !formName.trim()} className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">确认</button>
+              <button onClick={handleEdit} disabled={submitting || !formName.trim()} className="btn-primary disabled:opacity-50">确认</button>
             </div>
           </div>
         </div>

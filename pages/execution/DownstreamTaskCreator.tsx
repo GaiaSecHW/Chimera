@@ -868,7 +868,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                   来源：{SOURCE_LABEL[sourceKind]} · 新任务按手动任务创建，不记录父任务来源。
                 </p>
               </div>
-              <button type="button" onClick={() => setOpen(false)} style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px', backgroundColor: 'transparent', color: LK.muted, cursor: 'pointer' }}>
+              <button type="button" onClick={() => setOpen(false)} className="btn-icon">
                 <X size={18} />
               </button>
             </header>
@@ -1256,14 +1256,14 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
             </div>
 
             <footer className="flex flex-wrap items-center justify-end gap-3 border-t border-theme-border bg-theme-elevated px-6 py-4">
-              <button type="button" onClick={() => setOpen(false)} className="rounded-xl border border-theme-border bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">
+              <button type="button" onClick={() => setOpen(false)} className="btn-secondary">
                 关闭
               </button>
               <button
                 type="button"
                 onClick={() => void createTasks()}
                 disabled={submitting || loading || (isVulnDownstream ? !vulnCreateState : selectedCandidates.length === 0)}
-                className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn-primary"
               >
                 {submitting ? <Loader2 size={15} className="animate-spin" /> : <PlayCircle size={15} />}
                 创建下游任务

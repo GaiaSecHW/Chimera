@@ -441,7 +441,7 @@ export const TaskConfigStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
                   <Eye className="w-4 h-4" />查看变量
                 </button>
                 <button type="button" onClick={handleStartExecute} disabled={executing || !canExecute}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                  className="btn-primary inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                   {executing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}开始执行
                 </button>
                 {selectedAgentIds.length > 0 && <span className="text-xs text-theme-text-secondary">已选择 {selectedAgentIds.length} / {agents.length} 个智能体</span>}
@@ -458,16 +458,16 @@ export const TaskConfigStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
         <div className="fixed inset-0 z-[130] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowVariableModal(false)} />
  <div className="relative bg-theme-surface border border-theme-border rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col mx-4">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-theme-border">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border">
               <h3 className="text-base font-medium text-theme-text-primary">任务变量</h3>
               <button type="button" onClick={() => setShowVariableModal(false)} className="text-theme-text-secondary hover:text-theme-text-primary"><XCircle className="w-5 h-5" /></button>
             </div>
-            <div className="flex-1 overflow-auto p-5">
+            <div className="flex-1 overflow-auto p-6">
               <textarea className="form-textarea w-full h-80 font-mono resize-none"
                 value={editedJson} onChange={(e) => setEditedJson(e.target.value)} spellCheck={false} />
               {variableSaveError && <p className="mt-2 text-sm text-red-500">{variableSaveError}</p>}
             </div>
-            <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-theme-border">
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-theme-border">
               <button type="button" onClick={() => setShowVariableModal(false)} className="px-4 py-2 text-sm rounded-lg border border-theme-border text-theme-text-primary hover:bg-theme-surface-hover">取消</button>
               <button type="button" onClick={handleSaveVariables} disabled={savingVariables}
                 className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
@@ -483,7 +483,7 @@ export const TaskConfigStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
         <div className="fixed inset-0 z-[130] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setPreviewAgent(null)} />
  <div className="relative bg-theme-surface border border-theme-border rounded-xl w-full max-w-3xl max-h-[85vh] flex flex-col mx-4">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-theme-border">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border">
               <h3 className="text-base font-medium text-theme-text-primary">智能体详情 - {previewAgent.name}</h3>
               <button type="button" onClick={() => setPreviewAgent(null)} className="text-theme-text-secondary hover:text-theme-text-primary"><XCircle className="w-5 h-5" /></button>
             </div>
@@ -528,11 +528,11 @@ export const TaskConfigStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
         <div className="fixed inset-0 z-[130] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowInputParamsModal(false)} />
  <div className="relative bg-theme-surface border border-theme-border rounded-xl w-full max-w-lg max-h-[70vh] flex flex-col mx-4">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-theme-border">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border">
               <h3 className="text-base font-medium text-theme-text-primary">{currentAgentName} - 所需入参</h3>
               <button type="button" onClick={() => setShowInputParamsModal(false)} className="text-theme-text-secondary hover:text-theme-text-primary"><XCircle className="w-5 h-5" /></button>
             </div>
-            <div className="flex-1 overflow-auto p-5">
+            <div className="flex-1 overflow-auto p-6">
               {currentInputParams && Object.keys(currentInputParams).length > 0 ? (
                 <pre className="text-sm font-mono rounded-lg border border-theme-border bg-theme-elevated p-4 text-theme-text-primary whitespace-pre-wrap">
                   {JSON.stringify(currentInputParams, null, 2)}
@@ -550,11 +550,11 @@ export const TaskConfigStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
         <div className="fixed inset-0 z-[130] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowMatchingRulesModal(false)} />
  <div className="relative bg-theme-surface border border-theme-border rounded-xl w-full max-w-lg max-h-[70vh] flex flex-col mx-4">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-theme-border">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border">
               <h3 className="text-base font-medium text-theme-text-primary">交付件匹配规则</h3>
               <button type="button" onClick={() => setShowMatchingRulesModal(false)} className="text-theme-text-secondary hover:text-theme-text-primary"><XCircle className="w-5 h-5" /></button>
             </div>
-            <div className="flex-1 overflow-auto p-5">
+            <div className="flex-1 overflow-auto p-6">
               {loadingRules ? (
                 <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-theme-text-secondary" /></div>
               ) : matchingRules.length > 0 ? (
@@ -585,7 +585,7 @@ export const TaskConfigStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, o
         <div className="fixed inset-0 z-[130] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowEnvCheckModal(false)} />
  <div className="relative bg-theme-surface border border-theme-border rounded-xl w-full max-w-lg max-h-[70vh] flex flex-col mx-4">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-theme-border">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border">
               <h3 className="text-base font-medium text-theme-text-primary">环境连接异常详情</h3>
               <button type="button" onClick={() => setShowEnvCheckModal(false)} className="text-theme-text-secondary hover:text-theme-text-primary"><XCircle className="w-5 h-5" /></button>
             </div>

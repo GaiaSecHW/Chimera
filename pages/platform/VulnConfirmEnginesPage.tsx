@@ -222,7 +222,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
           <button onClick={fetchEngines} className="p-4 bg-theme-surface border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button onClick={openCreate} className="bg-indigo-600 text-white px-8 py-4 rounded-lg font-medium flex items-center gap-3 shadow-indigo-500/20 hover:bg-indigo-700 transition-all active:scale-95">
+          <button onClick={openCreate} className="btn-primary btn-lg flex items-center gap-3">
             <Plus size={20} /> 注册新引擎
           </button>
         </div>}
@@ -278,7 +278,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">引擎名称 *</label>
+            <label className="form-label">引擎名称 *</label>
             <input
               required
               disabled={!!editingEngine}
@@ -290,7 +290,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
             {editingEngine && <p className="text-[10px] text-theme-text-faint ml-1">引擎名称创建后不可修改</p>}
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">Endpoint *</label>
+            <label className="form-label">Endpoint *</label>
             <input
               required
               placeholder="http://engine-host:port"
@@ -300,7 +300,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">版本 *</label>
+            <label className="form-label">版本 *</label>
             <input
               required
               placeholder="v1.0.0"
@@ -310,7 +310,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">绑定工具 (bind_tools) *</label>
+            <label className="form-label">绑定工具 (bind_tools) *</label>
             <textarea
               rows={4}
               placeholder={'每行一个工具名，例如：\nloki-triage\nloki-validate'}
@@ -321,8 +321,8 @@ export const VulnConfirmEnginesPage: React.FC = () => {
             <p className="text-[10px] text-theme-text-faint ml-1">每个工具名不能同时绑定到其他引擎，否则后端返回冲突错误</p>
           </div>
           <div className="flex gap-4">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-5 bg-theme-elevated text-theme-text-secondary rounded-lg font-medium hover:bg-theme-elevated transition-all">取消</button>
-            <button disabled={formLoading} className="flex-1 py-5 bg-indigo-600 text-white rounded-lg font-medium shadow-indigo-500/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3">
+            <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary btn-lg">取消</button>
+            <button disabled={formLoading} className="btn-primary btn-lg flex items-center justify-center gap-3">
               {formLoading ? <Loader2 className="animate-spin" size={20} /> : <ShieldCheck size={20} />}
               {editingEngine ? '应用更改' : '立即注册'}
             </button>

@@ -450,7 +450,7 @@ export const DepartmentMemberPage: React.FC = () => {
             </button>
           )}
           {userPermissions?.can_manage_department_members && canManageCurrentDepartment() && (
-            <button onClick={openAddModal} className="bg-blue-600 text-white px-8 py-4 rounded-lg font-medium flex items-center gap-3 hover:bg-blue-700 transition-all active:scale-95">
+            <button onClick={openAddModal} className="btn-primary btn-lg flex items-center gap-3">
               <Plus size={20} /> 添加成员
             </button>
           )}
@@ -670,7 +670,7 @@ export const DepartmentMemberPage: React.FC = () => {
                 <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto_1fr] gap-4 items-end">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-3">
-                      <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">选择部门 *</label>
+                      <label className="form-label">选择部门 *</label>
                       <button
                         type="button"
                         onClick={() => setDepartmentPickerSearchOpen((open) => !open)}
@@ -716,7 +716,7 @@ placeholder="输入部门名称筛选"
 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-3">
-                      <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">选择用户 *</label>
+                      <label className="form-label">选择用户 *</label>
                       <button
                         type="button"
                         onClick={() => setUserPickerSearchOpen((open) => !open)}
@@ -756,14 +756,14 @@ placeholder="输入用户名筛选"
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">角色 *</label>
+                <label className="form-label">角色 *</label>
                 <select required className="form-select w-full" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
                   {getAvailableRoles().map((role) => (
                     <option key={role.value} value={role.value}>{role.label}</option>
                   ))}
                 </select>
               </div>
- <button disabled={formLoading} className="w-full py-5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="btn-primary btn-lg btn-block flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <UserCircle size={20} />}
                 确认添加成员
               </button>
@@ -786,14 +786,14 @@ placeholder="输入用户名筛选"
             </div>
             <form onSubmit={handleMoveMember} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">目标部门 *</label>
+                <label className="form-label">目标部门 *</label>
                 <select required className="form-select w-full" value={moveDepartmentId} onChange={(e) => setMoveDepartmentId(e.target.value)}>
                   {departments.map((dept) => (
                     <option key={dept.id} value={dept.id}>{dept.name}</option>
                   ))}
                 </select>
               </div>
- <button disabled={formLoading} className="w-full py-5 bg-indigo-600 text-white rounded-lg font-medium shadow-indigo-500/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="btn-primary btn-lg btn-block flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <ArrowRightLeft size={20} />}
                 确认调整部门
               </button>
@@ -816,14 +816,14 @@ placeholder="输入用户名筛选"
             </div>
             <form onSubmit={handleEditMember} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">角色 *</label>
+                <label className="form-label">角色 *</label>
                 <select required className="form-select w-full" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
                   {getAvailableRoles().map((role) => (
                     <option key={role.value} value={role.value}>{role.label}</option>
                   ))}
                 </select>
               </div>
- <button disabled={formLoading} className="w-full py-5 bg-amber-600 text-white rounded-lg font-medium shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center gap-3">
+ <button disabled={formLoading} className="btn-warning btn-lg btn-block flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <RefreshCw size={20} />}
                 立即更新角色
               </button>
@@ -833,7 +833,7 @@ placeholder="输入用户名筛选"
       {isImportModalOpen && selectedDepartment && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center p-6 bg-slate-950/65 backdrop-blur-md animate-in fade-in">
  <div className="w-full max-w-6xl bg-theme-surface rounded-2xl overflow-hidden animate-in zoom-in-95 max-h-[92vh] flex flex-col">
-            <div className="px-10 py-8 border-b border-theme-border flex items-center justify-between">
+            <div className="p-6 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-4">
  <div className="w-14 h-14 rounded-lg bg-blue-600 text-white flex items-center justify-center">
                   <FileSpreadsheet size={26} />
@@ -864,7 +864,7 @@ placeholder="输入用户名筛选"
                     </div>
 
                     <div className="space-y-3">
-                      <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">导入策略</label>
+                      <label className="form-label">导入策略</label>
                       <select value={importMode} onChange={(e) => setImportMode(e.target.value as ImportMode)} disabled={!isAdmin()} className="form-select w-full disabled:bg-theme-elevated disabled:text-theme-text-muted">
                         <option value="skip_existing">已存在则跳过</option>
                         {isAdmin() && <option value="update_role">已存在则更新角色</option>}
@@ -877,7 +877,7 @@ placeholder="输入用户名筛选"
                         <Download size={18} />
                         下载模板
                       </button>
- <button onClick={() => fileInputRef.current?.click()} className="px-6 py-4 rounded-lg bg-blue-600 text-white font-medium flex items-center gap-3 hover:bg-blue-700">
+ <button onClick={() => fileInputRef.current?.click()} className="btn-primary flex items-center gap-3">
                         <Upload size={18} />
                         选择 Excel / CSV
                       </button>
@@ -923,8 +923,8 @@ placeholder="输入用户名筛选"
                       <p className="text-sm text-theme-text-muted font-medium">修正错误后重新预校验，再执行导入。</p>
                     </div>
                     <div className="flex gap-3">
-                      <button onClick={() => setImportStage('upload')} className="px-5 py-3 rounded-lg bg-theme-surface border border-theme-border font-medium text-theme-text-secondary">返回修改</button>
-                      <button disabled={importLoading || importPreview.error_rows > 0} onClick={() => void handleCommitImport()} className="px-6 py-3 rounded-lg bg-blue-600 text-white font-medium disabled:opacity-50 flex items-center gap-3">
+                      <button onClick={() => setImportStage('upload')} className="btn-secondary">返回修改</button>
+                      <button disabled={importLoading || importPreview.error_rows > 0} onClick={() => void handleCommitImport()} className="btn-primary disabled:opacity-50 flex items-center gap-3">
                         {importLoading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
                         确认导入
                       </button>
