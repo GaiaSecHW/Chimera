@@ -384,10 +384,13 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
     if (!rawReport) throw new Error('漏洞报告为空');
     const locator = caseLocator(item);
     const parsed = parseSubjectLocator(locator);
+    const vulnId = String(item.global_vuln_id || item.id || '').trim();
+    if (!vulnId) throw new Error('缺少 vuln_id');
 
     const task = await vulnVerifyV2Api.createTask(projectId, {
+      vuln_id: vulnId,
       case_id: item.id,
-      task_key: item.id,
+      task_key: vulnId,
       name: `批量验证v2 - ${caseDisplayName(item)}`,
       code_root: codeRoot,
       raw_report: rawReport,

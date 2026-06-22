@@ -7,6 +7,7 @@ const TASK_CASE_IDS_QUERY_CHUNK_SIZE = 100;
 export type VulnVerifyV2Status = 'pending' | 'running' | 'success' | 'failed' | 'cancelled' | string;
 
 export interface VulnVerifyV2TaskCreateRequest {
+  vuln_id: string;
   case_id: string;
   name?: string | null;
   code_root?: string | null;
@@ -48,6 +49,7 @@ export interface VulnVerifyV2Task {
   file?: string | null;
   function?: string | null;
   case_id: string;
+  vuln_id?: string | null;
   status: VulnVerifyV2Status;
   created_at?: string | null;
   updated_at?: string | null;
