@@ -556,6 +556,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [selectedSuspicionId, setSelectedSuspicionId] = useState('');
   const [selectedDetail, setSelectedDetail] = useState<any | null>(null);
   const [selectedTimeline, setSelectedTimeline] = useState<any[]>([]);
+  const [confirmRecords, setConfirmRecords] = useState<any[]>([]);
   const [linkedFiles, setLinkedFiles] = useState<any | null>(null);
   const [linkedFilesLoading, setLinkedFilesLoading] = useState(false);
   const [linkedFileSearch, setLinkedFileSearch] = useState('');
@@ -678,6 +679,26 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     () => getLatestAutoVerifyTaskRef(selectedDetail, selectedTimeline, projectId),
     [selectedDetail, selectedTimeline, projectId],
   );
+  const conclusionReason = useMemo(() => {
+    if (!selectedDetail) return { source: '', text: '' };
+    if (selectedDetail.finished_reason) {
+      const finishedEvents = selectedTimeline
+        .filter((item: any) => item.item_type === 'case_finished' || item.payload?.event_type === 'case_finished')
+        .sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || ''));
+      const text = finishedEvents
+        .map((item: any) => item.payload?.transition_reason || item.payload?.reason || '')
+        .find((value: string) => !!value);
+      return { source: 'human', text: text || '' };
+    }
+    if (selectedDetail.validation_result) {
+      const completed = (confirmRecords || [])
+        .filter((record: any) => record && (record.status === 'completed' || record.result) && record.reason)
+        .sort((a: any, b: any) => (b.completed_at || b.created_at || '').localeCompare(a.completed_at || a.created_at || ''));
+      const top = completed[0];
+      return { source: 'engine', text: top?.reason || '' };
+    }
+    return { source: '', text: '' };
+  }, [selectedDetail, selectedTimeline, confirmRecords]);
   const relatedRefs = Array.isArray(workspaceSummary.related_execution_refs) ? workspaceSummary.related_execution_refs : [];
   const processManualTasks = Array.isArray(selectedDetail?.manual_tasks) ? selectedDetail.manual_tasks : [];
   const processActions = Array.isArray(selectedDetail?.actions) ? selectedDetail.actions : [];
@@ -706,6 +727,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       setSelectedSuspicionId('');
       setSelectedDetail(null);
       setSelectedTimeline([]);
+      setConfirmRecords([]);
       setLinkedFiles(null);
       setLoading(false);
       return;
@@ -823,6 +845,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     if (!suspicionId) {
       setSelectedDetail(null);
       setSelectedTimeline([]);
+      setConfirmRecords([]);
       setLinkedFiles(null);
       setReportItems([]);
       setSelectedReportId('');
@@ -833,13 +856,15 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     setDetailLoading(true);
     setError(null);
     try {
-      const [detail, timeline, reports] = await Promise.all([
+      const [detail, timeline, reports, confirm] = await Promise.all([
         vulnApi.vuln.getCaseDetail(suspicionId),
         vulnApi.vuln.getCaseTimeline(suspicionId),
         vulnApi.vuln.listCaseReports(suspicionId),
+        vulnApi.vuln.getCaseConfirmRecords(suspicionId).catch(() => ({ confirm_records: [] })),
       ]);
       setSelectedDetail(detail);
       setSelectedTimeline(timeline.items || []);
+      setConfirmRecords(confirm?.confirm_records || []);
       const items = reports?.items || [];
       const rawReportId = detail?.raw_report_summary?.report_id || detail?.display_summary?.current_report_id || '';
       const initialReportId = rawReportId || reports?.current_report_id || items[0]?.report_id || '';
@@ -1082,6 +1107,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     setSelectedSuspicionId('');
     setSelectedDetail(null);
     setSelectedTimeline([]);
+    setConfirmRecords([]);
     setLinkedFiles(null);
     setSelectedLinkedFile(null);
     setLinkedFilePreview('');
@@ -1494,6 +1520,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       setSelectedSuspicionId('');
       setSelectedDetail(null);
       setSelectedTimeline([]);
+      setConfirmRecords([]);
       const nextPage = pagedSuspicions.length <= 1 && currentPage > 1 ? currentPage - 1 : currentPage;
       await Promise.all([loadOverview(), loadSuspicions(nextPage)]);
       setSuccessMessage(`漏洞“${deletedTitle}”已删除。`);
@@ -2092,6 +2119,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         {(selectedDetail.finished_reason || selectedDetail.validation_result) ? (
                           <div className="mt-1 text-[11px] font-medium text-theme-text-muted">
                             来源: {selectedDetail.finished_reason ? '人工判定' : '引擎判定'}
+                          </div>
+                        ) : null}
+                        {conclusionReason.text ? (
+                          <div className="mt-1 text-[11px] font-medium text-theme-text-muted leading-relaxed break-words">
+                            判定理由: {conclusionReason.text}
                           </div>
                         ) : null}
                       </div>
