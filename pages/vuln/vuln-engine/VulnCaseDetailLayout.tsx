@@ -80,7 +80,7 @@ function MetricCard({ label, value, helper }: { label: string; value: React.Reac
       style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.borderSoft }}
     >
       <div className="text-xs" style={{ color: LK.muted }}>{label}</div>
-      <div className="mt-2 text-lg font-semibold leading-6" style={{ color: LK.ink }}>{value}</div>
+      <div className="mt-1.5 text-sm font-semibold leading-5" style={{ color: LK.ink }}>{value}</div>
       {helper ? <div className="mt-1 text-xs" style={{ color: LK.body }}>{helper}</div> : null}
     </div>
   );

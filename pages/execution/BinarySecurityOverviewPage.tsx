@@ -1,16 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Archive, BarChart3, ChevronRight, Layers3, Loader2, Plus, RefreshCw, Search, ShieldAlert, Upload } from 'lucide-react';
 
-import { BinarySecurityInputFile, BinarySecurityPipelineMode, BinarySecurityProjectStageAggregate, BinarySecurityProjectStats, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
+import { BinarySecurityInputFile, BinarySecurityPipelineMode, BinarySecurityPipelineProfile, BinarySecurityProjectStageAggregate, BinarySecurityProjectStats, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
 import { fileserverApi } from '../../clients/fileserver';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
+import { PageHeader } from '../../design-system';
 
 interface Props {
   projectId: string;
   taskType: BinarySecurityTaskType;
   onOpenTask: (taskId: string) => void;
+  sourcePipelineProfileMode?: BinarySecurityPipelineProfile | 'select';
 }
 
 type CreateDialogTab = 'basic' | 'files' | 'strategy' | 'parallelism';
@@ -18,7 +20,11 @@ type CreateDialogTab = 'basic' | 'files' | 'strategy' | 'parallelism';
 const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled', 'delete_failed']);
 const BINARY_STAGES = ['firmware_unpack', 'system_analysis', 'binary_to_source', 'entry_analysis', 'dataflow_vuln_scan'];
 const SOURCE_STAGES = ['system_analysis', 'entry_analysis', 'dataflow_vuln_scan'];
+const SOURCE_KG_STAGES = ['knowledge_graph_entry_fetch', 'dataflow_vuln_scan'];
 const MODULE_STAGES = ['binary_to_source', 'entry_analysis', 'dataflow_vuln_scan'];
+// BinarySecurityPipelineProfile 末尾带 `| string`,会把 union 坍缩成 string,
+// 令 Extract<...> 退化为 never。这里直接写两个字面量,保留真实的可选集合。
+type SourcePipelineProfile = 'default' | 'kg_source_vuln_scan';
 
 type ManualOperationDisplayState = {
   operation_in_progress?: boolean;
@@ -42,33 +48,33 @@ const taskDisplayStatus = (status?: string | null, operationState?: ManualOperat
 const statusTone = (status: string) => {
   switch (status) {
     case 'success':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20';
     case 'partial_success':
-      return 'bg-amber-50 text-amber-700 border-amber-200';
+      return 'bg-amber-500/15 text-amber-400 border-amber-500/20';
     case 'failed':
-      return 'bg-rose-50 text-rose-700 border-rose-200';
+      return 'bg-rose-500/15 text-rose-400 border-rose-500/20';
     case 'delete_failed':
-      return 'bg-rose-50 text-rose-700 border-rose-200';
+      return 'bg-rose-500/15 text-rose-400 border-rose-500/20';
     case 'cancelled':
-      return 'bg-slate-100 text-slate-500 border-slate-200';
+      return 'bg-theme-elevated text-theme-text-muted border-theme-border';
     case 'pending_upload':
-      return 'bg-violet-50 text-violet-700 border-violet-200';
+      return 'bg-violet-500/15 text-violet-400 border-violet-500/20';
     case 'uploading':
-      return 'bg-sky-50 text-sky-700 border-sky-200';
+      return 'bg-sky-500/15 text-sky-400 border-sky-500/20';
     case 'ready_to_start':
-      return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+      return 'bg-indigo-500/15 text-indigo-400 border-indigo-500/20';
     case 'dispatching':
-      return 'bg-sky-50 text-sky-700 border-sky-200';
+      return 'bg-sky-500/15 text-sky-400 border-sky-500/20';
     case 'continue_in_progress':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20';
     case 'retry_in_progress':
-      return 'bg-orange-50 text-orange-700 border-orange-200';
+      return 'bg-orange-500/15 text-orange-400 border-orange-500/20';
     case 'pending_module_confirmation':
-      return 'bg-amber-50 text-amber-700 border-amber-200';
+      return 'bg-amber-500/15 text-amber-400 border-amber-500/20';
     case 'waiting_confirmation':
-      return 'bg-amber-50 text-amber-700 border-amber-200';
+      return 'bg-amber-500/15 text-amber-400 border-amber-500/20';
     default:
-      return 'bg-blue-50 text-blue-700 border-blue-200';
+      return 'bg-blue-500/15 text-blue-400 border-blue-500/20';
   }
 };
 
@@ -78,6 +84,7 @@ const formatStageLabel = (value?: string | null) => {
     system_analysis: '系统分析',
     binary_to_source: '二进制反编译',
     entry_analysis: '入口分析',
+    knowledge_graph_entry_fetch: '知识图谱入口获取',
     dataflow_vuln_scan: '数据流漏洞挖掘',
   };
   return map[value || ''] || (value || '-');
@@ -106,6 +113,7 @@ const STAGE_PARALLELISM_FIELDS: Array<{ key: string; label: string }> = [
   { key: 'system_analysis', label: '系统分析最大并行数' },
   { key: 'binary_to_source', label: '二进制逆向最大并行数' },
   { key: 'entry_analysis', label: '入口分析最大并行数' },
+  { key: 'knowledge_graph_entry_fetch', label: '知识图谱入口获取最大并行数' },
   { key: 'dataflow_vuln_scan', label: '数据流漏洞挖掘最大并行数' },
 ];
 const SOURCE_ARCHIVE_ACCEPT = '.zip,.tar,.tar.gz,.tgz,.tar.bz2,.tbz2,.tar.xz,.txz';
@@ -125,6 +133,7 @@ const PIPELINE_MODE_OPTIONS: Array<{
 const PARTIAL_SUCCESS_ADVANCEMENT_FIELDS = [
   { key: 'binary_to_source', label: '二进制逆向部分成功后继续推进' },
   { key: 'entry_analysis', label: '入口分析部分成功后继续推进' },
+  { key: 'knowledge_graph_entry_fetch', label: '知识图谱入口获取成功后继续推进' },
   { key: 'dataflow_vuln_scan', label: '数据流漏洞挖掘部分成功后继续推进' },
 ] as const;
 const DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT = Object.fromEntries(
@@ -135,6 +144,7 @@ const DEFAULT_STAGE_PARALLELISM = {
   system_analysis: 4,
   binary_to_source: 4,
   entry_analysis: 4,
+  knowledge_graph_entry_fetch: 1,
   dataflow_vuln_scan: 4,
 };
 const normalizePartialSuccessStageAdvancement = (value: unknown) => {
@@ -223,6 +233,7 @@ const stageAccent = (stageName: string) => {
     system_analysis: 'border-l-sky-400',
     binary_to_source: 'border-l-cyan-400',
     entry_analysis: 'border-l-amber-400',
+    knowledge_graph_entry_fetch: 'border-l-fuchsia-400',
     dataflow_vuln_scan: 'border-l-rose-400',
   };
   return map[stageName] || 'border-l-slate-300';
@@ -242,21 +253,14 @@ const archiveResultLabel = (archive?: BinarySecurityProjectStageAggregate['archi
   return`成功 ${successCount} · 失败 ${failedCount}`;
 };
 
-const formatDeleteStageTaskIds = (stageName: string, ids: string[]) => {
-  if (ids.length === 0) return`${formatStageLabel(stageName)}：无子任务`;
-  const visibleIds = ids.slice(0, DELETE_STAGE_ITEM_PREVIEW_LIMIT);
-  const hiddenCount = Math.max(0, ids.length - visibleIds.length);
-  return`${formatStageLabel(stageName)}：${visibleIds.join(', ')}${hiddenCount > 0 ?` 等 ${hiddenCount} 个` : ''}`;
-};
-
 const manualOperationBadgeTone = (overall?: string) => {
   switch (overall) {
     case 'ready':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20';
     case 'in_progress':
-      return 'bg-sky-50 text-sky-700 border-sky-200';
+      return 'bg-sky-500/15 text-sky-400 border-sky-500/20';
     default:
-      return 'bg-amber-50 text-amber-700 border-amber-200';
+      return 'bg-amber-500/15 text-amber-400 border-amber-500/20';
   }
 };
 
@@ -272,17 +276,17 @@ const manualOperationBadgeLabel = (overall?: string) => {
 };
 
 const ProjectStatCard: React.FC<{ label: string; value: number; hint: string }> = ({ label, value, hint }) => (
- <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-    <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">{label}</div>
-    <div className="mt-2 text-2xl font-black text-slate-900">{value}</div>
-    <div className="mt-1 text-sm text-slate-500">{hint}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+    <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-theme-text-muted">{label}</div>
+    <div className="mt-2 text-2xl font-bold text-theme-text-primary">{value}</div>
+    <div className="mt-1 text-sm text-theme-text-muted">{hint}</div>
   </div>
 );
 
-const StageMetricPill: React.FC<{ label: string; value: number; tone?: string }> = ({ label, value, tone = 'text-slate-800' }) => (
-  <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2">
-    <span className="text-xs font-semibold text-slate-500">{label}</span>
-    <span className={`text-sm font-black ${tone}`}>{value}</span>
+const StageMetricPill: React.FC<{ label: string; value: number; tone?: string }> = ({ label, value, tone = 'text-theme-text-primary' }) => (
+  <div className="flex items-center justify-between gap-2 rounded-xl bg-theme-surface px-3 py-2">
+    <span className="text-xs font-semibold text-theme-text-muted">{label}</span>
+    <span className={`text-sm font-semibold ${tone}`}>{value}</span>
   </div>
 );
 
@@ -312,51 +316,51 @@ const StageAggregateCard: React.FC<{ aggregate: BinarySecurityProjectStageAggreg
   const hasData = businessTotal > 0 || archiveTotal > 0;
 
   return (
- <div className={`rounded-2xl border border-l-4 border-slate-200 bg-slate-50 p-4 ${stageAccent(aggregate.stage_name)}`}>
+ <div className={`rounded-2xl border border-l-4 border-theme-border bg-theme-surface p-4 ${stageAccent(aggregate.stage_name)}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-black text-slate-900">{formatStageLabel(aggregate.stage_name)}</div>
-          <div className="mt-1 text-xs text-slate-500">业务 {dominantStatusLabel(business.status_counts)} · 归档 {archiveResultLabel(archive)}</div>
+          <div className="text-sm font-semibold text-theme-text-primary">{formatStageLabel(aggregate.stage_name)}</div>
+          <div className="mt-1 text-xs text-theme-text-muted">业务 {dominantStatusLabel(business.status_counts)} · 归档 {archiveResultLabel(archive)}</div>
         </div>
-        <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-500">#{aggregate.sequence_no}</span>
+        <span className="rounded-full bg-theme-elevated px-2 py-1 text-[11px] font-medium text-theme-text-muted">#{aggregate.sequence_no}</span>
       </div>
 
       <div className="mt-4 space-y-3">
-        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
-          <div className="mb-2 flex items-center gap-2 text-xs font-black text-slate-700">
-            <Layers3 size={14} className="text-slate-400" />
+        <div className="rounded-2xl border border-theme-border bg-theme-surface p-3">
+          <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-theme-text-secondary">
+            <Layers3 size={14} className="text-theme-text-muted" />
             业务执行
           </div>
           <div className="grid grid-cols-2 gap-2">
             <StageMetricPill label="任务" value={num(business.task_count)} />
             <StageMetricPill label="总项" value={businessTotal} />
-            <StageMetricPill label="成功" value={num(business.success_items)} tone="text-emerald-700" />
-            <StageMetricPill label="失败" value={num(business.failed_items)} tone="text-rose-700" />
-            <StageMetricPill label="运行" value={num(business.running_items)} tone="text-blue-700" />
-            <StageMetricPill label="跳过/取消" value={num(business.skipped_items) + num(business.cancelled_items)} tone="text-slate-600" />
+            <StageMetricPill label="成功" value={num(business.success_items)} tone="text-emerald-400" />
+            <StageMetricPill label="失败" value={num(business.failed_items)} tone="text-rose-400" />
+            <StageMetricPill label="运行" value={num(business.running_items)} tone="text-blue-400" />
+            <StageMetricPill label="跳过/取消" value={num(business.skipped_items) + num(business.cancelled_items)} tone="text-theme-text-secondary" />
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
-          <div className="mb-2 flex items-center gap-2 text-xs font-black text-slate-700">
-            <Archive size={14} className="text-slate-400" />
+        <div className="rounded-2xl border border-theme-border bg-theme-surface p-3">
+          <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-theme-text-secondary">
+            <Archive size={14} className="text-theme-text-muted" />
             归档结果
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <StageMetricPill label="成功" value={num(archive.success_count)} tone="text-emerald-700" />
-            <StageMetricPill label="失败" value={num(archive.failed_count)} tone="text-rose-700" />
+            <StageMetricPill label="成功" value={num(archive.success_count)} tone="text-emerald-400" />
+            <StageMetricPill label="失败" value={num(archive.failed_count)} tone="text-rose-400" />
           </div>
         </div>
       </div>
 
-      <div className="mt-3 rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white">
+      <div className="mt-3 rounded-xl bg-theme-surface px-3 py-2 text-xs font-bold text-white">
         {hasData ?`业务成功率 ${businessRate}%` : '暂无执行'}
       </div>
     </div>
   );
 };
 
-export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskType, onOpenTask }) => {
+export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskType, onOpenTask, sourcePipelineProfileMode = 'select' }) => {
   const executionApi = api.domains.execution;
   const buildVersion = useServiceBuildVersion(executionApi.binarySecurity.getHealth);
   const fallbackCreateDefaults = useMemo(() => ({
@@ -396,6 +400,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [nameEdited, setNameEdited] = useState(false);
   const [description, setDescription] = useState('');
   const [moduleName, setModuleName] = useState('');
+  const [knowledgeGraphUploadId, setKnowledgeGraphUploadId] = useState('');
+  const [knowledgeGraphDbName, setKnowledgeGraphDbName] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploadSpeed, setUploadSpeed] = useState<Record<string, number>>({});
@@ -421,6 +427,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [moduleSelectionMode, setModuleSelectionMode] = useState<'auto' | 'manual_confirm'>('auto');
   const [moduleRiskLevels, setModuleRiskLevels] = useState<string[]>(['高']);
   const [stageParallelism, setStageParallelism] = useState<Record<string, number>>(DEFAULT_STAGE_PARALLELISM);
+  const [sourcePipelineProfile, setSourcePipelineProfile] = useState<SourcePipelineProfile>(sourcePipelineProfileMode === 'kg_source_vuln_scan' ? 'kg_source_vuln_scan' : 'default');
 
   const toggleStatusQuickFilter = (status: string) => {
     setStatusFilter((current) => (current === status ? '' : status));
@@ -429,11 +436,13 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
 
   const isSourceTask = taskType === 'source';
   const isBinaryModuleTask = taskType === 'binary_module';
-  const pageTitle = isSourceTask ? '源码扫描' : isBinaryModuleTask ? '二进制模块扫描' : '二进制安全';
-  const createTitle = isSourceTask ? '创建源码扫描任务' : isBinaryModuleTask ? '创建二进制模块任务' : '创建二进制安全任务';
-  const emptyLabel = isSourceTask ? '当前项目还没有源码扫描任务。' : isBinaryModuleTask ? '当前项目还没有二进制模块任务。' : '当前项目还没有二进制安全任务。';
-  const namePrefix = isSourceTask ? 'source-security' : isBinaryModuleTask ? 'binary-module-security' : 'binary-security';
-  const stages = isSourceTask ? SOURCE_STAGES : isBinaryModuleTask ? MODULE_STAGES : BINARY_STAGES;
+  const isKgSourcePage = isSourceTask && sourcePipelineProfileMode === 'kg_source_vuln_scan';
+  const showSourcePipelinePicker = isSourceTask && sourcePipelineProfileMode === 'select';
+  const pageTitle = isKgSourcePage ? '知识图谱-源码漏洞挖掘' : isSourceTask ? '源码扫描' : isBinaryModuleTask ? '二进制模块扫描' : '二进制安全';
+  const createTitle = isKgSourcePage ? '创建知识图谱源码漏洞挖掘任务' : isSourceTask ? '创建源码扫描任务' : isBinaryModuleTask ? '创建二进制模块任务' : '创建二进制安全任务';
+  const emptyLabel = isKgSourcePage ? '当前项目还没有知识图谱源码漏洞挖掘任务。' : isSourceTask ? '当前项目还没有源码扫描任务。' : isBinaryModuleTask ? '当前项目还没有二进制模块任务。' : '当前项目还没有二进制安全任务。';
+  const namePrefix = isKgSourcePage ? 'kg-source-security' : isSourceTask ? 'source-security' : isBinaryModuleTask ? 'binary-module-security' : 'binary-security';
+  const stages = isSourceTask ? (isKgSourcePage ? SOURCE_KG_STAGES : SOURCE_STAGES) : isBinaryModuleTask ? MODULE_STAGES : BINARY_STAGES;
 
   const fileKey = (file: File) => {
     const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
@@ -467,6 +476,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       const data = await executionApi.binarySecurity.listTasks(projectId, {
         status: statusFilter || undefined,
         taskType,
+        pipelineProfile: isSourceTask
+          ? (isKgSourcePage ? 'kg_source_vuln_scan' : showSourcePipelinePicker ? sourcePipelineProfile : 'default')
+          : undefined,
         search: search || undefined,
         sortBy,
         sortOrder,
@@ -519,50 +531,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const deleteTasks = async (taskIds: string[]) => {
     if (!projectId) return;
     if (taskIds.length === 0) return;
-    let deleteMessage =
+    const deleteMessage =
       taskIds.length === 1
         ? '删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？'
         :`将删除选中的 ${taskIds.length} 个任务。删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？`;
-
-    if (taskIds.length === 1) {
-      try {
-        const detail = await executionApi.binarySecurity.getTask(projectId, taskIds[0]);
-        const taskIdsByStage = new Map<string, string[]>();
-        for (const stageName of (detail.stage_sequence || stages)) {
-          let page = 1;
-          while (true) {
-            const payload = await executionApi.binarySecurity.getTaskStageItems(projectId, taskIds[0], {
-              stage_name: stageName,
-              page,
-              per_page: STAGE_ITEMS_PER_PAGE,
-            });
-            (payload.items || []).forEach((item) => {
-              const downstreamTaskId = item.downstream_task_id?.trim();
-              if (!downstreamTaskId) return;
-              const current = taskIdsByStage.get(item.stage_name) || [];
-              if (!current.includes(downstreamTaskId)) current.push(downstreamTaskId);
-              taskIdsByStage.set(item.stage_name, current);
-            });
-            if ((payload.page || page) * (payload.per_page || STAGE_ITEMS_PER_PAGE) >= (payload.total || 0)) {
-              break;
-            }
-            page += 1;
-          }
-        }
-        const stageLines = (detail.stage_sequence || stages).map((stageName) => {
-          const ids = taskIdsByStage.get(stageName) || [];
-          return formatDeleteStageTaskIds(stageName, ids);
-        });
-        deleteMessage = [
-          '删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？',
-          '',
-          '将删除的阶段子任务 ID：',
-          ...stageLines,
-        ].join('\n');
-      } catch {
-        // Ignore detail fetch failure and fall back to the generic prompt.
-      }
-    }
 
     const confirmed = await showConfirm({
       title: taskIds.length === 1 ? '删除任务' : '批量删除任务',
@@ -595,15 +567,19 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   };
 
   useEffect(() => {
+    setSourcePipelineProfile(sourcePipelineProfileMode === 'kg_source_vuln_scan' ? 'kg_source_vuln_scan' : 'default');
+  }, [sourcePipelineProfileMode]);
+
+  useEffect(() => {
     void load();
-  }, [projectId, taskType, statusFilter, search, sortBy, sortOrder, page, pageSize]);
+  }, [projectId, taskType, isKgSourcePage, showSourcePipelinePicker, sourcePipelineProfile, statusFilter, search, sortBy, sortOrder, page, pageSize]);
 
   const hasActive = useMemo(() => items.some((item) => !TERMINAL.has(item.status)), [items]);
   useEffect(() => {
     if (!hasActive) return;
     const timer = window.setInterval(() => void load({ silent: true, skipIfInFlight: true }), 5000);
     return () => window.clearInterval(timer);
-  }, [hasActive, projectId, taskType, statusFilter, search, sortBy, sortOrder, page, pageSize]);
+  }, [hasActive, projectId, taskType, isKgSourcePage, showSourcePipelinePicker, sourcePipelineProfile, statusFilter, search, sortBy, sortOrder, page, pageSize]);
 
   useEffect(() => {
     if (!showCreateDialog) return;
@@ -669,6 +645,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setNameEdited(false);
     setDescription('');
     setModuleName('');
+    setKnowledgeGraphUploadId('');
+    setKnowledgeGraphDbName('');
     setFiles([]);
     setUploadProgress({});
     setUploadSpeed({});
@@ -681,6 +659,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     });
     setModuleSelectionMode('auto');
     setModuleRiskLevels(['高']);
+    setSourcePipelineProfile(sourcePipelineProfileMode === 'kg_source_vuln_scan' ? 'kg_source_vuln_scan' : 'default');
     setStageParallelism({
       ...defaults.stageParallelism,
     });
@@ -794,6 +773,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       setCreateError('至少选择一个模块风险等级');
       return;
     }
+    if (isKgSourcePage && !knowledgeGraphUploadId.trim() && !knowledgeGraphDbName.trim()) {
+      setCreateError('请填写知识图谱 upload_id 或 db_name');
+      return;
+    }
     setSubmitting(true);
     try {
       const inputFiles: BinarySecurityInputFile[] = files.map((file) => ({
@@ -810,6 +793,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         module_name: isBinaryModuleTask ? moduleName.trim() : undefined,
         input_files: inputFiles,
         policy_overrides: {
+          pipeline_profile: isKgSourcePage ? 'kg_source_vuln_scan' : isSourceTask ? sourcePipelineProfile : 'default',
           max_retries_per_item: maxRetries,
           continue_on_item_failure: continueOnFailure,
           pipeline_mode: pipelineMode,
@@ -819,12 +803,15 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               .map((field) => [field.key, partialSuccessStageAdvancement[field.key] !== false]),
           ),
           stage_parallelism: Object.fromEntries(stages.map((stage) => [stage, stageParallelism[stage] ?? 1])),
-          module_selection_mode: isBinaryModuleTask ? undefined : moduleSelectionMode,
-          module_risk_levels: isBinaryModuleTask ? undefined : moduleRiskLevels,
+          module_selection_mode: isBinaryModuleTask || isKgSourcePage ? undefined : moduleSelectionMode,
+          module_risk_levels: isBinaryModuleTask || isKgSourcePage ? undefined : moduleRiskLevels,
+          knowledge_graph_upload_id: isKgSourcePage ? (knowledgeGraphUploadId.trim() || undefined) : undefined,
+          knowledge_graph_db_name: isKgSourcePage ? (knowledgeGraphDbName.trim() || undefined) : undefined,
         },
       });
-      const inputDir = created.summary?.input_dir ||`/data/files/${projectId}/app/chimera-app-binary-security/${prepared.task_id}/input`;
-      const tempUploadDir = created.summary?.temp_upload_dir ||`/data/files/${projectId}/app/chimera-app-binary-security/${prepared.task_id}/run/upload-tmp`;
+      const workspaceRoot = created.workspace_root ||`/data/files/${projectId}/app/secflow-app-binary-security/${prepared.task_id}`;
+      const inputDir = created.summary?.input_dir ||`${workspaceRoot}/input`;
+      const tempUploadDir = created.summary?.temp_upload_dir ||`${workspaceRoot}/run/upload-tmp`;
       const ensuredDirs = new Set<string>();
       const ensureUploadSubdirectories = async (basePath: string, relativeDir: string) => {
         if (!basePath || !relativeDir) return;
@@ -888,24 +875,24 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
 
   return (
     <div className="px-8 pb-10 pt-8 space-y-6">
- <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <ServicePageTitle title={pageTitle} version={buildVersion} />
-            <p className="mt-2 max-w-3xl text-sm text-slate-500">
-              {isSourceTask
-                ? '为当前项目统一编排系统分析、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看源码工程任务的阶段状态与结果。'
-                : isBinaryModuleTask
-                  ? '为当前项目统一编排模块级二进制逆向、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，直接以单模块下的多个 ELF 作为输入自动推进。'
-                : '为当前项目统一编排固件解包、系统分析、反编译、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看多固件任务的阶段状态与结果。'}
-            </p>
-          </div>
+      <PageHeader
+        title={<ServicePageTitle title={pageTitle} version={buildVersion} className="" />}
+        description={
+          isKgSourcePage
+            ? '为当前项目统一编排知识图谱入口获取与数据流漏洞挖掘，直接以外部入口结果驱动源码漏洞挖掘。'
+            : isSourceTask
+              ? '为当前项目统一编排系统分析、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看源码工程任务的阶段状态与结果。'
+              : isBinaryModuleTask
+                ? '为当前项目统一编排模块级二进制逆向、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，直接以单模块下的多个 ELF 作为输入自动推进。'
+                : '为当前项目统一编排固件解包、系统分析、反编译、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看多固件任务的阶段状态与结果。'
+        }
+        actions={
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => void openCreateDialog()}
               disabled={createDefaultsLoading}
- className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
             >
               {createDefaultsLoading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
               {createDefaultsLoading ? '加载默认配置...' : '创建任务'}
@@ -914,31 +901,31 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               type="button"
               onClick={() => void refresh()}
               disabled={refreshing}
- className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
             >
               {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               {refreshing ? '刷新中...' : '刷新'}
             </button>
           </div>
-        </div>
-      </section>
+        }
+      />
 
       {createResult && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/15 px-4 py-3 text-sm font-semibold text-emerald-400">
           {createResult}
         </div>
       )}
 
- <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-elevated p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <ShieldAlert size={18} className="text-rose-600" />
-            <h2 className="text-xl font-black text-slate-900">当前项目统计</h2>
+            <ShieldAlert size={18} className="text-rose-400" />
+            <h2 className="text-xl font-semibold text-theme-text-primary">当前项目统计</h2>
           </div>
           <button
             type="button"
             onClick={() => setStageStatsExpanded((value) => !value)}
- className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
+ className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-bold text-theme-text-secondary transition hover:border-theme-border hover:bg-theme-elevated"
             aria-expanded={stageStatsExpanded}
           >
             <BarChart3 size={14} />
@@ -946,7 +933,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
             <ChevronRight size={14} className={`transition-transform ${stageStatsExpanded ? 'rotate-90' : ''}`} />
           </button>
         </div>
-        <div className="mt-2 text-sm text-slate-500">任务、输入和结果统计基于当前项目；运行中、排队中和最大并发为服务全局队列指标。</div>
+        <div className="mt-2 text-sm text-theme-text-muted">任务、输入和结果统计基于当前项目；运行中、排队中和最大并发为服务全局队列指标。</div>
         <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-6">
           <ProjectStatCard label="任务总数" value={stats.total} hint={`成功 ${stats.success} · 部分成功 ${stats.partial_success} · 失败 ${stats.failed}`} />
           <ProjectStatCard label="运行中任务" value={stats.running} hint={`全局运行 ${runningCount} · 已入队 ${queuedCount}`} />
@@ -964,24 +951,24 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               ))}
             </div>
           ) : (
-            <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center text-sm font-semibold text-slate-400">
+            <div className="mt-5 rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-8 text-center text-sm font-semibold text-theme-text-muted">
               暂无阶段汇总统计
             </div>
           )
         ) : null}
       </section>
 
- <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-black text-slate-900">任务列表</h2>
+            <h2 className="text-xl font-semibold text-theme-text-primary">任务列表</h2>
             {items.length > 0 && (
-              <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600">
+              <label className="inline-flex items-center gap-2 text-sm font-semibold text-theme-text-secondary">
                 <input
                   type="checkbox"
                   checked={allSelected}
                   onChange={(e) => setSelectedTaskIds(e.target.checked ? items.map((item) => item.id) : [])}
-                  className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
+                  className="h-4 w-4 rounded border-theme-border text-theme-text-primary focus:ring-slate-400"
                 />
                 全选
               </label>
@@ -993,18 +980,18 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 type="button"
                 onClick={() => void deleteTasks(selectedTaskIds)}
                 disabled={deleting}
-                className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-2.5 text-sm font-bold text-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {deleting ? '删除中...' :`删除选中 (${selectedCount})`}
               </button>
             )}
-            <div className="text-sm text-slate-500">共 {total} 条</div>
+            <div className="text-sm text-theme-text-muted">共 {total} 条</div>
           </div>
         </div>
         <div className="mt-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-1 flex-col gap-3 sm:flex-row">
-            <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-              <Search size={16} className="text-slate-400" />
+            <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+              <Search size={16} className="text-theme-text-muted" />
               <input
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
@@ -1024,7 +1011,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+              className="form-select"
             >
               <option value="">全部状态</option>
               <option value="pending">pending</option>
@@ -1042,7 +1029,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 setSortOrder((nextSortOrder as 'asc' | 'desc') || 'desc');
                 setPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+              className="form-select"
             >
               <option value="created_at:desc">创建时间 最新</option>
               <option value="created_at:asc">创建时间 最早</option>
@@ -1059,7 +1046,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 setPage(1);
                 setSearch(searchInput.trim());
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700"
+              className="rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-sm font-bold text-theme-text-secondary"
             >
               查询
             </button>
@@ -1073,23 +1060,23 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 setSortOrder('desc');
                 setPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700"
+              className="rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-sm font-bold text-theme-text-secondary"
             >
               重置
             </button>
           </div>
         </div>
-        {error && <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
+        {error && <div className="mt-4 rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">{error}</div>}
         {loading && items.length === 0 ? (
-          <div className="mt-6 text-sm text-slate-500">加载中...</div>
+          <div className="mt-6 text-sm text-theme-text-muted">加载中...</div>
         ) : items.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-slate-200 px-6 py-10 text-center text-sm text-slate-400">{emptyLabel}</div>
+          <div className="mt-6 rounded-2xl border border-dashed border-theme-border px-6 py-10 text-center text-sm text-theme-text-muted">{emptyLabel}</div>
         ) : (
           <div className="mt-5 space-y-4">
             {items.map((item) => (
               <div
                 key={item.id}
-                className="w-full rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 text-left transition hover:border-slate-300 hover:bg-slate-50"
+                className="w-full rounded-xl border border-theme-border bg-theme-surface p-5 text-left transition hover:border-theme-border hover:bg-theme-surface"
               >
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div className="min-w-0 flex-1">
@@ -1102,58 +1089,54 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                             e.target.checked ? [...new Set([...current, item.id])] : current.filter((id) => id !== item.id)
                           ));
                         }}
-                        className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
+                        className="h-4 w-4 rounded border-theme-border text-theme-text-primary focus:ring-slate-400"
                       />
-                      <h3 className="text-lg font-black text-slate-900">{item.name}</h3>
+                      <h3 className="text-lg font-semibold text-theme-text-primary">{item.name}</h3>
                       <div className="flex flex-wrap items-center gap-2">
                         <button
                           type="button"
                           onClick={() => toggleStatusQuickFilter(item.status)}
                           title={statusFilter === item.status ? '再次点击取消状态筛选' : '点击按状态快速筛选'}
-                          className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(taskDisplayStatus(item.status, item.manual_operation_state))}`}
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(taskDisplayStatus(item.status, item.manual_operation_state))}`}
                         >
                           {taskDisplayStatus(item.status, item.manual_operation_state)}
                         </button>
                         {item.manual_operation_state ? (
                           <span
                             title={item.manual_operation_state.blocking_reason || item.manual_operation_state.summary}
-                            className={`rounded-full border px-3 py-1 text-xs font-black ${manualOperationBadgeTone(item.manual_operation_state.overall)}`}
+                            className={`rounded-full border px-3 py-1 text-xs font-semibold ${manualOperationBadgeTone(item.manual_operation_state.overall)}`}
                           >
                             {manualOperationBadgeLabel(item.manual_operation_state.overall)}
                           </span>
                         ) : null}
                       </div>
                       {item.status === 'pending' && item.queue_position ? (
-                        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+                        <span className="rounded-full border border-amber-500/20 bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-400">
                           排队中，第 {item.queue_position} 位
                         </span>
                       ) : null}
                       {item.status === 'dispatching' ? (
-                        <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-black text-sky-700">
+                        <span className="rounded-full border border-sky-500/20 bg-sky-500/15 px-3 py-1 text-xs font-semibold text-sky-400">
                           调度中
                         </span>
                       ) : null}
                     </div>
-                    <div className="mt-3 break-all rounded-xl bg-slate-50 px-3 py-2 font-mono text-xs text-slate-500">{item.firmware_path}</div>
+                    <div className="mt-3 break-all rounded-xl bg-theme-surface px-3 py-2 font-mono text-xs text-theme-text-muted">{item.firmware_path}</div>
                     {item.abnormal_reason_title ? (
-                      <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                        <span className="font-black">{item.abnormal_reason_title}</span>
-                        {item.abnormal_reason_code ? <span className="ml-2 text-xs uppercase tracking-[0.12em] text-amber-700">{item.abnormal_reason_code}</span> : null}
+                      <div className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/15 px-3 py-2 text-sm text-amber-400">
+                        <span className="font-semibold">{item.abnormal_reason_title}</span>
+                        {item.abnormal_reason_code ? <span className="ml-2 text-xs uppercase tracking-[0.12em] text-amber-400">{item.abnormal_reason_code}</span> : null}
                       </div>
                     ) : null}
-                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-600 xl:grid-cols-6">
-                      <div>当前阶段：<span className="font-bold text-slate-900">{formatStageLabel(item.current_stage)}</span></div>
-                      <div>{isSourceTask ? '源码文件' : isBinaryModuleTask ? 'ELF 数' : '固件数'}：<span className="font-bold text-slate-900">{item.firmware_item_count}</span></div>
-                      <div>{isSourceTask ? '已选模块' : isBinaryModuleTask ? '模块数' : '已解包'}：<span className="font-bold text-slate-900">{isSourceTask ? item.selected_module_count : isBinaryModuleTask ? item.selected_module_count || 1 : item.unpacked_firmware_count}</span></div>
-                      <div>{isSourceTask ? '入口数量' : isBinaryModuleTask ? '任务模式' : '解包失败'}：<span className="font-bold text-slate-900">{isSourceTask ? item.entry_count : isBinaryModuleTask ? '模块级' : item.failed_firmware_count}</span></div>
-                      <div>漏洞结果：<span className="font-bold text-slate-900">{item.vuln_result_count}</span></div>
-                      <div>开始时间：<span className="font-bold text-slate-900">{fmt(item.started_at)}</span></div>
+                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-theme-text-secondary xl:grid-cols-2">
+                      <div>当前阶段：<span className="font-bold text-theme-text-primary">{formatStageLabel(item.current_stage)}</span></div>
+                      <div>开始时间：<span className="font-bold text-theme-text-primary">{fmt(item.started_at)}</span></div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
                       {(item.stage_sequence?.length ? item.stage_sequence : stages).map((stage) => {
                         const summary = item.stage_summaries.find((current) => current.stage_name === stage);
                         return (
-                          <span key={stage} className={`rounded-xl px-3 py-1 text-xs font-bold ${summary ? statusTone(summary.status) : 'bg-slate-100 text-slate-400'}`}>
+                          <span key={stage} className={`rounded-xl px-3 py-1 text-xs font-bold ${summary ? statusTone(summary.status) : 'bg-theme-elevated text-theme-text-muted'}`}>
                             {formatStageLabel(stage)}
                           </span>
                         );
@@ -1164,7 +1147,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                     <button
                       type="button"
                       onClick={() => onOpenTask(item.id)}
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700"
+                      className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary"
                     >
                       查看详情
                       <ChevronRight size={18} />
@@ -1173,7 +1156,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       type="button"
                       onClick={() => void deleteTask(item.id)}
                       disabled={deleting}
-                      className="rounded-xl border border-rose-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="rounded-xl border border-rose-500/20 bg-theme-surface px-4 py-2.5 text-sm font-bold text-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       删除
                     </button>
@@ -1183,8 +1166,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
             ))}
           </div>
         )}
-        <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-sm text-slate-500">
+        <div className="mt-5 flex flex-col gap-3 border-t border-theme-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-sm text-theme-text-muted">
             当前第 {page} / {Math.max(1, totalPages)} 页，显示 {pageStart}-{pageEnd} / {total}
           </div>
           <div className="flex items-center gap-2">
@@ -1194,7 +1177,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 setPageSize(Number(e.target.value) || 50);
                 setPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+              className="form-select"
             >
               {[10, 50, 100, 200, 500, 1000].map((size) => (
                 <option key={size} value={size}>{size} / 页</option>
@@ -1204,7 +1187,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               type="button"
               onClick={() => setPage((current) => Math.max(1, current - 1))}
               disabled={page <= 1}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-sm font-bold text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
             >
               上一页
             </button>
@@ -1212,7 +1195,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               type="button"
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
               disabled={page >= totalPages}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-sm font-bold text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
             >
               下一页
             </button>
@@ -1222,24 +1205,26 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
 
       {showCreateDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
- <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-slate-50 text-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+ <div className="w-full max-w-5xl rounded-2xl border border-theme-border bg-theme-surface text-theme-text-primary">
+            <div className="flex items-center justify-between border-b border-theme-border px-6 py-5">
               <div>
-                <h3 className="text-xl font-black text-slate-900">{createTitle}</h3>
-                <p className="mt-1 text-sm text-slate-500">
+                <h3 className="text-xl font-semibold text-theme-text-primary">{createTitle}</h3>
+                <p className="mt-1 text-sm text-theme-text-muted">
                   {isSourceTask
-                    ? '仅支持上传常见源码压缩包；文件会先上传到临时目录，再由后端解压到任务 input 目录。'
+                    ? isKgSourcePage
+                      ? '知识图谱源码页面固定使用外部入口结果源，任务会跳过系统分析和本地入口分析，直接先拉取知识图谱入口再推进漏洞挖掘。'
+                      : '仅支持上传常见源码压缩包；文件会先上传到临时目录，再由后端解压到任务 input 目录。'
                     : isBinaryModuleTask
                       ? '请输入模块名并上传属于该模块的多个 ELF，任务会直接从二进制逆向阶段开始自动推进。'
                       : '每个上传文件都会作为独立固件进入完整的安全分析编排流程。'}
                 </p>
               </div>
-              <button type="button" onClick={closeCreateDialog} disabled={submitting} className="text-sm font-semibold text-slate-500 hover:text-slate-700 disabled:opacity-50">
+              <button type="button" onClick={closeCreateDialog} disabled={submitting} className="text-sm font-semibold text-theme-text-muted hover:text-theme-text-secondary disabled:opacity-50">
                 关闭
               </button>
             </div>
             <div className="space-y-6 p-6">
-              <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-2">
+              <div className="rounded-xl border border-theme-border bg-theme-surface p-2">
                 <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
                   {CREATE_DIALOG_TABS.map((tab) => {
                     const active = createDialogTab === tab.key;
@@ -1249,13 +1234,13 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                         key={tab.key}
                         type="button"
                         onClick={() => setCreateDialogTab(tab.key)}
- className={`rounded-[1.25rem] px-4 py-3 text-left transition ${active ? 'bg-slate-50 ring-1 ring-slate-200' : 'bg-transparent hover:bg-slate-100'}`}
+ className={`rounded-[1.25rem] px-4 py-3 text-left transition ${active ? 'bg-theme-elevated ring-1 ring-theme-border' : 'bg-transparent hover:bg-theme-elevated'}`}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <div className={`text-sm font-black ${active ? 'text-slate-900' : 'text-slate-600'}`}>{tab.label}</div>
+                          <div className={`text-sm font-semibold ${active ? 'text-theme-text-primary' : 'text-theme-text-secondary'}`}>{tab.label}</div>
                           <span className={`inline-flex h-2.5 w-2.5 rounded-full ${ready ? 'bg-emerald-500' : 'bg-slate-300'}`} />
                         </div>
-                        <div className="mt-1 text-xs text-slate-500">{tab.hint}</div>
+                        <div className="mt-1 text-xs text-theme-text-muted">{tab.hint}</div>
                       </button>
                     );
                   })}
@@ -1272,13 +1257,13 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                         setNameEdited(true);
                       }}
                       placeholder="任务名称"
-                      className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
+                      className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-primary placeholder:text-theme-text-muted"
                     />
                     <input
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="任务描述（可选）"
-                      className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
+                      className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-primary placeholder:text-theme-text-muted"
                     />
                   </div>
                   {isBinaryModuleTask ? (
@@ -1286,31 +1271,80 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       value={moduleName}
                       onChange={(e) => setModuleName(e.target.value)}
                       placeholder="模块名"
-                      className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
+                      className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-primary placeholder:text-theme-text-muted"
                     />
+                  ) : null}
+                  {showSourcePipelinePicker ? (
+                    <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
+                      <div className="text-sm font-semibold text-theme-text-primary">源码流程模式</div>
+                      <div className="mt-3 grid grid-cols-1 gap-2 xl:grid-cols-2">
+                        <label className="flex items-start gap-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary">
+                          <input
+                            type="radio"
+                            name="sourcePipelineProfile"
+                            checked={sourcePipelineProfile === 'default'}
+                            onChange={() => setSourcePipelineProfile('default')}
+                            className="mt-1 h-4 w-4 border-theme-border text-theme-text-primary focus:ring-theme-border"
+                          />
+                          <span>
+                            <span className="block font-semibold">普通源码分析</span>
+                            <span className="mt-1 block text-xs text-theme-text-muted">系统分析 -&gt; 入口分析 -&gt; 数据流漏洞挖掘</span>
+                          </span>
+                        </label>
+                        <label className="flex items-start gap-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary">
+                          <input
+                            type="radio"
+                            name="sourcePipelineProfile"
+                            checked={sourcePipelineProfile === 'kg_source_vuln_scan'}
+                            onChange={() => setSourcePipelineProfile('kg_source_vuln_scan')}
+                            className="mt-1 h-4 w-4 border-theme-border text-theme-text-primary focus:ring-theme-border"
+                          />
+                          <span>
+                            <span className="block font-semibold">知识图谱-源码漏洞挖掘</span>
+                            <span className="mt-1 block text-xs text-theme-text-muted">知识图谱入口获取 -&gt; 数据流漏洞挖掘</span>
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  ) : null}
+                  {isKgSourcePage ? (
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                      <input
+                        value={knowledgeGraphUploadId}
+                        onChange={(e) => setKnowledgeGraphUploadId(e.target.value)}
+                        placeholder="知识图谱 upload_id（优先）"
+                        className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-primary placeholder:text-theme-text-muted"
+                      />
+                      <input
+                        value={knowledgeGraphDbName}
+                        onChange={(e) => setKnowledgeGraphDbName(e.target.value)}
+                        placeholder="知识图谱 db_name（可选回退）"
+                        className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-primary placeholder:text-theme-text-muted"
+                      />
+                    </div>
                   ) : null}
                 </>
               ) : null}
 
               {createDialogTab === 'files' ? (
-                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <div className="text-sm font-black text-slate-900">输入文件</div>
-                    <div className="mt-1 text-sm text-slate-500">{isSourceTask ? '仅支持 zip、tar、tgz、tar.gz、tbz2、tar.bz2、txz、tar.xz 等常见压缩文件。' : isBinaryModuleTask ? '支持一次选择多个 ELF 文件；文件名不能重复。' : '支持一次选择多个文件；文件名不能重复。'}</div>
+                    <div className="text-sm font-semibold text-theme-text-primary">输入文件</div>
+                    <div className="mt-1 text-sm text-theme-text-muted">{isSourceTask ? '仅支持 zip、tar、tgz、tar.gz、tbz2、tar.bz2、txz、tar.xz 等常见压缩文件。' : isBinaryModuleTask ? '支持一次选择多个 ELF 文件；文件名不能重复。' : '支持一次选择多个文件；文件名不能重复。'}</div>
                   </div>
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
- className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-100"
+ className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
                     >
                       <Upload size={16} />
                       {isBinaryModuleTask ? '选择 ELF' : '选择文件'}
                     </button>
-                    <div className="text-sm text-slate-500">{files.length} 个文件 · {fmtSize(totalUploadBytes)}</div>
+                    <div className="text-sm text-theme-text-muted">{files.length} 个文件 · {fmtSize(totalUploadBytes)}</div>
                     {submitting && activeUploadSpeed > 0 && (
-                      <div className="text-sm font-semibold text-sky-600">上传速度 {fmtSpeed(activeUploadSpeed)}</div>
+                      <div className="text-sm font-semibold text-sky-400">上传速度 {fmtSpeed(activeUploadSpeed)}</div>
                     )}
                   </div>
                 </div>
@@ -1331,25 +1365,25 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 />
                 <div className="mt-4 space-y-3">
                   {files.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center text-sm text-slate-400">尚未选择输入文件。</div>
+                    <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-5 py-8 text-center text-sm text-theme-text-muted">尚未选择输入文件。</div>
                   ) : files.map((file) => {
                     const key = fileKey(file);
                     const displayPath = file.name;
                     return (
-                      <div key={key} className="rounded-2xl bg-slate-50 px-4 py-3">
+                      <div key={key} className="rounded-2xl bg-theme-surface px-4 py-3">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="truncate text-sm font-bold text-slate-900">{displayPath}</div>
-                            <div className="mt-1 text-xs text-slate-500">{fmtSize(file.size || 0)}</div>
+                            <div className="truncate text-sm font-bold text-theme-text-primary">{displayPath}</div>
+                            <div className="mt-1 text-xs text-theme-text-muted">{fmtSize(file.size || 0)}</div>
                           </div>
                           <div className="flex items-center gap-3">
                             {submitting && (
-                              <div className="min-w-[160px] text-right text-xs font-semibold text-slate-500">
+                              <div className="min-w-[160px] text-right text-xs font-semibold text-theme-text-muted">
                                 {uploadProgress[key] ?`${uploadProgress[key]}%` : '等待上传'}
                                 {uploadSpeed[key] > 0 ?` · ${fmtSpeed(uploadSpeed[key])}` : ''}
                               </div>
                             )}
-                            <button type="button" onClick={() => removeFile(key)} disabled={submitting} className="text-sm font-semibold text-rose-600 disabled:opacity-40">
+                            <button type="button" onClick={() => removeFile(key)} disabled={submitting} className="text-sm font-semibold text-rose-400 disabled:opacity-40">
                               移除
                             </button>
                           </div>
@@ -1361,20 +1395,20 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 </div>
               ) : null}
 
-              {createDialogTab === 'strategy' && !isBinaryModuleTask ? (
-                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+              {createDialogTab === 'strategy' && !isBinaryModuleTask && !(isKgSourcePage) ? (
+                <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
                   <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                     <div>
-                      <div className="text-sm font-black text-slate-900">模块推进方式</div>
+                      <div className="text-sm font-semibold text-theme-text-primary">模块推进方式</div>
                       <div className="mt-3 grid gap-2">
                         {MODULE_SELECTION_OPTIONS.map((option) => (
-                        <label key={option.value} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                        <label key={option.value} className="flex items-center gap-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary">
                           <input
                             type="radio"
                             name="moduleSelectionMode"
                             checked={moduleSelectionMode === option.value}
                             onChange={() => setModuleSelectionMode(option.value)}
-                            className="h-4 w-4 border-slate-300 text-slate-900 focus:ring-slate-900"
+                            className="h-4 w-4 border-theme-border text-theme-text-primary focus:ring-theme-border"
                           />
                           {option.label}
                         </label>
@@ -1382,10 +1416,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       </div>
                     </div>
                     <div>
-                      <div className="text-sm font-black text-slate-900">后续分析模块风险等级</div>
+                      <div className="text-sm font-semibold text-theme-text-primary">后续分析模块风险等级</div>
                       <div className="mt-3 grid grid-cols-3 gap-2">
                         {MODULE_RISK_OPTIONS.map((risk) => (
-                        <label key={risk} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                        <label key={risk} className="flex items-center justify-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary">
                           <input
                             type="checkbox"
                             checked={moduleRiskLevels.includes(risk)}
@@ -1395,13 +1429,13 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                                 return current.filter((item) => item !== risk);
                               });
                             }}
-                            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                            className="h-4 w-4 rounded border-theme-border text-theme-text-primary focus:ring-theme-border"
                           />
                           {risk}
                         </label>
                         ))}
                       </div>
-                      <div className="mt-2 text-xs text-slate-500">
+                      <div className="mt-2 text-xs text-theme-text-muted">
                         先按风险等级筛选候选模块；若选择人工确认，系统分析完成后再由人工从候选模块中确认最终推进集合。
                       </div>
                     </div>
@@ -1410,23 +1444,23 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               ) : null}
 
               {createDialogTab === 'strategy' ? (
-                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
                 <div>
-                  <div className="text-sm font-black text-slate-900">推进模式</div>
-                  <div className="mt-1 text-sm text-slate-500">支持为当前任务单独选择广度优先或深度优化模式；默认值来自参数配置页。</div>
+                  <div className="text-sm font-semibold text-theme-text-primary">推进模式</div>
+                  <div className="mt-1 text-sm text-theme-text-muted">支持为当前任务单独选择广度优先或深度优化模式；默认值来自参数配置页。</div>
                   <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
                     {PIPELINE_MODE_OPTIONS.map((option) => (
-                      <label key={option.value} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                      <label key={option.value} className="flex items-start gap-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary">
                         <input
                           type="radio"
                           name="taskPipelineMode"
                           checked={pipelineMode === option.value}
                           onChange={() => setPipelineMode(option.value)}
-                          className="mt-1 h-4 w-4 border-slate-300 text-slate-900 focus:ring-slate-900"
+                          className="mt-1 h-4 w-4 border-theme-border text-theme-text-primary focus:ring-theme-border"
                         />
                         <span>
                           <span className="block font-semibold">{option.label}</span>
-                          <span className="mt-1 block text-xs text-slate-500">{option.description}</span>
+                          <span className="mt-1 block text-xs text-theme-text-muted">{option.description}</span>
                         </span>
                       </label>
                     ))}
@@ -1436,46 +1470,46 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               ) : null}
 
               {createDialogTab === 'parallelism' ? (
-                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-                <div className="text-sm font-black text-slate-900">阶段并发配置</div>
+                <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
+                <div className="text-sm font-semibold text-theme-text-primary">阶段并发配置</div>
                 <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
                   {STAGE_PARALLELISM_FIELDS.filter((field) => stages.includes(field.key)).map((field) => (
                     <div key={field.key}>
-                      <div className="mb-2 text-sm font-bold text-slate-700">{field.label}</div>
+                      <div className="mb-2 text-sm font-bold text-theme-text-secondary">{field.label}</div>
                       <input
                         type="number"
                         min={1}
                         max={16}
                         value={stageParallelism[field.key] ?? 1}
                         onChange={(e) => setStageParallelism((current) => ({ ...current, [field.key]: Number(e.target.value || 1) }))}
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900"
+                        className="w-full rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-primary"
                       />
                     </div>
                   ))}
                   <div>
-                    <div className="mb-2 text-sm font-bold text-slate-700">子任务重试次数</div>
+                    <div className="mb-2 text-sm font-bold text-theme-text-secondary">子任务重试次数</div>
                     <input
                       type="number"
                       min={0}
                       max={10}
                       value={maxRetries}
                       onChange={(e) => setMaxRetries(Number(e.target.value || 0))}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900"
+                      className="w-full rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-primary"
                     />
                   </div>
                 </div>
-                <label className="mt-4 flex items-center gap-3 text-sm font-semibold text-slate-700">
+                <label className="mt-4 flex items-center gap-3 text-sm font-semibold text-theme-text-secondary">
                   <input type="checkbox" checked={continueOnFailure} onChange={(e) => setContinueOnFailure(e.target.checked)} />
                   子任务失败时继续推进其他子任务
                 </label>
                   <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
                     {PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.filter((field) => stages.includes(field.key)).map((field) => (
-                      <label key={field.key} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                      <label key={field.key} className="flex items-center gap-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary">
                         <input
                           type="checkbox"
                           checked={partialSuccessStageAdvancement[field.key] !== false}
                           onChange={(e) => setPartialSuccessStageAdvancement((current) => ({ ...current, [field.key]: e.target.checked }))}
-                          className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                          className="h-4 w-4 rounded border-theme-border text-theme-text-primary focus:ring-theme-border"
                         />
                         {field.label}
                       </label>
@@ -1484,7 +1518,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 </div>
               ) : null}
 
-              {createError && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{createError}</div>}
+              {createError && <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">{createError}</div>}
 
               <div className="flex items-center justify-end gap-3">
                 {hasPrevCreateTab ? (
@@ -1492,7 +1526,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                     type="button"
                     onClick={() => setCreateDialogTab(CREATE_DIALOG_TABS[currentCreateTabIndex - 1].key)}
                     disabled={submitting}
-                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700"
+                    className="rounded-xl border border-theme-border px-4 py-2.5 text-sm font-bold text-theme-text-secondary"
                   >
                     上一步
                   </button>
@@ -1502,19 +1536,19 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                     type="button"
                     onClick={() => setCreateDialogTab(CREATE_DIALOG_TABS[currentCreateTabIndex + 1].key)}
                     disabled={submitting}
-                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700"
+                    className="rounded-xl border border-theme-border px-4 py-2.5 text-sm font-bold text-theme-text-secondary"
                   >
                     下一步
                   </button>
                 ) : null}
-                <button type="button" onClick={closeCreateDialog} disabled={submitting} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700">
+                <button type="button" onClick={closeCreateDialog} disabled={submitting} className="rounded-xl border border-theme-border px-4 py-2.5 text-sm font-bold text-theme-text-secondary">
                   取消
                 </button>
                 <button
                   type="button"
                   onClick={() => void submitTask()}
                   disabled={submitting}
- className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-60"
+ className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated disabled:opacity-60"
                 >
                   {submitting && <Loader2 size={16} className="animate-spin" />}
                   {submitting ? '创建并上传中...' : '创建并启动'}

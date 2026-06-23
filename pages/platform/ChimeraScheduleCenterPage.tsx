@@ -105,26 +105,25 @@ const TASK_TYPE_OPTIONS = [
   { value: '', label: '全部任务类型' },
   { value: 'binary_firmware_e2e', label: '二进制固件端到端' },
   { value: 'source_scan_e2e', label: '源码扫描端到端' },
+  { value: 'kg_source_vuln_scan_e2e', label: '知识图谱漏洞挖掘端到端' },
   { value: 'binary_module_e2e', label: '二进制模块端到端' },
 ];
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
-type ColumnKey = 'name' | 'taskType' | 'status' | 'project' | 'queueState' | 'retryCount' | 'createdBy' | 'createdAt' | 'updatedAt' | 'startedAt' | 'finishedAt' | 'lastError' | 'actions';
+type ColumnKey = 'name' | 'taskType' | 'status' | 'project' | 'queueState' | 'retryCount' | 'createdBy' | 'createdAt' | 'updatedAt' | 'timeRange' | 'actions';
 
 const ALL_COLUMNS: Array<{ key: ColumnKey; label: string; defaultVisible: boolean }> = [
   { key: 'name', label: '任务名称', defaultVisible: true },
   { key: 'taskType', label: '任务类型', defaultVisible: true },
   { key: 'status', label: '状态', defaultVisible: true },
   { key: 'project', label: '项目', defaultVisible: true },
-  { key: 'queueState', label: '队列状态', defaultVisible: false },
+  { key: 'queueState', label: '当前主队列', defaultVisible: true },
   { key: 'retryCount', label: '重试次数', defaultVisible: false },
   { key: 'createdBy', label: '创建人', defaultVisible: true },
   { key: 'createdAt', label: '创建时间', defaultVisible: false },
   { key: 'updatedAt', label: '更新时间', defaultVisible: false },
-  { key: 'startedAt', label: '开始时间', defaultVisible: true },
-  { key: 'finishedAt', label: '结束时间', defaultVisible: true },
-  { key: 'lastError', label: '失败原因', defaultVisible: true },
+  { key: 'timeRange', label: '开始 / 结束时间', defaultVisible: true },
   { key: 'actions', label: '操作', defaultVisible: true },
 ];
 
@@ -174,6 +173,13 @@ const formatTime = (value?: string | null) => {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN');
 };
 
+const renderTaskTimeRange = (startedAt?: string | null, finishedAt?: string | null) => (
+  <div className="space-y-1 text-xs font-medium text-theme-text-secondary">
+    <div>开始：{formatTime(startedAt)}</div>
+    <div>结束：{formatTime(finishedAt)}</div>
+  </div>
+);
+
 const formatCount = (value?: number | null) =>`${Number(value || 0)}`;
 
 const formatDurationSeconds = (value?: number | null) => {
@@ -185,11 +191,11 @@ const formatDurationSeconds = (value?: number | null) => {
 };
 
 const queueStatusTone = (status?: string | null) => {
-  if (status === 'healthy') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (status === 'scheduled') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
-  if (status === 'degraded') return 'border-rose-200 bg-rose-50 text-rose-700';
-  if (status === 'disabled') return 'border-slate-200 bg-slate-100 text-slate-500';
-  return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (status === 'healthy') return 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400';
+  if (status === 'scheduled') return 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400';
+  if (status === 'degraded') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
+  if (status === 'disabled') return 'border-theme-border bg-theme-elevated text-theme-text-muted';
+  return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
 };
 
 const queueKindLabel = (kind?: string | null) => {
@@ -215,20 +221,30 @@ const getTaskKeyValue = (item: Partial<ScheduleGlobalTaskListItem> | null | unde
 };
 
 const statusTone = (label?: string | null) => {
-  if (label === '成功' || label === 'succeeded') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (label === '部分成功' || label === 'partial_success') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (label === '失败' || label === 'failed' || label === 'timeout') return 'border-rose-200 bg-rose-50 text-rose-700';
-  if (label === '重试中' || label === 'retry_wait') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (label === '进行中' || label === 'running' || label === 'dispatching') return 'border-sky-200 bg-sky-50 text-sky-700';
-  if (label === '排队中' || label === 'queued' || label === 'leased') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
-  return 'border-slate-200 bg-slate-100 text-slate-700';
+  if (label === '成功' || label === 'succeeded') return 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400';
+  if (label === '部分成功' || label === 'partial_success') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
+  if (label === '失败' || label === 'failed' || label === 'timeout') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
+  if (label === '重试中' || label === 'retry_wait') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
+  if (label === '进行中' || label === 'running' || label === 'dispatching') return 'border-sky-500/20 bg-sky-500/15 text-sky-400';
+  if (label === '排队中' || label === 'queued' || label === 'leased') return 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 };
 
 const normalizeTaskTypeLabel = (taskType?: string | null) => {
   if (taskType === 'binary_firmware_e2e') return '盖亚-二进制固件';
   if (taskType === 'source_scan_e2e') return '盖亚-源码';
+  if (taskType === 'kg_source_vuln_scan_e2e') return '知识图谱-漏洞挖掘';
   if (taskType === 'binary_module_e2e') return '盖亚-二进制模块';
   return taskType || '-';
+};
+
+const formatMainSyncQueue = (queue?: string | null) => {
+  if (queue === 'dispatching') return '分发队列';
+  if (queue === 'running') return '运行队列';
+  if (queue === 'paused') return '暂停队列';
+  if (queue === 'retry_wait') return '重试等待队列';
+  if (queue === 'terminal_verify') return '终态校验队列';
+  return queue || null;
 };
 
 const mapUserTaskToGlobalTaskItem = (
@@ -246,7 +262,7 @@ const mapUserTaskToGlobalTaskItem = (
   create_status: task.create_status,
   dispatch_status: task.dispatch_status,
   business_status: task.business_status,
-  queue_state: task.dispatch_status,
+  queue_state: formatMainSyncQueue(task.sync_queue),
   current_status: task.display_status || task.downstream_status_mapped || task.business_status || task.dispatch_status || task.create_status,
   display_status_group: task.display_status || task.downstream_status_mapped || task.business_status || task.dispatch_status || task.create_status,
   retry_count: 0,
@@ -369,11 +385,11 @@ const normalizeOverviewPayload = (
 };
 
 const sortIndicator = (sortField: BackendSortField, activeField: BackendSortField, direction: SortDirection) => {
-  if (sortField !== activeField) return <ArrowUpDown size={14} className="text-slate-400" />;
+  if (sortField !== activeField) return <ArrowUpDown size={14} className="text-theme-text-muted" />;
   return (
     direction === 'asc'
-      ? <ArrowUp size={14} className="text-slate-700" />
-      : <ArrowDown size={14} className="text-slate-700" />
+      ? <ArrowUp size={14} className="text-theme-text-secondary" />
+      : <ArrowDown size={14} className="text-theme-text-secondary" />
   );
 };
 
@@ -382,30 +398,31 @@ const DetailDrawer: React.FC<{
   open: boolean;
   loading: boolean;
   onClose: () => void;
+  onViewTimeline: () => void;
   onRetryDispatch: () => void;
   onDeleteTask: () => void;
-}> = ({ detail, open, loading, onClose, onRetryDispatch, onDeleteTask }) => {
+}> = ({ detail, open, loading, onClose, onViewTimeline, onRetryDispatch, onDeleteTask }) => {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/40 backdrop-blur-[2px]">
       <button className="flex-1" aria-label="关闭详情抽屉" onClick={onClose} />
-      <aside className="relative h-full w-full max-w-[540px] overflow-y-auto border-l border-slate-200 bg-slate-50">
- <div className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-6 py-5 backdrop-blur">
+      <aside className="relative h-full w-full max-w-[540px] overflow-y-auto border-l border-theme-border bg-theme-surface">
+ <div className="sticky top-0 z-10 border-b border-theme-border bg-theme-elevated px-6 py-5 backdrop-blur">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="mt-2 text-2xl font-black text-slate-900">{detail?.task_name || '加载任务详情'}</h2>
+              <h2 className="mt-2 text-2xl font-bold text-theme-text-primary">{detail?.task_name || '加载任务详情'}</h2>
               <div className="mt-2 flex flex-wrap gap-2">
-                <span className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${statusTone(detail?.display_status_group)}`}>
+                <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${statusTone(detail?.display_status_group)}`}>
                   {summarizeStatus(detail || {})}
                 </span>
                 {detail?.task_type ? (
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-600">
+                  <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-secondary">
                     {detail.task_type}
                   </span>
                 ) : null}
               </div>
             </div>
-            <button onClick={onClose} className="rounded-2xl border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900">
+            <button onClick={onClose} className="rounded-lg border border-theme-border p-2 text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-primary">
               <X size={18} />
             </button>
           </div>
@@ -413,73 +430,73 @@ const DetailDrawer: React.FC<{
 
         <div className="space-y-6 px-6 py-6">
           {loading ? (
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm font-bold text-slate-500">
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-6 py-10 text-center text-sm font-bold text-theme-text-muted">
               任务详情加载中...
             </div>
           ) : detail ? (
             <>
-              <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">基本信息</div>
-                <div className="mt-4 grid gap-3 text-sm text-slate-700">
-                  <div><span className="font-black text-slate-900">任务 ID：</span>{detail.task_id}</div>
-                  <div><span className="font-black text-slate-900">项目：</span>{detail.project_name || detail.project_display_name || detail.project_id || '-'}</div>
-                  <div><span className="font-black text-slate-900">创建人：</span>{detail.created_by || '-'}</div>
-                  <div><span className="font-black text-slate-900">Root Task Key：</span>{getTaskKeyValue(detail)}</div>
-                  <div><span className="font-black text-slate-900">下游任务：</span>{detail.downstream_task_id || '-'}</div>
+              <section className="rounded-xl border border-theme-border bg-theme-surface p-5">
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-theme-text-muted">基本信息</div>
+                <div className="mt-4 grid gap-3 text-sm text-theme-text-secondary">
+                  <div><span className="font-semibold text-theme-text-primary">任务 ID：</span>{detail.task_id}</div>
+                  <div><span className="font-semibold text-theme-text-primary">项目：</span>{detail.project_name || detail.project_display_name || detail.project_id || '-'}</div>
+                  <div><span className="font-semibold text-theme-text-primary">创建人：</span>{detail.created_by || '-'}</div>
+                  <div><span className="font-semibold text-theme-text-primary">Root Task Key：</span>{getTaskKeyValue(detail)}</div>
+                  <div><span className="font-semibold text-theme-text-primary">下游任务：</span>{detail.downstream_task_id || '-'}</div>
                 </div>
               </section>
 
-              <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">状态摘要</div>
+              <section className="rounded-xl border border-theme-border bg-theme-surface p-5">
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-theme-text-muted">状态摘要</div>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"><span className="font-black text-slate-900">创建态：</span>{detail.create_status || '-'}</div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"><span className="font-black text-slate-900">分发态：</span>{detail.dispatch_status || '-'}</div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"><span className="font-black text-slate-900">业务态：</span>{detail.business_status || '-'}</div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"><span className="font-black text-slate-900">当前态：</span>{detail.current_status || '-'}</div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"><span className="font-black text-slate-900">重试次数：</span>{detail.retry_count ?? 0}</div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"><span className="font-black text-slate-900">最近尝试：</span>{detail.attempt_no ?? '-'}</div>
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm"><span className="font-semibold text-theme-text-primary">创建态：</span>{detail.create_status || '-'}</div>
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm"><span className="font-semibold text-theme-text-primary">分发态：</span>{detail.dispatch_status || '-'}</div>
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm"><span className="font-semibold text-theme-text-primary">业务态：</span>{detail.business_status || '-'}</div>
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm"><span className="font-semibold text-theme-text-primary">当前态：</span>{detail.current_status || '-'}</div>
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm"><span className="font-semibold text-theme-text-primary">重试次数：</span>{detail.retry_count ?? 0}</div>
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm"><span className="font-semibold text-theme-text-primary">最近尝试：</span>{detail.attempt_no ?? '-'}</div>
                 </div>
               </section>
 
-              <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">执行窗口</div>
-                <div className="mt-4 grid gap-3 text-sm text-slate-700">
-                  <div><span className="font-black text-slate-900">计划时间：</span>{formatTime(detail.scheduled_at)}</div>
-                  <div><span className="font-black text-slate-900">开始时间：</span>{formatTime(detail.started_at)}</div>
-                  <div><span className="font-black text-slate-900">结束时间：</span>{formatTime(detail.finished_at)}</div>
-                  <div><span className="font-black text-slate-900">最近失败：</span>{detail.last_error || detail.latest_failure?.message || '-'}</div>
+              <section className="rounded-xl border border-theme-border bg-theme-surface p-5">
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-theme-text-muted">执行窗口</div>
+                <div className="mt-4 grid gap-3 text-sm text-theme-text-secondary">
+                  <div><span className="font-semibold text-theme-text-primary">计划时间：</span>{formatTime(detail.scheduled_at)}</div>
+                  <div><span className="font-semibold text-theme-text-primary">开始时间：</span>{formatTime(detail.started_at)}</div>
+                  <div><span className="font-semibold text-theme-text-primary">结束时间：</span>{formatTime(detail.finished_at)}</div>
+                  <div><span className="font-semibold text-theme-text-primary">最近失败：</span>{detail.last_error || detail.latest_failure?.message || '-'}</div>
                 </div>
               </section>
 
-              <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">最近调度与执行</div>
+              <section className="rounded-xl border border-theme-border bg-theme-surface p-5">
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-theme-text-muted">最近调度与执行</div>
                 <div className="mt-4 space-y-3">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                    <div className="font-black text-slate-900">最近 Dispatch</div>
-                    <pre className="mt-2 overflow-auto whitespace-pre-wrap break-all text-xs text-slate-600">{JSON.stringify(detail.latest_dispatch || detail.current_dispatch || {}, null, 2)}</pre>
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm">
+                    <div className="font-semibold text-theme-text-primary">最近 Dispatch</div>
+                    <pre className="mt-2 overflow-auto whitespace-pre-wrap break-all text-xs text-theme-text-secondary">{JSON.stringify(detail.latest_dispatch || detail.current_dispatch || {}, null, 2)}</pre>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                    <div className="font-black text-slate-900">最近 Execution</div>
-                    <pre className="mt-2 overflow-auto whitespace-pre-wrap break-all text-xs text-slate-600">{JSON.stringify(detail.latest_execution || detail.current_execution || {}, null, 2)}</pre>
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm">
+                    <div className="font-semibold text-theme-text-primary">最近 Execution</div>
+                    <pre className="mt-2 overflow-auto whitespace-pre-wrap break-all text-xs text-theme-text-secondary">{JSON.stringify(detail.latest_execution || detail.current_execution || {}, null, 2)}</pre>
                   </div>
                 </div>
               </section>
 
-              <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">最近事件摘要</div>
+              <section className="rounded-xl border border-theme-border bg-theme-surface p-5">
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-theme-text-muted">最近事件摘要</div>
                 <div className="mt-4 space-y-3">
                   {(detail.recent_events || []).length ? (
                     (detail.recent_events || []).map((event, index) => (
-                      <div key={`${event.id || event.created_at || index}`} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                      <div key={`${event.id || event.created_at || index}`} className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary">
                         <div className="flex items-center justify-between gap-3">
-                          <span className="font-black text-slate-900">{event.event_type || event.type || 'event'}</span>
-                          <span className="text-xs text-slate-500">{formatTime(event.created_at || event.ts)}</span>
+                          <span className="font-semibold text-theme-text-primary">{event.event_type || event.type || 'event'}</span>
+                          <span className="text-xs text-theme-text-muted">{formatTime(event.created_at || event.ts)}</span>
                         </div>
-                        <div className="mt-2 text-xs text-slate-600">{event.message || JSON.stringify(event.payload || event)}</div>
+                        <div className="mt-2 text-xs text-theme-text-secondary">{event.message || JSON.stringify(event.payload || event)}</div>
                       </div>
                     ))
                   ) : (
-                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm font-bold text-slate-500">
+                    <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-4 py-6 text-center text-sm font-bold text-theme-text-muted">
                       暂无可展示的事件摘要
                     </div>
                   )}
@@ -488,22 +505,29 @@ const DetailDrawer: React.FC<{
 
               <div className="flex flex-wrap gap-3">
                 <button
+                  onClick={onViewTimeline}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-theme-border px-4 py-3 text-sm font-medium text-theme-text-secondary transition hover:bg-theme-elevated"
+                >
+                  <Layers3 size={16} />
+                  查看时间线
+                </button>
+                <button
                   onClick={onRetryDispatch}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-3 text-sm font-medium text-white transition hover:bg-theme-elevated"
                 >
                   <TimerReset size={16} />
                   重试分发
                 </button>
                 <button
                   onClick={onDeleteTask}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white transition hover:bg-rose-700"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-rose-700"
                 >
                   删除任务
                 </button>
                 {detail.downstream_detail_view ? (
                   <button
                     onClick={() => window.open(detail.downstream_detail_view || '', '_blank', 'noopener,noreferrer')}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-100"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-theme-border px-4 py-3 text-sm font-medium text-theme-text-secondary transition hover:bg-theme-elevated"
                   >
                     <Waypoints size={16} />
                     跳转下游任务
@@ -512,7 +536,7 @@ const DetailDrawer: React.FC<{
               </div>
             </>
           ) : (
-            <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm font-bold text-slate-500">
+            <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm font-bold text-theme-text-muted">
               当前任务详情暂不可用
             </div>
           )}
@@ -567,7 +591,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
   const [queuePreviewLoading, setQueuePreviewLoading] = useState(false);
   const [queuePreviewAutoRefresh, setQueuePreviewAutoRefresh] = useState(true);
   const [taskEventFilters, setTaskEventFilters] = useState<TaskEventFilters>({
-    scope: 'project',
+    scope: 'global',
     projectId: '',
     taskId: '',
     taskType: '',
@@ -741,6 +765,14 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
   const loadTaskEventLogs = async () => {
     setTaskEventLoading(true);
     try {
+      const effectiveProjectId = taskEventFilters.projectId || filters.projectId;
+      if (taskEventFilters.scope === 'project' && !effectiveProjectId) {
+        setTaskEventItems([]);
+        setTaskEventTotal(0);
+        setError('');
+        setNotice('查看项目级调度日志前，请先选择项目。');
+        return;
+      }
       const params = {
         task_id: taskEventFilters.taskId || undefined,
         task_type: taskEventFilters.taskType || undefined,
@@ -758,9 +790,12 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
             ...params,
             project_id: taskEventFilters.projectId || undefined,
           }) as ScheduleUserTaskEventListResponse
-        : await scheduleApi.listProjectUserTaskEvents(taskEventFilters.projectId || filters.projectId, params) as ScheduleUserTaskEventListResponse;
+        : await scheduleApi.listProjectUserTaskEvents(effectiveProjectId, params) as ScheduleUserTaskEventListResponse;
       setTaskEventItems(payload.items || []);
       setTaskEventTotal(Number(payload.total || 0));
+      if (taskEventFilters.scope === 'project') {
+        setNotice(`当前查看项目级调度日志: ${projectNameMap.get(effectiveProjectId) || effectiveProjectId}`);
+      }
     } catch (err: any) {
       setTaskEventItems([]);
       setTaskEventTotal(0);
@@ -873,6 +908,24 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
     } finally {
       setLoadingDetail(false);
     }
+  };
+
+  const openTaskTimeline = (item: Pick<ScheduleGlobalTaskListItem, 'project_id' | 'task_id'>) => {
+    if (!item.project_id || !item.task_id) {
+      setError('缺少 project_id 或 task_id，暂时无法跳转任务时间线');
+      return;
+    }
+    startTransition(() => {
+      setFilters((current) => ({ ...current, projectId: item.project_id || current.projectId }));
+    });
+    window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
+      detail: {
+        view: 'task-center-timeline',
+        projectId: item.project_id,
+        taskCenterTimelineTaskId: item.task_id,
+        taskCenterTimelineBackView: 'chimera-platform-schedule',
+      },
+    }));
   };
 
   const handleRetryDispatch = async (item: ScheduleGlobalTaskListItem | ScheduleGlobalTaskDetail | null) => {
@@ -1047,8 +1100,8 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
             onClick={() => handleLegacyNav(item.key)}
             className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition ${
               active
- ? 'bg-slate-900 text-white '
-                : 'border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+ ? 'bg-theme-surface text-white '
+                : 'border border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated'
             }`}
           >
             <Icon size={16} />
@@ -1060,15 +1113,15 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
   );
 
   return (
-    <div className="min-h-full bg-slate-50 px-4 py-5 md:px-6 2xl:px-8">
+    <div className="min-h-full bg-theme-surface px-4 py-5 md:px-6 2xl:px-8">
       <div className="w-full space-y-4">
         {notice ? (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-bold text-amber-800">
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/15 px-5 py-4 text-sm font-bold text-amber-400">
             {notice}
           </div>
         ) : null}
         {error ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-bold text-rose-700">
+          <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-5 py-4 text-sm font-bold text-rose-400">
             {error}
           </div>
         ) : null}
@@ -1077,13 +1130,13 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
           <>
             <div className="flex flex-wrap items-center justify-center gap-2">
               {renderNavButtons()}
-              <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-600">
+              <div className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary">
                 <Layers3 size={16} />
                 总计 {formatCount(total)}
               </div>
               <button
                 onClick={() => void handleRefresh()}
-                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-sm font-medium text-white transition hover:bg-theme-elevated disabled:opacity-60"
                 disabled={refreshing}
               >
                 <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
@@ -1095,21 +1148,21 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
               {statCards.map((card, index) => (
                 <article
                   key={`${card.label}-${index}`}
- className={`rounded-xl border border-slate-200 bg-slate-50 p-4`}
+ className={`rounded-xl border border-theme-border bg-theme-surface p-4`}
                 >
-                  <div className="truncate text-center text-xs font-bold text-slate-500" title={card.hint}>{card.label}</div>
-                  <div className={`mt-1.5 truncate text-center font-semibold tabular-nums text-slate-900 ${card.label === '最近刷新时间' ? 'text-[10px]' : 'text-sm'}`} title={`${card.value}`}>{typeof card.value === 'string' ? card.value : formatCount(card.value as number)}</div>
+                  <div className="truncate text-center text-xs font-bold text-theme-text-muted" title={card.hint}>{card.label}</div>
+                  <div className={`mt-1.5 truncate text-center font-semibold tabular-nums text-theme-text-primary ${card.label === '最近刷新时间' ? 'text-[10px]' : 'text-sm'}`} title={`${card.value}`}>{typeof card.value === 'string' ? card.value : formatCount(card.value as number)}</div>
                 </article>
               ))}
             </section>
 
- <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+ <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
 
-              <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
+              <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.5fr_repeat(4,minmax(0,0.9fr))] 2xl:grid-cols-[1.7fr_repeat(4,minmax(0,0.85fr))_auto] xl:items-end">
                   <div className="block">
-                    <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                      <Search size={16} className="text-slate-400" />
+                    <div className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+                      <Search size={16} className="text-theme-text-muted" />
                       <input
                         value={filters.search}
                         onChange={(event) => {
@@ -1118,7 +1171,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                           if (page !== 1) setPage(1);
                         }}
                         placeholder="任务名 / 下游任务 ID / 创建人"
-                        className="w-full bg-transparent text-sm font-medium text-slate-800 outline-none placeholder:text-slate-400"
+                        className="form-input w-full"
                       />
                     </div>
                   </div>
@@ -1130,7 +1183,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setFilters((current) => ({ ...current, status: event.target.value }));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 outline-none"
+                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
                     >
                       {STATUS_OPTIONS.map((item) => (
                         <option key={item.value} value={item.value}>{item.label}</option>
@@ -1145,7 +1198,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setFilters((current) => ({ ...current, taskType: event.target.value }));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 outline-none"
+                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
                     >
                       {TASK_TYPE_OPTIONS.map((item) => (
                         <option key={item.value} value={item.value}>{item.label}</option>
@@ -1160,7 +1213,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setFilters((current) => ({ ...current, projectId: event.target.value }));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 outline-none"
+                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
                     >
                       {projectOptions.map((item) => (
                         <option key={item.id} value={item.id}>{item.label}</option>
@@ -1175,7 +1228,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setPageSize(Number(event.target.value));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 outline-none"
+                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
                     >
                       {PAGE_SIZE_OPTIONS.map((value) => (
                         <option key={value} value={value}>{value}</option>
@@ -1184,7 +1237,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 md:col-span-2 xl:col-span-5 2xl:col-span-1 2xl:justify-end">
-                    <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
+                    <label className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-medium text-theme-text-secondary">
                       <input
                         type="checkbox"
                         checked={selectAllMatching}
@@ -1192,11 +1245,11 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                           setSelectAllMatching(event.target.checked);
                           if (event.target.checked) setSelectedTaskIds([]);
                         }}
-                        className="h-4 w-4 rounded border-slate-300"
+                        className="h-4 w-4 rounded border-theme-border"
                       />
                       删除全部筛选结果
                     </label>
-                    <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
+                    <label className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-medium text-theme-text-secondary">
                       <input
                         type="checkbox"
                         checked={filters.isRetrying}
@@ -1204,11 +1257,11 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                           setFilters((current) => ({ ...current, isRetrying: event.target.checked }));
                           setPage(1);
                         }}
-                        className="h-4 w-4 rounded border-slate-300"
+                        className="h-4 w-4 rounded border-theme-border"
                       />
                       仅重试中
                     </label>
-                    <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
+                    <label className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-medium text-theme-text-secondary">
                       <input
                         type="checkbox"
                         checked={filters.hasError}
@@ -1216,7 +1269,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                           setFilters((current) => ({ ...current, hasError: event.target.checked }));
                           setPage(1);
                         }}
-                        className="h-4 w-4 rounded border-slate-300"
+                        className="h-4 w-4 rounded border-theme-border"
                       />
                       仅失败
                     </label>
@@ -1224,7 +1277,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                       type="button"
                       onClick={() => void handleDeleteTasks(selectAllMatching ? 'filtered' : 'selected')}
                       disabled={(selectAllMatching && !filters.projectId) || (!selectAllMatching && selectedTaskIds.length === 0)}
-                      className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-3 py-2 text-sm font-black text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       删除任务
                     </button>
@@ -1234,14 +1287,14 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
 
               <div className="overflow-x-auto px-4 py-4 md:px-5">
                 <table className="min-w-full border-separate border-spacing-0 text-sm">
-                  <thead className="bg-slate-50">
-                    <tr className="text-left text-xs font-bold text-slate-500">
+                  <thead className="bg-theme-elevated">
+                    <tr className="text-left text-xs font-bold text-theme-text-muted">
                       <th className="px-4 py-2">
                         <input
                           type="checkbox"
                           checked={allVisibleSelected}
                           onChange={(event) => handleToggleSelectVisible(event.target.checked)}
-                          className="h-4 w-4 rounded border-slate-300"
+                          className="h-4 w-4 rounded border-theme-border"
                         />
                       </th>
                       {visibleColumns.has('name') ? (
@@ -1259,12 +1312,12 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                               任务类型
                               {sortIndicator('task_type', sortField, sortDirection)}
                             </button>
-                            <button type="button" onClick={() => setOpenColumnFilter((current) => current === 'taskType' ? null : 'taskType')} className="text-slate-400 hover:text-slate-700">
+                            <button type="button" onClick={() => setOpenColumnFilter((current) => current === 'taskType' ? null : 'taskType')} className="text-theme-text-muted hover:text-theme-text-secondary">
                               <ChevronDown size={14} />
                             </button>
                           </div>
                           {openColumnFilter === 'taskType' ? (
- <div className="absolute left-0 top-full z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-slate-50 p-2">
+ <div className="absolute left-0 top-full z-20 mt-2 w-56 rounded-xl border border-theme-border bg-theme-surface p-2">
                               {TASK_TYPE_OPTIONS.map((item) => (
                                 <button
                                   key={item.value}
@@ -1274,10 +1327,10 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                                     setOpenColumnFilter(null);
                                     setPage(1);
                                   }}
-                                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100"
+                                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated"
                                 >
                                   <span>{item.label}</span>
-                                  {filters.taskType === item.value ? <Check size={14} className="text-slate-700" /> : null}
+                                  {filters.taskType === item.value ? <Check size={14} className="text-theme-text-secondary" /> : null}
                                 </button>
                               ))}
                             </div>
@@ -1291,12 +1344,12 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                               状态
                               {sortIndicator('downstream_status_mapped', sortField, sortDirection)}
                             </button>
-                            <button type="button" onClick={() => setOpenColumnFilter((current) => current === 'status' ? null : 'status')} className="text-slate-400 hover:text-slate-700">
+                            <button type="button" onClick={() => setOpenColumnFilter((current) => current === 'status' ? null : 'status')} className="text-theme-text-muted hover:text-theme-text-secondary">
                               <ChevronDown size={14} />
                             </button>
                           </div>
                           {openColumnFilter === 'status' ? (
- <div className="absolute left-0 top-full z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-slate-50 p-2">
+ <div className="absolute left-0 top-full z-20 mt-2 w-56 rounded-xl border border-theme-border bg-theme-surface p-2">
                               {STATUS_OPTIONS.map((item) => (
                                 <button
                                   key={item.value}
@@ -1306,10 +1359,10 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                                     setOpenColumnFilter(null);
                                     setPage(1);
                                   }}
-                                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100"
+                                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated"
                                 >
                                   <span>{item.label}</span>
-                                  {filters.status === item.value ? <Check size={14} className="text-slate-700" /> : null}
+                                  {filters.status === item.value ? <Check size={14} className="text-theme-text-secondary" /> : null}
                                 </button>
                               ))}
                             </div>
@@ -1350,30 +1403,16 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                           </button>
                         </th>
                       ) : null}
-                      {visibleColumns.has('startedAt') ? <th className="px-4 py-2">开始时间</th> : null}
-                      {visibleColumns.has('finishedAt') ? <th className="px-4 py-2">结束时间</th> : null}
-                      {visibleColumns.has('lastError') ? (
-                        <th className="relative px-4 py-2">
-                          <div className="inline-flex items-center gap-2">
-                            失败原因
-                            <button type="button" onClick={() => {
-                              setFilters((current) => ({ ...current, hasError: !current.hasError }));
-                              setPage(1);
-                            }} className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${filters.hasError ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-slate-300 bg-slate-50 text-slate-500'}`}>
-                              {filters.hasError ? '仅失败' : '全部'}
-                            </button>
-                          </div>
-                        </th>
-                      ) : null}
+                      {visibleColumns.has('timeRange') ? <th className="px-4 py-2">开始 / 结束时间</th> : null}
                       {visibleColumns.has('actions') ? <th className="px-4 py-2">操作</th> : null}
                       <th className="relative px-4 py-2">
-                        <button type="button" onClick={() => setColumnPickerOpen((v) => !v)} className="inline-flex items-center gap-1 text-slate-400 hover:text-slate-700" title="选择列">
+                        <button type="button" onClick={() => setColumnPickerOpen((v) => !v)} className="inline-flex items-center gap-1 text-theme-text-muted hover:text-theme-text-secondary" title="选择列">
                           <Waypoints size={14} />
                         </button>
                         {columnPickerOpen ? (
- <div className="absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-slate-200 bg-slate-50 p-2">
+ <div className="absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-theme-border bg-theme-surface p-2">
                             {ALL_COLUMNS.map((col) => (
-                              <label key={col.key} className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">
+                              <label key={col.key} className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated">
                                 <input
                                   type="checkbox"
                                   checked={visibleColumns.has(col.key)}
@@ -1384,7 +1423,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                                       return next;
                                     });
                                   }}
-                                  className="h-4 w-4 rounded border-slate-300"
+                                  className="h-4 w-4 rounded border-theme-border"
                                 />
                                 {col.label}
                               </label>
@@ -1397,28 +1436,28 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                   <tbody>
                     {loadingTable ? (
                       <tr>
-                        <td colSpan={2 + visibleColumns.size} className="px-4 py-12 text-center text-sm font-bold text-slate-500">
+                        <td colSpan={2 + visibleColumns.size} className="px-4 py-12 text-center text-sm font-bold text-theme-text-muted">
                           全局任务列表加载中...
                         </td>
                       </tr>
                     ) : tableItems.length ? (
                       tableItems.map((item) => (
-                        <tr key={item.task_id} className="border-b border-slate-100 hover:bg-slate-100/80">
+                        <tr key={item.task_id} className="border-b border-theme-border hover:bg-theme-elevated">
                           <td className="px-4 py-3 align-top">
                             <input
                               type="checkbox"
                               checked={selectedTaskIds.includes(item.task_id)}
                               onChange={(event) => handleToggleTaskSelection(item.task_id, event.target.checked)}
-                              className="h-4 w-4 rounded border-slate-300"
+                              className="h-4 w-4 rounded border-theme-border"
                             />
                           </td>
                           {visibleColumns.has('name') ? (
                             <td className="px-4 py-3 align-top">
-                              <div className="font-bold text-slate-900">{item.task_name || item.task_id}</div>
-                              <div className="mt-1 max-w-[260px] truncate text-xs text-slate-500" title={item.task_id}>{item.task_id}</div>
+                              <div className="font-bold text-theme-text-primary">{item.task_name || item.task_id}</div>
+                              <div className="mt-1 max-w-[260px] truncate text-xs text-theme-text-muted" title={item.task_id}>{item.task_id}</div>
                             </td>
                           ) : null}
-                          {visibleColumns.has('taskType') ? <td className="px-4 py-3 align-top text-sm font-medium text-slate-700">{item.task_type || '-'}</td> : null}
+                          {visibleColumns.has('taskType') ? <td className="px-4 py-3 align-top text-sm font-medium text-theme-text-secondary">{item.task_type || '-'}</td> : null}
                           {visibleColumns.has('status') ? (
                             <td className="px-4 py-3 align-top">
                               <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${statusTone(item.display_status_group)}`}>
@@ -1426,30 +1465,17 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                               </span>
                             </td>
                           ) : null}
-                          {visibleColumns.has('project') ? <td className="px-4 py-3 align-top text-sm font-medium text-slate-700">{item.project_name || item.project_id || '-'}</td> : null}
-                          {visibleColumns.has('queueState') ? <td className="px-4 py-3 align-top text-sm font-medium text-slate-700">{item.queue_state || '-'}</td> : null}
-                          {visibleColumns.has('retryCount') ? <td className="px-4 py-3 align-top text-sm font-medium text-slate-700">{item.retry_count ?? 0}</td> : null}
-                          {visibleColumns.has('createdBy') ? <td className="max-w-[100px] truncate px-4 py-3 align-top text-sm font-medium text-slate-700" title={item.created_by || undefined}>{item.created_by || '-'}</td> : null}
-                          {visibleColumns.has('createdAt') ? <td className="px-4 py-3 align-top text-xs font-medium text-slate-600">{formatTime(item.created_at)}</td> : null}
-                          {visibleColumns.has('updatedAt') ? <td className="px-4 py-3 align-top text-xs font-medium text-slate-600">{formatTime(item.updated_at)}</td> : null}
-                          {visibleColumns.has('startedAt') ? <td className="px-4 py-3 align-top text-xs font-medium text-slate-600">{formatTime(item.started_at)}</td> : null}
-                          {visibleColumns.has('finishedAt') ? <td className="px-4 py-3 align-top text-xs font-medium text-slate-600">{formatTime(item.finished_at)}</td> : null}
-                          {visibleColumns.has('lastError') ? (
-                            <td className="px-4 py-3 align-top">
-                              {item.last_error ? (
-                                <button
-                                  type="button"
-                                  onClick={() => setErrorPopupText(item.last_error || '')}
-                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
-                                >
-                                  <AlertCircle size={13} />
-                                  查看原因
-                                </button>
-                              ) : (
-                                <span className="text-xs text-slate-400">-</span>
-                              )}
+                          {visibleColumns.has('project') ? <td className="px-4 py-3 align-top text-sm font-medium text-theme-text-secondary">{item.project_name || item.project_id || '-'}</td> : null}
+                          {visibleColumns.has('queueState') ? (
+                            <td className="px-4 py-3 align-top text-sm font-medium text-theme-text-secondary" title={item.queue_state || undefined}>
+                              {item.queue_state || '-'}
                             </td>
                           ) : null}
+                          {visibleColumns.has('retryCount') ? <td className="px-4 py-3 align-top text-sm font-medium text-theme-text-secondary">{item.retry_count ?? 0}</td> : null}
+                          {visibleColumns.has('createdBy') ? <td className="max-w-[100px] truncate px-4 py-3 align-top text-sm font-medium text-theme-text-secondary" title={item.created_by || undefined}>{item.created_by || '-'}</td> : null}
+                          {visibleColumns.has('createdAt') ? <td className="px-4 py-3 align-top text-xs font-medium text-theme-text-secondary">{formatTime(item.created_at)}</td> : null}
+                          {visibleColumns.has('updatedAt') ? <td className="px-4 py-3 align-top text-xs font-medium text-theme-text-secondary">{formatTime(item.updated_at)}</td> : null}
+                          {visibleColumns.has('timeRange') ? <td className="px-4 py-3 align-top">{renderTaskTimeRange(item.started_at, item.finished_at)}</td> : null}
                           {visibleColumns.has('actions') ? (
                             <td className="px-4 py-3 align-top">
                               <div className="flex items-center gap-1.5">
@@ -1457,7 +1483,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                                   onClick={() => void openTaskDetail(item)}
                                   title="查看详情"
                                   aria-label="查看详情"
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:bg-slate-50"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-theme-border text-theme-text-secondary transition hover:bg-theme-elevated"
                                 >
                                   <Eye size={15} />
                                 </button>
@@ -1465,15 +1491,23 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                                   onClick={() => void handleViewExecution(item)}
                                   title="查看执行记录"
                                   aria-label="查看执行记录"
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:bg-slate-50"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-theme-border text-theme-text-secondary transition hover:bg-theme-elevated"
                                 >
                                   <ListChecks size={15} />
+                                </button>
+                                <button
+                                  onClick={() => void openTaskTimeline(item)}
+                                  title="查看时间线"
+                                  aria-label="查看时间线"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-theme-border text-theme-text-secondary transition hover:bg-theme-elevated"
+                                >
+                                  <Layers3 size={15} />
                                 </button>
                                 <button
                                   onClick={() => void handleRetryDispatch(item)}
                                   title="重试分发"
                                   aria-label="重试分发"
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white transition hover:bg-slate-800"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-theme-surface text-white transition hover:bg-theme-elevated"
                                 >
                                   <RotateCcw size={15} />
                                 </button>
@@ -1490,7 +1524,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                                     onClick={() => window.open(item.downstream_detail_view || '', '_blank', 'noopener,noreferrer')}
                                     title="跳转下游任务"
                                     aria-label="跳转下游任务"
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:bg-slate-50"
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-theme-border text-theme-text-secondary transition hover:bg-theme-elevated"
                                   >
                                     <ExternalLink size={15} />
                                   </button>
@@ -1504,12 +1538,12 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                     ) : (
                       <tr>
                         <td colSpan={2 + visibleColumns.size} className="px-4 py-12">
-                          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
- <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-50">
-                              <AlertCircle className="text-slate-400" size={24} />
+                          <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center">
+ <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-theme-elevated">
+                              <AlertCircle className="text-theme-text-muted" size={24} />
                             </div>
-                            <div className="mt-4 text-lg font-black text-slate-900">当前没有可展示的全局任务</div>
-                            <div className="mt-2 text-sm font-semibold text-slate-500">
+                            <div className="mt-4 text-lg font-semibold text-theme-text-primary">当前没有可展示的全局任务</div>
+                            <div className="mt-2 text-sm font-semibold text-theme-text-muted">
                               当前项目下没有命中筛选条件的任务，或任务已被批量删除。
                             </div>
                           </div>
@@ -1520,16 +1554,16 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                 </table>
               </div>
 
-              <div className="border-t border-slate-200 bg-slate-50/70 px-4 py-3 md:px-5">
+              <div className="border-t border-theme-border bg-theme-elevated px-4 py-3 md:px-5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div className="text-sm font-semibold text-slate-500">
+                  <div className="text-sm font-semibold text-theme-text-muted">
                     第 {page} / {totalPages} 页，共 {formatCount(total)} 条
                   </div>
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => setPage((current) => Math.max(1, current - 1))}
                       disabled={page <= 1}
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-50"
                     >
                       <ChevronLeft size={16} />
                       上一页
@@ -1537,7 +1571,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                     <button
                       onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
                       disabled={page >= totalPages}
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-50"
                     >
                       下一页
                       <ChevronRight size={16} />
@@ -1551,11 +1585,11 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
           <>
             <div className="flex flex-wrap items-center justify-center gap-2">
               {renderNavButtons()}
-              <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-600">
+              <div className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary">
                 <Layers3 size={16} />
                 总计 {formatCount(taskEventTotal)}
               </div>
-              <button onClick={() => void loadTaskEventLogs()} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-black text-white transition hover:bg-slate-800">
+              <button onClick={() => void loadTaskEventLogs()} className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-sm font-medium text-white transition hover:bg-theme-elevated">
                 <RefreshCw size={16} className={taskEventLoading ? 'animate-spin' : ''} />
                 刷新日志
               </button>
@@ -1565,68 +1599,72 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
               {taskEventStatCards.map((card, index) => (
                 <article
                   key={`${card.label}-${index}`}
- className={`rounded-xl border border-slate-200 bg-slate-50 p-4`}
+ className={`rounded-xl border border-theme-border bg-theme-surface p-4`}
                 >
-                  <div className="truncate text-center text-xs font-bold text-slate-500" title={card.hint}>{card.label}</div>
-                  <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-slate-900" title={`${card.value}`}>{formatCount(card.value as number)}</div>
+                  <div className="truncate text-center text-xs font-bold text-theme-text-muted" title={card.hint}>{card.label}</div>
+                  <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-theme-text-primary" title={`${card.value}`}>{formatCount(card.value as number)}</div>
                 </article>
               ))}
             </section>
 
 
- <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-              <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
+ <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
+              <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
                 <div className="mb-4">
-                  <h2 className="text-lg font-black text-slate-900">调度日志</h2>
-                  <p className="mt-1 text-sm font-medium text-slate-500">查看任务级调度、同步、删除与状态刷新事件。</p>
+                  <h2 className="text-lg font-semibold text-theme-text-primary">调度日志</h2>
+                  <p className="mt-1 text-sm font-medium text-theme-text-muted">查看任务级调度、同步、删除与状态刷新事件。</p>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-                  <label className="text-sm font-bold text-slate-600">
+                  <label className="text-sm font-bold text-theme-text-secondary">
                   范围
-                  <select value={taskEventFilters.scope} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, scope: e.target.value as 'project' | 'global' })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
+                  <select value={taskEventFilters.scope} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, scope: e.target.value as 'project' | 'global' })); setTaskEventPage(1); }} className="form-input mt-2 w-full">
                     <option value="project">当前项目</option>
                     <option value="global">全局</option>
                   </select>
                 </label>
-                <label className="text-sm font-bold text-slate-600">
+                  <label className="text-sm font-bold text-theme-text-secondary">
                   项目
-                  <select value={taskEventFilters.projectId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, projectId: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
-                    <option value="">{taskEventFilters.scope === 'global' ? '全部项目' : '跟随当前项目'}</option>
+                  <select value={taskEventFilters.projectId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, projectId: e.target.value })); setTaskEventPage(1); }} className="form-input mt-2 w-full">
+                    <option value="">
+                      {taskEventFilters.scope === 'global'
+                        ? '全部项目'
+                        : (filters.projectId ? '跟随当前项目' : '请选择项目')}
+                    </option>
                     {projects.map((project) => <option key={project.id} value={project.id}>{project.name || project.id}</option>)}
                   </select>
                 </label>
-                <label className="text-sm font-bold text-slate-600">
+                <label className="text-sm font-bold text-theme-text-secondary">
                   任务类型
-                  <input value={taskEventFilters.taskType} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, taskType: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800" placeholder="binary_firmware_e2e" />
+                  <input value={taskEventFilters.taskType} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, taskType: e.target.value })); setTaskEventPage(1); }} className="form-input mt-2 w-full" placeholder="binary_firmware_e2e" />
                 </label>
-                <label className="text-sm font-bold text-slate-600">
+                <label className="text-sm font-bold text-theme-text-secondary">
                   事件分类
-                  <input value={taskEventFilters.eventCategory} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, eventCategory: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800" placeholder="dispatch / sync / delete" />
+                  <input value={taskEventFilters.eventCategory} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, eventCategory: e.target.value })); setTaskEventPage(1); }} className="form-input mt-2 w-full" placeholder="dispatch / sync / delete" />
                 </label>
-                <label className="text-sm font-bold text-slate-600">
+                <label className="text-sm font-bold text-theme-text-secondary">
                   结果
-                  <input value={taskEventFilters.resultStatus} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, resultStatus: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800" placeholder="failed / succeeded" />
+                  <input value={taskEventFilters.resultStatus} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, resultStatus: e.target.value })); setTaskEventPage(1); }} className="form-input mt-2 w-full" placeholder="failed / succeeded" />
                 </label>
-                <label className="text-sm font-bold text-slate-600">
+                <label className="text-sm font-bold text-theme-text-secondary">
                   来源
-                  <input value={taskEventFilters.eventSource} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, eventSource: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800" placeholder="api / worker / sync_worker" />
+                  <input value={taskEventFilters.eventSource} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, eventSource: e.target.value })); setTaskEventPage(1); }} className="form-input mt-2 w-full" placeholder="api / worker / sync_worker" />
                 </label>
-                <label className="text-sm font-bold text-slate-600 xl:col-span-2">
+                <label className="text-sm font-bold text-theme-text-secondary xl:col-span-2">
                   关键词
-                  <div className="mt-2 flex items-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                    <Search size={14} className="text-slate-400" />
-                    <input value={taskEventFilters.search} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, search: e.target.value })); setTaskEventPage(1); }} className="ml-2 w-full bg-transparent text-sm text-slate-800 outline-none" placeholder="任务ID / message / actor / 下游任务ID" />
+                  <div className="mt-2 flex items-center rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+                    <Search size={14} className="text-theme-text-muted" />
+                    <input value={taskEventFilters.search} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, search: e.target.value })); setTaskEventPage(1); }} className="form-input ml-2 w-full" placeholder="任务ID / message / actor / 下游任务ID" />
                   </div>
                 </label>
-                <label className="text-sm font-bold text-slate-600">
+                <label className="text-sm font-bold text-theme-text-secondary">
                   任务 ID
-                  <input value={taskEventFilters.taskId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, taskId: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800" />
+                  <input value={taskEventFilters.taskId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, taskId: e.target.value })); setTaskEventPage(1); }} className="form-input mt-2 w-full" />
                 </label>
-                <label className="text-sm font-bold text-slate-600">
+                <label className="text-sm font-bold text-theme-text-secondary">
                   下游任务 ID
-                  <input value={taskEventFilters.downstreamTaskId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, downstreamTaskId: e.target.value })); setTaskEventPage(1); }} className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800" />
+                  <input value={taskEventFilters.downstreamTaskId} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, downstreamTaskId: e.target.value })); setTaskEventPage(1); }} className="form-input mt-2 w-full" />
                 </label>
-                <label className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 xl:self-end">
+                <label className="inline-flex items-center gap-2 text-sm font-bold text-theme-text-secondary xl:self-end">
                   <input type="checkbox" checked={taskEventFilters.onlyFailed} onChange={(e) => { setTaskEventFilters((current) => ({ ...current, onlyFailed: e.target.checked })); setTaskEventPage(1); }} />
                   仅失败
                 </label>
@@ -1635,7 +1673,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
 
               <div className="overflow-x-auto px-4 py-4 md:px-5">
                 <table className="min-w-full border-separate border-spacing-0 text-sm">
-                  <thead className="bg-slate-50 text-left text-xs font-bold text-slate-500">
+                  <thead className="bg-theme-elevated text-left text-xs font-bold text-theme-text-muted">
                     <tr>
                       <th className="px-4 py-3">时间</th>
                       <th className="px-4 py-3">项目</th>
@@ -1650,10 +1688,10 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                     </tr>
                   </thead>
                   <tbody>
-                    {taskEventLoading ? <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-slate-500">调度日志加载中...</td></tr> : null}
-                    {!taskEventLoading && taskEventItems.length === 0 ? <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-slate-500">暂无调度日志</td></tr> : null}
+                    {taskEventLoading ? <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-theme-text-muted">调度日志加载中...</td></tr> : null}
+                    {!taskEventLoading && taskEventItems.length === 0 ? <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-theme-text-muted">暂无调度日志</td></tr> : null}
                     {taskEventItems.map((event) => (
-                      <tr key={event.id} className="cursor-pointer border-b border-slate-100 hover:bg-slate-100/80" onClick={() => setSelectedTaskEvent(event)}>
+                      <tr key={event.id} className="cursor-pointer border-b border-theme-border hover:bg-theme-elevated" onClick={() => setSelectedTaskEvent(event)}>
                         <td className="px-4 py-3 text-xs">{formatTime(event.created_at)}</td>
                         <td className="px-4 py-3 text-xs">{event.project_id}</td>
                         <td className="px-4 py-3 font-mono text-xs">{event.user_task_id}</td>
@@ -1663,25 +1701,25 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         <td className="px-4 py-3 text-xs">{event.result_status}</td>
                         <td className="px-4 py-3 text-xs">{event.event_source}{event.actor ?`/${event.actor}` : ''}</td>
                         <td className="px-4 py-3 font-mono text-xs">{event.downstream_task_id || '-'}</td>
-                        <td className="max-w-[320px] px-4 py-3 text-xs text-slate-700">{event.message}</td>
+                        <td className="max-w-[320px] px-4 py-3 text-xs text-theme-text-secondary">{event.message}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              <div className="border-t border-slate-200 bg-slate-50/70 px-4 py-3 md:px-5">
+              <div className="border-t border-theme-border bg-theme-elevated px-4 py-3 md:px-5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div className="text-sm font-semibold text-slate-500">第 {taskEventPage} 页，共 {Math.max(1, Math.ceil(taskEventTotal / taskEventPageSize))} 页，共 {formatCount(taskEventTotal)} 条</div>
+                  <div className="text-sm font-semibold text-theme-text-muted">第 {taskEventPage} 页，共 {Math.max(1, Math.ceil(taskEventTotal / taskEventPageSize))} 页，共 {formatCount(taskEventTotal)} 条</div>
                   <div className="flex items-center gap-3">
-                  <select value={taskEventPageSize} onChange={(e) => { setTaskEventPageSize(Number(e.target.value)); setTaskEventPage(1); }} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+                  <select value={taskEventPageSize} onChange={(e) => { setTaskEventPageSize(Number(e.target.value)); setTaskEventPage(1); }} className="form-select">
                     {[20, 50, 100, 200, 500, 1000].map((size) => <option key={size} value={size}>{size} / 页</option>)}
                   </select>
-                  <button onClick={() => setTaskEventPage((current) => Math.max(1, current - 1))} disabled={taskEventPage <= 1} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50">
+                  <button onClick={() => setTaskEventPage((current) => Math.max(1, current - 1))} disabled={taskEventPage <= 1} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-50">
                     <ChevronLeft size={16} />
                     上一页
                   </button>
-                  <button onClick={() => setTaskEventPage((current) => current + 1)} disabled={taskEventPage * taskEventPageSize >= taskEventTotal} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50">
+                  <button onClick={() => setTaskEventPage((current) => current + 1)} disabled={taskEventPage * taskEventPageSize >= taskEventTotal} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-50">
                     下一页
                     <ChevronRight size={16} />
                   </button>
@@ -1690,12 +1728,12 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
               </div>
 
               {selectedTaskEvent ? (
-                <div className="border-t border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
+                <div className="border-t border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
                   <div className="flex items-center justify-between">
-                    <div className="text-sm font-black text-slate-900">事件详情：{selectedTaskEvent.event_type}</div>
-                    <button onClick={() => setSelectedTaskEvent(null)} className="rounded-lg p-1 text-slate-500 hover:bg-slate-200"><X size={16} /></button>
+                    <div className="text-sm font-semibold text-theme-text-primary">事件详情：{selectedTaskEvent.event_type}</div>
+                    <button onClick={() => setSelectedTaskEvent(null)} className="rounded-lg p-1 text-theme-text-muted hover:bg-theme-elevated"><X size={16} /></button>
                   </div>
-                  <pre className="mt-4 overflow-auto whitespace-pre-wrap break-all rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">{JSON.stringify(selectedTaskEvent, null, 2)}</pre>
+                  <pre className="mt-4 overflow-auto whitespace-pre-wrap break-all rounded-2xl border border-theme-border bg-theme-surface p-4 text-xs text-theme-text-secondary">{JSON.stringify(selectedTaskEvent, null, 2)}</pre>
                 </div>
               ) : null}
             </section>
@@ -1704,22 +1742,22 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
           <>
             <div className="flex flex-wrap items-center justify-center gap-2">
               {renderNavButtons()}
-              <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-600">
+              <div className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary">
                 <Layers3 size={16} />
                 总计 {formatCount(queuePreviewItems.length)} 队列
               </div>
-              <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700">
+              <label className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary">
                 <input
                   type="checkbox"
                   checked={queuePreviewAutoRefresh}
                   onChange={(event) => setQueuePreviewAutoRefresh(event.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300"
+                  className="h-4 w-4 rounded border-theme-border"
                 />
                 自动刷新
               </label>
               <button
                 onClick={() => void loadQueuePreview()}
-                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-sm font-medium text-white transition hover:bg-theme-elevated disabled:opacity-60"
                 disabled={queuePreviewLoading}
               >
                 <RefreshCw size={16} className={queuePreviewLoading ? 'animate-spin' : ''} />
@@ -1728,45 +1766,45 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
             </div>
 
             <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
- <article className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="truncate text-center text-xs font-bold text-slate-500">Redis 状态</div>
-                <div className="mt-1.5 truncate text-center text-sm font-semibold text-slate-900">{queuePreview?.redis_available ? 'Available' : 'Fallback'}</div>
-                <div className="mt-1 truncate text-center text-xs font-bold text-slate-500">Backend {queuePreview?.backend || 'unknown'}</div>
+ <article className="rounded-xl border border-theme-border bg-theme-surface p-4">
+                <div className="truncate text-center text-xs font-bold text-theme-text-muted">Redis 状态</div>
+                <div className="mt-1.5 truncate text-center text-sm font-semibold text-theme-text-primary">{queuePreview?.redis_available ? 'Available' : 'Fallback'}</div>
+                <div className="mt-1 truncate text-center text-xs font-bold text-theme-text-muted">Backend {queuePreview?.backend || 'unknown'}</div>
               </article>
- <article className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="truncate text-center text-xs font-bold text-slate-500">主执行 / 删除</div>
-                <div className="mt-1.5 truncate text-center text-sm font-semibold text-slate-900">{formatCount(queuePreviewSummary.readyLength)} / {formatCount(queuePreviewSummary.deleteLength)}</div>
-                <div className="mt-1 truncate text-center text-xs font-bold text-slate-500">同步总排队 {formatCount(queuePreviewSummary.syncTotal)}</div>
+ <article className="rounded-xl border border-theme-border bg-theme-surface p-4">
+                <div className="truncate text-center text-xs font-bold text-theme-text-muted">主执行 / 删除</div>
+                <div className="mt-1.5 truncate text-center text-sm font-semibold text-theme-text-primary">{formatCount(queuePreviewSummary.readyLength)} / {formatCount(queuePreviewSummary.deleteLength)}</div>
+                <div className="mt-1 truncate text-center text-xs font-bold text-theme-text-muted">同步总排队 {formatCount(queuePreviewSummary.syncTotal)}</div>
               </article>
- <article className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="truncate text-center text-xs font-bold text-slate-500">延迟队列</div>
-                <div className="mt-1.5 truncate text-center text-sm font-semibold text-slate-900">{formatCount(queuePreviewSummary.delayLength)}</div>
-                <div className="mt-1 truncate text-center text-xs font-bold text-slate-500">最近刷新 {formatTime(queuePreview?.refreshed_at)}</div>
+ <article className="rounded-xl border border-theme-border bg-theme-surface p-4">
+                <div className="truncate text-center text-xs font-bold text-theme-text-muted">延迟队列</div>
+                <div className="mt-1.5 truncate text-center text-sm font-semibold text-theme-text-primary">{formatCount(queuePreviewSummary.delayLength)}</div>
+                <div className="mt-1 truncate text-center text-xs font-bold text-theme-text-muted">最近刷新 {formatTime(queuePreview?.refreshed_at)}</div>
               </article>
             </section>
 
- <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-              <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
-                <h2 className="text-lg font-black text-slate-900">调度队列预览</h2>
-                <p className="mt-1 text-sm font-medium text-slate-500">查看调度执行、删除维护和用户任务同步队列的当前积压与等待时长。</p>
+ <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
+              <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
+                <h2 className="text-lg font-semibold text-theme-text-primary">调度队列预览</h2>
+                <p className="mt-1 text-sm font-medium text-theme-text-muted">查看调度执行、删除维护和用户任务同步队列的当前积压与等待时长。</p>
               </div>
 
               {queuePreviewLoading && !queuePreview ? (
-                <div className="px-4 py-12 text-center text-sm font-bold text-slate-500">
+                <div className="px-4 py-12 text-center text-sm font-bold text-theme-text-muted">
                   调度队列预览加载中...
                 </div>
               ) : (
                 <div className="space-y-4 px-4 py-4 md:px-5">
                   {(queuePreview?.groups || []).map((group: ScheduleRuntimeQueuePreviewGroup) => (
-                    <section key={group.group_key} className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                      <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-3">
-                        <div className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">{group.group_key}</div>
-                        <h3 className="mt-1 text-base font-black text-slate-900">{group.group_name}</h3>
+                    <section key={group.group_key} className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
+                      <div className="border-b border-theme-border bg-theme-elevated px-4 py-3">
+                        <div className="text-xs font-bold uppercase tracking-[0.16em] text-theme-text-muted">{group.group_key}</div>
+                        <h3 className="mt-1 text-base font-semibold text-theme-text-primary">{group.group_name}</h3>
                       </div>
                       <div className="overflow-x-auto px-4 py-4">
                       <table className="min-w-full border-separate border-spacing-0 text-sm">
-                        <thead className="bg-slate-50">
-                          <tr className="text-left text-xs font-bold text-slate-500">
+                        <thead className="bg-theme-elevated">
+                          <tr className="text-left text-xs font-bold text-theme-text-muted">
                             <th className="px-4 py-2">队列名称</th>
                             <th className="px-4 py-2">队列键</th>
                             <th className="px-4 py-2">类型</th>
@@ -1780,26 +1818,26 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         </thead>
                         <tbody>
                           {group.items.map((item: ScheduleRuntimeQueuePreviewItem) => (
-                            <tr key={item.queue_key} className="border-b border-slate-100 hover:bg-slate-100/80">
+                            <tr key={item.queue_key} className="border-b border-theme-border hover:bg-theme-elevated">
                               <td className="px-4 py-3 align-top">
-                                <div className="font-black text-slate-900">{item.queue_name}</div>
-                                <div className="mt-1 text-xs text-slate-500">{item.backend || 'unknown'}</div>
+                                <div className="font-semibold text-theme-text-primary">{item.queue_name}</div>
+                                <div className="mt-1 text-xs text-theme-text-muted">{item.backend || 'unknown'}</div>
                               </td>
-                              <td className="px-4 py-3 align-top text-xs font-semibold text-slate-600">{item.queue_key}</td>
-                              <td className="px-4 py-3 align-top text-sm font-semibold text-slate-700">{queueKindLabel(item.queue_kind)}</td>
-                              <td className="px-4 py-3 align-top text-sm font-semibold text-slate-700">{formatCount(item.length)}</td>
-                              <td className="px-4 py-3 align-top text-sm font-semibold text-slate-700">{formatDurationSeconds(item.oldest_age_seconds)}</td>
-                              <td className="px-4 py-3 align-top text-xs font-semibold text-slate-600">{item.consumer_runtime}</td>
-                              <td className="px-4 py-3 align-top text-sm font-semibold text-slate-700">{item.priority ?? '-'}</td>
+                              <td className="px-4 py-3 align-top text-xs font-semibold text-theme-text-secondary">{item.queue_key}</td>
+                              <td className="px-4 py-3 align-top text-sm font-semibold text-theme-text-secondary">{queueKindLabel(item.queue_kind)}</td>
+                              <td className="px-4 py-3 align-top text-sm font-semibold text-theme-text-secondary">{formatCount(item.length)}</td>
+                              <td className="px-4 py-3 align-top text-sm font-semibold text-theme-text-secondary">{formatDurationSeconds(item.oldest_age_seconds)}</td>
+                              <td className="px-4 py-3 align-top text-xs font-semibold text-theme-text-secondary">{item.consumer_runtime}</td>
+                              <td className="px-4 py-3 align-top text-sm font-semibold text-theme-text-secondary">{item.priority ?? '-'}</td>
                               <td className="px-4 py-3 align-top">
                                 <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${queueStatusTone(item.status)}`}>
                                   {item.status}
                                 </span>
                               </td>
-                              <td className="px-4 py-3 align-top text-xs font-semibold text-slate-600">
+                              <td className="px-4 py-3 align-top text-xs font-semibold text-theme-text-secondary">
                                 {item.description}
                                 {item.queue_key === 'delay' && item.next_due_in_seconds !== null && item.next_due_in_seconds !== undefined ? (
-                                  <div className="mt-2 text-[11px] font-bold text-slate-500">next due {formatDurationSeconds(item.next_due_in_seconds)}</div>
+                                  <div className="mt-2 text-[11px] font-bold text-theme-text-muted">next due {formatDurationSeconds(item.next_due_in_seconds)}</div>
                                 ) : null}
                               </td>
                             </tr>
@@ -1817,13 +1855,13 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
           <>
             <div className="flex flex-wrap items-center justify-center gap-2">
               {renderNavButtons()}
-              <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-600">
+              <div className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary">
                 <Layers3 size={16} />
                 总计 {formatCount(overview.stats.total_tasks)}
               </div>
               <button
                 onClick={() => void handleRefresh()}
-                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-black text-white transition hover:bg-slate-800"
+                className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-sm font-medium text-white transition hover:bg-theme-elevated"
               >
                 <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
                 刷新总览数据
@@ -1843,31 +1881,31 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
               ].map((card, index) => (
                 <article
                   key={`${card.label}-${index}`}
- className={`rounded-xl border border-slate-200 bg-slate-50 p-4`}
+ className={`rounded-xl border border-theme-border bg-theme-surface p-4`}
                 >
-                  <div className="truncate text-center text-xs font-bold text-slate-500" title={card.hint}>{card.label}</div>
-                  <div className={`mt-1.5 truncate text-center font-semibold tabular-nums text-slate-900 ${card.label === '最近刷新' ? 'text-[10px]' : 'text-sm'}`} title={`${card.value}`}>{card.value}</div>
+                  <div className="truncate text-center text-xs font-bold text-theme-text-muted" title={card.hint}>{card.label}</div>
+                  <div className={`mt-1.5 truncate text-center font-semibold tabular-nums text-theme-text-primary ${card.label === '最近刷新' ? 'text-[10px]' : 'text-sm'}`} title={`${card.value}`}>{card.value}</div>
                 </article>
               ))}
             </section>
 
- <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-              <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 md:px-5">
-                <h2 className="text-lg font-black text-slate-900">{legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].title}</h2>
-                <p className="mt-1 text-sm font-medium leading-6 text-slate-500">
+ <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
+              <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
+                <h2 className="text-lg font-semibold text-theme-text-primary">{legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].title}</h2>
+                <p className="mt-1 text-sm font-medium leading-6 text-theme-text-muted">
                   {legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].summary}
                 </p>
               </div>
 
               <div className="px-4 py-4 md:px-5">
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10">
- <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-50">
-                    <AlertCircle className="text-slate-400" size={24} />
+                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10">
+ <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-theme-elevated">
+                    <AlertCircle className="text-theme-text-muted" size={24} />
                   </div>
-                  <div className="mt-4 text-center text-lg font-black text-slate-900">能力已下沉，子页建设中</div>
+                  <div className="mt-4 text-center text-lg font-semibold text-theme-text-primary">能力已下沉，子页建设中</div>
                   <div className="mx-auto mt-4 max-w-2xl space-y-2">
                     {legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].bullets.map((bullet) => (
-                      <div key={bullet} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                      <div key={bullet} className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary">
                         {bullet}
                       </div>
                     ))}
@@ -1888,15 +1926,18 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
           setSelectedTaskDetail(null);
           setSelectedTaskId('');
         }}
+        onViewTimeline={() => {
+          if (selectedTaskDetail) openTaskTimeline(selectedTaskDetail);
+        }}
         onRetryDispatch={() => void handleRetryDispatch(selectedTaskDetail)}
         onDeleteTask={() => void handleDeleteTasks('selected', selectedTaskDetail)}
       />
 
       {errorPopupText !== null ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setErrorPopupText(null)}>
- <div className="mx-4 w-full max-w-lg rounded-2xl border border-slate-200 bg-slate-50 p-6" onClick={(e) => e.stopPropagation()}>
+ <div className="mx-4 w-full max-w-lg rounded-2xl border border-theme-border bg-theme-surface p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-bold text-rose-700">
+              <div className="flex items-center gap-2 text-sm font-bold text-rose-400">
                 <AlertCircle size={18} />
                 失败原因
               </div>
@@ -1904,24 +1945,24 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                 <button
                   type="button"
                   onClick={() => { navigator.clipboard.writeText(errorPopupText); }}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated hover:text-theme-text-primary"
                   title="复制内容"
                 >
                   <Copy size={14} />
                   复制
                 </button>
-                <button type="button" onClick={() => setErrorPopupText(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                <button type="button" onClick={() => setErrorPopupText(null)} className="rounded-lg p-1 text-theme-text-muted hover:bg-theme-elevated hover:text-theme-text-secondary">
                   <X size={18} />
                 </button>
               </div>
             </div>
-            <pre className="mt-4 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-medium text-slate-800">{errorPopupText}</pre>
+            <pre className="mt-4 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-theme-border bg-theme-surface p-4 text-sm font-medium text-theme-text-primary">{errorPopupText}</pre>
           </div>
         </div>
       ) : null}
 
       {(loadingOverview || refreshing) ? (
- <div className="fixed bottom-6 right-6 inline-flex items-center gap-3 rounded-full bg-slate-950 px-5 py-3 text-sm font-black text-white">
+ <div className="fixed bottom-6 right-6 inline-flex items-center gap-3 rounded-full bg-theme-elevated px-5 py-3 text-sm font-medium text-white">
           <RefreshCw className="animate-spin" size={16} />
           同步全局调度总览中
         </div>

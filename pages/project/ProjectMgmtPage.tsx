@@ -4,6 +4,8 @@ import {
   Building2,
   CheckCircle2,
   CheckSquare,
+  ChevronLeft,
+  ChevronRight,
   Edit3,
   Layers,
   Loader2,
@@ -15,7 +17,9 @@ import {
   Trash2,
 } from 'lucide-react';
 import { api } from '../../clients/api';
+import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
 import { orgApi, UserPermissionInfo } from '../../clients/org';
+import { PageHeader } from '../../design-system';
 import { Department, ProductTreeNode, ProductVersionNode, SecurityProject } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
 
@@ -74,7 +78,14 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   refreshProjects,
 }) => {
   const projectApi = api.domains.project;
+  const scheduleApi = api.domains.platform.scheduleCenter;
+  const vulnApi = api.domains.vuln.vuln;
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const saved = Number(localStorage.getItem('chimera:projectList:pageSize'));
+    return saved && [10, 20, 50, 100].includes(saved) ? saved : 10;
+  });
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -106,6 +117,28 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   const productDropdownRef = useRef<HTMLDivElement>(null);
   const versionDropdownRef = useRef<HTMLDivElement>(null);
 
+  const loadStats = async () => {
+    const envStats = (projects || []).map((p) =>
+      fetch(`${API_BASE}/api/agent/agents/stats?project_id=${encodeURIComponent(p.id)}`, { headers: getHeaders() })
+        .then((r) => handleResponse(r))
+        .catch(() => null),
+    );
+    const [taskRes, vulnRes, ...envResults] = await Promise.allSettled([
+      scheduleApi.listGlobalTasks({ page: 1, page_size: 1 }),
+      vulnApi.getOverview(),
+      ...envStats,
+    ]);
+    setTaskCount(taskRes.status === 'fulfilled' ? Number(taskRes.value?.total || 0) : null);
+    setVulnCount(vulnRes.status === 'fulfilled' ? Number(vulnRes.value?.metrics?.total_cases || 0) : null);
+    const envTotal = envResults.reduce<number>((sum, res) => {
+      if (res.status === 'fulfilled' && res.value) {
+        return sum + Number(res.value?.summary?.total_agents || 0);
+      }
+      return sum;
+    }, 0);
+    setEnvCount(envResults.some((res) => res.status === 'fulfilled') ? envTotal : null);
+  };
+
   useEffect(() => {
     const bootstrap = async () => {
       try {
@@ -123,6 +156,11 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     };
     bootstrap();
   }, []);
+
+  useEffect(() => {
+    if (projects.length === 0) return;
+    void loadStats();
+  }, [projects.length]);
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -223,12 +261,37 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     [filteredProjects]
   );
 
+  const totalPages = Math.max(1, Math.ceil(filteredProjects.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedProjects = useMemo(
+    () => filteredProjects.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [filteredProjects, safePage, pageSize]
+  );
+  const pageStart = filteredProjects.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const pageEnd = Math.min(safePage * pageSize, filteredProjects.length);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const handlePageSizeChange = (next: number) => {
+    setPageSize(next);
+    localStorage.setItem('chimera:projectList:pageSize', String(next));
+    setCurrentPage(1);
+  };
+
   const isAllSelected = manageableProjects.length > 0 && manageableProjects.every((project) => selectedIds.has(project.id));
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await refreshProjects(true);
+      await Promise.all([refreshProjects(true), loadStats()]);
     } finally {
       setIsRefreshing(false);
     }
@@ -463,38 +526,34 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
       {/* Page header */}
-      <div className="flex flex-col items-end justify-between gap-3 pb-4 md:flex-row" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
-        <div>
-          <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
-            项目概览
-          </h1>
-          <p className="mt-1.5 text-sm leading-6" style={{ color: LK.body }}>
-            统一展示用户权限范围内的所有项目
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handleRefresh}
-            className="rounded-lg p-2.5 transition-colors"
-            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
-            title="刷新列表"
-          >
-            <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
-          </button>
-          <button
-            onClick={openCreateModal}
-            disabled={!userPermissions || selectableDepartments.length === 0}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ backgroundColor: LK.primary, color: '#ffffff' }}
-            onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-            onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
-          >
-            <Plus size={16} /> 初始化项目
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="项目概览"
+        description="统一展示用户权限范围内的所有项目"
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefresh}
+              className="rounded-lg p-2.5 transition-colors"
+              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
+              title="刷新列表"
+            >
+              <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+            </button>
+            <button
+              onClick={openCreateModal}
+              disabled={!userPermissions || selectableDepartments.length === 0}
+              className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+              onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+              onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
+            >
+              <Plus size={16} /> 初始化项目
+            </button>
+          </div>
+        }
+      />
 
       {/* Batch selection bar */}
       {selectedIds.size > 0 && (
@@ -575,25 +634,18 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       )}
 
       {/* Search bar */}
-      <div
-        className="flex items-center gap-2 rounded-lg px-3"
-        style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
-      >
-        <Search size={16} style={{ color: LK.muted }} />
+      <div className="relative flex items-center">
+        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
         <input
           type="text"
           placeholder="搜索项目名称、负责人、归属部门、产品路径、版本号..."
-          className="w-full bg-transparent py-2.5 text-sm outline-none"
-          style={{ color: LK.inkSoft }}
+          className="form-input w-full pl-10 pr-10"
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
         />
         <button
           onClick={toggleSelectAll}
-          className="p-1.5 transition-colors"
-          style={{ color: isAllSelected ? LK.primary : LK.muted }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = LK.primarySoft)}
-          onMouseLeave={(e) => (e.currentTarget.style.color = isAllSelected ? LK.primary : LK.muted)}
+          className="absolute right-3 text-theme-text-muted transition-colors hover:text-theme-primary"
           title={isAllSelected ? '取消全选可管理项目' : '全选可管理项目'}
         >
           {isAllSelected ? <CheckSquare size={16} /> : <Square size={16} />}
@@ -621,7 +673,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {filteredProjects.map((project) => {
+                {pagedProjects.map((project) => {
                   const selected = selectedIds.has(project.id);
                   return (
                     <tr
@@ -736,6 +788,61 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
           </div>
         )}
       </section>
+
+      {/* Pagination */}
+      {filteredProjects.length > 0 && (
+        <div
+          className="flex flex-col items-center justify-between gap-3 rounded-xl px-4 py-3 md:flex-row"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+        >
+          <div className="text-xs" style={{ color: LK.muted }}>
+            共 <span style={{ color: LK.inkSoft }} className="font-semibold">{filteredProjects.length}</span> 项，
+            当前显示 <span style={{ color: LK.inkSoft }}>{pageStart}-{pageEnd}</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs" style={{ color: LK.muted }}>每页</span>
+              <select
+                value={pageSize}
+                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                className="rounded-md px-2 py-1 text-xs outline-none transition-colors"
+                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+              >
+                {[10, 20, 50, 100].map((size) => (
+                  <option key={size} value={size}>{size} 条</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                className="rounded-md p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ color: LK.body, border: `1px solid ${LK.border}` }}
+                onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.color = LK.primary; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
+                title="上一页"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <span className="min-w-[60px] text-center text-xs tabular-nums" style={{ color: LK.inkSoft }}>
+                {safePage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                className="rounded-md p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ color: LK.body, border: `1px solid ${LK.border}` }}
+                onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.color = LK.primary; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
+                title="下一页"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create project dialog */}
       {isCreateModalOpen && (

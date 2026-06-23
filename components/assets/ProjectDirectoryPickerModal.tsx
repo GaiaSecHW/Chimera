@@ -189,8 +189,8 @@ export const ProjectDirectoryPickerModal: React.FC<{
         <div key={node.id}>
           <div
             className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm ${
-              selected ? 'bg-blue-100/10 text-blue-700' : 'hover:bg-theme-elevated'
-            } ${disabled ? 'cursor-not-allowed text-slate-400' : 'cursor-pointer text-theme-text-primary'}`}
+              selected ? 'bg-blue-100/10 text-blue-400' : 'hover:bg-theme-elevated'
+            } ${disabled ? 'cursor-not-allowed text-theme-text-muted' : 'cursor-pointer text-theme-text-primary'}`}
             style={{ paddingLeft: `${depth * 20 + 12}px` }}
             onClick={() => {
               if (disabled) return;
@@ -199,7 +199,7 @@ export const ProjectDirectoryPickerModal: React.FC<{
           >
             <button
               type="button"
-              className="flex h-5 w-5 items-center justify-center rounded text-slate-400 hover:bg-theme-elevated"
+              className="flex h-5 w-5 items-center justify-center rounded text-theme-text-muted hover:bg-theme-elevated"
               onClick={(event) => {
                 event.stopPropagation();
                 void toggleExpand(node);
@@ -215,7 +215,7 @@ export const ProjectDirectoryPickerModal: React.FC<{
               ) : null}
             </button>
             {node.node_type === 'file' ? (
-              <File size={16} className="text-slate-400" />
+              <File size={16} className="text-theme-text-muted" />
             ) : expanded ? (
               <FolderOpen size={16} className="text-amber-500" />
             ) : (
@@ -239,10 +239,10 @@ export const ProjectDirectoryPickerModal: React.FC<{
       <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-theme-surface shadow-2xl">
         <div className="flex items-center justify-between border-b border-theme-border px-8 py-6">
           <div>
-            <h3 className="text-xl font-black text-theme-text-primary">选择项目文件夹</h3>
+            <h3 className="text-xl font-semibold text-theme-text-primary">选择项目文件夹</h3>
             <p className="mt-1 text-sm text-theme-text-faint">可以选择子项目根目录，或者任意层级的文件夹作为挂载来源。</p>
           </div>
-          <button onClick={onClose} className="rounded-2xl p-3 text-slate-400 hover:bg-theme-elevated hover:text-theme-text-primary">
+          <button onClick={onClose} className="rounded-2xl p-3 text-theme-text-muted hover:bg-theme-elevated hover:text-theme-text-primary">
             <X size={18} />
           </button>
         </div>
@@ -251,10 +251,10 @@ export const ProjectDirectoryPickerModal: React.FC<{
           <div className="min-h-0 overflow-y-auto border-b border-theme-border p-6 md:border-b-0 md:border-r">
             {loading ? (
               <div className="flex items-center justify-center py-16">
-                <Loader2 className="animate-spin text-blue-600" size={28} />
+                <Loader2 className="animate-spin text-blue-400" size={28} />
               </div>
             ) : treeNodes.length === 0 ? (
-              <div className="py-12 text-center text-sm text-slate-400">当前项目下还没有可选文件夹</div>
+              <div className="py-12 text-center text-sm text-theme-text-muted">当前项目下还没有可选文件夹</div>
             ) : (
               <div className="space-y-1">{renderTree(treeNodes)}</div>
             )}
@@ -262,20 +262,20 @@ export const ProjectDirectoryPickerModal: React.FC<{
 
           <div className="flex flex-col justify-between p-6">
             <div>
-              <div className="text-xs font-black uppercase tracking-widest text-theme-text-faint">已选目录</div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-theme-text-faint">已选目录</div>
               {selectedFolder ? (
-                <div className="mt-4 space-y-4 rounded-2xl border border-blue-100 bg-blue-50/10 p-5">
+                <div className="mt-4 space-y-4 rounded-2xl border border-blue-500/20 bg-blue-50/10 p-5">
                   <div>
-                    <div className="text-xs font-black uppercase tracking-widest text-blue-500">子项目</div>
+                    <div className="text-xs font-semibold uppercase tracking-widest text-blue-500">子项目</div>
                     <div className="mt-1 text-sm font-bold text-theme-text-primary">{selectedFolder.subproject_name}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-black uppercase tracking-widest text-blue-500">目录路径</div>
+                    <div className="text-xs font-semibold uppercase tracking-widest text-blue-500">目录路径</div>
                     <div className="mt-1 break-all rounded-xl bg-theme-elevated px-3 py-2 font-mono text-sm text-theme-text-primary">
                       {selectedFolder.display_path}
                     </div>
                   </div>
-                  <div className="text-xs text-slate-500">提交后会由 workflow 后端自动解析成 fileserver 共享 PVC 的 `subPath` 挂载。</div>
+                  <div className="text-xs text-theme-text-muted">提交后会由 workflow 后端自动解析成 fileserver 共享 PVC 的 `subPath` 挂载。</div>
                 </div>
               ) : (
                 <div className="mt-4 rounded-2xl border border-dashed border-theme-border bg-theme-elevated px-4 py-6 text-sm text-theme-text-faint">
@@ -285,7 +285,7 @@ export const ProjectDirectoryPickerModal: React.FC<{
             </div>
 
             <div className="mt-6 flex items-center justify-end gap-3">
-              <button onClick={onClose} className="px-5 py-3 text-sm font-bold text-slate-500 hover:text-theme-text-primary">
+              <button onClick={onClose} className="px-5 py-3 text-sm font-bold text-theme-text-muted hover:text-theme-text-primary">
                 取消
               </button>
               <button

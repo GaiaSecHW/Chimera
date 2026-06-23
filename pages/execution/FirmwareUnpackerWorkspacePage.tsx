@@ -3,6 +3,7 @@ import { ListTodo, Package, Settings2 } from 'lucide-react';
 
 import { FirmwareUnpackConfigPage } from './FirmwareUnpackConfigPage';
 import { FirmwareUnpackerPage } from './FirmwareUnpackerPage';
+import { PageHeader } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff',
@@ -67,18 +68,12 @@ export const FirmwareUnpackerWorkspacePage: React.FC<Props> = ({
 
   return (
     <div className="space-y-0" style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
+      <PageHeader title="固件解包" description="统一任务控制台 · 动态配置 · K8S 多实例同步" />
       <div className="px-4 pt-4">
         <div
  className="rounded-2xl border p-4"
           style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
         >
-          <div className="flex items-center gap-2 mb-3">
-            <Package size={18} style={{ color: LK.primary }} />
-            <div>
-              <h2 className="text-sm font-semibold" style={{ color: LK.ink }}>固件解包</h2>
-              <p className="text-xs" style={{ color: LK.muted }}>统一任务控制台 · 动态配置 · K8S 多实例同步</p>
-            </div>
-          </div>
 
           <div className="grid gap-2 sm:grid-cols-2">
             {TABS.map((tab) => {

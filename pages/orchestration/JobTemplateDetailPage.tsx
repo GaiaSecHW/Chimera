@@ -12,18 +12,19 @@ import {
 } from 'lucide-react';
 import { JobTemplate, TemplateScope, TemplateTag } from '../../types/types';
 import { api } from '../../clients/api';
+import { PageHeader } from '../../design-system';
 
 export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () => void }> = ({ templateId, onBack }) => {
   const orchestrationApi = api.domains.orchestration;
   const normalizeTagKey = (value: string) => value.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '');
   const getTagClasses = (color?: string) => {
     const colorMap: Record<string, string> = {
-      slate: 'bg-slate-100 text-slate-700 border-slate-200',
-      blue: 'bg-blue-50 text-blue-700 border-blue-200',
-      emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      amber: 'bg-amber-50 text-amber-700 border-amber-200',
-      rose: 'bg-rose-50 text-rose-700 border-rose-200',
-      violet: 'bg-violet-50 text-violet-700 border-violet-200',
+      slate: 'bg-theme-elevated text-theme-text-secondary border-theme-border',
+      blue: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
+      emerald: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
+      amber: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
+      rose: 'bg-rose-500/15 text-rose-400 border-rose-500/20',
+      violet: 'bg-violet-500/15 text-violet-400 border-violet-500/20',
     };
     return colorMap[color || 'slate'] || colorMap.slate;
   };
@@ -167,70 +168,62 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
   if (loading && !template) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 className="animate-spin text-blue-600" size={40} />
+        <Loader2 className="animate-spin text-blue-400" size={40} />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 animate-in fade-in duration-500">
+    <div className="flex flex-col h-full bg-theme-surface animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex items-center justify-between p-6 bg-slate-50 border-b border-slate-200 shrink-0">
-        <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all">
-            <ArrowLeft size={20} />
-          </button>
-          <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center font-black shadow-inner">
-            <Zap size={20} />
-          </div>
-          <div>
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight">{template?.name}</h2>
-            <p className="text-xs font-mono text-slate-400 mt-1">ID: {template?.id}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {isEditMode ? (
-            <>
-              <button onClick={() => { setIsEditMode(false); loadTemplate(); }} className="px-5 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
-                取消
+      <PageHeader
+        title={template?.name}
+        description={<p className="text-xs font-mono text-theme-text-muted mt-1">ID: {template?.id}</p>}
+        back={{ label: '返回模板列表', onClick: onBack }}
+        actions={
+          <div className="flex items-center gap-3">
+            {isEditMode ? (
+              <>
+                <button onClick={() => { setIsEditMode(false); loadTemplate(); }} className="px-5 py-2.5 text-sm font-medium text-theme-text-secondary bg-theme-elevated hover:bg-theme-elevated rounded-xl transition-all">
+                  取消
+                </button>
+                <button disabled={isSubmitting} onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all disabled:opacity-50">
+                  {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} 保存
+                </button>
+              </>
+            ) : (
+              <button onClick={() => setIsEditMode(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-theme-text-secondary bg-theme-surface border border-theme-border hover:bg-theme-elevated rounded-xl transition-all">
+                <Settings size={16} /> 编辑模式
               </button>
- <button disabled={isSubmitting} onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all disabled:opacity-50">
-                {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} 保存
-              </button>
-            </>
-          ) : (
- <button onClick={() => setIsEditMode(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all">
-              <Settings size={16} /> 编辑模式
-            </button>
-          )}
-        </div>
-      </div>
+            )}
+          </div>
+        }
+      />
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
         <div className="max-w-5xl mx-auto space-y-8">
 
           {/* Basic Info */}
- <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200 space-y-6">
-            <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+ <div className="bg-theme-surface rounded-xl p-6 border border-theme-border space-y-4">
+            <h3 className="text-lg font-semibold text-theme-text-primary flex items-center gap-2">
               <Settings size={18} className="text-blue-500" /> 基本信息
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">模板名称 *</label>
+                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">模板名称 *</label>
                 <input
                   disabled={!isEditMode}
                   required placeholder="e.g. nmap-scanner"
-                  className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-slate-800 transition-all disabled:opacity-70 disabled:bg-slate-100"
+                  className="form-input w-full disabled:opacity-70 disabled:bg-theme-elevated"
                   value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">发布范围</label>
+                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">发布范围</label>
                 <select
                   disabled={!isEditMode}
-                  className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-slate-800 disabled:opacity-70 disabled:bg-slate-100"
+                  className="w-full px-4 py-3 bg-theme-elevated rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-theme-text-primary disabled:opacity-70 disabled:bg-theme-elevated"
                   value={formData.scope} onChange={e => setFormData({...formData, scope: e.target.value as any})}
                 >
                   <option value="project">仅限当前项目 (Project-only)</option>
@@ -241,46 +234,46 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">重试次数 (Backoff Limit)</label>
+                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">重试次数 (Backoff Limit)</label>
                 <input
                   disabled={!isEditMode}
                   type="number" min="0" max="10"
-                  className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-slate-800 transition-all disabled:opacity-70 disabled:bg-slate-100"
+                  className="form-input w-full disabled:opacity-70 disabled:bg-theme-elevated"
                   value={formData.backoff_limit} onChange={e => setFormData({...formData, backoff_limit: parseInt(e.target.value)})}
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">完成后保留时间 (TTL Seconds)</label>
+                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">完成后保留时间 (TTL Seconds)</label>
                 <input
                   disabled={!isEditMode}
                   type="number" min="0"
-                  className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-slate-800 transition-all disabled:opacity-70 disabled:bg-slate-100"
+                  className="form-input w-full disabled:opacity-70 disabled:bg-theme-elevated"
                   value={formData.ttl_seconds_after_finished} onChange={e => setFormData({...formData, ttl_seconds_after_finished: parseInt(e.target.value)})}
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">组件描述</label>
+              <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">组件描述</label>
               <textarea
                 disabled={!isEditMode}
                 placeholder="描述该任务组件的功能、输入输出要求..." rows={2}
-                className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-slate-800 transition-all resize-none disabled:opacity-70 disabled:bg-slate-100"
+                className="form-textarea w-full resize-none disabled:opacity-70 disabled:bg-theme-elevated"
                 value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}
               />
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">模板标签</label>
-                {isEditMode && <span className="text-[10px] font-bold text-slate-400">回车或点击标签即可添加/移除</span>}
+                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">模板标签</label>
+                {isEditMode && <span className="text-[10px] font-medium text-theme-text-muted">回车或点击标签即可添加/移除</span>}
               </div>
               {isEditMode && (
                 <div className="space-y-3">
                   <div className="flex flex-col md:flex-row gap-3">
                     <input
                       placeholder="输入标签名后回车，例如 port-scan / weak-password"
-                      className="flex-1 px-4 py-3 bg-slate-50 rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-slate-800 transition-all"
+                      className="form-input flex-1"
                       value={tagInputValue}
                       onChange={(e) => setTagInputValue(e.target.value)}
                       onKeyDown={(e) => {
@@ -293,7 +286,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                     <button
                       type="button"
                       onClick={() => addTagToForm(tagInputValue)}
-                      className="px-4 py-3 rounded-xl bg-slate-900 text-white text-sm font-black hover:bg-slate-800 transition-all"
+                      className="px-4 py-3 rounded-xl bg-theme-surface text-white text-sm font-semibold hover:bg-theme-elevated transition-all"
                     >
                       添加标签
                     </button>
@@ -308,7 +301,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             key={tag.tag_key}
                             type="button"
                             onClick={() => addTagToForm(tag.tag_label || tag.tag_key)}
-                            className={`px-3 py-1.5 rounded-full border text-[11px] font-black transition-all hover:-translate-y-0.5 ${getTagClasses(tag.color)}`}
+                            className={`px-3 py-1.5 rounded-full border text-[11px] font-medium transition-all hover:-translate-y-0.5 ${getTagClasses(tag.color)}`}
                           >
                             #{tag.tag_label}
                           </button>
@@ -325,7 +318,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       type="button"
                       disabled={!isEditMode}
                       onClick={() => isEditMode && removeTagFromForm(tag.tag_key)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-black transition-all disabled:cursor-default ${getTagClasses(tag.color)}`}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-medium transition-all disabled:cursor-default ${getTagClasses(tag.color)}`}
                     >
                       <Hash size={12} />
                       <span>{tag.tag_label}</span>
@@ -334,22 +327,22 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                   ))}
                 </div>
               ) : (
-                <div className="text-sm text-slate-400 font-medium">暂未配置标签</div>
+                <div className="text-sm text-theme-text-muted font-medium">暂未配置标签</div>
               )}
             </div>
           </div>
 
           {/* Container Stack */}
- <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200 space-y-6">
+ <div className="bg-theme-surface rounded-xl p-6 border border-theme-border space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-theme-text-primary flex items-center gap-2">
                 <Container size={18} className="text-amber-500" /> 容器编排栈
               </h3>
               {isEditMode && (
                 <button
                   type="button"
                   onClick={() => setFormData({...formData, containers: [...formData.containers, JSON.parse(JSON.stringify(defaultContainer))]})}
-                  className="text-[10px] font-black text-blue-600 hover:underline uppercase tracking-widest"
+                  className="text-[10px] font-medium text-blue-400 hover:underline uppercase tracking-widest"
                 >
                   + 添加容器
                 </button>
@@ -358,12 +351,12 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
 
             <div className="space-y-6">
               {formData.containers.map((container: any, idx) => (
-                <div key={idx} className="p-6 bg-slate-50 rounded-2xl border border-slate-100 relative group/c space-y-6">
+                <div key={idx} className="p-6 bg-theme-surface rounded-xl border border-theme-border relative group/c space-y-6">
                   {isEditMode && formData.containers.length > 1 && (
                     <button
                       type="button"
                       onClick={() => setFormData({...formData, containers: formData.containers.filter((_, i) => i !== idx)})}
-                      className="absolute top-4 right-4 p-2 text-slate-400 hover:text-red-500 transition-colors"
+                      className="absolute top-4 right-4 p-2 text-theme-text-muted hover:text-red-500 transition-colors"
                     >
                       <X size={16} />
                     </button>
@@ -371,11 +364,11 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-slate-400 uppercase ml-1">容器名称</label>
+                      <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">容器名称</label>
                       <input
                         disabled={!isEditMode}
                         required placeholder="e.g. main-task"
-                        className="w-full px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-bold disabled:opacity-70 disabled:bg-slate-100"
+                        className="form-input w-full text-xs disabled:opacity-70 disabled:bg-theme-elevated"
                         value={container.name}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -385,11 +378,11 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-slate-400 uppercase ml-1">镜像 (Image) *</label>
+                      <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">镜像 (Image) *</label>
                       <input
                         disabled={!isEditMode}
                         required placeholder="e.g. nmap:latest"
-                        className="w-full px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono font-bold text-blue-600 disabled:opacity-70 disabled:bg-slate-100"
+                        className="form-input w-full text-xs font-mono text-blue-400 disabled:opacity-70 disabled:bg-theme-elevated"
                         value={container.image}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -402,11 +395,11 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-slate-400 uppercase ml-1">启动命令 (Command)</label>
+                      <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">启动命令 (Command)</label>
                       <input
                         disabled={!isEditMode}
                         placeholder="e.g. /bin/sh, -c (逗号分隔)"
-                        className="w-full px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                        className="form-input w-full text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                         value={container.command}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -416,11 +409,11 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-slate-400 uppercase ml-1">命令参数 (Args)</label>
+                      <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">命令参数 (Args)</label>
                       <input
                         disabled={!isEditMode}
                         placeholder="e.g. -p, 80 (逗号分隔)"
-                        className="w-full px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                        className="form-input w-full text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                         value={container.args}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -433,11 +426,11 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-slate-400 uppercase ml-1">拉取策略 (Image Pull Policy)</label>
+                      <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">拉取策略 (Image Pull Policy)</label>
                       <select
                         disabled={!isEditMode}
-                        className="w-full px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-bold disabled:opacity-70 disabled:bg-slate-100"
-                        value={container.image_pull_policy}
+className="w-full px-4 py-2 bg-theme-elevated rounded-xl border border-theme-border outline-none text-xs font-medium disabled:opacity-70 disabled:bg-theme-elevated"
+                         value={container.image_pull_policy}
                         onChange={e => {
                           const n = [...formData.containers];
                           n[idx].image_pull_policy = e.target.value;
@@ -454,7 +447,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                         <input
                           disabled={!isEditMode}
                           type="checkbox"
-                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                          className="w-4 h-4 rounded border-theme-border text-blue-400 focus:ring-blue-500 disabled:opacity-50"
                           checked={container.privileged}
                           onChange={e => {
                             const n = [...formData.containers];
@@ -462,14 +455,14 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             setFormData({...formData, containers: n});
                           }}
                         />
-                        <span className="text-xs font-black text-slate-700 uppercase">特权模式 (Privileged)</span>
+                        <span className="text-xs font-medium text-theme-text-secondary uppercase">特权模式 (Privileged)</span>
                       </label>
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center">
-                      <label className="text-[9px] font-black text-slate-400 uppercase ml-1">环境变量 (Env Vars)</label>
+                      <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">环境变量 (Env Vars)</label>
                       {isEditMode && (
                         <button
                           type="button"
@@ -478,7 +471,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             n[idx].env_vars.push({ name: '', value: '' });
                             setFormData({...formData, containers: n});
                           }}
-                          className="text-[9px] font-black text-blue-600 hover:underline uppercase"
+                          className="text-[9px] font-medium text-blue-400 hover:underline uppercase"
                         >
                           + 添加变量
                         </button>
@@ -490,7 +483,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                           <input
                             disabled={!isEditMode}
                             placeholder="Name (e.g. ENV_KEY)"
-                            className="flex-1 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                            className="form-input flex-1 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                             value={env.name}
                             onChange={e => {
                               const n = [...formData.containers];
@@ -501,7 +494,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                           <input
                             disabled={!isEditMode}
                             placeholder="Value (e.g. ENV_VALUE)"
-                            className="flex-1 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                            className="form-input flex-1 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                             value={env.value}
                             onChange={e => {
                               const n = [...formData.containers];
@@ -517,7 +510,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                                 n[idx].env_vars = n[idx].env_vars.filter((_: any, i: number) => i !== envIdx);
                                 setFormData({...formData, containers: n});
                               }}
-                              className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                              className="p-2 text-theme-text-muted hover:text-red-500 transition-colors"
                             >
                               <X size={14} />
                             </button>
@@ -529,7 +522,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
 
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center">
-                      <label className="text-[9px] font-black text-slate-400 uppercase ml-1">固定挂载 (Volume Mounts)</label>
+                      <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">固定挂载 (Volume Mounts)</label>
                       {isEditMode && (
                         <button
                           type="button"
@@ -538,7 +531,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             n[idx].volume_mounts.push({ pvc_name: '', mount_path: '' });
                             setFormData({...formData, containers: n});
                           }}
-                          className="text-[9px] font-black text-blue-600 hover:underline uppercase"
+                          className="text-[9px] font-medium text-blue-400 hover:underline uppercase"
                         >
                           + 添加挂载
                         </button>
@@ -550,7 +543,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                           <input
                             disabled={!isEditMode}
                             placeholder="PVC Name"
-                            className="flex-1 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                            className="form-input flex-1 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                             value={vol.pvc_name}
                             onChange={e => {
                               const n = [...formData.containers];
@@ -561,7 +554,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                           <input
                             disabled={!isEditMode}
                             placeholder="Mount Path"
-                            className="flex-1 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                            className="form-input flex-1 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                             value={vol.mount_path}
                             onChange={e => {
                               const n = [...formData.containers];
@@ -572,7 +565,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                           <input
                             disabled={!isEditMode}
                             placeholder="Sub Path"
-                            className="w-24 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                            className="form-input w-24 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                             value={vol.sub_path}
                             onChange={e => {
                               const n = [...formData.containers];
@@ -584,7 +577,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             <input
                               disabled={!isEditMode}
                               type="checkbox"
-                              className="w-3 h-3 rounded border-slate-300 text-blue-600 disabled:opacity-50"
+                              className="w-3 h-3 rounded border-theme-border text-blue-400 disabled:opacity-50"
                               checked={vol.read_only}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -592,7 +585,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                                 setFormData({...formData, containers: n});
                               }}
                             />
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">RO</span>
+                            <span className="text-[9px] font-medium text-theme-text-muted uppercase">RO</span>
                           </label>
                           {isEditMode && (
                             <button
@@ -602,7 +595,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                                 n[idx].volume_mounts = n[idx].volume_mounts.filter((_: any, i: number) => i !== volIdx);
                                 setFormData({...formData, containers: n});
                               }}
-                              className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                              className="p-2 text-theme-text-muted hover:text-red-500 transition-colors"
                             >
                               <X size={14} />
                             </button>
@@ -614,7 +607,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-center">
-                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">输入环境变量依赖 (Input Env Vars)</label>
+                        <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">输入环境变量依赖 (Input Env Vars)</label>
                         {isEditMode && (
                           <button
                             type="button"
@@ -623,7 +616,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                               n[idx].input_env_vars.push({ name: '', default_value: '' });
                               setFormData({...formData, containers: n});
                             }}
-                            className="text-[9px] font-black text-blue-600 hover:underline uppercase"
+                            className="text-[9px] font-medium text-blue-400 hover:underline uppercase"
                           >
                             + 添加依赖
                           </button>
@@ -635,7 +628,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             <input
                               disabled={!isEditMode}
                               placeholder="Name"
-                              className="flex-1 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                              className="form-input flex-1 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                               value={env.name}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -646,7 +639,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             <input
                               disabled={!isEditMode}
                               placeholder="Default Value"
-                              className="flex-1 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                              className="form-input flex-1 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                               value={env.default_value}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -662,7 +655,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                                   n[idx].input_env_vars = n[idx].input_env_vars.filter((_: any, i: number) => i !== envIdx);
                                   setFormData({...formData, containers: n});
                                 }}
-                                className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                                className="p-2 text-theme-text-muted hover:text-red-500 transition-colors"
                               >
                                 <X size={14} />
                               </button>
@@ -673,7 +666,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                     </div>
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-center">
-                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">输入挂载依赖 (Input Mounts)</label>
+                        <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">输入挂载依赖 (Input Mounts)</label>
                         {isEditMode && (
                           <button
                             type="button"
@@ -682,7 +675,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                               n[idx].input_volume_mounts.push({ mount_path: '', sub_path: '', read_only: true });
                               setFormData({...formData, containers: n});
                             }}
-                            className="text-[9px] font-black text-blue-600 hover:underline uppercase"
+                            className="text-[9px] font-medium text-blue-400 hover:underline uppercase"
                           >
                             + 添加依赖
                           </button>
@@ -694,7 +687,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             <input
                               disabled={!isEditMode}
                               placeholder="Mount Path"
-                              className="flex-1 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                              className="form-input flex-1 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                               value={vol.mount_path}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -705,7 +698,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                             <input
                               disabled={!isEditMode}
                               placeholder="Sub Path"
-                              className="w-24 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                              className="form-input w-24 text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                               value={vol.sub_path}
                               onChange={e => {
                                 const n = [...formData.containers];
@@ -717,7 +710,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                               <input
                                 disabled={!isEditMode}
                                 type="checkbox"
-                                className="w-3 h-3 rounded border-slate-300 text-blue-600 disabled:opacity-50"
+                                className="w-3 h-3 rounded border-theme-border text-blue-400 disabled:opacity-50"
                                 checked={vol.read_only}
                                 onChange={e => {
                                   const n = [...formData.containers];
@@ -725,7 +718,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                                   setFormData({...formData, containers: n});
                                 }}
                               />
-                              <span className="text-[9px] font-bold text-slate-400 uppercase">RO</span>
+                              <span className="text-[9px] font-medium text-theme-text-muted uppercase">RO</span>
                             </label>
                             {isEditMode && (
                               <button
@@ -735,7 +728,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                                   n[idx].input_volume_mounts = n[idx].input_volume_mounts.filter((_: any, i: number) => i !== volIdx);
                                   setFormData({...formData, containers: n});
                                 }}
-                                className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                                className="p-2 text-theme-text-muted hover:text-red-500 transition-colors"
                               >
                                 <X size={14} />
                               </button>
@@ -747,12 +740,12 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">资源限制 (Resources)</label>
+                    <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">资源限制 (Resources)</label>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                       <input
                         disabled={!isEditMode}
                         placeholder="Req CPU (100m)"
-                        className="w-full px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                        className="form-input w-full text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                         value={container.resources?.requests?.cpu || ''}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -765,7 +758,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <input
                         disabled={!isEditMode}
                         placeholder="Req Mem (128Mi)"
-                        className="w-full px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                        className="form-input w-full text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                         value={container.resources?.requests?.memory || ''}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -778,7 +771,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <input
                         disabled={!isEditMode}
                         placeholder="Lim CPU (500m)"
-                        className="w-full px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                        className="form-input w-full text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                         value={container.resources?.limits?.cpu || ''}
                         onChange={e => {
                           const n = [...formData.containers];
@@ -791,7 +784,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       <input
                         disabled={!isEditMode}
                         placeholder="Lim Mem (512Mi)"
-                        className="w-full px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 outline-none text-xs font-mono disabled:opacity-70 disabled:bg-slate-100"
+                        className="form-input w-full text-xs font-mono disabled:opacity-70 disabled:bg-theme-elevated"
                         value={container.resources?.limits?.memory || ''}
                         onChange={e => {
                           const n = [...formData.containers];

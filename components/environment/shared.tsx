@@ -21,25 +21,25 @@ export const navigateToAppView = (view: string, extraDetail: Record<string, any>
 export const HealthBadge: React.FC<{ status?: string }> = ({ status }) => {
   const normalized = String(status || 'unknown').toLowerCase();
   const cls = normalized === 'healthy'
-    ? 'bg-green-100/10 text-green-700 border-green-200'
+    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20'
     : normalized === 'unhealthy'
-      ? 'bg-red-100/10 text-red-700 border-red-200'
-      : 'bg-slate-100/10 text-theme-text-secondary border-theme-border';
-  return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${cls}`}>{normalized}</span>;
+      ? 'bg-rose-500/15 text-rose-400 border-rose-500/20'
+      : 'bg-theme-elevated text-theme-text-secondary border-theme-border';
+  return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${cls}`}>{normalized}</span>;
 };
 
 export const AgentStateBadges: React.FC<{ agent: Pick<AiAgentItem, 'installed' | 'running' | 'active'> }> = ({ agent }) => (
-  <div className="flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em]">
-    <span className={agent.installed ? 'text-green-600' : 'text-slate-400'}>{agent.installed ? 'INSTALLED' : 'MISSING'}</span>
-    <span className={agent.running ? 'text-emerald-600' : 'text-slate-400'}>{agent.running ? 'RUNNING' : 'STOPPED'}</span>
-    <span className={agent.active ? 'text-blue-600' : 'text-slate-400'}>{agent.active ? 'ACTIVE' : 'INACTIVE'}</span>
+  <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em]">
+    <span className={agent.installed ? 'text-emerald-400' : 'text-theme-text-faint'}>{agent.installed ? 'INSTALLED' : 'MISSING'}</span>
+    <span className={agent.running ? 'text-emerald-400' : 'text-theme-text-faint'}>{agent.running ? 'RUNNING' : 'STOPPED'}</span>
+    <span className={agent.active ? 'text-blue-400' : 'text-theme-text-faint'}>{agent.active ? 'ACTIVE' : 'INACTIVE'}</span>
   </div>
 );
 
 export const JsonBlock: React.FC<{ title?: string; value: any; className?: string }> = ({ title, value, className = '' }) => (
   <div className={`rounded-2xl border border-theme-border bg-theme-elevated p-4 ${className}`}>
     {title ? <div className="text-sm font-bold text-theme-text-primary">{title}</div> : null}
-    <pre className="mt-3 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-900">{prettyJson(value)}</pre>
+    <pre className="mt-3 overflow-auto rounded-xl border border-theme-border bg-theme-bg-app p-3 text-xs text-theme-text-secondary">{prettyJson(value)}</pre>
   </div>
 );
 

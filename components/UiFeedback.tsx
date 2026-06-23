@@ -47,20 +47,20 @@ interface PromptOptions {
 
 const noticeStyles: Record<NoticeLevel, { box: string; icon: React.ReactNode }> = {
   info: {
-    box: 'bg-blue-50 border-blue-200 text-blue-700 shadow-panel',
-    icon: <Info size={16} className="text-blue-600" />,
+    box: 'bg-blue-500/15 border-blue-500/20 text-blue-400 shadow-panel',
+    icon: <Info size={16} className="text-blue-400" />,
   },
   success: {
-    box: 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-panel',
-    icon: <CheckCircle2 size={16} className="text-emerald-600" />,
+    box: 'bg-emerald-500/15 border-emerald-500/20 text-emerald-400 shadow-panel',
+    icon: <CheckCircle2 size={16} className="text-emerald-400" />,
   },
   warning: {
-    box: 'bg-amber-50 border-amber-200 text-amber-700 shadow-panel',
-    icon: <AlertTriangle size={16} className="text-amber-600" />,
+    box: 'bg-amber-500/15 border-amber-500/20 text-amber-400 shadow-panel',
+    icon: <AlertTriangle size={16} className="text-amber-400" />,
   },
   error: {
-    box: 'bg-rose-50 border-rose-200 text-rose-700 shadow-panel',
-    icon: <AlertTriangle size={16} className="text-rose-600" />,
+    box: 'bg-rose-500/15 border-rose-500/20 text-rose-400 shadow-panel',
+    icon: <AlertTriangle size={16} className="text-rose-400" />,
   },
 };
 
@@ -119,7 +119,7 @@ export const useUiFeedback = () => {
               <div className="flex items-start gap-3">
                 <div className="mt-0.5">{noticeStyles[notice.level].icon}</div>
                 <div className="min-w-0">
-                  <p className="text-xs font-black tracking-widest uppercase">{notice.title}</p>
+                  <p className="text-xs font-semibold tracking-widest uppercase">{notice.title}</p>
                   <p className="text-sm font-semibold mt-1 leading-relaxed break-words">{notice.message}</p>
                 </div>
                 <button
@@ -137,8 +137,8 @@ export const useUiFeedback = () => {
           <div className="fixed inset-0 z-[270] bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-6">
             <div className="w-full max-w-lg bg-theme-surface rounded-3xl border border-theme-border shadow-section overflow-hidden">
               <div className="p-7 border-b border-theme-border">
-                <p className="text-[10px] font-black tracking-widest text-theme-text-faint uppercase">确认操作</p>
-                <h3 className="text-2xl font-black text-theme-text-primary mt-2">{confirmState.title}</h3>
+                <p className="text-[10px] font-semibold tracking-widest text-theme-text-faint uppercase">确认操作</p>
+                <h3 className="text-2xl font-semibold text-theme-text-primary mt-2">{confirmState.title}</h3>
                 <p className="text-sm text-theme-text-secondary mt-3 leading-relaxed whitespace-pre-wrap">{confirmState.message}</p>
               </div>
               <div className="p-6 flex justify-end gap-3">
@@ -171,15 +171,15 @@ export const useUiFeedback = () => {
           <div className="fixed inset-0 z-[270] bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-6">
             <div className="w-full max-w-lg bg-theme-surface rounded-3xl border border-theme-border shadow-section overflow-hidden">
               <div className="p-7 border-b border-theme-border">
-                <p className="text-[10px] font-black tracking-widest text-theme-text-faint uppercase">输入信息</p>
-                <h3 className="text-2xl font-black text-theme-text-primary mt-2">{promptState.title}</h3>
+                <p className="text-[10px] font-semibold tracking-widest text-theme-text-faint uppercase">输入信息</p>
+                <h3 className="text-2xl font-semibold text-theme-text-primary mt-2">{promptState.title}</h3>
                 <p className="text-sm text-theme-text-secondary mt-3 leading-relaxed whitespace-pre-wrap">{promptState.message}</p>
                 <input
                   autoFocus
                   value={promptValue}
                   onChange={(e) => setPromptValue(e.target.value)}
                   placeholder={promptState.placeholder}
-                  className="mt-4 w-full px-4 py-3 border border-theme-border rounded-xl text-sm font-medium text-theme-text-primary bg-theme-elevated outline-none focus:ring-2 ring-blue-500/15"
+                  className="form-input mt-4 w-full"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       promptState.resolve(promptValue);

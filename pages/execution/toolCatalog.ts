@@ -97,22 +97,22 @@ export const toolCatalog: ToolDescriptor[] = [
   },
   {
     id: 'app-security-scan',
-    name: '应用端到端扫描',
-    summary: '针对 APK/HAP 应用包执行 AI 驱动的端到端安全扫描，覆盖检测、挖掘、验证三阶段。',
-    thumbnailDescription: '适合对 Android/HarmonyOS 应用包做全流程自动化安全审计与漏洞收敛。',
-    inputDescription: '上传 APK/HAP 应用包文件，系统自动完成反编译并启动三阶段扫描流水线。',
+    name: 'turing 扫描工具',
+    summary: '针对 APK/HAP 应用包或源码压缩包执行 AI 驱动的端到端安全扫描，覆盖检测、挖掘、验证三阶段。',
+    thumbnailDescription: '适合对 Android/HarmonyOS 应用包与源码工程做全流程自动化安全审计与漏洞收敛。',
+    inputDescription: '上传 APK/HAP 应用包或源码压缩包，选择平台线别（APP/WEB）与扫描模式（fast/deep）后启动三阶段扫描流水线。',
     resultDescription: '输出检测、挖掘、验证三阶段进度、Token 用量统计、漏洞结论与任务生命周期管理。',
-    tags: ['应用扫描', 'APK', 'HAP', '三阶段检测'],
+    tags: ['turing 扫描', 'APK', 'HAP', '源码', '三阶段检测'],
     viewId: 'app-security-scan',
     icon: Smartphone,
     usageSections: [
       {
         title: '适用场景',
-        description: '用于对 Android APK 或 HarmonyOS HAP 应用包发起 AI 驱动的端到端安全扫描，适合需要自动化反编译、攻击面检测、漏洞挖掘和验证的完整审计场景。',
+        description: '用于对 Android APK / HarmonyOS HAP 应用包或源码压缩包发起 AI 驱动的端到端安全扫描。APP 线直接反编译，WEB 线先经预处理 Agent 拆分服务，适合需要自动化攻击面检测、漏洞挖掘和验证的完整审计场景。',
       },
       {
         title: '输入重点',
-        description: '上传 APK 或 HAP 文件，系统自动识别文件类型并启动反编译。反编译完成后自动进入检测→挖掘→验证三阶段扫描流水线。',
+        description: '上传应用包或源码压缩包，并选择平台线别（APP/WEB）与扫描模式（fast 仅 sink / deep 跑 source 并深挖）。系统自动推断文件类型并进入检测→挖掘→验证三阶段扫描流水线。',
       },
       {
         title: '结果重点',

@@ -8,6 +8,7 @@ import { EntryAnalysisConfigPage } from './EntryAnalysisConfigPage';
 import { DataflowVulnScanConfigPage } from './DataflowVulnScanConfigPage';
 import { B2SConfigPage } from './B2SConfigPage';
 import { VulnVerifyConfigPage } from './VulnVerifyConfigPage';
+import { PageSection, FormActionBar, PageHeader } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -120,38 +121,11 @@ const normalizeBinaryEvolutionConfig = (value: unknown) => {
 };
 
 const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.ReactNode; children: React.ReactNode }> = ({ title, subtitle, actions, children }) => (
-  <section style={{ borderRadius: '12px', backgroundColor: LK.surface, padding: '20px' }}>
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
-      <div>
-        <div style={{ fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>{title}</div>
-        {subtitle ? <div style={{ marginTop: '8px', fontSize: '12px', color: LK.body }}>{subtitle}</div> : null}
-      </div>
-      {actions}
-    </div>
-    <div style={{ marginTop: '16px' }}>{children}</div>
-  </section>
+  <PageSection title={title} description={subtitle} actions={actions}>{children}</PageSection>
 );
 
 const PanelActions: React.FC<{ saving: boolean; onSave: () => void; onReset: () => void }> = ({ saving, onSave, onReset }) => (
-  <div style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: '8px' }}>
-    <button
-      type="button"
-      onClick={onReset}
-      disabled={saving}
-      style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: LK.body, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.5 : 1 }}
-    >
-      重置为默认
-    </button>
-    <button
-      type="button"
-      onClick={onSave}
-      disabled={saving}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '8px', backgroundColor: LK.primary, padding: '8px 12px', fontSize: '12px', fontWeight: 600, color: '#ffffff', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}
-    >
-      {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-      保存配置
-    </button>
-  </div>
+  <FormActionBar saving={saving} onSave={onSave} onReset={onReset} saveText="保存配置" resetText="重置为默认" />
 );
 
 export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?: ConfigTab }> = ({ projectId, initialTab = 'binary-security' }) => {
@@ -469,24 +443,11 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
 
   return (
     <div style={{ padding: '32px 32px 40px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <section style={{ borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
-          <div>
-            <h1 style={{ fontSize: '30px', fontWeight: 600, letterSpacing: '-0.025em', color: LK.ink }}>参数配置</h1>
-            <p style={{ marginTop: '8px', maxWidth: '48rem', fontSize: '14px', color: LK.body }}>
-              按微服务分组查看和编辑配置。同一个微服务的参数归入同一个 Tab，不同微服务互相隔离；当前页面中的配置均按全局默认值管理，对所有项目生效。
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void load()}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '10px 16px', fontSize: '14px', fontWeight: 600, color: LK.inkSoft, cursor: 'pointer' }}
-          >
-            <RefreshCw size={16} />
-            刷新
-          </button>
-        </div>
-      </section>
+      <PageHeader
+        title="参数配置"
+        description="按微服务分组查看和编辑配置。同一个微服务的参数归入同一个 Tab，不同微服务互相隔离；当前页面中的配置均按全局默认值管理，对所有项目生效。"
+        actions={<button type="button" onClick={() => void load()} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated transition-all active:scale-95"><RefreshCw size={16} />刷新</button>}
+      />
 
       <section style={{ borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
@@ -580,8 +541,8 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
             >
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 <div>
-                  <div className="text-sm font-bold text-slate-700">最大并发总任务数</div>
-                  <div className="mt-2 text-xs text-slate-500">范围 1-200，默认 50。全局限制`running + dispatching` 的总任务数。</div>
+                  <div className="text-sm font-bold text-theme-text-secondary">最大并发总任务数</div>
+                  <div className="mt-2 text-xs text-theme-text-muted">范围 1-200，默认 50。全局限制`running + dispatching` 的总任务数。</div>
                   <input
                     type="number"
                     min={1}
@@ -589,12 +550,12 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
                     disabled={loading || saving}
                     value={maxConcurrentTasks}
                     onChange={(e) => setMaxConcurrentTasks(Number(e.target.value || 50))}
-                    className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                    className="form-input mt-4 w-full"
                   />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-slate-700">调度占用超时秒数</div>
-                  <div className="mt-2 text-xs text-slate-500">范围 10-600，默认 60。任务长时间停在`dispatching` 时会被回收到`pending`。</div>
+                  <div className="text-sm font-bold text-theme-text-secondary">调度占用超时秒数</div>
+                  <div className="mt-2 text-xs text-theme-text-muted">范围 10-600，默认 60。任务长时间停在`dispatching` 时会被回收到`pending`。</div>
                   <input
                     type="number"
                     min={10}
@@ -602,7 +563,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
                     disabled={loading || saving}
                     value={dispatchTimeoutSeconds}
                     onChange={(e) => setDispatchTimeoutSeconds(Number(e.target.value || 60))}
-                    className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                    className="form-input mt-4 w-full"
                   />
                 </div>
               </div>
@@ -615,7 +576,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
                 {ORCHESTRATOR_STAGE_FIELDS.map((field) => (
                   <div key={field.key}>
-                    <div className="mb-2 text-sm font-bold text-slate-700">{field.label}</div>
+                    <div className="mb-2 text-sm font-bold text-theme-text-secondary">{field.label}</div>
                     <input
                       type="number"
                       min={1}
@@ -623,12 +584,12 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
                       disabled={loading || saving}
                       value={stageParallelism[field.key] ?? 4}
                       onChange={(e) => setStageParallelism((current) => ({ ...current, [field.key]: Number(e.target.value || 4) }))}
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                      className="form-input w-full"
                     />
                   </div>
                 ))}
                   <div>
-                    <div className="mb-2 text-sm font-bold text-slate-700">子任务默认重试次数</div>
+                    <div className="mb-2 text-sm font-bold text-theme-text-secondary">子任务默认重试次数</div>
                     <input
                     type="number"
                     min={0}
@@ -636,16 +597,16 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
                     disabled={loading || saving}
                     value={maxRetriesPerItem}
                     onChange={(e) => setMaxRetriesPerItem(Number(e.target.value || 0))}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                    className="form-input w-full"
                   />
-                  <p className="mt-2 text-xs text-slate-500">这里只控制阶段项级别的业务重试。下游 API / 429 / transport 类可恢复错误默认无限重试，不受这里限制。</p>
+                  <p className="mt-2 text-xs text-theme-text-muted">这里只控制阶段项级别的业务重试。下游 API / 429 / transport 类可恢复错误默认无限重试，不受这里限制。</p>
                 </div>
               </div>
               <div className="mt-4">
-                <div className="mb-2 text-sm font-bold text-slate-700">新任务默认推进模式</div>
+                <div className="mb-2 text-sm font-bold text-theme-text-secondary">新任务默认推进模式</div>
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
                   {PIPELINE_MODE_OPTIONS.map((option) => (
-                    <label key={option.value} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                    <label key={option.value} className="flex items-start gap-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary">
                       <input
                         type="radio"
                         name="pipelineMode"
@@ -655,13 +616,13 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
                       />
                       <span>
                         <span className="block font-semibold">{option.label}</span>
-                        <span className="mt-1 block text-xs text-slate-500">{option.description}</span>
+                        <span className="mt-1 block text-xs text-theme-text-muted">{option.description}</span>
                       </span>
                     </label>
                   ))}
                 </div>
               </div>
-              <label className="mt-4 flex items-center gap-3 text-sm font-semibold text-slate-700">
+              <label className="mt-4 flex items-center gap-3 text-sm font-semibold text-theme-text-secondary">
                 <input
                   type="checkbox"
                   checked={continueOnItemFailure}
@@ -672,7 +633,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
               </label>
               <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-3">
                 {PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => (
-                  <label key={field.key} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                  <label key={field.key} className="flex items-center gap-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary">
                     <input
                       type="checkbox"
                       checked={partialSuccessStageAdvancement[field.key] !== false}
@@ -687,11 +648,11 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
           </div>
         </section>
       ) : activeTab === 'binary-evolution' ? (
- <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-elevated p-6">
           <div className="flex flex-wrap items-center gap-2">
-            <Settings size={18} className="text-amber-600" />
-            <h2 className="text-xl font-black text-slate-900">进化中心调度配置</h2>
-            <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-amber-700">
+            <Settings size={18} className="text-amber-400" />
+            <h2 className="text-xl font-semibold text-theme-text-primary">进化中心调度配置</h2>
+            <span className="rounded-full border border-amber-500/20 bg-amber-500/15 px-3 py-1 text-[11px] font-medium tracking-[0.12em] text-amber-400">
               chimera-app-binary-evolution-center
             </span>
           </div>
@@ -713,19 +674,19 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
             >
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
                 <div>
-                  <div className="text-sm font-bold text-slate-700">服务级最大并发任务数</div>
-                  <div className="mt-2 text-xs text-slate-500">同时最多运行多少个进化任务。</div>
-                  <input type="number" min={1} max={64} disabled={loading || saving} value={evolutionMaxConcurrentTasks} onChange={(e) => setEvolutionMaxConcurrentTasks(Number(e.target.value || 1))} className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                  <div className="text-sm font-bold text-theme-text-secondary">服务级最大并发任务数</div>
+                  <div className="mt-2 text-xs text-theme-text-muted">同时最多运行多少个进化任务。</div>
+                  <input type="number" min={1} max={64} disabled={loading || saving} value={evolutionMaxConcurrentTasks} onChange={(e) => setEvolutionMaxConcurrentTasks(Number(e.target.value || 1))} className="form-input mt-4 w-full" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-slate-700">任务内最大并发源任务数</div>
-                  <div className="mt-2 text-xs text-slate-500">单轮 replay 内，同时并发多少个原始 normal 任务。</div>
-                  <input type="number" min={1} max={64} disabled={loading || saving} value={evolutionMaxConcurrentSourceTasks} onChange={(e) => setEvolutionMaxConcurrentSourceTasks(Number(e.target.value || 1))} className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                  <div className="text-sm font-bold text-theme-text-secondary">任务内最大并发源任务数</div>
+                  <div className="mt-2 text-xs text-theme-text-muted">单轮 replay 内，同时并发多少个原始 normal 任务。</div>
+                  <input type="number" min={1} max={64} disabled={loading || saving} value={evolutionMaxConcurrentSourceTasks} onChange={(e) => setEvolutionMaxConcurrentSourceTasks(Number(e.target.value || 1))} className="form-input mt-4 w-full" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-slate-700">进化智能体超时秒数</div>
-                  <div className="mt-2 text-xs text-slate-500">控制单轮进化智能体处理的默认超时。</div>
-                  <input type="number" min={1} max={86400} disabled={loading || saving} value={evolutionAgentTimeoutSeconds} onChange={(e) => setEvolutionAgentTimeoutSeconds(Number(e.target.value || 1))} className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                  <div className="text-sm font-bold text-theme-text-secondary">进化智能体超时秒数</div>
+                  <div className="mt-2 text-xs text-theme-text-muted">控制单轮进化智能体处理的默认超时。</div>
+                  <input type="number" min={1} max={86400} disabled={loading || saving} value={evolutionAgentTimeoutSeconds} onChange={(e) => setEvolutionAgentTimeoutSeconds(Number(e.target.value || 1))} className="form-input mt-4 w-full" />
                 </div>
               </div>
             </SectionCard>
@@ -736,16 +697,16 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
             >
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
                 <div>
-                  <div className="text-sm font-bold text-slate-700">默认最小轮次</div>
-                  <input type="number" min={1} max={100} disabled={loading || saving} value={evolutionMinRounds} onChange={(e) => setEvolutionMinRounds(Number(e.target.value || 1))} className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                  <div className="text-sm font-bold text-theme-text-secondary">默认最小轮次</div>
+                  <input type="number" min={1} max={100} disabled={loading || saving} value={evolutionMinRounds} onChange={(e) => setEvolutionMinRounds(Number(e.target.value || 1))} className="form-input mt-4 w-full" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-slate-700">默认最大轮次</div>
-                  <input type="number" min={1} max={100} disabled={loading || saving} value={evolutionMaxRounds} onChange={(e) => setEvolutionMaxRounds(Number(e.target.value || 1))} className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                  <div className="text-sm font-bold text-theme-text-secondary">默认最大轮次</div>
+                  <input type="number" min={1} max={100} disabled={loading || saving} value={evolutionMaxRounds} onChange={(e) => setEvolutionMaxRounds(Number(e.target.value || 1))} className="form-input mt-4 w-full" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-slate-700">默认上下文窗口</div>
-                  <input type="number" min={1024} max={10485760} disabled={loading || saving} value={evolutionContextWindow} onChange={(e) => setEvolutionContextWindow(Number(e.target.value || 1024))} className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                  <div className="text-sm font-bold text-theme-text-secondary">默认上下文窗口</div>
+                  <input type="number" min={1024} max={10485760} disabled={loading || saving} value={evolutionContextWindow} onChange={(e) => setEvolutionContextWindow(Number(e.target.value || 1024))} className="form-input mt-4 w-full" />
                 </div>
               </div>
             </SectionCard>
@@ -754,7 +715,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
               subtitle="创建进化任务时默认带入，可在任务创建时覆盖。"
               actions={<PanelActions saving={savingPanel === 'evolution-model'} onSave={() => { void saveEvolutionModel(); }} onReset={resetEvolutionModel} />}
             >
-              <input type="text" disabled={loading || saving} value={evolutionAgentModel} onChange={(e) => setEvolutionAgentModel(e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+              <input type="text" disabled={loading || saving} value={evolutionAgentModel} onChange={(e) => setEvolutionAgentModel(e.target.value)} className="form-input w-full" />
             </SectionCard>
           </div>
         </section>

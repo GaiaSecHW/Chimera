@@ -150,7 +150,7 @@ export const FileServerPickerModal: React.FC<FileServerPickerModalProps> = ({
         <div key={path}>
           <div
             className={`flex items-center gap-1 rounded-lg px-2 py-1.5 cursor-pointer select-none text-sm ${
-              isSelected ? 'bg-blue-100/10 text-blue-800' : 'hover:bg-theme-elevated text-theme-text-primary'
+              isSelected ? 'bg-blue-100/10 text-blue-400' : 'hover:bg-theme-elevated text-theme-text-primary'
             }`}
             style={{ paddingLeft: `${8 + depth * 16}px` }}
             onClick={() => setSelectedEntry(node.entry)}
@@ -161,7 +161,7 @@ export const FileServerPickerModal: React.FC<FileServerPickerModalProps> = ({
             ) : (
               <button
                 type="button"
-                className="shrink-0 text-slate-400 hover:text-theme-text-primary p-0.5"
+                className="shrink-0 text-theme-text-muted hover:text-theme-text-primary p-0.5"
                 onClick={(e) => { e.stopPropagation(); void toggleExpand(node, setRoots); }}
               >
                 {node.isLoading ? (
@@ -172,7 +172,7 @@ export const FileServerPickerModal: React.FC<FileServerPickerModalProps> = ({
               </button>
             )}
             {isFile ? (
-              <File size={14} className="shrink-0 text-slate-500" />
+              <File size={14} className="shrink-0 text-theme-text-muted" />
             ) : isExpanded ? (
               <FolderOpen size={14} className="shrink-0 text-amber-500" />
             ) : (
@@ -180,13 +180,13 @@ export const FileServerPickerModal: React.FC<FileServerPickerModalProps> = ({
             )}
             <span className="ml-1 truncate font-medium">{node.entry.name}</span>
             {node.entry.special_badge ? (
-              <span className="ml-1 shrink-0 rounded px-1 text-[10px] bg-amber-100/10 text-amber-700">{node.entry.special_badge}</span>
+              <span className="ml-1 shrink-0 rounded px-1 text-[10px] bg-amber-100/10 text-amber-400">{node.entry.special_badge}</span>
             ) : null}
             {!isFile && mode === 'directory' && (
               <button
                 type="button"
                 title="在此目录下新建文件夹"
-                className="ml-auto shrink-0 text-slate-300 hover:text-theme-text-primary p-0.5 rounded"
+                className="ml-auto shrink-0 text-theme-text-faint hover:text-theme-text-primary p-0.5 rounded"
                 onClick={(e) => { e.stopPropagation(); void handleCreateDirectory(path); }}
               >
                 <FolderPlus size={12} />
@@ -195,7 +195,7 @@ export const FileServerPickerModal: React.FC<FileServerPickerModalProps> = ({
           </div>
           {isExpanded && node.children && node.children.length > 0 && renderTree(node.children, depth + 1)}
           {isExpanded && node.children && node.children.length === 0 && (
-            <div className="text-xs text-slate-400 py-1" style={{ paddingLeft: `${8 + (depth + 1) * 16 + 20}px` }}>
+            <div className="text-xs text-theme-text-muted py-1" style={{ paddingLeft: `${8 + (depth + 1) * 16 + 20}px` }}>
               （空目录）
             </div>
           )}
@@ -220,10 +220,10 @@ export const FileServerPickerModal: React.FC<FileServerPickerModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-theme-border">
           <div>
-            <h3 className="text-base font-black text-theme-text-primary">{modalTitle}</h3>
+            <h3 className="text-base font-semibold text-theme-text-primary">{modalTitle}</h3>
             <p className="mt-1 text-xs text-theme-text-faint">{modalDescription}</p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:text-theme-text-primary hover:bg-theme-elevated">
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-theme-text-muted hover:text-theme-text-primary hover:bg-theme-elevated">
             <X size={16} />
           </button>
         </div>
@@ -231,11 +231,11 @@ export const FileServerPickerModal: React.FC<FileServerPickerModalProps> = ({
         {/* Tree */}
         <div className="flex-1 overflow-auto px-3 py-3 min-h-0">
           {loadingRoots ? (
-            <div className="flex items-center gap-2 text-sm text-slate-500 py-6 justify-center">
+            <div className="flex items-center gap-2 text-sm text-theme-text-muted py-6 justify-center">
               <Loader2 size={14} className="animate-spin" />加载中...
             </div>
           ) : roots.length === 0 ? (
-            <div className="py-8 text-center text-sm text-slate-400">暂无子项目，请先在项目文件资源管理中创建</div>
+            <div className="py-8 text-center text-sm text-theme-text-muted">暂无子项目，请先在项目文件资源管理中创建</div>
           ) : (
             <div className="space-y-0.5">{renderTree(roots)}</div>
           )}
@@ -244,7 +244,7 @@ export const FileServerPickerModal: React.FC<FileServerPickerModalProps> = ({
         {/* Selected path preview */}
         {containerPath && (
           <div className="px-5 py-3 border-t border-theme-border bg-theme-elevated/80">
-            <div className="text-xs text-slate-400 mb-0.5">容器挂载路径</div>
+            <div className="text-xs text-theme-text-muted mb-0.5">容器挂载路径</div>
             <div className="font-mono text-xs text-theme-text-primary break-all">{containerPath}</div>
           </div>
         )}
@@ -262,7 +262,7 @@ export const FileServerPickerModal: React.FC<FileServerPickerModalProps> = ({
             type="button"
             disabled={!containerPath || !isSelectionValid}
             onClick={() => containerPath && onSelect(containerPath)}
-            className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40 hover:bg-slate-700"
+            className="rounded-xl bg-theme-surface px-4 py-2 text-sm font-semibold text-white disabled:opacity-40 hover:bg-theme-elevated"
           >
             {modalConfirmText}
           </button>

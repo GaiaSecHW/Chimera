@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, BarChart3, RefreshCw, ShieldAlert, TrendingUp } from 'lucide-react';
+import { PageHeader } from '../../design-system';
 import { api } from '../../clients/api';
+import { ServiceBuildVersionBadge, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import {
   ACTION_STATUS_LABELS,
   FINISHED_REASON_LABELS,
@@ -55,6 +57,7 @@ const STAGE_EXPLANATIONS: Record<string, string> = {
 };
 
 export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
+  const buildVersion = useServiceBuildVersion(vulnApi.vuln.getHealth);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [overview, setOverview] = useState<any | null>(null);
@@ -111,23 +114,15 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
       className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-        <div>
-          <span
-            className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium uppercase tracking-wider"
-            style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}
-          >
-            <BarChart3 size={13} />
-            生命周期总览
+      <PageHeader
+        title={(
+          <span className="inline-flex flex-wrap items-center gap-3">
+            <span>漏洞生命周期指挥台</span>
+            <ServiceBuildVersionBadge version={buildVersion} />
           </span>
-          <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
-            漏洞生命周期指挥台
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6" style={{ color: LK.body }}>
-            把阶段堆积、风险密度、队列压力和结论收敛压缩到一屏内，快速判断项目当前最需要介入的位置。
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
+        )}
+        description="把阶段堆积、风险密度、队列压力和结论收敛压缩到一屏内，快速判断项目当前最需要介入的位置。"
+        actions={<div className="flex flex-wrap items-center gap-3">
           <div
             className="rounded-xl px-4 py-2.5"
             style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
@@ -148,8 +143,8 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
             <RefreshCw size={15} />
             刷新统计
           </button>
-        </div>
-      </div>
+        </div>}
+      />
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div
@@ -164,7 +159,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
               <ShieldAlert size={16} />
             </div>
           </div>
-          <div className="text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>{totalCases}</div>
+          <div className="text-2xl font-bold leading-7 tabular-nums" style={{ color: LK.ink }}>{totalCases}</div>
           <div className="text-xs" style={{ color: LK.muted }}>生命周期纳管总量</div>
         </div>
 
@@ -180,7 +175,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
               <AlertTriangle size={16} />
             </div>
           </div>
-          <div className="text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>{highRiskRate}%</div>
+          <div className="text-2xl font-bold leading-7 tabular-nums" style={{ color: LK.ink }}>{highRiskRate}%</div>
           <div className="text-xs" style={{ color: LK.muted }}>{highRiskCount} 个严重 / 高危</div>
         </div>
 
@@ -196,7 +191,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
               <TrendingUp size={16} />
             </div>
           </div>
-          <div className="text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>{finishedRate}%</div>
+          <div className="text-2xl font-bold leading-7 tabular-nums" style={{ color: LK.ink }}>{finishedRate}%</div>
           <div className="text-xs" style={{ color: LK.muted }}>已结束 {finishedCount} 个</div>
         </div>
 
@@ -212,7 +207,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
               <BarChart3 size={16} />
             </div>
           </div>
-          <div className="text-2xl font-semibold leading-7 tabular-nums" style={{ color: LK.ink }}>{overview?.metrics?.manual_tasks_open || 0}</div>
+          <div className="text-2xl font-bold leading-7 tabular-nums" style={{ color: LK.ink }}>{overview?.metrics?.manual_tasks_open || 0}</div>
           <div className="text-xs" style={{ color: LK.muted }}>需要人工介入的任务</div>
         </div>
       </section>
@@ -250,7 +245,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
                     >
                       {labelOf(stage, STAGE_LABELS)}
                     </div>
-                    <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>
+                    <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>
                       {Number(overview?.stage_counts?.[stage] || 0)}
                     </div>
                     <p className="mt-1 text-xs leading-5" style={{ color: LK.muted }}>{STAGE_EXPLANATIONS[stage]}</p>
@@ -360,7 +355,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
                         {labelOf(item.severity, SEVERITY_LABELS)}
                       </span>
                     </div>
-                    <span className="text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{item.count}</span>
+                    <span className="text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{item.count}</span>
                   </div>
                 ))}
               </div>
@@ -385,7 +380,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
                 <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
                   运行中 Case
                 </div>
-                <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{runningCases}</div>
+                <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{runningCases}</div>
               </div>
               <div
                 className="rounded-lg px-4 py-3"
@@ -394,7 +389,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
                 <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
                   排队动作
                 </div>
-                <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{queuedActions}</div>
+                <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{queuedActions}</div>
               </div>
               <div
                 className="rounded-lg px-4 py-3"
@@ -403,7 +398,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
                 <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
                   活跃服务
                 </div>
-                <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{activeServices}</div>
+                <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{activeServices}</div>
                 <div className="mt-1 text-xs" style={{ color: LK.muted }}>注册 {registeredServices}</div>
               </div>
               <div
@@ -413,7 +408,7 @@ export const VulnOverviewPage: React.FC<VulnPageProps> = ({ projectId }) => {
                 <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.muted }}>
                   服务可用率
                 </div>
-                <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{serviceAvailabilityRate}%</div>
+                <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{serviceAvailabilityRate}%</div>
               </div>
             </div>
           </section>

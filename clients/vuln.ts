@@ -1,4 +1,5 @@
 import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse } from './base';
+import type { ServiceHealthMeta } from '../components/execution/serviceHealthMeta';
 
 export interface VulnCaseDisplaySummary {
   title?: string;
@@ -121,7 +122,7 @@ export interface VulnAutoVerifyContext {
 
 export interface VulnAutoVerifyTaskCreatePayload {
   name: string;
-  threat_model_markdown: string;
+  threat_model_markdown?: string | null;
   template_id?: string | null;
   model: string;
   concurrency: number;
@@ -188,6 +189,41 @@ export interface VulnAutoVerifyTaskBatchSyncResponse {
   }>;
 }
 
+const asRecord = (value: unknown): Record<string, unknown> => (
+  value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+);
+
+const asString = (value: unknown, fallback = ''): string => (
+  typeof value === 'string' ? value : value == null ? fallback : String(value)
+);
+
+const asNullableString = (value: unknown): string | null => {
+  const normalized = asString(value).trim();
+  return normalized ? normalized : null;
+};
+
+type VulnHealthResponse = {
+  status: string;
+  service: string;
+} & ServiceHealthMeta;
+
+const normalizeHealth = (value: unknown): VulnHealthResponse => {
+  const record = asRecord(value);
+  return {
+    status: asString(record.status, typeof value === 'string' ? value : 'unknown'),
+    service: asString(record.service),
+    service_id: asNullableString(record.service_id),
+    service_name: asNullableString(record.service_name),
+    build_version: asNullableString(record.build_version),
+    service_version: asNullableString(record.service_version),
+    image_tag: asNullableString(record.image_tag),
+    git_tag: asNullableString(record.git_tag),
+    git_commit: asNullableString(record.git_commit),
+    built_at: asNullableString(record.built_at),
+    version: asNullableString(record.version),
+  };
+};
+
 const publicJson = async (url: string, init?: RequestInit) => {
   const response = await fetch(url, init);
   if (!response.ok) {
@@ -217,6 +253,7 @@ export interface VulnCaseListParams {
   evolution_task_id?: string;
   evolution_round?: number;
   global_vuln_id?: string;
+  final_result?: 'vulnerable' | 'not_vulnerable' | 'inconclusive' | 'analyzing';
 }
 
 export interface VulnCaseListResponse {
@@ -238,8 +275,8 @@ const buildQueryString = (params: Record<string, any>): string => {
 };
 
 export const vulnApi = {
-  getHealth: async (): Promise<{ status: string; service: string }> =>
-    handleResponse(await fetch(`${API_BASE}/api/vuln/health`, { headers: getHeaders() })),
+  getHealth: async (): Promise<VulnHealthResponse> =>
+    normalizeHealth(await handleResponse(await fetch(`${API_BASE}/api/vuln/health`, { headers: getHeaders() }))),
 
   getOverview: async (projectId?: string): Promise<any> => {
     const query = new URLSearchParams(projectId ? { project_id: projectId } : {}).toString();
@@ -278,6 +315,31 @@ export const vulnApi = {
       body: JSON.stringify(payload)
     })),
 
+  listConfirmEngines: async (): Promise<{ engines: any[] }> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/admin/vuln-confirm/engines`, { headers: getHeaders() })),
+
+  createConfirmEngine: async (payload: { engine_name: string; endpoint: string; version: string; bind_tools: string[] }) =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/admin/vuln-confirm/engines`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  updateConfirmEngine: async (engineName: string, payload: { endpoint: string; version: string; bind_tools: string[] }) =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/admin/vuln-confirm/engines/${encodeURIComponent(engineName)}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  deleteConfirmEngine: async (engineName: string): Promise<void> => {
+    const resp = await fetch(`${API_BASE}/api/vuln/admin/vuln-confirm/engines/${encodeURIComponent(engineName)}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (resp.status !== 204) await handleResponse(resp);
+  },
+
   createCase: async (payload: any): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases`, {
       method: 'POST',
@@ -299,6 +361,9 @@ export const vulnApi = {
 
   getCaseDetail: async (caseId: string): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}`, { headers: getHeaders() })),
+
+  getCaseConfirmRecords: async (caseId: string): Promise<{ confirm_records: any[]; validation_result?: string }> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}/vuln-confirm`, { headers: getHeaders() })),
 
   getCaseReport: async (caseId: string, reportId?: string): Promise<VulnCaseReportDocument> => {
     const query = reportId ? `?report_id=${encodeURIComponent(reportId)}` : '';
@@ -460,6 +525,13 @@ export const vulnApi = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(payload)
+    })),
+
+  submitTriageDecision: async (caseId: string, payload: { triage_decision: 'issue' | 'vulnerable' | 'non_issue'; summary?: string }): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}/triage/decision`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
     })),
 
   submitValidationResult: async (caseId: string, payload: any): Promise<any> =>

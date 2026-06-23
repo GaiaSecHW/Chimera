@@ -3,6 +3,7 @@ import { Settings } from 'lucide-react';
 import { api } from '../clients/api';
 import { WorkflowPlaceholder } from '../components/WorkflowPlaceholder';
 import { AssessmentLeaderboardPage } from '../pages/assessment/AssessmentLeaderboardPage';
+import { AgentTraceObserverPage } from '../pages/observe/AgentTraceObserverPage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { HomePage } from '../pages/HomePage';
 import { ProjectMgmtPage } from '../pages/project/ProjectMgmtPage';
@@ -39,7 +40,13 @@ import { SystemAnalysisConfigPage } from '../pages/execution/SystemAnalysisConfi
 import { DataflowVulnScanTaskPage } from '../pages/execution/DataflowVulnScanTaskPage';
 import { DataflowVulnScanTaskDetailPage } from '../pages/execution/DataflowVulnScanTaskDetailPage';
 import { DataflowVulnScanConfigPage } from '../pages/execution/DataflowVulnScanConfigPage';
+import { CfgGuidedExploreTaskPage } from '../pages/execution/CfgGuidedExploreTaskPage';
+import { CfgGuidedExploreTaskDetailPage } from '../pages/execution/CfgGuidedExploreTaskDetailPage';
+import { CfgGuidedExploreConfigPage } from '../pages/execution/CfgGuidedExploreConfigPage';
+import { CfgDbVulnToolPage } from '../pages/execution/CfgDbVulnToolPage';
+import { CfgDbVulnDetailPage } from '../pages/execution/CfgDbVulnDetailPage';
 import { VulnVerifyTaskPage } from '../pages/execution/VulnVerifyTaskPage';
+import { VulnVerifyV2TaskPage } from '../pages/execution/VulnVerifyV2TaskPage';
 import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage';
 import { EntryAnalysisTaskDetailPage } from '../pages/execution/EntryAnalysisTaskDetailPage';
 import { EntryAnalysisConfigPage } from '../pages/execution/EntryAnalysisConfigPage';
@@ -60,6 +67,8 @@ import { ReportsPage } from '../pages/execution/ReportsPage';
 import { TestInputPage } from '../pages/TestInputPage';
 import { TaskCenterPage } from '../pages/task/TaskCenterPage';
 import { TaskCenterTimelinePage } from '../pages/task/TaskCenterTimelinePage';
+import { TaskVulnListPage } from '../pages/task/TaskVulnListPage';
+import { TaskReportViewPage } from '../pages/task/TaskReportViewPage';
 import { WebEndToEndPage } from '../pages/task/WebEndToEndPage';
 import { KnowledgeGraphPage } from '../pages/task/KnowledgeGraphPage';
 // [DISABLED] DataflowVulnTask import - 方便后续复用
@@ -100,6 +109,7 @@ import { RedlineOverviewPage } from '../pages/redline/RedlineOverviewPage';
 import { RedlineTaskDetailPage } from '../pages/redline/RedlineTaskDetailPage';
 import { UserMgmtPage } from '../pages/platform/UserMgmtPage';
 import { RoleMgmtPage } from '../pages/platform/RoleMgmtPage';
+import { VulnConfirmEnginesPage } from '../pages/platform/VulnConfirmEnginesPage';
 import { PermMgmtPage } from '../pages/platform/PermMgmtPage';
 import { OnlineSessionPage } from '../pages/platform/OnlineSessionPage';
 import { MachineTokenPage } from '../pages/platform/MachineTokenPage';
@@ -111,6 +121,7 @@ import { AdminDashboardPage } from '../pages/platform/AdminDashboardPage';
 import { AiGatewayDashboardPage } from '../pages/platform/AiGatewayDashboardPage';
 import { AiGatewayPage } from '../pages/platform/AiGatewayPage';
 import { ChangePasswordPage } from '../pages/platform/ChangePasswordPage';
+import { SECOCTO_VIEW_PREFIX, renderSecOctoView } from '../pages/secocto/viewRegistry';
 import { Agent, AdminDashboardStats, EnvTemplate, SecurityProject, StaticPackage, PackageStats, UserInfo } from '../types/types';
 
 export interface ViewRegistryContext {
@@ -139,13 +150,19 @@ export interface ViewRegistryContext {
   activeEntryAnalysisTaskId: string;
   activeDataflowAnalysisTaskId: string;
   activeDataflowVulnScanTaskId: string;
+  activeCfgGuidedExploreTaskId: string;
+  activeCfgDbVulnTaskId: string;
   activeFirmwareUnpackerTaskId: string;
   activeBinarySecurityTaskId: string;
   activeSourceSecurityTaskId: string;
+  activeKgSourceSecurityTaskId: string;
   activeBinaryModuleSecurityTaskId: string;
   activeAppScanTaskId: string;
   activeRedlineTaskId: string;
   activeTaskCenterTimelineTaskId: string;
+  activeTaskCenterTimelineBackView?: string;
+  activeTaskVulnListTaskId: string;
+  activeTaskReportTaskId: string;
   selectedStaticPkgIds: Set<string>;
   setCurrentView: (view: string) => void;
   setSelectedProjectId: (id: string) => void;
@@ -161,13 +178,18 @@ export interface ViewRegistryContext {
   setActiveEntryAnalysisTaskId: (id: string) => void;
   setActiveDataflowAnalysisTaskId: (id: string) => void;
   setActiveDataflowVulnScanTaskId: (id: string) => void;
+  setActiveCfgGuidedExploreTaskId: (id: string) => void;
+  setActiveCfgDbVulnTaskId: (id: string) => void;
   setActiveFirmwareUnpackerTaskId: (id: string) => void;
   setActiveBinarySecurityTaskId: (id: string) => void;
   setActiveSourceSecurityTaskId: (id: string) => void;
+  setActiveKgSourceSecurityTaskId: (id: string) => void;
   setActiveBinaryModuleSecurityTaskId: (id: string) => void;
   setActiveAppScanTaskId: (id: string) => void;
   setActiveRedlineTaskId: (id: string) => void;
   setActiveTaskCenterTimelineTaskId: (id: string) => void;
+  setActiveTaskVulnListTaskId: (id: string) => void;
+  setActiveTaskReportTaskId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
   fetchProjects: (refresh?: boolean) => Promise<void>;
   fetchAdminStats: () => Promise<void>;
@@ -176,11 +198,17 @@ export interface ViewRegistryContext {
 
 const EmptyPlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
   <div className="p-10 h-full flex items-center justify-center">
-    <h2 className="text-2xl font-black text-theme-text-faint">{title}</h2>
+    <h2 className="text-2xl font-semibold text-theme-text-faint">{title}</h2>
   </div>
 );
 
 export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => {
+  // SecOcto 模块自治调度:命中前缀且能处理时返回组件;返回 null 则落回下面的 switch
+  // (最终走 default 的"开发中"占位)。模块内部所有 view 形态在 pages/secocto/viewRegistry.tsx 维护。
+  if (ctx.currentView.startsWith(SECOCTO_VIEW_PREFIX)) {
+    const node = renderSecOctoView({ currentView: ctx.currentView, setCurrentView: ctx.setCurrentView });
+    if (node) return node;
+  }
   switch (ctx.currentView) {
     case 'home':
       return <HomePage setCurrentView={ctx.setCurrentView} />;
@@ -239,6 +267,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'assessment-coming-soon':
       return <AssessmentLeaderboardPage projectId={ctx.selectedProjectId} />;
     case 'observe-coming-soon':
+      return <AgentTraceObserverPage />;
     case 'skill-coming-soon':
       return <EmptyPlaceholderPage title="开发中" />;
     case 'developer-atomic-capability':
@@ -277,6 +306,22 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         <TaskCenterTimelinePage
           projectId={ctx.selectedProjectId}
           taskId={ctx.activeTaskCenterTimelineTaskId}
+          onBack={() => ctx.setCurrentView((ctx.activeTaskCenterTimelineBackView as any) || 'task-list')}
+        />
+      );
+    case 'task-vuln-list':
+      return (
+        <TaskVulnListPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeTaskVulnListTaskId}
+          onBack={() => ctx.setCurrentView('task-list')}
+        />
+      );
+    case 'task-report-view':
+      return (
+        <TaskReportViewPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeTaskReportTaskId}
           onBack={() => ctx.setCurrentView('task-list')}
         />
       );
@@ -356,8 +401,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'dataflow-analysis-config':
       return (
         <div className="p-20 text-center">
-          <h3 className="text-xl font-black text-slate-400">数据流漏洞挖掘前端页面已下线</h3>
-          <p className="mt-3 text-sm text-slate-500">该功能入口已从导航中移除。</p>
+          <h3 className="text-xl font-semibold text-theme-text-muted">数据流漏洞挖掘前端页面已下线</h3>
+          <p className="mt-3 text-sm text-theme-text-muted">该功能入口已从导航中移除。</p>
         </div>
       );
     case 'pentest-dataflow-vuln-scan':
@@ -382,9 +427,51 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       );
     case 'dataflow-vuln-scan-config':
       return <DataflowVulnScanConfigPage projectId={ctx.selectedProjectId} />;
+    case 'pentest-cfg-guided-explore':
+    case 'cfg-guided-explore-task':
+      return (
+        <CfgGuidedExploreTaskPage
+          projectId={ctx.selectedProjectId}
+          onOpenTask={(taskId) => {
+            saveExecutionReturnContext({ view: 'cfg-guided-explore-task' });
+            ctx.setActiveCfgGuidedExploreTaskId(taskId);
+            ctx.setCurrentView('cfg-guided-explore-detail');
+          }}
+        />
+      );
+    case 'cfg-guided-explore-detail':
+      return (
+        <CfgGuidedExploreTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeCfgGuidedExploreTaskId}
+          onBack={() => ctx.setCurrentView('cfg-guided-explore-task')}
+        />
+      );
+    case 'cfg-guided-explore-config':
+      return <CfgGuidedExploreConfigPage projectId={ctx.selectedProjectId} />;
+    case 'cfg-db-vuln-tool':
+      return (
+        <CfgDbVulnToolPage
+          projectId={ctx.selectedProjectId}
+          onOpenTask={(taskId) => {
+            ctx.setActiveCfgDbVulnTaskId(taskId);
+            ctx.setCurrentView('cfg-db-vuln-detail');
+          }}
+        />
+      );
+    case 'cfg-db-vuln-detail':
+      return (
+        <CfgDbVulnDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeCfgDbVulnTaskId}
+          onBack={() => ctx.setCurrentView('cfg-db-vuln-tool')}
+        />
+      );
     case 'pentest-vuln-verify':
     case 'vuln-verify-task':
       return <VulnVerifyTaskPage projectId={ctx.selectedProjectId} />;
+    case 'pentest-vuln-verify-v2':
+      return <VulnVerifyV2TaskPage projectId={ctx.selectedProjectId} />;
     case 'workflow-instances':
       return (
         <WorkflowInstancePage
@@ -565,6 +652,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         <BinarySecurityOverviewPage
           projectId={ctx.selectedProjectId}
           taskType="source"
+          sourcePipelineProfileMode="default"
           onOpenTask={(taskId) => {
             ctx.setActiveSourceSecurityTaskId(taskId);
             ctx.setCurrentView('source-security-detail');
@@ -577,6 +665,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           <BinarySecurityOverviewPage
             projectId={ctx.selectedProjectId}
             taskType="source"
+            sourcePipelineProfileMode="default"
             onOpenTask={(taskId) => {
               ctx.setActiveSourceSecurityTaskId(taskId);
               ctx.setCurrentView('source-security-detail');
@@ -590,6 +679,40 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           taskId={ctx.activeSourceSecurityTaskId}
           taskType="source"
           onBack={() => ctx.setCurrentView(consumeTaskCenterReturnContext() ? 'task-list' : 'source-security')}
+        />
+      );
+    case 'kg-source-security':
+      return (
+        <BinarySecurityOverviewPage
+          projectId={ctx.selectedProjectId}
+          taskType="source"
+          sourcePipelineProfileMode="kg_source_vuln_scan"
+          onOpenTask={(taskId) => {
+            ctx.setActiveKgSourceSecurityTaskId(taskId);
+            ctx.setCurrentView('kg-source-security-detail');
+          }}
+        />
+      );
+    case 'kg-source-security-detail':
+      if (!ctx.activeKgSourceSecurityTaskId) {
+        return (
+          <BinarySecurityOverviewPage
+            projectId={ctx.selectedProjectId}
+            taskType="source"
+            sourcePipelineProfileMode="kg_source_vuln_scan"
+            onOpenTask={(taskId) => {
+              ctx.setActiveKgSourceSecurityTaskId(taskId);
+              ctx.setCurrentView('kg-source-security-detail');
+            }}
+          />
+        );
+      }
+      return (
+        <BinarySecurityTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeKgSourceSecurityTaskId}
+          taskType="source"
+          onBack={() => ctx.setCurrentView(consumeTaskCenterReturnContext() ? 'task-list' : 'kg-source-security')}
         />
       );
     case 'binary-module-security':
@@ -686,7 +809,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           onBack={() => ctx.setCurrentView('redline-verification')}
         />
       );
-    case 'ai4red-detail':
+    case 'task-redline-detail':
       if (!ctx.activeRedlineTaskId) {
         return (
           <RedlineOverviewPage
@@ -775,6 +898,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <UserPermissionPage />;
     case 'user-mgmt-roles':
       return <RoleMgmtPage />;
+    case 'vuln-confirm-engines':
+      return <VulnConfirmEnginesPage />;
     case 'user-mgmt-perms':
       return <PermMgmtPage />;
     case 'user-mgmt-online':
@@ -787,11 +912,12 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <DepartmentMemberPage />;
     case 'org-mgmt-projects':
       return <ProjectPage />;
-    default:
+    default: {
       return (
         <div className="p-20 text-center">
-          <h3 className="text-xl font-black text-slate-400">模块 "{ctx.currentView}" 开发中...</h3>
+          <h3 className="text-xl font-semibold text-theme-text-muted">模块 "{ctx.currentView}" 开发中...</h3>
         </div>
       );
+    }
   }
 };

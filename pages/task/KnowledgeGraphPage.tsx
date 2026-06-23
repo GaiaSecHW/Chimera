@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PageHeader } from '../../design-system';
 import {
   AlertCircle,
   FolderUp,
@@ -9,6 +10,13 @@ import {
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import type { CodemapTaskStatus } from '../../clients/codemapManager';
+import {
+  IN_PROGRESS_STATUSES,
+  STATUS_LABELS,
+  USABLE_UPLOAD_STATUSES,
+  buildCodemapTaskId,
+  buildManagerTargetDir,
+} from '../../clients/codemapManager';
 import type { SecurityProject } from '../../types/types';
 
 interface Props {
@@ -16,21 +24,7 @@ interface Props {
   projects: SecurityProject[];
 }
 
-// 知识图谱构建是项目维度、幂等的:固定 task_id = kg-<projectId>,product_id=projectId
-// → manager 算出的 db_name 不变 → 一个项目始终一张图(重新上传更新图依赖后续的增量分析)。
-const buildTaskId = (projectId: string) =>`kg-${projectId}`;
-
-// manager 读取代码的文件系统根。manager 挂载了平台 fileserver 的共享卷到 /data,
-// 上传代码物理路径是 /data/files/<projectId>/<target_path>;而 fileserver API 返回的
-// target_path 只是 /user_input/code/<id>(缺前缀)。这里补全成 manager 视角的绝对路径。
-const MANAGER_SOURCE_ROOT = '/data/files';
-const buildTargetDir = (projectId: string, targetPath: string) =>`${MANAGER_SOURCE_ROOT}/${projectId}${targetPath.startsWith('/') ? '' : '/'}${targetPath}`;
-
-// 构建仍在进行的状态(manager FSM)。completed/failed 为终态。
-const IN_PROGRESS_STATUSES = new Set(['queued', 'accepted', 'building_analyze', 'building_repair']);
 const POLL_INTERVAL_MS = 3000;
-// fileserver 上传记录里“文件已落盘、可被 analyze 扫描”的状态。
-const USABLE_UPLOAD_STATUSES = new Set(['succeeded', 'partial_failed']);
 
 type Phase =
   | 'loading'        // 查上传记录中
@@ -39,15 +33,6 @@ type Phase =
   | 'starting'       // 已触发构建,正在起 serve
   | 'ready'          // serve 就绪,iframe 展示(构建可能仍在后台进行)
   | 'error';         // 起 serve / 接口异常
-
-const STATUS_LABELS: Record<string, string> = {
-  queued: '排队中',
-  accepted: '已受理',
-  building_analyze: '解析代码中',
-  building_repair: '补全调用关系中',
-  completed: '已完成',
-  failed: '构建失败',
-};
 
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : '请求失败';
@@ -82,6 +67,13 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
   const [status, setStatus] = useState<CodemapTaskStatus | null>(null);
   const [serveUrl, setServeUrl] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  // failed 横幅的"重新构建"按钮:DELETE → setStatus(null) → bootstrap 重派。
+  const [rebuilding, setRebuilding] = useState(false);
+  // 「图谱为空」横幅:status=completed 但库里 0 函数(target_dir 错位等
+  // silent-success 情形)。轮询 serve 的 /api/v1/stats 探测,零节点才显示
+  // 「更正代码目录」按钮(走 purge → 重派,用最新有效上传的真实路径)。
+  const [emptyGraph, setEmptyGraph] = useState(false);
+  const [correcting, setCorrecting] = useState(false);
   // 防止 serve 重复启动。
   const startingServeRef = useRef(false);
 
@@ -89,7 +81,15 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
     () => projects.find((item) => item.id === projectId)?.name || projectId,
     [projectId, projects],
   );
-  const taskId = useMemo(() => buildTaskId(projectId), [projectId]);
+  // 多图谱:真 product_id(空回退 projectId),manager 据此在该 product 的 active
+  // 图里给本次上传找 fork 源。
+  const productId = useMemo(
+    () => projects.find((item) => item.id === projectId)?.product_id || projectId,
+    [projectId, projects],
+  );
+  // task_id 下沉到「每条上传一图」:由 bootstrap 选中的最新 code 上传的 upload_id
+  // 决定(kg-<uploadId>)。null = 尚未确定(还没拉到上传记录)。
+  const [taskId, setTaskId] = useState<string | null>(null);
 
   // 起 serve → iframe。serve 子进程端口立即绑定,即使库还空着也能起,
   // 图谱随后台 analyze/repair 进度渐进填充。幂等:已在起则跳过。
@@ -116,6 +116,7 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
     setPhase('loading');
     setMessage(null);
     setServeUrl(null);
+    setEmptyGraph(false);
     try {
       const uploads = await api.fileserver.listProjectInputUploads(projectId, {
         inputType: 'code',
@@ -126,15 +127,17 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
         setPhase('no-upload');
         return;
       }
-      // 取最新一条 code 上传(按创建时间倒序)。
+      // 取最新一条 code 上传(按创建时间倒序)。该上传的 upload_id 决定本图身份。
       const latest = [...items].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       )[0];
+      const uploadTaskId = buildCodemapTaskId(latest.upload_id);
+      setTaskId(uploadTaskId);
 
-      // 查构建状态;404 表示这个项目还没构建过。
+      // 查构建状态;404 表示这条上传还没构建过。
       let current: CodemapTaskStatus | null = null;
       try {
-        current = await api.codemapManager.getTaskStatus(taskId);
+        current = await api.codemapManager.getTaskStatus(uploadTaskId);
       } catch (error) {
         if ((error as any)?.status !== 404) throw error;
       }
@@ -146,10 +149,12 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
           return;
         }
         const triggered = await api.codemapManager.triggerBuild({
-          task_id: taskId,
-          product_id: projectId,
+          task_id: uploadTaskId,
+          product_id: productId,
           product_name: projectName,
-          target_dir: buildTargetDir(projectId, latest.target_path),
+          target_dir: buildManagerTargetDir(projectId, latest.target_path),
+          project_id: projectId,
+          upload_id: latest.upload_id,
         });
         current = {
           task_id: triggered.task_id,
@@ -172,7 +177,49 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
       setMessage(errorMessage(error));
       setPhase('error');
     }
-  }, [projectId, projectName, taskId, startServe]);
+  }, [projectId, projectName, productId, startServe]);
+
+  // failed 红色横幅旁的"重新构建"按钮:bootstrap 里只在 status===null 时 trigger,
+  // 老 failed task 一直存在 → 永远不会重派。先 DELETE 清掉再 bootstrap。
+  const handleRebuild = useCallback(async () => {
+    if (rebuilding || !taskId) return;
+    setRebuilding(true);
+    try {
+      await api.codemapManager.deleteTask(taskId);
+      setStatus(null);
+      await bootstrap();
+    } catch (error) {
+      setMessage(errorMessage(error));
+    } finally {
+      setRebuilding(false);
+    }
+  }, [taskId, bootstrap, rebuilding]);
+
+  // 「图谱为空」横幅旁的「更正代码目录」按钮:status=completed 但 0 函数
+  // (target_dir 写错时 analyze 静默成功的失败模式)。purge 销毁旧空项目
+  // (停 serve、DROP 库、删 manager 工作区目录),然后 bootstrap 重派 ——
+  // bootstrap 会重新拉 fileserver 的最新有效上传,用对的 target_dir 重建。
+  const handleCorrectPath = useCallback(async () => {
+    if (correcting) return;
+    setCorrecting(true);
+    try {
+      const dbName = status?.db_name;
+      if (dbName) {
+        await api.codemapManager.purgeProject(dbName);
+      } else if (taskId) {
+        // 兜底:没有 db_name 也尝试删 task,后续 bootstrap 仍能重派。
+        await api.codemapManager.deleteTask(taskId).catch(() => {});
+      }
+      setStatus(null);
+      setEmptyGraph(false);
+      await bootstrap();
+    } catch (error) {
+      setMessage(errorMessage(error));
+      setPhase('error');
+    } finally {
+      setCorrecting(false);
+    }
+  }, [status, taskId, bootstrap, correcting]);
 
   useEffect(() => {
     void bootstrap();
@@ -182,6 +229,7 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
   // 到达终态(completed/failed)即停止。
   useEffect(() => {
     if (phase !== 'ready') return undefined;
+    if (!taskId) return undefined;
     if (status && !IN_PROGRESS_STATUSES.has(status.status)) return undefined;
     const timer = window.setInterval(async () => {
       try {
@@ -196,6 +244,32 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
     }, POLL_INTERVAL_MS);
     return () => window.clearInterval(timer);
   }, [phase, status, taskId]);
+
+  // 零节点探测:任务到达终态后拉一次 serve 的 /api/v1/stats,
+  // total_functions===0 视为「图谱为空」(target_dir 错位的 silent-success
+  // 失败模式)。仅在 ready + 终态时触发,且只跑一次(emptyGraph 已 true 则跳过)。
+  useEffect(() => {
+    if (phase !== 'ready' || !serveUrl || !status) return;
+    if (IN_PROGRESS_STATUSES.has(status.status)) return;
+    if (emptyGraph) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const origin = new URL(serveUrl).origin;
+        const resp = await fetch(`${origin}/api/v1/stats`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (!cancelled && data?.total_functions === 0) {
+          setEmptyGraph(true);
+        }
+      } catch {
+        // 网络/解析失败不暴露给用户;横幅按现状显示即可。
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [phase, serveUrl, status, emptyGraph]);
 
   if (!projectId) {
     return (
@@ -218,28 +292,29 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
         : null;
     return (
       <div className="flex h-full flex-col" style={{ backgroundColor: LK.canvas }}>
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surface }}>
-          <div className="flex items-center gap-2">
-            <Network size={18} style={{ color: LK.primary }} />
-            <h1 className="text-base font-semibold" style={{ color: LK.ink }}>知识图谱</h1>
-            <span className="text-sm" style={{ color: LK.muted }}>{projectName}</span>
-          </div>
-          <button
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
-            style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
-            onClick={() => void bootstrap()}
-            onMouseEnter={(e) => { e.currentTarget.style.color = LK.primarySoft; e.currentTarget.style.borderColor = LK.primary; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
-          >
-            <RefreshCw size={14} />
-            刷新
-          </button>
-        </div>
+        <PageHeader
+          title="知识图谱"
+          description={projectName}
+          actions={
+            <button
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+              style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+              onClick={() => void bootstrap()}
+              onMouseEnter={(e) => { e.currentTarget.style.color = LK.primarySoft; e.currentTarget.style.borderColor = LK.primary; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
+            >
+              <RefreshCw size={14} />刷新
+            </button>
+          }
+        />
         {building ? (
           <div className="flex items-center gap-3 px-5 py-2.5 text-xs" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: `${LK.info}14`, color: LK.info }}>
             <Loader2 size={14} className="animate-spin" />
             <span>
               图谱构建中 · {STATUS_LABELS[status?.status || ''] || '处理中'}
+              {status?.status === 'building_attack_surface' && (status?.attack?.entries ?? 0) > 0
+                ? ` · 已识别 ${status?.attack?.entries} 入口`
+                : ''}
               {pct !== null ?` · ${progress?.completed}/${progress?.total}（${pct}%）` : ''}
               ，结果会持续补全，可刷新查看最新。
             </span>
@@ -247,7 +322,34 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
         ) : failed ? (
           <div className="flex items-center gap-3 px-5 py-2.5 text-xs" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: `${LK.error}14`, color: LK.error }}>
             <XCircle size={14} />
-            <span>{status?.error || '构建部分失败'}，图谱可能不完整。</span>
+            <span className="flex-1">{status?.error || '构建部分失败'}，图谱可能不完整。</span>
+            <button
+              type="button"
+              onClick={() => void handleRebuild()}
+              disabled={rebuilding}
+              className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ borderColor: LK.error, color: LK.error, backgroundColor: 'transparent' }}
+            >
+              <RefreshCw size={12} />
+              {rebuilding ? '重派中…' : '重新构建'}
+            </button>
+          </div>
+        ) : emptyGraph ? (
+          <div className="flex items-center gap-3 px-5 py-2.5 text-xs" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: `${LK.warning}14`, color: LK.warning }}>
+            <AlertCircle size={14} />
+            <span className="flex-1">
+              图谱为空 —— 代码目录可能未对齐已上传文件，点击「更正代码目录」用最新有效上传重新构建。
+            </span>
+            <button
+              type="button"
+              onClick={() => void handleCorrectPath()}
+              disabled={correcting}
+              className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ borderColor: LK.warning, color: LK.warning, backgroundColor: 'transparent' }}
+            >
+              <RefreshCw size={12} />
+              {correcting ? '更正中…' : '更正代码目录'}
+            </button>
           </div>
         ) : null}
         <iframe
@@ -263,11 +365,7 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
   return (
     <div className="min-h-full px-5 py-5" style={{ backgroundColor: LK.canvas }}>
       <div className="mx-auto max-w-3xl">
-        <div className="mb-5 flex items-center gap-2 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-          <Network size={20} style={{ color: LK.primary }} />
-          <h1 className="text-2xl font-semibold" style={{ color: LK.ink }}>知识图谱</h1>
-          <span className="text-sm" style={{ color: LK.muted }}>{projectName}</span>
-        </div>
+        <PageHeader title="知识图谱" description={projectName} />
         <PhaseCard
           phase={phase}
           message={message}
@@ -303,11 +401,8 @@ const PhaseCard: React.FC<{
 }> = ({ phase, message, onRetry }) => {
   const retryButton = (
     <button
-      className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
-      style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+      className="btn-primary inline-flex items-center gap-1.5 text-sm font-medium"
       onClick={onRetry}
-      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
     >
       <RefreshCw size={15} />
       重试
@@ -381,4 +476,3 @@ const CenteredCardInner: React.FC<{
     {action ? <div className="mt-5">{action}</div> : null}
   </div>
 );
-

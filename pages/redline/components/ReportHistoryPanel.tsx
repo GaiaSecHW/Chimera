@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
+import { reportSanitizeSchema } from './reportMarkdownSanitize';
 
 import { ArrowLeft, Loader2, X } from 'lucide-react';
 import { redlineVerificationApi } from '../../../clients/redlineVerification';
@@ -21,7 +24,7 @@ const mdComponents: Components = {
   th: ({ children }) => <th className="border border-theme-border px-3 py-2 font-bold text-theme-text-primary">{children}</th>,
   td: ({ children }) => <td className="border border-theme-border px-3 py-2 align-top text-theme-text-primary">{children}</td>,
   code: ({ children, className }) => className
-    ? <code className="block overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs text-slate-900">{children}</code>
+    ? <code className="block overflow-x-auto rounded-lg border border-theme-border bg-theme-elevated px-4 py-3 font-mono text-xs text-theme-text-primary">{children}</code>
     : <code className="rounded bg-theme-surface px-1.5 py-0.5 font-mono text-[0.9em] text-theme-text-primary">{children}</code>,
   pre: ({ children }) => <pre className="mb-3 last:mb-0">{children}</pre>,
   hr: () => <hr className="my-4 border-theme-border" />,
@@ -86,7 +89,7 @@ export const ReportHistoryPanel: React.FC<Props> = ({ taskId, visible, onClose }
           ))}
           {!loading && selectedReport && (
             <div className="break-words leading-6">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, reportSanitizeSchema]]} components={mdComponents}>
                 {selectedReport.reportContent || '无报告内容'}
               </ReactMarkdown>
             </div>

@@ -244,11 +244,11 @@ export const CasesWorkspace: React.FC<any> = ({
     });
   }, [filteredCases]);
   const getCaseAttentionBadge = (item: any) => {
-    if (item.current_stage === 'triage' && item.triage_gate === 'pending') return { label: '待验证准入', tone: 'bg-amber-100 text-amber-700' };
-    if (item.current_stage === 'triage' && item.current_status === 'manual_assessing') return { label: '待人工分析', tone: 'bg-blue-100 text-blue-700' };
-    if (item.current_stage === 'validation' && item.current_status === 'reproducing') return { label: '复现进行中', tone: 'bg-emerald-100 text-emerald-700' };
-    if (item.current_stage === 'validation' && item.current_status === 'evidence_collecting') return { label: '待补证据', tone: 'bg-amber-100 text-amber-700' };
-    if (item.current_stage === 'finished' && item.finished_reason === 'manual_terminated') return { label: '人工终止', tone: 'bg-rose-100 text-rose-700' };
+    if (item.current_stage === 'triage' && item.triage_gate === 'pending') return { label: '待验证准入', tone: 'bg-amber-500/15 text-amber-400' };
+    if (item.current_stage === 'triage' && item.current_status === 'manual_assessing') return { label: '待人工分析', tone: 'bg-blue-500/15 text-blue-400' };
+    if (item.current_stage === 'validation' && item.current_status === 'reproducing') return { label: '复现进行中', tone: 'bg-emerald-500/15 text-emerald-400' };
+    if (item.current_stage === 'validation' && item.current_status === 'evidence_collecting') return { label: '待补证据', tone: 'bg-amber-500/15 text-amber-400' };
+    if (item.current_stage === 'finished' && item.finished_reason === 'manual_terminated') return { label: '人工终止', tone: 'bg-rose-500/15 text-rose-400' };
     return null;
   };
   const getCaseStatusLabel = (item: any) => labelOf(item.current_status, CASE_STATUS_LABELS, '') || item.current_status || '未知状态';
@@ -363,10 +363,7 @@ export const CasesWorkspace: React.FC<any> = ({
             value={caseSearch}
             onChange={(event) => setCaseSearch(event.target.value)}
             placeholder="搜索标题、摘要、资产定位"
-            className="w-full px-4 py-2.5 outline-none text-sm rounded-lg"
-            style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-            onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+            className="form-input w-full text-sm"
           />
           {showValidationFilters && (
             <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
@@ -374,10 +371,7 @@ export const CasesWorkspace: React.FC<any> = ({
                 aria-label="验证状态筛选"
                 value={validationStatusFilter}
                 onChange={(event) => setValidationStatusFilter?.(event.target.value)}
-                className="flex-1 px-3 py-2.5 outline-none text-sm rounded-lg"
-                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                className="form-select flex-1 text-sm"
               >
                 {validationStatusOptions.map((option) => (
                   <option key={option} value={option}>
@@ -389,10 +383,7 @@ export const CasesWorkspace: React.FC<any> = ({
                 aria-label="验证结论筛选"
                 value={validationConclusionFilter}
                 onChange={(event) => setValidationConclusionFilter?.(event.target.value)}
-                className="flex-1 px-3 py-2.5 outline-none text-sm rounded-lg"
-                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                className="form-select flex-1 text-sm"
               >
                 {validationConclusionOptions.map((option) => (
                   <option key={option} value={option}>
@@ -404,10 +395,7 @@ export const CasesWorkspace: React.FC<any> = ({
                 aria-label="漏洞等级筛选"
                 value={severityFilter}
                 onChange={(event) => setSeverityFilter?.(event.target.value)}
-                className="flex-1 px-3 py-2.5 outline-none text-sm rounded-lg"
-                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                className="form-select flex-1 text-sm"
               >
                 {severityOptions.map((option) => (
                   <option key={option} value={option}>
@@ -635,22 +623,22 @@ export const CasesWorkspace: React.FC<any> = ({
             <h3 className="text-lg font-semibold" style={{ color: LK.ink }}>创建新案例</h3>
           </div>
           <form onSubmit={handleCreateCase} className="p-5 grid grid-cols-1 gap-4">
-            <input value={caseForm.title} onChange={(event) => setCaseForm({ ...caseForm, title: event.target.value })} placeholder="案例标题" className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} required />
-            <textarea value={caseForm.summary} onChange={(event) => setCaseForm({ ...caseForm, summary: event.target.value })} placeholder="摘要" className="min-h-[6rem] px-4 py-2.5 rounded-lg outline-none text-sm resize-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
+            <input value={caseForm.title} onChange={(event) => setCaseForm({ ...caseForm, title: event.target.value })} placeholder="案例标题" className="form-input text-sm" required />
+            <textarea value={caseForm.summary} onChange={(event) => setCaseForm({ ...caseForm, summary: event.target.value })} placeholder="摘要" className="form-textarea min-h-[6rem] resize-none text-sm" />
             <div className="grid grid-cols-2 gap-4">
-              <select value={caseForm.severity} onChange={(event) => setCaseForm({ ...caseForm, severity: event.target.value })} className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}>
+              <select value={caseForm.severity} onChange={(event) => setCaseForm({ ...caseForm, severity: event.target.value })} className="form-select text-sm">
                 <option value="critical">严重</option>
                 <option value="high">高危</option>
                 <option value="medium">中危</option>
                 <option value="low">低危</option>
               </select>
-              <input type="number" min={0} max={100} value={caseForm.confidence} onChange={(event) => setCaseForm({ ...caseForm, confidence: Number(event.target.value) })} placeholder="置信度" className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
+              <input type="number" min={0} max={100} value={caseForm.confidence} onChange={(event) => setCaseForm({ ...caseForm, confidence: Number(event.target.value) })} placeholder="置信度" className="form-input text-sm" />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <input value={caseForm.source_service} onChange={(event) => setCaseForm({ ...caseForm, source_service: event.target.value })} placeholder="来源服务" className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
-              <input value={caseForm.asset_type} onChange={(event) => setCaseForm({ ...caseForm, asset_type: event.target.value })} placeholder="资产类型" className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
+              <input value={caseForm.source_service} onChange={(event) => setCaseForm({ ...caseForm, source_service: event.target.value })} placeholder="来源服务" className="form-input text-sm" />
+              <input value={caseForm.asset_type} onChange={(event) => setCaseForm({ ...caseForm, asset_type: event.target.value })} placeholder="资产类型" className="form-input text-sm" />
             </div>
-            <input value={caseForm.asset_locator} onChange={(event) => setCaseForm({ ...caseForm, asset_locator: event.target.value })} placeholder="资产定位" className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
+            <input value={caseForm.asset_locator} onChange={(event) => setCaseForm({ ...caseForm, asset_locator: event.target.value })} placeholder="资产定位" className="form-input text-sm" />
             <button type="submit" disabled={submittingCase} className="px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { if (!submittingCase) e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}>
               <Plus size={16} />
               {submittingCase ? '创建中...' : '创建案例'}
@@ -918,10 +906,7 @@ export const CasesWorkspace: React.FC<any> = ({
                     <select
                       value={validationForm.validation_result}
                       onChange={(event) => setValidationForm({ ...validationForm, validation_result: event.target.value })}
-                      className="w-full px-4 py-2.5 rounded-lg outline-none text-sm"
-                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                      className="form-select w-full text-sm"
                     >
                       {(validationResultOptions || []).map((item: string) => (
                         <option key={item} value={item}>{labelOf(item, VALIDATION_RESULT_LABELS)}</option>
@@ -931,10 +916,7 @@ export const CasesWorkspace: React.FC<any> = ({
                       value={validationForm.summary}
                       onChange={(event) => setValidationForm({ ...validationForm, summary: event.target.value })}
                       placeholder="补充验证结论、失败原因、环境限制或证明材料说明"
-                      className="min-h-[7rem] w-full px-4 py-2.5 rounded-lg outline-none text-sm resize-none"
-                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                      className="form-textarea min-h-[7rem] resize-none w-full text-sm"
                     />
                     <button type="submit" disabled={submittingValidation} className="w-full px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50" style={{ backgroundColor: LK.success, color: '#ffffff' }} onMouseEnter={(e) => { if (!submittingValidation) e.currentTarget.style.opacity = '0.9'; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}>
                       {submittingValidation ? '提交中...' : '提交验证结论'}
@@ -1030,11 +1012,11 @@ export const CasesWorkspace: React.FC<any> = ({
               <div className="rounded-lg p-4 space-y-3" style={{ border: `1px solid ${LK.border}` }}>
                 <div className="flex items-center gap-2"><Sparkles size={16} style={{ color: LK.primary }} /><h5 className="font-semibold" style={{ color: LK.ink }}>派发动作</h5></div>
                 <div className="grid grid-cols-2 gap-3">
-                  <select value={dispatchForm.action_type} onChange={(event) => setDispatchForm({ ...dispatchForm, action_type: event.target.value })} className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}>
+                  <select value={dispatchForm.action_type} onChange={(event) => setDispatchForm({ ...dispatchForm, action_type: event.target.value })} className="form-select text-sm">
                     <option value="">全部动作</option>
                     {ACTION_TYPES.map((item) => <option key={item} value={item}>{labelOf(item, ACTION_TYPE_LABELS)}</option>)}
                   </select>
-                  <select value={dispatchForm.service_id} onChange={(event) => setDispatchForm({ ...dispatchForm, service_id: event.target.value })} className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}>
+                  <select value={dispatchForm.service_id} onChange={(event) => setDispatchForm({ ...dispatchForm, service_id: event.target.value })} className="form-select text-sm">
                     <option value="">全部服务</option>
                     {services.map((item: any) => <option key={item.service_id} value={item.service_id}>{item.service_name}</option>)}
                   </select>
@@ -1072,12 +1054,12 @@ export const CasesWorkspace: React.FC<any> = ({
                 {['triage', 'validation'].includes(selectedCaseDetail.current_stage) && (
                   <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40` }}>
                     <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.error }}>人工结束案例</div>
-                    <select value={finishForm.finished_reason} onChange={(event) => setFinishForm({ ...finishForm, finished_reason: event.target.value })} className="w-full px-3 py-2 rounded-lg outline-none text-xs font-semibold" style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: `1px solid ${LK.error}40` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.error)} onBlur={(e) => (e.currentTarget.style.borderColor =`${LK.error}40`)}>
+                    <select value={finishForm.finished_reason} onChange={(event) => setFinishForm({ ...finishForm, finished_reason: event.target.value })} className="form-select w-full text-xs font-semibold">
                       {FINISHED_REASON_OPTIONS.map((item) => (
                         <option key={item} value={item}>{labelOf(item, FINISHED_REASON_LABELS)}</option>
                       ))}
                     </select>
-                    <input value={finishForm.summary} onChange={(event) => setFinishForm({ ...finishForm, summary: event.target.value })} placeholder="结束说明（必填）" className="w-full px-3 py-2 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: `1px solid ${LK.error}40` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.error)} onBlur={(e) => (e.currentTarget.style.borderColor =`${LK.error}40`)} />
+                    <input value={finishForm.summary} onChange={(event) => setFinishForm({ ...finishForm, summary: event.target.value })} placeholder="结束说明（必填）" className="form-input w-full text-sm" />
                     <button onClick={handleFinishCase} disabled={submittingFinish} className="w-full px-3 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50" style={{ backgroundColor: LK.error, color: '#ffffff' }} onMouseEnter={(e) => { if (!submittingFinish) e.currentTarget.style.opacity = '0.9'; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}>
                       {submittingFinish ? '结束中...' : '结束案例'}
                     </button>
@@ -1089,10 +1071,10 @@ export const CasesWorkspace: React.FC<any> = ({
             <div className="rounded-lg p-4 space-y-3" style={{ border: `1px solid ${LK.border}` }}>
               <div className="flex items-center gap-2"><CheckCheck size={16} style={{ color: LK.success }} /><h5 className="font-semibold" style={{ color: LK.ink }}>人工裁决</h5></div>
               <form onSubmit={handleSubmitDecision} className="grid grid-cols-1 xl:grid-cols-[12rem_1fr_auto] gap-3">
-                <select value={decisionForm.decision_status} onChange={(event) => setDecisionForm({ ...decisionForm, decision_status: event.target.value })} className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}>
+                <select value={decisionForm.decision_status} onChange={(event) => setDecisionForm({ ...decisionForm, decision_status: event.target.value })} className="form-select text-sm">
                   {DECISION_OPTIONS.map((item) => <option key={item} value={item}>{labelOf(item, DECISION_LABELS)}</option>)}
                 </select>
-                <input value={decisionForm.summary} onChange={(event) => setDecisionForm({ ...decisionForm, summary: event.target.value })} placeholder="补充这次人工裁决的说明" className="px-4 py-2.5 rounded-lg outline-none text-sm" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
+                <input value={decisionForm.summary} onChange={(event) => setDecisionForm({ ...decisionForm, summary: event.target.value })} placeholder="补充这次人工裁决的说明" className="form-input text-sm" />
                 <button type="submit" disabled={submittingDecision} className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50" style={{ backgroundColor: LK.success, color: '#ffffff' }} onMouseEnter={(e) => { if (!submittingDecision) e.currentTarget.style.opacity = '0.9'; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}>{submittingDecision ? '提交中...' : '提交裁决'}</button>
               </form>
             </div>
@@ -1178,53 +1160,53 @@ export const CasesWorkspace: React.FC<any> = ({
             {activeTab === 'results' && (
               <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
                 {resultItems.length === 0 ? (
-                  <div className="text-sm text-slate-400">还没有回传结果</div>
+                  <div className="text-sm text-theme-text-muted">还没有回传结果</div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                       {resultSummaryCards.map((item) => (
-                        <div key={`summary-${item.id}`} className="rounded-[1.5rem] border border-indigo-100 bg-indigo-50/50 px-4 py-4">
+                        <div key={`summary-${item.id}`} className="rounded-[1.5rem] border border-indigo-500/20 bg-indigo-500/10 px-4 py-4">
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="px-2 py-1 rounded-lg bg-indigo-100 text-[10px] font-black uppercase tracking-widest text-indigo-700">{item.resultType}</span>
-                              <span className="px-2 py-1 rounded-lg bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-600">{item.status}</span>
+                              <span className="px-2 py-1 rounded-lg bg-indigo-500/15 text-[10px] font-semibold uppercase tracking-widest text-indigo-400">{item.resultType}</span>
+                              <span className="px-2 py-1 rounded-lg bg-theme-elevated text-[10px] font-semibold uppercase tracking-widest text-theme-text-secondary">{item.status}</span>
                             </div>
-                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">置信度 {item.confidence}</div>
+                            <div className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">置信度 {item.confidence}</div>
                           </div>
-                          <div className="mt-3 text-sm font-black text-slate-800">{item.title}</div>
-                          <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-500">
+                          <div className="mt-3 text-sm font-semibold text-theme-text-primary">{item.title}</div>
+                          <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-theme-text-muted">
                             <span>来源：{item.source}</span>
                             {item.suggestedDecision ? <span>建议结论：{item.suggestedDecision}</span> : null}
                             {item.suggestedStage ? <span>建议阶段：{item.suggestedStage}</span> : null}
                           </div>
-                          <div className="mt-2 text-[11px] text-slate-400">{formatTime(item.createdAt)}</div>
+                          <div className="mt-2 text-[11px] text-theme-text-muted">{formatTime(item.createdAt)}</div>
                         </div>
                       ))}
                     </div>
                   {resultItems.map((item: any) => (
-                    <div key={item.id} className="rounded-[1.5rem] border border-slate-200 px-4 py-4">
+                    <div key={item.id} className="rounded-[1.5rem] border border-theme-border px-4 py-4">
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="px-2 py-1 rounded-lg bg-indigo-100 text-[10px] font-black uppercase tracking-widest text-indigo-700">{item.result_type}</span>
-                            <span className="px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-600">{item.status}</span>
-                            {item.source_service_id && <span className="px-2 py-1 rounded-lg bg-emerald-100 text-[10px] font-black uppercase tracking-widest text-emerald-700">{item.source_service_id}</span>}
+                            <span className="px-2 py-1 rounded-lg bg-indigo-500/15 text-[10px] font-semibold uppercase tracking-widest text-indigo-400">{item.result_type}</span>
+                            <span className="px-2 py-1 rounded-lg bg-theme-elevated text-[10px] font-semibold uppercase tracking-widest text-theme-text-secondary">{item.status}</span>
+                            {item.source_service_id && <span className="px-2 py-1 rounded-lg bg-emerald-500/15 text-[10px] font-semibold uppercase tracking-widest text-emerald-400">{item.source_service_id}</span>}
                           </div>
-                          <p className="mt-3 text-sm font-black text-slate-800">{item.summary || '未填写摘要'}</p>
+                          <p className="mt-3 text-sm font-semibold text-theme-text-primary">{item.summary || '未填写摘要'}</p>
                         </div>
                         <div className="text-right">
-                          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">置信度</div>
-                          <div className="mt-1 text-xl font-black text-slate-800">{item.confidence}</div>
+                          <div className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">置信度</div>
+                          <div className="mt-1 text-xl font-semibold text-theme-text-primary">{item.confidence}</div>
                         </div>
                       </div>
                       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 mt-4">
-                        <div className="rounded-2xl bg-slate-50 p-3">
-                          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">结果元数据</div>
-                          <pre className="mt-2 text-xs text-slate-600 whitespace-pre-wrap break-words">{JSON.stringify(item.result_meta, null, 2)}</pre>
+                        <div className="rounded-2xl bg-theme-elevated p-3">
+                          <div className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">结果元数据</div>
+                          <pre className="mt-2 text-xs text-theme-text-secondary whitespace-pre-wrap break-words">{JSON.stringify(item.result_meta, null, 2)}</pre>
                         </div>
-                        <div className="rounded-2xl bg-slate-50 p-3">
-                          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">原始内容与建议</div>
-                          <pre className="mt-2 text-xs text-slate-600 whitespace-pre-wrap break-words">{JSON.stringify({ suggested_stage: item.suggested_stage, suggested_decision: item.suggested_decision, raw_payload: item.raw_payload }, null, 2)}</pre>
+                        <div className="rounded-2xl bg-theme-elevated p-3">
+                          <div className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">原始内容与建议</div>
+                          <pre className="mt-2 text-xs text-theme-text-secondary whitespace-pre-wrap break-words">{JSON.stringify({ suggested_stage: item.suggested_stage, suggested_decision: item.suggested_decision, raw_payload: item.raw_payload }, null, 2)}</pre>
                         </div>
                       </div>
                     </div>
@@ -1236,42 +1218,42 @@ export const CasesWorkspace: React.FC<any> = ({
 
             {activeTab === 'tasks' && (
               <div className="space-y-5">
-                <form onSubmit={handleCreateTask} className="rounded-[1.5rem] border border-slate-200 p-4 grid grid-cols-1 xl:grid-cols-2 gap-3">
-                  <select value={taskForm.task_type} onChange={(event) => setTaskForm({ ...taskForm, task_type: event.target.value })} className="px-4 py-3 rounded-2xl border border-slate-200 outline-none bg-slate-50">
+                <form onSubmit={handleCreateTask} className="rounded-[1.5rem] border border-theme-border p-4 grid grid-cols-1 xl:grid-cols-2 gap-3">
+                  <select value={taskForm.task_type} onChange={(event) => setTaskForm({ ...taskForm, task_type: event.target.value })} className="form-select">
                     <option value="manual_review">人工复核</option>
                     <option value="manual_analysis">人工分析</option>
                     <option value="manual_validation">人工验证</option>
                     <option value="manual_decision">人工裁决</option>
                   </select>
-                  <input value={taskForm.assignee} onChange={(event) => setTaskForm({ ...taskForm, assignee: event.target.value })} placeholder="指派给谁" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none" />
-                  <input value={taskForm.title} onChange={(event) => setTaskForm({ ...taskForm, title: event.target.value })} placeholder="任务标题" className="px-4 py-3 rounded-2xl border border-slate-200 outline-none xl:col-span-2" required />
-                  <textarea value={taskForm.summary} onChange={(event) => setTaskForm({ ...taskForm, summary: event.target.value })} placeholder="任务说明" className="min-h-[6rem] px-4 py-3 rounded-2xl border border-slate-200 outline-none resize-none xl:col-span-2" />
-                  <button type="submit" disabled={creatingTask} className="xl:col-span-2 px-5 py-3 rounded-2xl bg-amber-500 text-white font-black">{creatingTask ? '创建中...' : '创建人工任务'}</button>
+                  <input value={taskForm.assignee} onChange={(event) => setTaskForm({ ...taskForm, assignee: event.target.value })} placeholder="指派给谁" className="form-input" />
+                  <input value={taskForm.title} onChange={(event) => setTaskForm({ ...taskForm, title: event.target.value })} placeholder="任务标题" className="form-input xl:col-span-2" required />
+                  <textarea value={taskForm.summary} onChange={(event) => setTaskForm({ ...taskForm, summary: event.target.value })} placeholder="任务说明" className="form-textarea min-h-[6rem] resize-none xl:col-span-2" />
+                  <button type="submit" disabled={creatingTask} className="xl:col-span-2 px-5 py-3 rounded-2xl bg-amber-500 text-white font-medium">{creatingTask ? '创建中...' : '创建人工任务'}</button>
                 </form>
 
                 <div className="space-y-3 max-h-[20rem] overflow-y-auto pr-1">
                   {taskItems.length === 0 ? (
-                    <div className="text-sm text-slate-400">当前案例还没有人工任务</div>
+                    <div className="text-sm text-theme-text-muted">当前案例还没有人工任务</div>
                   ) : (
                     taskItems.map((item: any) => (
-                      <div key={item.id} className="rounded-[1.5rem] border border-slate-200 px-4 py-4 bg-[rgba(255,255,255,0.04)]">
+                      <div key={item.id} className="rounded-[1.5rem] border border-theme-border px-4 py-4 bg-[rgba(255,255,255,0.04)]">
                         <div className="flex items-center justify-between gap-3">
                           <div>
-                            <p className="text-sm font-black text-slate-800">{item.title}</p>
-                            <p className="text-xs text-slate-500 mt-1">{item.summary || '暂无说明'}</p>
+                            <p className="text-sm font-semibold text-theme-text-primary">{item.title}</p>
+                            <p className="text-xs text-theme-text-muted mt-1">{item.summary || '暂无说明'}</p>
                           </div>
                           <div className="text-right">
-                            <span className="px-2 py-1 rounded-lg bg-amber-100 text-[10px] font-black uppercase tracking-widest text-amber-700">{item.status}</span>
+                            <span className="px-2 py-1 rounded-lg bg-amber-500/15 text-[10px] font-semibold uppercase tracking-widest text-amber-400">{item.status}</span>
                           </div>
                         </div>
-                        <div className="flex flex-wrap gap-3 mt-3 text-[11px] text-slate-500">
+                        <div className="flex flex-wrap gap-3 mt-3 text-[11px] text-theme-text-muted">
                           <span>{labelOf(item.task_type, TASK_TYPE_LABELS)}</span>
                           <span>负责人：{item.assignee || '未指派'}</span>
                           <span>创建：{formatTime(item.created_at)}</span>
                         </div>
                         <div className="flex gap-2 mt-3">
-                          <button onClick={() => handleTaskStatus(item.id, 'in_progress')} disabled={taskOperatingId === item.id} className="px-3 py-2 rounded-xl bg-slate-100 text-xs font-black text-slate-700">进行中</button>
-                          <button onClick={() => handleTaskStatus(item.id, 'completed')} disabled={taskOperatingId === item.id} className="px-3 py-2 rounded-xl bg-emerald-600 text-xs font-black text-white">完成</button>
+                          <button onClick={() => handleTaskStatus(item.id, 'in_progress')} disabled={taskOperatingId === item.id} className="px-3 py-2 rounded-xl bg-theme-elevated text-xs font-medium text-theme-text-secondary">进行中</button>
+                          <button onClick={() => handleTaskStatus(item.id, 'completed')} disabled={taskOperatingId === item.id} className="px-3 py-2 rounded-xl bg-emerald-600 text-xs font-medium text-white">完成</button>
                         </div>
                       </div>
                     ))
@@ -1281,37 +1263,37 @@ export const CasesWorkspace: React.FC<any> = ({
             )}
 
             {compactLayout && (
-              <div className="rounded-[1.25rem] border border-slate-200 p-4 space-y-3">
+              <div className="rounded-[1.25rem] border border-theme-border p-4 space-y-3">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-[11px] font-black uppercase tracking-widest text-slate-500">自定义 Panels</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-muted">自定义 Panels</div>
                   <button
                     type="button"
                     onClick={() => setShowPanelEditor((prev) => !prev)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11px] font-black text-slate-700"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-elevated px-2.5 py-1.5 text-[11px] font-medium text-theme-text-secondary"
                   >
                     <Plus size={12} />
                     新增 Panel
                   </button>
                 </div>
                 {showPanelEditor && (
-                  <div className="rounded-xl border border-slate-200 bg-[rgba(255,255,255,0.04)] p-3 space-y-2">
+                  <div className="rounded-xl border border-theme-border bg-[rgba(255,255,255,0.04)] p-3 space-y-2">
                     <input
                       value={newPanelTitle}
                       onChange={(event) => setNewPanelTitle(event.target.value)}
                       placeholder="Panel 标题"
-                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none"
+                      className="form-input w-full"
                     />
                     <textarea
                       value={newPanelContent}
                       onChange={(event) => setNewPanelContent(event.target.value)}
                       placeholder="Panel 内容（可选）"
-                      className="min-h-[74px] w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none"
+                      className="form-textarea min-h-[74px] w-full"
                     />
                     <div className="flex justify-end">
                       <button
                         type="button"
                         onClick={handleAddPanel}
-                        className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-black text-white"
+                        className="rounded-lg bg-theme-surface px-3 py-2 text-xs font-medium text-white"
                       >
                         添加
                       </button>
@@ -1319,23 +1301,23 @@ export const CasesWorkspace: React.FC<any> = ({
                   </div>
                 )}
                 {customPanels.length === 0 ? (
-                  <div className="rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-400">暂无自定义 Panel</div>
+                  <div className="rounded-xl bg-theme-surface px-3 py-3 text-sm text-theme-text-muted">暂无自定义 Panel</div>
                 ) : (
                   <div className="grid gap-2.5 md:grid-cols-2">
                     {customPanels.map((panel) => (
-                      <div key={panel.id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                      <div key={panel.id} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
                         <div className="flex items-start justify-between gap-2">
-                          <div className="text-sm font-black text-slate-800">{panel.title}</div>
+                          <div className="text-sm font-semibold text-theme-text-primary">{panel.title}</div>
                           <button
                             type="button"
                             onClick={() => handleDeletePanel(panel.id)}
-                            className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-[10px] font-black text-rose-700"
+                            className="inline-flex items-center gap-1 rounded-md border border-rose-500/20 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold text-rose-400"
                           >
                             <Trash2 size={10} />
                             删除
                           </button>
                         </div>
-                        {panel.content ? <div className="mt-2 text-xs leading-5 text-slate-600 whitespace-pre-wrap break-words">{panel.content}</div> : null}
+                        {panel.content ? <div className="mt-2 text-xs leading-5 text-theme-text-secondary whitespace-pre-wrap break-words">{panel.content}</div> : null}
                       </div>
                     ))}
                   </div>
@@ -1350,21 +1332,21 @@ export const CasesWorkspace: React.FC<any> = ({
 
     {!compactLayout && !hideCasePool && <div className="space-y-6">
       <div className={cardClass}>
-        <div className="px-6 py-5 border-b border-slate-100">
-          <h3 className="text-lg font-black text-slate-800">阶段分布与运行趋势</h3>
+        <div className="px-6 py-5 border-b border-theme-border">
+          <h3 className="text-lg font-semibold text-theme-text-primary">阶段分布与运行趋势</h3>
         </div>
         <div className="p-6 space-y-4">
           {Object.entries(overview?.stage_counts || {}).length === 0 ? (
-            <div className="text-sm text-slate-400">暂无阶段统计</div>
+            <div className="text-sm text-theme-text-muted">暂无阶段统计</div>
           ) : (
             Object.entries(overview?.stage_counts || {}).map(([stage, count]) => (
               <div key={stage} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="font-black text-slate-700">{stage}</span>
-                  <span className="text-slate-400">{count as number}</span>
+                  <span className="font-medium text-theme-text-secondary">{stage}</span>
+                  <span className="text-theme-text-muted">{count as number}</span>
                 </div>
-                <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                  <div className="h-full rounded-full bg-slate-900" style={{ width: `${overview?.metrics?.total_cases ? ((count as number) / overview.metrics.total_cases) * 100 : 0}%` }} />
+                <div className="h-2 rounded-full bg-theme-elevated overflow-hidden">
+                  <div className="h-full rounded-full bg-theme-surface" style={{ width: `${overview?.metrics?.total_cases ? ((count as number) / overview.metrics.total_cases) * 100 : 0}%` }} />
                 </div>
               </div>
             ))
@@ -1372,8 +1354,8 @@ export const CasesWorkspace: React.FC<any> = ({
         </div>
       </div>
  <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 p-6 rounded-[2rem] text-white">
-        <div className="flex items-center gap-3"><Bot size={18} className="text-blue-300" /><h3 className="text-lg font-black">案例运行提示</h3></div>
-        <div className="mt-4 space-y-3 text-sm text-slate-200">
+        <div className="flex items-center gap-3"><Bot size={18} className="text-blue-300" /><h3 className="text-lg font-semibold">案例运行提示</h3></div>
+        <div className="mt-4 space-y-3 text-sm text-white/80">
           <div className="flex items-start gap-3"><Sparkles size={15} className="mt-0.5 text-blue-300" /><p>优先看自动推进信号和推荐动作，再决定手动派发还是一键自动编排。</p></div>
           <div className="flex items-start gap-3"><ListTodo size={15} className="mt-0.5 text-amber-300" /><p>当结果失败或低置信度时，引擎会自动创建人工任务，记得在任务页统一处理。</p></div>
         </div>

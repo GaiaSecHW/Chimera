@@ -99,23 +99,23 @@ export const showPrompt = (options: string | PromptOptions) =>
 
 const alertStyles = {
   info: {
-    icon: <BellRing size={20} className="text-sky-600" />,
-    chip: 'bg-sky-100 text-sky-700 border-sky-200',
+    icon: <BellRing size={20} className="text-sky-400" />,
+    chip: 'bg-sky-500/15 text-sky-400 border-sky-500/20',
     button: 'bg-sky-600 hover:bg-sky-700',
   },
   success: {
-    icon: <CheckCircle2 size={20} className="text-emerald-600" />,
-    chip: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    icon: <CheckCircle2 size={20} className="text-emerald-400" />,
+    chip: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
     button: 'bg-emerald-600 hover:bg-emerald-700',
   },
   warning: {
-    icon: <AlertTriangle size={20} className="text-amber-600" />,
-    chip: 'bg-amber-100 text-amber-700 border-amber-200',
+    icon: <AlertTriangle size={20} className="text-amber-400" />,
+    chip: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
     button: 'bg-amber-600 hover:bg-amber-700',
   },
   error: {
-    icon: <AlertTriangle size={20} className="text-rose-600" />,
-    chip: 'bg-rose-100 text-rose-700 border-rose-200',
+    icon: <AlertTriangle size={20} className="text-rose-400" />,
+    chip: 'bg-rose-500/15 text-rose-400 border-rose-500/20',
     button: 'bg-rose-600 hover:bg-rose-700',
   },
 } as const;
@@ -186,18 +186,18 @@ export const DialogViewport: React.FC = () => {
     const tone = active.kind === 'alert' ? active.tone || 'info' : active.kind === 'confirm' && active.danger ? 'error' : 'info';
     const style = alertStyles[tone];
     return (
-      <div className="fixed inset-0 z-[320] flex items-center justify-center bg-slate-950/65 backdrop-blur-md p-6">
+      <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/65 backdrop-blur-md p-6">
         <div className="w-full max-w-xl overflow-hidden rounded-[2rem] border border-theme-border bg-theme-surface shadow-[0_30px_120px_rgba(15,23,42,0.32)] animate-in fade-in zoom-in-95 duration-200">
           <div className="border-b border-theme-border px-8 py-7">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-theme-elevated shadow-sm ring-1 ring-theme-border">
-                {active.kind === 'prompt' ? <MessageSquareQuote size={20} className="text-violet-600" /> : style.icon}
+                {active.kind === 'prompt' ? <MessageSquareQuote size={20} className="text-violet-400" /> : style.icon}
               </div>
               <div>
-                <div className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] ${style.chip}`}>
+                <div className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] ${style.chip}`}>
                   {active.kind === 'alert' ? 'Notice' : active.kind === 'confirm' ? 'Confirm' : 'Input'}
                 </div>
-                <h3 className="mt-3 text-2xl font-black tracking-tight text-theme-text-primary">{active.title}</h3>
+                <h3 className="mt-3 text-2xl font-semibold tracking-tight text-theme-text-primary">{active.title}</h3>
               </div>
             </div>
             <p className="mt-5 whitespace-pre-wrap text-sm font-medium leading-7 text-theme-text-secondary">{active.message}</p>
@@ -207,7 +207,7 @@ export const DialogViewport: React.FC = () => {
                 value={promptValue}
                 onChange={(event) => setPromptValue(event.target.value)}
                 placeholder={active.placeholder}
-                className="mt-6 w-full rounded-2xl border border-theme-border bg-theme-elevated px-5 py-4 text-sm font-semibold text-theme-text-primary outline-none ring-0 transition-all focus:border-violet-300 focus:shadow-[0_0_0_4px_rgba(139,92,246,0.08)]"
+                className="form-input mt-6 w-full"
                 onKeyDown={(event) => {
                   if (event.key === 'Escape') resolvePrompt(null);
                   if (event.key === 'Enter') resolvePrompt(promptValue.trim());
@@ -219,7 +219,7 @@ export const DialogViewport: React.FC = () => {
             {active.kind === 'alert' ? (
               <button
                 onClick={closeAlert}
-                className={`rounded-2xl px-5 py-3 text-sm font-black text-white transition-all ${style.button}`}
+                className={`rounded-2xl px-5 py-3 text-sm font-medium text-white transition-all ${style.button}`}
               >
                 {active.confirmText}
               </button>
@@ -227,13 +227,13 @@ export const DialogViewport: React.FC = () => {
               <>
                 <button
                   onClick={() => resolveConfirm(false)}
-                  className="rounded-2xl bg-theme-elevated px-5 py-3 text-sm font-black text-theme-text-primary transition-all hover:bg-theme-surface"
+                  className="rounded-2xl bg-theme-elevated px-5 py-3 text-sm font-medium text-theme-text-primary transition-all hover:bg-theme-surface"
                 >
                   {active.cancelText}
                 </button>
                 <button
                   onClick={() => resolveConfirm(true)}
-                  className={`rounded-2xl px-5 py-3 text-sm font-black text-white transition-all ${active.danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-sky-600 hover:bg-sky-700'}`}
+                  className={`rounded-2xl px-5 py-3 text-sm font-medium text-white transition-all ${active.danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-sky-600 hover:bg-sky-700'}`}
                 >
                   {active.confirmText}
                 </button>
@@ -242,13 +242,13 @@ export const DialogViewport: React.FC = () => {
               <>
                 <button
                   onClick={() => resolvePrompt(null)}
-                  className="rounded-2xl bg-theme-elevated px-5 py-3 text-sm font-black text-theme-text-primary transition-all hover:bg-theme-surface"
+                  className="rounded-2xl bg-theme-elevated px-5 py-3 text-sm font-medium text-theme-text-primary transition-all hover:bg-theme-surface"
                 >
                   {active.cancelText}
                 </button>
                 <button
                   onClick={() => resolvePrompt(promptValue.trim())}
-                  className="rounded-2xl bg-violet-600 px-5 py-3 text-sm font-black text-white transition-all hover:bg-violet-700"
+                  className="rounded-2xl bg-violet-600 px-5 py-3 text-sm font-medium text-white transition-all hover:bg-violet-700"
                 >
                   {active.confirmText}
                 </button>

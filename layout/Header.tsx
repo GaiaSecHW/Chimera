@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Lock, LogOut, MoonStar, RotateCw, SunMedium } from 'lucide-react';
+import { ChevronDown, Lock, LogOut, RotateCw } from 'lucide-react';
 import {
   TopLevelNavKey,
   TopLevelNavItem,
@@ -68,9 +68,9 @@ export const Header: React.FC<HeaderProps> = ({
   handleLogout,
 }) => {
   const userAccess = getUserAccess(user);
-  const { theme, toggleTheme } = useTheme();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const projectDropdownRef = useRef<HTMLDivElement>(null);
 
   const [isSystemAdminOpen, setIsSystemAdminOpen] = useState(false);
   const systemAdminRef = useRef<HTMLDivElement>(null);
@@ -92,6 +92,7 @@ export const Header: React.FC<HeaderProps> = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) setIsUserMenuOpen(false);
+      if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) setIsProjectDropdownOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -124,7 +125,7 @@ export const Header: React.FC<HeaderProps> = ({
                       <button
                         onClick={() => setIsSystemAdminOpen((v) => !v)}
                         style={getTabStyle(item, isActive)}
-                        className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
                           isActive ? '' : 'hover:bg-theme-sidebar-muted hover:text-theme-text-inverse'
                         }`}
                       >
@@ -132,7 +133,7 @@ export const Header: React.FC<HeaderProps> = ({
                         <ChevronDown size={12} className={`transition-transform ${isSystemAdminOpen ? 'rotate-180' : ''}`} />
                       </button>
                       {isSystemAdminOpen && (
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-44 bg-theme-surface border border-theme-border rounded-2xl shadow-brand p-2 z-50">
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-44 bg-theme-surface border border-theme-border rounded-xl shadow-brand p-2 z-50">
                           {SYSTEM_ADMIN_CHILDREN.map((child) => {
                             const childActive = isActive && activeSystemAdminChild === child.key;
                             return (
@@ -142,7 +143,7 @@ export const Header: React.FC<HeaderProps> = ({
                                   onSelectSystemAdminChild(child.defaultView);
                                   setIsSystemAdminOpen(false);
                                 }}
-                                className={`w-full text-left px-3 py-2.5 text-xs font-bold rounded-xl transition-all ${
+                                className={`w-full text-left px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${
                                   childActive
                                     ? 'theme-shell-active'
                                     : 'text-theme-text-secondary hover:bg-theme-elevated'
@@ -167,7 +168,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <button
                     onClick={() => onSelectTopLevelNav(item.id)}
                     style={getTabStyle(item, isActive)}
-                    className={`px-3 py-1.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
+                    className={`px-3 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
                       isActive ? '' : 'hover:bg-theme-sidebar-muted hover:text-theme-text-inverse'
                     }`}
                   >
@@ -180,28 +181,20 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex items-center justify-end gap-3 min-w-0">
-          <button
-            onClick={toggleTheme}
-            className="p-2.5 rounded-xl text-theme-text-soft bg-theme-sidebar-muted/60 hover:bg-theme-sidebar-muted hover:text-theme-text-inverse transition-all shrink-0"
-            title={theme === 'chimera-classic' ? '切换到深色主题' : '切换到经典主题'}
-          >
-            {theme === 'chimera-classic' ? <MoonStar size={16} /> : <SunMedium size={16} />}
-          </button>
-
-          <div className="relative min-w-0 max-w-[18rem]">
+          <div className="relative min-w-0 max-w-[18rem]" ref={projectDropdownRef}>
             <button
               onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-              className="flex items-center gap-3 px-4 py-2.5 theme-shell-muted rounded-2xl text-sm font-black min-w-[12rem] max-w-[18rem]"
+              className="flex items-center gap-3 px-4 py-2.5 theme-shell-muted rounded-lg text-sm font-semibold min-w-[12rem] max-w-[18rem]"
             >
               <div className="w-2.5 h-2.5 rounded-full bg-brand-primary shrink-0" />
               <span className="truncate">{currentProject.name}</span>
               <ChevronDown size={16} className="shrink-0" />
             </button>
             {isProjectDropdownOpen && (
-              <div className="absolute top-full right-0 mt-3 w-80 bg-theme-header border border-theme-sidebar rounded-3xl shadow-brand p-3 z-50">
+              <div className="absolute top-full right-0 mt-3 w-80 bg-theme-header border border-theme-sidebar rounded-xl shadow-brand p-3 z-50">
                 <input
                   placeholder="过滤项目..."
-                  className="w-full px-4 py-3 bg-theme-sidebar text-theme-text-inverse rounded-2xl text-xs outline-none placeholder:text-theme-text-faint"
+                  className="w-full px-4 py-3 bg-theme-sidebar text-theme-text-inverse rounded-lg text-xs outline-none placeholder:text-theme-text-faint"
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
                 <div className="max-h-60 overflow-y-auto mt-2 space-y-1">
@@ -212,7 +205,7 @@ export const Header: React.FC<HeaderProps> = ({
                         setSelectedProjectId(p.id);
                         setIsProjectDropdownOpen(false);
                       }}
-                      className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold ${
+                      className={`w-full text-left px-4 py-3 rounded-xl text-xs font-medium ${
                         selectedProjectId === p.id ? 'theme-shell-active' : 'text-theme-text-soft hover:bg-theme-sidebar hover:text-theme-text-inverse'
                       }`}
                     >
@@ -231,29 +224,29 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="relative shrink-0" ref={userMenuRef}>
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="group flex items-center gap-3 p-1 pr-4 bg-theme-header rounded-2xl hover:bg-theme-sidebar transition-all active:scale-95 shadow-brand"
+              className="group flex items-center gap-3 p-1 pr-4 bg-theme-header rounded-lg hover:bg-theme-sidebar transition-all active:scale-95 shadow-brand"
             >
-              <div className="w-10 h-10 rounded-xl bg-logo-surface flex items-center justify-center text-theme-text-inverse font-black text-sm border shadow-inner group-hover:rotate-6 transition-transform" style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 42%, rgba(255,255,255,0.08))' }}>
+              <div className="w-10 h-10 rounded-xl bg-logo-surface flex items-center justify-center text-theme-text-inverse font-semibold text-sm border shadow-inner group-hover:rotate-6 transition-transform" style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 42%, rgba(255,255,255,0.08))' }}>
                 {user?.username?.[0]?.toUpperCase()}
               </div>
               <div className="text-left hidden md:block">
-                <p className="text-[10px] font-black text-theme-text-inverse leading-tight">{user?.username}</p>
-                <p className="text-[8px] font-bold text-theme-text-faint uppercase tracking-widest">{getPlatformRoleLabel(userAccess.platformRole)}</p>
+                <p className="text-[10px] font-medium text-theme-text-inverse leading-tight">{user?.username}</p>
+                <p className="text-[8px] font-medium text-theme-text-faint uppercase tracking-widest">{getPlatformRoleLabel(userAccess.platformRole)}</p>
               </div>
               <ChevronDown size={14} className={`text-theme-text-faint transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isUserMenuOpen && (
-              <div className="absolute top-full right-0 mt-3 w-64 bg-theme-surface border border-theme-border rounded-[2rem] shadow-brand overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50 p-2 border-t-4 border-t-brand-primary">
+              <div className="absolute top-full right-0 mt-3 w-64 bg-theme-surface border border-theme-border rounded-xl shadow-brand overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50 p-2 border-t-4 border-t-brand-primary">
                 <div className="px-4 py-4 border-b border-theme-border mb-1">
-                  <p className="text-[9px] font-black text-theme-text-faint uppercase tracking-widest">Current Identity</p>
+                  <p className="text-[9px] font-medium text-theme-text-faint uppercase tracking-widest">Current Identity</p>
                   <div className="flex items-center gap-3 mt-1.5">
-                    <div className="w-10 h-10 rounded-xl bg-theme-elevated flex items-center justify-center text-theme-text-primary font-black">
+                    <div className="w-10 h-10 rounded-xl bg-theme-elevated flex items-center justify-center text-theme-text-primary font-semibold">
                       {user?.username?.[0]?.toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-sm font-black text-theme-text-primary leading-tight">{user?.username}</p>
-                      <span className="text-[8px] font-black uppercase text-brand-primary bg-brand-soft px-1.5 py-0.5 rounded border border-brand-border mt-1 inline-block">
+                      <p className="text-sm font-semibold text-theme-text-primary leading-tight">{user?.username}</p>
+                      <span className="text-[8px] font-medium uppercase text-brand-primary bg-brand-soft px-1.5 py-0.5 rounded border border-brand-border mt-1 inline-block">
                         UID: {user?.id}
                       </span>
                     </div>
@@ -266,7 +259,7 @@ export const Header: React.FC<HeaderProps> = ({
                       setCurrentView('change-password');
                       setIsUserMenuOpen(false);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated rounded-xl transition-all"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated rounded-xl transition-all"
                   >
                     <Lock size={16} className="text-theme-text-faint" /> 修改密码
                   </button>
@@ -279,7 +272,7 @@ export const Header: React.FC<HeaderProps> = ({
                     handleLogout();
                     setIsUserMenuOpen(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-black text-state-danger hover:bg-state-danger-soft rounded-xl transition-all uppercase tracking-widest"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-medium text-state-danger hover:bg-state-danger-soft rounded-xl transition-all uppercase tracking-widest"
                 >
                   <LogOut size={16} /> 退出系统
                 </button>

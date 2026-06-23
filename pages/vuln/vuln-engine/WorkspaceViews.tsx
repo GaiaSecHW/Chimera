@@ -260,21 +260,21 @@ export const ServicesWorkspace: React.FC<{
               <p>如果一个阶段有多套同类能力，优先通过优先级和角色说明拉开职责边界。</p>
             </div>
           </div>
-          <input value={serviceForm.service_id} onChange={(event) => setServiceForm({ ...serviceForm, service_id: event.target.value })} placeholder="服务标识" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} required />
-          <input value={serviceForm.service_name} onChange={(event) => setServiceForm({ ...serviceForm, service_name: event.target.value })} placeholder="服务名称" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} required />
+          <input value={serviceForm.service_id} onChange={(event) => setServiceForm({ ...serviceForm, service_id: event.target.value })} placeholder="服务标识" className="form-input" required />
+          <input value={serviceForm.service_name} onChange={(event) => setServiceForm({ ...serviceForm, service_name: event.target.value })} placeholder="服务名称" className="form-input" required />
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-            <select value={serviceForm.service_type} onChange={(event) => setServiceForm({ ...serviceForm, service_type: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
+            <select value={serviceForm.service_type} onChange={(event) => setServiceForm({ ...serviceForm, service_type: event.target.value })} className="form-select">
               {Object.keys(SERVICE_TYPE_LABELS).map((item) => (
                 <option key={item} value={item}>{SERVICE_TYPE_LABELS[item]}</option>
               ))}
             </select>
-            <input value={serviceForm.version} onChange={(event) => setServiceForm({ ...serviceForm, version: event.target.value })} placeholder="版本" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
+            <input value={serviceForm.version} onChange={(event) => setServiceForm({ ...serviceForm, version: event.target.value })} placeholder="版本" className="form-input" />
           </div>
-          <input value={serviceForm.endpoint} onChange={(event) => setServiceForm({ ...serviceForm, endpoint: event.target.value })} placeholder="服务地址" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} required />
-          <input value={serviceForm.healthcheck_url} onChange={(event) => setServiceForm({ ...serviceForm, healthcheck_url: event.target.value })} placeholder="健康检查地址" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
+          <input value={serviceForm.endpoint} onChange={(event) => setServiceForm({ ...serviceForm, endpoint: event.target.value })} placeholder="服务地址" className="form-input" required />
+          <input value={serviceForm.healthcheck_url} onChange={(event) => setServiceForm({ ...serviceForm, healthcheck_url: event.target.value })} placeholder="健康检查地址" className="form-input" />
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-            <input value={serviceForm.capability_code} onChange={(event) => setServiceForm({ ...serviceForm, capability_code: event.target.value })} placeholder="能力标识" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} required />
-            <select value={serviceForm.action_type} onChange={(event) => setServiceForm({ ...serviceForm, action_type: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
+            <input value={serviceForm.capability_code} onChange={(event) => setServiceForm({ ...serviceForm, capability_code: event.target.value })} placeholder="能力标识" className="form-input" required />
+            <select value={serviceForm.action_type} onChange={(event) => setServiceForm({ ...serviceForm, action_type: event.target.value })} className="form-select">
               {Object.keys(ACTION_TYPE_LABELS).map((item) => (
                 <option key={item} value={item}>{ACTION_TYPE_LABELS[item]}</option>
               ))}
@@ -297,40 +297,40 @@ export const ServicesWorkspace: React.FC<{
             {showAdvanced && (
               <div className="grid grid-cols-1 gap-3">
                 <div className="grid grid-cols-3 gap-3">
-                  <input type="number" value={serviceForm.priority} onChange={(event) => setServiceForm({ ...serviceForm, priority: Number(event.target.value) || 100 })} placeholder="优先级" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
-                  <input type="number" value={serviceForm.timeout_seconds} onChange={(event) => setServiceForm({ ...serviceForm, timeout_seconds: Number(event.target.value) || 300 })} placeholder="超时秒数" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
-                  <input type="number" value={serviceForm.concurrency_limit} onChange={(event) => setServiceForm({ ...serviceForm, concurrency_limit: Number(event.target.value) || 1 })} placeholder="并发上限" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
+                  <input type="number" value={serviceForm.priority} onChange={(event) => setServiceForm({ ...serviceForm, priority: Number(event.target.value) || 100 })} placeholder="优先级" className="form-input" />
+                  <input type="number" value={serviceForm.timeout_seconds} onChange={(event) => setServiceForm({ ...serviceForm, timeout_seconds: Number(event.target.value) || 300 })} placeholder="超时秒数" className="form-input" />
+                  <input type="number" value={serviceForm.concurrency_limit} onChange={(event) => setServiceForm({ ...serviceForm, concurrency_limit: Number(event.target.value) || 1 })} placeholder="并发上限" className="form-input" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <select value={serviceForm.callback_mode} onChange={(event) => setServiceForm({ ...serviceForm, callback_mode: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
+                  <select value={serviceForm.callback_mode} onChange={(event) => setServiceForm({ ...serviceForm, callback_mode: event.target.value })} className="form-select">
                     {['push', 'polling', 'manual'].map((item) => (
                       <option key={item} value={item}>{labelOf(item, REPORT_CHANNEL_LABELS)}</option>
                     ))}
                   </select>
-                  <select value={serviceForm.auth_mode} onChange={(event) => setServiceForm({ ...serviceForm, auth_mode: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
+                  <select value={serviceForm.auth_mode} onChange={(event) => setServiceForm({ ...serviceForm, auth_mode: event.target.value })} className="form-select">
                     {['machine_token', 'none', 'manual'].map((item) => (
                       <option key={item} value={item}>{item}</option>
                     ))}
                   </select>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <select value={serviceForm.module_role} onChange={(event) => setServiceForm({ ...serviceForm, module_role: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
+                  <select value={serviceForm.module_role} onChange={(event) => setServiceForm({ ...serviceForm, module_role: event.target.value })} className="form-select">
                     {Object.keys(MODULE_ROLE_LABELS).map((item) => (
                       <option key={item} value={item}>{MODULE_ROLE_LABELS[item]}</option>
                     ))}
                   </select>
-                  <select value={serviceForm.bind_stage} onChange={(event) => setServiceForm({ ...serviceForm, bind_stage: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
+                  <select value={serviceForm.bind_stage} onChange={(event) => setServiceForm({ ...serviceForm, bind_stage: event.target.value })} className="form-select">
                     {['receive', 'triage', 'validation', 'finished'].map((item) => (
                       <option key={item} value={item}>{labelOf(item, STAGE_LABELS)}</option>
                     ))}
                   </select>
-                  <select value={serviceForm.report_channel} onChange={(event) => setServiceForm({ ...serviceForm, report_channel: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
+                  <select value={serviceForm.report_channel} onChange={(event) => setServiceForm({ ...serviceForm, report_channel: event.target.value })} className="form-select">
                     {Object.keys(REPORT_CHANNEL_LABELS).map((item) => (
                       <option key={item} value={item}>{REPORT_CHANNEL_LABELS[item]}</option>
                     ))}
                   </select>
                 </div>
-                <textarea value={serviceForm.association_note} onChange={(event) => setServiceForm({ ...serviceForm, association_note: event.target.value })} placeholder="记录该服务与阶段、环境或路由策略的关联说明" className="min-h-[5rem] px-4 py-3 rounded-lg outline-none resize-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
+                <textarea value={serviceForm.association_note} onChange={(event) => setServiceForm({ ...serviceForm, association_note: event.target.value })} placeholder="记录该服务与阶段、环境或路由策略的关联说明" className="form-textarea min-h-[5rem] resize-none" />
               </div>
             )}
           </div>
@@ -378,24 +378,21 @@ export const ServicesWorkspace: React.FC<{
               value={serviceSearch}
               onChange={(event) => setServiceSearch(event.target.value)}
               placeholder="搜索服务名、服务标识、能力标识、动作类型或关联说明"
-              className="px-4 py-3 rounded-lg outline-none"
-              style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}
+              className="form-input"
             />
-            <select value={serviceStageFilter} onChange={(event) => setServiceStageFilter(event.target.value)} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
+            <select value={serviceStageFilter} onChange={(event) => setServiceStageFilter(event.target.value)} className="form-select">
               <option value="all">全部阶段</option>
               {['receive', 'triage', 'validation', 'finished'].map((item) => (
                 <option key={item} value={item}>{labelOf(item, STAGE_LABELS)}</option>
               ))}
             </select>
-            <select value={serviceRoleFilter} onChange={(event) => setServiceRoleFilter(event.target.value)} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
+            <select value={serviceRoleFilter} onChange={(event) => setServiceRoleFilter(event.target.value)} className="form-select">
               <option value="all">全部角色</option>
               {Object.keys(MODULE_ROLE_LABELS).map((item) => (
                 <option key={item} value={item}>{MODULE_ROLE_LABELS[item]}</option>
               ))}
             </select>
-            <select value={serviceActionFilter} onChange={(event) => setServiceActionFilter(event.target.value)} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
+            <select value={serviceActionFilter} onChange={(event) => setServiceActionFilter(event.target.value)} className="form-select">
               <option value="all">全部动作</option>
               {Object.keys(ACTION_TYPE_LABELS).map((item) => (
                 <option key={item} value={item}>{ACTION_TYPE_LABELS[item]}</option>
@@ -437,54 +434,54 @@ export const ServicesWorkspace: React.FC<{
             </div>
           </div>
         </div>
-        <div className="divide-y divide-slate-100 max-h-[56rem] overflow-y-auto">
+        <div className="divide-y divide-theme-border max-h-[56rem] overflow-y-auto">
           {filteredServices.length === 0 ? (
-            <div className="px-6 py-8 text-sm text-slate-400">当前筛选条件下没有能力服务</div>
+            <div className="px-6 py-8 text-sm text-theme-text-muted">当前筛选条件下没有能力服务</div>
           ) : (
             filteredServices.map((item) => (
               <div key={item.service_id} className="px-6 py-5 space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-black text-slate-800">{item.service_name}</p>
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${item.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{item.status}</span>
-                      {!item.healthcheck_url && <span className="px-2 py-1 rounded-lg bg-sky-100 text-[10px] font-black uppercase tracking-widest text-sky-700">缺健康检查</span>}
-                      {(item.capabilities || []).length === 0 && <span className="px-2 py-1 rounded-lg bg-rose-100 text-[10px] font-black uppercase tracking-widest text-rose-700">缺能力声明</span>}
+                      <p className="text-sm font-semibold text-theme-text-primary">{item.service_name}</p>
+                      <span className={`px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-widest ${item.status === 'active' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>{item.status}</span>
+                      {!item.healthcheck_url && <span className="px-2 py-1 rounded-lg bg-sky-500/15 text-[10px] font-semibold uppercase tracking-widest text-sky-400">缺健康检查</span>}
+                      {(item.capabilities || []).length === 0 && <span className="px-2 py-1 rounded-lg bg-rose-500/15 text-[10px] font-semibold uppercase tracking-widest text-rose-400">缺能力声明</span>}
                     </div>
-                    <p className="text-xs text-slate-500">{labelOf(item.service_type, SERVICE_TYPE_LABELS)} · {item.endpoint}</p>
-                    <p className="text-[11px] text-slate-400">heartbeat: {formatTime(item.last_heartbeat_at)} · callback: {item.callback_mode || 'push'} · auth: {item.auth_mode || 'machine_token'}</p>
+                    <p className="text-xs text-theme-text-muted">{labelOf(item.service_type, SERVICE_TYPE_LABELS)} · {item.endpoint}</p>
+                    <p className="text-[11px] text-theme-text-muted">heartbeat: {formatTime(item.last_heartbeat_at)} · callback: {item.callback_mode || 'push'} · auth: {item.auth_mode || 'machine_token'}</p>
                   </div>
-                  <div className="text-right text-xs text-slate-400 shrink-0">
+                  <div className="text-right text-xs text-theme-text-muted shrink-0">
                     <p>版本</p>
-                    <p className="mt-1 font-black text-slate-700">{item.version || '暂无'}</p>
+                    <p className="mt-1 font-medium text-theme-text-secondary">{item.version || '暂无'}</p>
                   </div>
                 </div>
 
                 {(item.meta?.association_note || item.meta?.bind_stage || item.meta?.module_role) && (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
-                    <div className="font-black text-slate-700">服务元数据</div>
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-xs text-theme-text-secondary">
+                    <div className="font-medium text-theme-text-secondary">服务元数据</div>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {item.meta?.bind_stage && <span>阶段：{labelOf(item.meta.bind_stage, STAGE_LABELS)}</span>}
                       {item.meta?.module_role && <span>角色：{labelOf(item.meta.module_role, MODULE_ROLE_LABELS)}</span>}
                       {item.meta?.report_channel && <span>回传：{labelOf(item.meta.report_channel, REPORT_CHANNEL_LABELS)}</span>}
                     </div>
-                    {item.meta?.association_note && <div className="mt-2 text-slate-500">{item.meta.association_note}</div>}
+                    {item.meta?.association_note && <div className="mt-2 text-theme-text-muted">{item.meta.association_note}</div>}
                   </div>
                 )}
 
                 <div className="flex flex-wrap gap-2 text-[11px]">
                   {item.meta?.bind_stage && (
-                    <span className="rounded-xl bg-violet-50 px-3 py-2 font-black text-violet-700">
+                    <span className="rounded-xl bg-violet-500/15 px-3 py-2 font-medium text-violet-400">
                       绑定阶段 {labelOf(item.meta.bind_stage, STAGE_LABELS)}
                     </span>
                   )}
                   {item.meta?.module_role && (
-                    <span className="rounded-xl bg-slate-100 px-3 py-2 font-black text-slate-700">
+                    <span className="rounded-xl bg-theme-elevated px-3 py-2 font-medium text-theme-text-secondary">
                       角色 {labelOf(item.meta.module_role, MODULE_ROLE_LABELS)}
                     </span>
                   )}
                   {item.callback_mode && (
-                    <span className="rounded-xl bg-emerald-50 px-3 py-2 font-black text-emerald-700">
+                    <span className="rounded-xl bg-emerald-500/15 px-3 py-2 font-medium text-emerald-400">
                       回调 {item.callback_mode}
                     </span>
                   )}
@@ -492,20 +489,20 @@ export const ServicesWorkspace: React.FC<{
 
                 <div className="grid grid-cols-1 gap-3">
                   {(item.capabilities || []).map((cap: any) => (
-                    <div key={`${item.service_id}-${cap.capability_code}`} className="rounded-[1.25rem] border border-slate-200 bg-[rgba(255,255,255,0.04)] px-4 py-4">
+                    <div key={`${item.service_id}-${cap.capability_code}`} className="rounded-[1.25rem] border border-theme-border bg-[rgba(255,255,255,0.04)] px-4 py-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-2 min-w-0">
                           <div className="flex flex-wrap gap-2">
-                            <span className="px-2 py-1 rounded-lg bg-blue-100 text-[10px] font-black uppercase tracking-widest text-blue-700">{labelOf(cap.action_type, ACTION_TYPE_LABELS)}</span>
-                            <span className="px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-700">{cap.capability_code}</span>
+                            <span className="px-2 py-1 rounded-lg bg-blue-500/15 text-[10px] font-semibold uppercase tracking-widest text-blue-400">{labelOf(cap.action_type, ACTION_TYPE_LABELS)}</span>
+                            <span className="px-2 py-1 rounded-lg bg-theme-elevated text-[10px] font-semibold uppercase tracking-widest text-theme-text-secondary">{cap.capability_code}</span>
                             {(cap.timeout_seconds ?? 0) < 60 && (
-                              <span className="px-2 py-1 rounded-lg bg-amber-100 text-[10px] font-black uppercase tracking-widest text-amber-700">短超时</span>
+                              <span className="px-2 py-1 rounded-lg bg-amber-500/15 text-[10px] font-semibold uppercase tracking-widest text-amber-400">短超时</span>
                             )}
                             {(cap.concurrency_limit ?? 0) <= 1 && (
-                              <span className="px-2 py-1 rounded-lg bg-sky-100 text-[10px] font-black uppercase tracking-widest text-sky-700">低并发</span>
+                              <span className="px-2 py-1 rounded-lg bg-sky-500/15 text-[10px] font-semibold uppercase tracking-widest text-sky-400">低并发</span>
                             )}
                           </div>
-                          <div className="flex flex-wrap gap-3 text-[11px] text-slate-500">
+                          <div className="flex flex-wrap gap-3 text-[11px] text-theme-text-muted">
                             <span>阶段：{labelOf(cap.meta?.bind_stage || item.meta?.bind_stage, STAGE_LABELS)}</span>
                             <span>角色：{labelOf(cap.meta?.module_role || item.meta?.module_role, MODULE_ROLE_LABELS)}</span>
                             <span>优先级：{cap.priority}</span>
@@ -516,7 +513,7 @@ export const ServicesWorkspace: React.FC<{
                         </div>
                         <button
                           onClick={() => loadServiceToForm(item)}
-                          className="px-3 py-2 rounded-xl bg-slate-100 text-xs font-black text-slate-700 shrink-0"
+                          className="px-3 py-2 rounded-xl bg-theme-elevated text-xs font-medium text-theme-text-secondary shrink-0"
                         >
                           编辑
                         </button>
@@ -526,13 +523,13 @@ export const ServicesWorkspace: React.FC<{
                 </div>
 
                 <div className="flex gap-2">
-                  <button onClick={() => handleServiceHeartbeat(item.service_id)} disabled={serviceOperatingId === item.service_id} className="px-3 py-2 rounded-xl bg-slate-100 text-xs font-black text-slate-700">
+                  <button onClick={() => handleServiceHeartbeat(item.service_id)} disabled={serviceOperatingId === item.service_id} className="px-3 py-2 rounded-xl bg-theme-elevated text-xs font-medium text-theme-text-secondary">
                     {serviceOperatingId === item.service_id ? '处理中...' : '刷新心跳'}
                   </button>
-                  <button onClick={() => loadServiceToForm(item)} className="px-3 py-2 rounded-xl bg-blue-50 text-xs font-black text-blue-700">
+                  <button onClick={() => loadServiceToForm(item)} className="px-3 py-2 rounded-xl bg-blue-500/15 text-xs font-medium text-blue-400">
                     回填到表单
                   </button>
-                  <button onClick={() => handleServiceUnregister(item.service_id)} disabled={serviceOperatingId === item.service_id} className="px-3 py-2 rounded-xl bg-rose-50 text-xs font-black text-rose-700 flex items-center gap-2">
+                  <button onClick={() => handleServiceUnregister(item.service_id)} disabled={serviceOperatingId === item.service_id} className="px-3 py-2 rounded-xl bg-rose-500/15 text-xs font-medium text-rose-400 flex items-center gap-2">
                     <Trash2 size={12} />
                     注销
                   </button>
@@ -1453,17 +1450,17 @@ export const ReproConfigWorkspace: React.FC<{
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <input value={serviceForm.service_id} onChange={(event) => setServiceForm({ ...serviceForm, service_id: event.target.value })} placeholder="模块标识" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} required />
-            <input value={serviceForm.service_name} onChange={(event) => setServiceForm({ ...serviceForm, service_name: event.target.value })} placeholder="模块名称" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} required />
+            <input value={serviceForm.service_id} onChange={(event) => setServiceForm({ ...serviceForm, service_id: event.target.value })} placeholder="模块标识" className="form-input" required />
+            <input value={serviceForm.service_name} onChange={(event) => setServiceForm({ ...serviceForm, service_name: event.target.value })} placeholder="模块名称" className="form-input" required />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <select value={serviceForm.module_role} onChange={(event) => setServiceForm({ ...serviceForm, module_role: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
+            <select value={serviceForm.module_role} onChange={(event) => setServiceForm({ ...serviceForm, module_role: event.target.value })} className="form-select">
               <option value="reproducer">复现模块</option>
               <option value="reporter">上报模块</option>
               <option value="validator">验证模块</option>
               <option value="proof-provider">证明模块</option>
             </select>
-            <select value={serviceForm.service_type} onChange={(event) => setServiceForm({ ...serviceForm, service_type: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
+            <select value={serviceForm.service_type} onChange={(event) => setServiceForm({ ...serviceForm, service_type: event.target.value })} className="form-select">
               <option value="validator">验证服务</option>
               <option value="analyzer">分析服务</option>
               <option value="poc_generator">验证脚本生成服务</option>
@@ -1471,32 +1468,32 @@ export const ReproConfigWorkspace: React.FC<{
               <option value="reporter">回传服务</option>
             </select>
           </div>
-          <input value={serviceForm.endpoint} onChange={(event) => setServiceForm({ ...serviceForm, endpoint: event.target.value })} placeholder="模块地址" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} required />
-          <input value={serviceForm.healthcheck_url} onChange={(event) => setServiceForm({ ...serviceForm, healthcheck_url: event.target.value })} placeholder="健康检查地址" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
+          <input value={serviceForm.endpoint} onChange={(event) => setServiceForm({ ...serviceForm, endpoint: event.target.value })} placeholder="模块地址" className="form-input" required />
+          <input value={serviceForm.healthcheck_url} onChange={(event) => setServiceForm({ ...serviceForm, healthcheck_url: event.target.value })} placeholder="健康检查地址" className="form-input" />
           <div className="grid grid-cols-3 gap-3">
-            <input value={serviceForm.version} onChange={(event) => setServiceForm({ ...serviceForm, version: event.target.value })} placeholder="版本" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
-            <select value={serviceForm.action_type} onChange={(event) => setServiceForm({ ...serviceForm, action_type: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
+            <input value={serviceForm.version} onChange={(event) => setServiceForm({ ...serviceForm, version: event.target.value })} placeholder="版本" className="form-input" />
+            <select value={serviceForm.action_type} onChange={(event) => setServiceForm({ ...serviceForm, action_type: event.target.value })} className="form-select">
               {REPRO_ACTION_TYPES.map((item) => <option key={item} value={item}>{labelOf(item, ACTION_TYPE_LABELS)}</option>)}
             </select>
-            <select value={serviceForm.bind_stage} onChange={(event) => setServiceForm({ ...serviceForm, bind_stage: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
+            <select value={serviceForm.bind_stage} onChange={(event) => setServiceForm({ ...serviceForm, bind_stage: event.target.value })} className="form-select">
               <option value="validation">验证</option>
               <option value="finished">已结束</option>
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <input value={serviceForm.capability_code} onChange={(event) => setServiceForm({ ...serviceForm, capability_code: event.target.value })} placeholder="能力标识" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} required />
-            <select value={serviceForm.report_channel} onChange={(event) => setServiceForm({ ...serviceForm, report_channel: event.target.value })} className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }}>
+            <input value={serviceForm.capability_code} onChange={(event) => setServiceForm({ ...serviceForm, capability_code: event.target.value })} placeholder="能力标识" className="form-input" required />
+            <select value={serviceForm.report_channel} onChange={(event) => setServiceForm({ ...serviceForm, report_channel: event.target.value })} className="form-select">
               <option value="callback">回调</option>
               <option value="polling">轮询</option>
               <option value="manual">人工</option>
             </select>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <input type="number" value={serviceForm.priority} onChange={(event) => setServiceForm({ ...serviceForm, priority: Number(event.target.value) || 100 })} placeholder="优先级" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
-            <input type="number" value={serviceForm.timeout_seconds} onChange={(event) => setServiceForm({ ...serviceForm, timeout_seconds: Number(event.target.value) || 300 })} placeholder="超时秒数" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
-            <input type="number" value={serviceForm.concurrency_limit} onChange={(event) => setServiceForm({ ...serviceForm, concurrency_limit: Number(event.target.value) || 1 })} placeholder="并发上限" className="px-4 py-3 rounded-lg outline-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
+            <input type="number" value={serviceForm.priority} onChange={(event) => setServiceForm({ ...serviceForm, priority: Number(event.target.value) || 100 })} placeholder="优先级" className="form-input" />
+            <input type="number" value={serviceForm.timeout_seconds} onChange={(event) => setServiceForm({ ...serviceForm, timeout_seconds: Number(event.target.value) || 300 })} placeholder="超时秒数" className="form-input" />
+            <input type="number" value={serviceForm.concurrency_limit} onChange={(event) => setServiceForm({ ...serviceForm, concurrency_limit: Number(event.target.value) || 1 })} placeholder="并发上限" className="form-input" />
           </div>
-          <textarea value={serviceForm.association_note} onChange={(event) => setServiceForm({ ...serviceForm, association_note: event.target.value })} placeholder="关联说明：例如用于验证阶段的 HTTP 复现与自动确认" className="min-h-[6rem] px-4 py-3 rounded-lg outline-none resize-none" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => { e.currentTarget.style.borderColor = LK.primary; }} onBlur={(e) => { e.currentTarget.style.borderColor = LK.border; }} />
+          <textarea value={serviceForm.association_note} onChange={(event) => setServiceForm({ ...serviceForm, association_note: event.target.value })} placeholder="关联说明：例如用于验证阶段的 HTTP 复现与自动确认" className="form-textarea min-h-[6rem] resize-none" />
           <div className="flex gap-3">
             <button type="submit" disabled={submittingService} className="flex-1 px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { if (!submittingService) e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}>
               <Plus size={16} />

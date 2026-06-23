@@ -9,6 +9,7 @@ import {
   SystemAnalysisProviderConfig,
 } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { PageSection, FormField } from '../../design-system';
 
 const LK = {
   primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
@@ -39,23 +40,11 @@ const emptyConfig = (): SystemAnalysisModelsConfig => ({ providers: {} });
 // ─── 子组件 ────────────────────────────────────────────────────────────────────
 
 const SectionCard: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({ title, subtitle, children }) => (
-  <section className="rounded-lg p-4 space-y-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-    <div>
-      <h2 className="text-base font-semibold" style={{ color: LK.ink }}>{title}</h2>
-      {subtitle && <p className="mt-0.5 text-xs" style={{ color: LK.muted }}>{subtitle}</p>}
-    </div>
-    {children}
-  </section>
+  <PageSection title={title} description={subtitle}>{children}</PageSection>
 );
 
 const FieldRow: React.FC<{ label: string; hint?: string; children: React.ReactNode }> = ({ label, hint, children }) => (
-  <div className="flex flex-col gap-1">
-    <label className="text-sm font-medium" style={{ color: LK.inkSoft }}>
-      {label}
-      {hint && <span className="ml-2 text-xs font-normal" style={{ color: LK.muted }}>{hint}</span>}
-    </label>
-    {children}
-  </div>
+  <FormField label={label} hint={hint}>{children}</FormField>
 );
 
 interface ApiKeyInputProps {
@@ -102,17 +91,17 @@ const ModelsList: React.FC<{
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">模型列表</p>
+      <p className="text-xs font-semibold text-theme-text-muted uppercase tracking-wider">模型列表</p>
       {models.map((model, i) => (
-        <div key={i} className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+        <div key={i} className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
           <input
             type="text"
             value={model.id}
             onChange={(e) => update(i, { id: e.target.value })}
             placeholder="model-id"
-            className="flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm font-mono"
+            className="flex-1 rounded-lg border border-theme-border px-2 py-1.5 text-sm font-mono"
           />
-          <label className="inline-flex items-center gap-1.5 text-sm text-slate-600 cursor-pointer whitespace-nowrap">
+          <label className="inline-flex items-center gap-1.5 text-sm text-theme-text-secondary cursor-pointer whitespace-nowrap">
             <input
               type="checkbox"
               checked={model.reasoning}
@@ -121,13 +110,13 @@ const ModelsList: React.FC<{
             推理模型
           </label>
           {model.id && (
-            <span className="hidden sm:inline text-xs text-slate-400 font-mono whitespace-nowrap">
+            <span className="hidden sm:inline text-xs text-theme-text-muted font-mono whitespace-nowrap">
               → {providerName}/{model.id}
             </span>
           )}
           <button
             onClick={() => remove(i)}
-            className="rounded-lg border border-red-100 p-1.5 text-red-400 hover:bg-red-50"
+            className="rounded-lg border border-red-500/20 p-1.5 text-red-400 hover:bg-red-500/15"
           >
             <Trash2 size={13} />
           </button>
@@ -135,7 +124,7 @@ const ModelsList: React.FC<{
       ))}
       <button
         onClick={add}
-        className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100"
+        className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-theme-border px-3 py-1.5 text-sm text-theme-text-muted hover:bg-theme-elevated"
       >
         <Plus size={13} /> 添加模型
       </button>
@@ -164,12 +153,12 @@ const ProviderCard: React.FC<{
   };
 
   return (
- <div className="rounded-2xl border border-slate-200 bg-slate-50">
+ <div className="rounded-2xl border border-theme-border bg-theme-surface">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-theme-border">
         <button
           onClick={() => setExpanded((e) => !e)}
-          className="text-slate-400 hover:text-slate-600"
+          className="text-theme-text-muted hover:text-theme-text-secondary"
         >
           {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
@@ -185,16 +174,16 @@ const ProviderCard: React.FC<{
         ) : (
           <button
             onClick={() => setEditingName(true)}
-            className="flex-1 text-left text-sm font-mono font-bold text-slate-800 hover:text-cyan-700"
+            className="flex-1 text-left text-sm font-mono font-bold text-theme-text-primary hover:text-cyan-400"
             title="点击编辑 provider 名称"
           >
             {name}
           </button>
         )}
-        <span className="text-xs text-slate-400">{config.models.length} 个模型</span>
+        <span className="text-xs text-theme-text-muted">{config.models.length} 个模型</span>
         <button
           onClick={onRemove}
-          className="rounded-lg border border-red-100 p-1.5 text-red-400 hover:bg-red-50"
+          className="rounded-lg border border-red-500/20 p-1.5 text-red-400 hover:bg-red-500/15"
           title="删除 Provider"
         >
           <Trash2 size={14} />
@@ -211,14 +200,14 @@ const ProviderCard: React.FC<{
                 value={config.baseUrl}
                 onChange={(e) => onChange({ ...config, baseUrl: e.target.value })}
                 placeholder="https://api.openai.com/v1"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-theme-border px-3 py-2 text-sm"
               />
             </FieldRow>
             <FieldRow label="API 类型">
               <select
                 value={config.api}
                 onChange={(e) => onChange({ ...config, api: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-slate-50"
+                className="w-full rounded-lg border border-theme-border px-3 py-2 text-sm bg-theme-elevated"
               >
                 {API_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
@@ -323,21 +312,21 @@ export const SystemAnalysisModelsPage: React.FC = () => {
       {feedbackNodes}
 
       {/* 页头 */}
- <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">模型配置</h1>
-        <p className="mt-2 text-sm text-slate-500">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-theme-text-primary">模型配置</h1>
+        <p className="mt-2 text-sm text-theme-text-muted">
           管理分析引擎使用的 LLM 提供商及模型列表。模型引用格式：
-          <code className="mx-1 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-700">
+          <code className="mx-1 rounded bg-theme-elevated px-1.5 py-0.5 font-mono text-xs text-theme-text-secondary">
             {'{'}provider_name{'}'}/{'{'}model_id{'}'}
           </code>
         </p>
         {config.updated_at && (
-          <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
+          <p className="mt-1 text-xs text-theme-text-muted">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
         )}
       </section>
 
       {loading ? (
-        <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+        <div className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary">
           <Loader2 size={15} className="animate-spin" />加载中...
         </div>
       ) : (
@@ -350,7 +339,7 @@ export const SystemAnalysisModelsPage: React.FC = () => {
                   <button
                     key={ref}
                     onClick={() => { navigator.clipboard.writeText(ref).catch(() => {}); notify(`已复制 ${ref}`, 'success'); }}
-                    className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-mono text-slate-700 hover:border-cyan-300 hover:bg-cyan-50 hover:text-cyan-700 transition-colors"
+                    className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-mono text-theme-text-secondary hover:border-cyan-300 hover:bg-cyan-500/15 hover:text-cyan-400 transition-colors"
                     title="点击复制"
                   >
                     {ref}
@@ -373,7 +362,7 @@ export const SystemAnalysisModelsPage: React.FC = () => {
               />
             ))}
             {Object.keys(config.providers).length === 0 && (
-              <div className="rounded-2xl border border-dashed border-slate-300 py-10 text-center text-sm text-slate-400">
+              <div className="rounded-2xl border border-dashed border-theme-border py-10 text-center text-sm text-theme-text-muted">
                 暂无 Provider，点击「添加 Provider」开始配置
               </div>
             )}
@@ -381,7 +370,7 @@ export const SystemAnalysisModelsPage: React.FC = () => {
 
           <button
             onClick={addProvider}
-            className="inline-flex items-center gap-2 rounded-xl border border-dashed border-slate-400 px-5 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
+            className="inline-flex items-center gap-2 rounded-xl border border-dashed border-slate-400 px-5 py-2.5 text-sm text-theme-text-secondary hover:bg-theme-elevated"
           >
             <Plus size={15} /> 添加 Provider
           </button>
@@ -391,7 +380,7 @@ export const SystemAnalysisModelsPage: React.FC = () => {
             <button
               onClick={() => void handleSave()}
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
             >
               {saving && <Loader2 size={14} className="animate-spin" />}
               保存配置

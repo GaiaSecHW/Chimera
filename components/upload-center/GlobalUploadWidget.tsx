@@ -47,13 +47,13 @@ const statusLabel = (task: UploadTask): string => {
 const statusClass = (task: UploadTask): string => {
   switch (task.status) {
     case 'uploading':
-      return 'text-blue-700 bg-blue-100/10';
+      return 'text-blue-400 bg-blue-100/10';
     case 'processing':
-      return 'text-amber-700 bg-amber-100/10';
+      return 'text-amber-400 bg-amber-100/10';
     case 'success':
-      return 'text-emerald-700 bg-emerald-100/10';
+      return 'text-emerald-400 bg-emerald-100/10';
     case 'failed':
-      return 'text-red-700 bg-red-100/10';
+      return 'text-red-400 bg-red-100/10';
     case 'canceled':
       return 'text-theme-text-secondary bg-theme-elevated';
     default:
@@ -79,11 +79,11 @@ export const GlobalUploadWidget: React.FC = () => {
 
   const renderTaskIcon = (task: UploadTask) => {
     if (task.status === 'uploading' || task.status === 'processing' || task.status === 'queued') {
-      return <Loader2 size={14} className="animate-spin text-blue-600" />;
+      return <Loader2 size={14} className="animate-spin text-blue-400" />;
     }
-    if (task.status === 'success') return <CheckCircle2 size={14} className="text-emerald-600" />;
-    if (task.status === 'failed') return <AlertTriangle size={14} className="text-red-600" />;
-    return <XCircle size={14} className="text-slate-500" />;
+    if (task.status === 'success') return <CheckCircle2 size={14} className="text-emerald-400" />;
+    if (task.status === 'failed') return <AlertTriangle size={14} className="text-red-400" />;
+    return <XCircle size={14} className="text-theme-text-muted" />;
   };
 
   return (
@@ -167,14 +167,14 @@ export const GlobalUploadWidget: React.FC = () => {
                       <div className="mt-1 text-[11px] text-theme-text-muted">{task.message}</div>
                     )}
                     {task.error && (
-                      <div className="mt-1 text-[11px] text-red-600 break-all">{task.error}</div>
+                      <div className="mt-1 text-[11px] text-red-400 break-all">{task.error}</div>
                     )}
                     {(task.status === 'queued' || task.status === 'uploading') && (
                       <div className="mt-2">
                         <button
                           type="button"
                           onClick={() => center.cancelUpload(task.id)}
-                          className="text-[11px] text-red-600 hover:text-red-700"
+                          className="text-[11px] text-red-400 hover:text-red-400"
                         >
                           取消任务
                         </button>

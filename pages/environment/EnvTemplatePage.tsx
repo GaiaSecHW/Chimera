@@ -55,6 +55,7 @@ import { ComposeViewer } from '../../components/ComposeViewer';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { TemplateLlmBindingEditor, normalizeTemplateLlmBinding } from './llm-binding/TemplateLlmBindingEditor';
 import { AgentDetailPage } from './AgentDetailPage';
+import { PageHeader } from '../../design-system';
 
 // Helper to build tree from flat paths
 interface TreeNode {
@@ -1326,16 +1327,16 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   const renderDeployModal = () => (
     isDeployModalOpen && (
       <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
- <div className="bg-slate-50 w-full max-w-6xl max-h-[86vh] rounded-[2.25rem] overflow-hidden flex flex-col animate-in zoom-in-95">
-          <div className="p-7 border-b border-slate-100 bg-slate-50/60 shrink-0">
+ <div className="bg-theme-surface w-full max-w-6xl max-h-[86vh] rounded-[2.25rem] overflow-hidden flex flex-col animate-in zoom-in-95">
+          <div className="p-7 border-b border-theme-border bg-theme-elevated shrink-0">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-4">
- <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-blue-600/25">
+ <div className="w-14 h-14 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-blue-600/25">
                   <Monitor size={26} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black text-slate-800 tracking-tight">部署到节点</h3>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                  <h3 className="text-2xl font-bold text-theme-text-primary tracking-tight">部署到节点</h3>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-theme-text-muted">
                     <span>模板 {deploySource === 'detail' ? 1 : selectedNames.size} 个</span>
                     <span className="w-1 h-1 rounded-full bg-slate-300" />
                     <span>已选节点 {selectedAgentKeys.size} / {availableAgents.length}</span>
@@ -1346,7 +1347,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               </div>
               <button
                 onClick={() => setIsDeployModalOpen(false)}
- className="p-3 text-slate-400 hover:bg-slate-50 hover:text-slate-600 rounded-xl transition-all"
+ className="p-3 text-theme-text-muted hover:bg-theme-elevated hover:text-theme-text-secondary rounded-xl transition-all"
               >
                 <X size={22} />
               </button>
@@ -1361,10 +1362,10 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 <button
                   key={tab.key}
                   onClick={() => setDeployModalTab(tab.key as 'agents' | 'config' | 'llm' | 'confirm')}
-                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+                  className={`px-4 py-2 rounded-xl text-xs font-medium transition-all ${
                     deployModalTab === tab.key
- ? 'bg-slate-50 text-blue-700 border border-blue-200 '
-                      : 'text-slate-600 hover:bg-slate-50'
+ ? 'bg-theme-elevated text-blue-400 border border-blue-500/20 '
+                      : 'text-theme-text-secondary hover:bg-theme-elevated'
                   }`}
                 >
                   {tab.label}
@@ -1373,32 +1374,32 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             </div>
           </div>
 
-          <div className="min-h-0 overflow-y-auto p-7 bg-slate-50/20 custom-scrollbar">
+          <div className="min-h-0 overflow-y-auto p-7 bg-theme-elevated custom-scrollbar">
             {deployModalTab === 'agents' && (
               <div className="space-y-4">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
                   <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_auto_auto] gap-3 items-center">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" size={16} />
                       <input
                         type="text"
                         autoFocus
                         value={agentSearch}
                         onChange={(e) => setAgentSearch(e.target.value)}
                         placeholder="快速筛选：hostname / IP / agent key / 原因"
-                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                        className="form-input w-full pl-9"
                       />
                     </div>
-                    <div className="flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+                    <div className="flex rounded-xl border border-theme-border bg-theme-surface p-1">
                       <button
                         onClick={() => setStatusFilter('all')}
- className={`px-3 py-1.5 rounded-lg text-xs font-bold ${statusFilter === 'all' ? 'bg-slate-50 text-slate-800 ' : 'text-slate-500'}`}
+ className={`px-3 py-1.5 rounded-lg text-xs font-medium ${statusFilter === 'all' ? 'bg-theme-elevated text-theme-text-primary ' : 'text-theme-text-muted'}`}
                       >
                         全部
                       </button>
                       <button
                         onClick={() => setStatusFilter('online')}
- className={`px-3 py-1.5 rounded-lg text-xs font-bold ${statusFilter === 'online' ? 'bg-green-600 text-white ' : 'text-slate-500'}`}
+ className={`px-3 py-1.5 rounded-lg text-xs font-medium ${statusFilter === 'online' ? 'bg-green-600 text-white ' : 'text-theme-text-muted'}`}
                       >
                         仅在线
                       </button>
@@ -1406,7 +1407,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     <select
                       value={agentPageSize}
                       onChange={(e) => setAgentPageSize(Number(e.target.value) || 10)}
-                      className="px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700"
+                      className="form-select text-xs"
                     >
                       <option value={10}>10/页</option>
                       <option value={20}>20/页</option>
@@ -1416,7 +1417,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     <div className="flex gap-2">
                       <button
                         onClick={toggleSelectAllAgents}
-                        className="px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                        className="px-3 py-2.5 rounded-xl border border-theme-border bg-theme-surface text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                       >
                         {filteredAgents.filter((agent) => agent.status === 'online').length > 0 && filteredAgents.filter((agent) => agent.status === 'online').every((agent) => selectedAgentKeys.has(agent.key)) ? '取消全选筛选结果' : '全选筛选结果'}
                       </button>
@@ -1424,8 +1425,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
-                  <div className="grid grid-cols-[44px_1.1fr_1fr_120px_220px_140px] gap-3 px-4 py-3 text-[11px] font-black text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+                <div className="rounded-xl border border-theme-border bg-theme-surface overflow-hidden">
+                  <div className="grid grid-cols-[44px_1.1fr_1fr_120px_220px_140px] gap-3 px-4 py-3 text-[11px] font-medium text-theme-text-muted uppercase bg-theme-elevated border-b border-theme-border">
                     <div />
                     <div>节点</div>
                     <div>IP</div>
@@ -1434,12 +1435,12 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     <div>Agent Key</div>
                   </div>
                   {agentsLoading ? (
-                    <div className="py-14 flex items-center justify-center text-slate-400 gap-3">
+                    <div className="py-14 flex items-center justify-center text-theme-text-muted gap-3">
                       <Loader2 className="animate-spin" size={18} />
                       <span className="text-sm">拉取节点列表中...</span>
                     </div>
                   ) : pagedAgents.length === 0 ? (
-                    <div className="py-14 text-center text-sm text-slate-500">无匹配节点</div>
+                    <div className="py-14 text-center text-sm text-theme-text-muted">无匹配节点</div>
                   ) : (
                     pagedAgents.map((agent) => {
                       const online = agent.status === 'online';
@@ -1449,40 +1450,40 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           key={agent.key}
                           type="button"
                           onClick={() => online && toggleAgentSelect(agent.key)}
-                          className={`w-full text-left grid grid-cols-[44px_1.1fr_1fr_120px_220px_140px] gap-3 px-4 py-3 border-b border-slate-100 transition-colors ${
-                            online ? 'hover:bg-blue-50/50' : 'opacity-60 cursor-not-allowed'
-                          } ${selected ? 'bg-blue-50' : 'bg-slate-50'}`}
+                          className={`w-full text-left grid grid-cols-[44px_1.1fr_1fr_120px_220px_140px] gap-3 px-4 py-3 border-b border-theme-border transition-colors ${
+                            online ? 'hover:bg-blue-500/10' : 'opacity-60 cursor-not-allowed'
+                          } ${selected ? 'bg-blue-500/15' : 'bg-theme-surface'}`}
                         >
                           <div className="flex items-center justify-center">
-                            <span className={`w-5 h-5 rounded border flex items-center justify-center ${selected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 bg-slate-50'}`}>
+                            <span className={`w-5 h-5 rounded border flex items-center justify-center ${selected ? 'bg-blue-600 border-blue-600 text-white' : 'border-theme-border bg-theme-elevated'}`}>
                               {selected ? <Check size={12} /> : null}
                             </span>
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-black text-slate-800 truncate">{agent.hostname || '-'}</p>
+                            <p className="text-sm font-semibold text-theme-text-primary truncate">{agent.hostname || '-'}</p>
                           </div>
-                          <div className="text-xs font-mono text-slate-600 truncate">{agent.ip_address || '-'}</div>
+                          <div className="text-xs font-mono text-theme-text-secondary truncate">{agent.ip_address || '-'}</div>
                           <div><StatusBadge status={agent.status} /></div>
-                          <div className="text-xs text-slate-500 truncate">{agent.allow_reason || '-'}</div>
-                          <div className="text-[11px] font-mono text-slate-500 truncate">{agent.key}</div>
+                          <div className="text-xs text-theme-text-muted truncate">{agent.allow_reason || '-'}</div>
+                          <div className="text-[11px] font-mono text-theme-text-muted truncate">{agent.key}</div>
                         </button>
                       );
                     })
                   )}
-                  <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
+                  <div className="px-4 py-3 bg-theme-elevated border-t border-theme-border flex items-center justify-between text-xs text-theme-text-secondary">
                     <span>第 {Math.min(agentPage, totalAgentPages)} / {totalAgentPages} 页 · 共 {filteredAgents.length} 条</span>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setAgentPage((p) => Math.max(1, p - 1))}
                         disabled={agentPage <= 1}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 disabled:opacity-40"
+                        className="px-3 py-1.5 rounded-lg border border-theme-border bg-theme-elevated disabled:opacity-40"
                       >
                         上一页
                       </button>
                       <button
                         onClick={() => setAgentPage((p) => Math.min(totalAgentPages, p + 1))}
                         disabled={agentPage >= totalAgentPages}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 disabled:opacity-40"
+                        className="px-3 py-1.5 rounded-lg border border-theme-border bg-theme-elevated disabled:opacity-40"
                       >
                         下一页
                       </button>
@@ -1494,26 +1495,26 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
             {deployModalTab === 'config' && (
               <div className="space-y-4">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <h4 className="text-sm font-black text-slate-800 mb-2">本次部署模板</h4>
+                <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
+                  <h4 className="text-sm font-semibold text-theme-text-primary mb-2">本次部署模板</h4>
                   <div className="space-y-2">
                     {deploySource === 'detail' ? (
-                      <div className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-700">
+                      <div className="px-3 py-2 rounded-xl bg-theme-surface border border-theme-border text-sm font-semibold text-theme-text-secondary">
                         {templateDetail?.name || selectedTemplate}
                       </div>
                     ) : (
                       templates.filter((tpl) => selectedNames.has(String(tpl.id))).map((tpl) => (
-                        <div key={`deploy-preview-tpl-${tpl.id}`} className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-700">
+                        <div key={`deploy-preview-tpl-${tpl.id}`} className="px-3 py-2 rounded-xl bg-theme-surface border border-theme-border text-sm font-semibold text-theme-text-secondary">
                           {tpl.name}
                         </div>
                       ))
                     )}
                   </div>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <h4 className="text-sm font-black text-slate-800 mb-2">服务命名规则</h4>
-                  <p className="text-sm text-slate-600">
-                    <code className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">{'{template_name}-{agent_key前6位}'}</code>
+                <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
+                  <h4 className="text-sm font-semibold text-theme-text-primary mb-2">服务命名规则</h4>
+                  <p className="text-sm text-theme-text-secondary">
+                    <code className="px-1.5 py-0.5 rounded bg-theme-elevated text-theme-text-secondary">{'{template_name}-{agent_key前6位}'}</code>
                     ，同节点重复名称会自动跳过。
                   </p>
                 </div>
@@ -1530,34 +1531,34 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                   title="部署前临时 LLM Provider 注入"
                   description="在模板当前结果基础上，为本次部署临时叠加多个 Provider；该覆盖不会回写模板。"
                 />
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                <div className="rounded-xl border border-theme-border bg-theme-surface p-4 space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <h4 className="text-sm font-black text-slate-800">环境变量草稿（可编辑）</h4>
-                      <p className="text-xs text-slate-500 mt-1">第3步仅编辑草稿，不作为最终预览。最终只读预览在第4步展示。</p>
+                      <h4 className="text-sm font-semibold text-theme-text-primary">环境变量草稿（可编辑）</h4>
+                      <p className="text-xs text-theme-text-muted mt-1">第3步仅编辑草稿，不作为最终预览。最终只读预览在第4步展示。</p>
                     </div>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={() => patchDeployLlmBinding({ env_overrides: { ...(deployLlmPreview?.merged_env || {}) } })}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                        className="px-3 py-1.5 rounded-lg border border-theme-border bg-theme-elevated text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                       >
                         从 Provider 填充
                       </button>
                       <button
                         type="button"
                         onClick={() => patchDeployLlmBinding({ env_overrides: {} })}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                        className="px-3 py-1.5 rounded-lg border border-theme-border bg-theme-elevated text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                       >
                         清空
                       </button>
                     </div>
                   </div>
                   {deployLlmPreviewLoading && (
-                    <div className="text-xs text-slate-500 flex items-center gap-2"><Loader2 size={13} className="animate-spin" /> 正在获取 Provider 预览...</div>
+                    <div className="text-xs text-theme-text-muted flex items-center gap-2"><Loader2 size={13} className="animate-spin" /> 正在获取 Provider 预览...</div>
                   )}
                   {deployLlmPreviewError && (
-                    <div className="text-xs text-red-600">{deployLlmPreviewError}</div>
+                    <div className="text-xs text-red-400">{deployLlmPreviewError}</div>
                   )}
                   {Object.entries(normalizeDeployLlmBinding(deployLlmBinding)?.env_overrides || {}).map(([key, value], index, arr) => (
                     <div key={`deploy-env-${index}-${key}`} className="grid grid-cols-[minmax(0,240px)_1fr_auto] gap-2">
@@ -1578,7 +1579,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           });
                           patchDeployLlmBinding({ env_overrides: next });
                         }}
-                        className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-mono"
+                        className="form-input text-xs font-mono"
                         placeholder="ENV_KEY"
                       />
                       <input
@@ -1588,7 +1589,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           next[key] = e.target.value;
                           patchDeployLlmBinding({ env_overrides: next });
                         }}
-                        className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-mono"
+                        className="form-input text-xs font-mono"
                         placeholder="value"
                       />
                       <button
@@ -1598,7 +1599,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           delete next[key];
                           patchDeployLlmBinding({ env_overrides: next });
                         }}
-                        className="px-3 py-2 rounded-lg border border-red-200 bg-red-50 text-xs font-semibold text-red-700 hover:bg-red-100"
+                        className="px-3 py-2 rounded-lg border border-red-500/20 bg-red-500/15 text-xs font-semibold text-red-400 hover:bg-red-500/15"
                       >
                         删除
                       </button>
@@ -1616,37 +1617,37 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       base[seed] = '';
                       patchDeployLlmBinding({ env_overrides: base });
                     }}
-                    className="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                    className="px-3 py-2 rounded-lg border border-theme-border bg-theme-elevated text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                   >
                     + 新增环境变量
                   </button>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                <div className="rounded-xl border border-theme-border bg-theme-surface p-4 space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <h4 className="text-sm font-black text-slate-800">文件注入草稿（可编辑）</h4>
-                      <p className="text-xs text-slate-500 mt-1">可编辑名称、路径、格式、内容与启用状态。</p>
+                      <h4 className="text-sm font-semibold text-theme-text-primary">文件注入草稿（可编辑）</h4>
+                      <p className="text-xs text-theme-text-muted mt-1">可编辑名称、路径、格式、内容与启用状态。</p>
                     </div>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={() => patchDeployLlmBinding({ file_overrides: (deployLlmPreview?.merged_files || []) as TemplateLlmMappedFile[] })}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                        className="px-3 py-1.5 rounded-lg border border-theme-border bg-theme-elevated text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                       >
                         从 Provider 填充
                       </button>
                       <button
                         type="button"
                         onClick={() => patchDeployLlmBinding({ file_overrides: [] })}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                        className="px-3 py-1.5 rounded-lg border border-theme-border bg-theme-elevated text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                       >
                         清空
                       </button>
                     </div>
                   </div>
                   {(normalizeDeployLlmBinding(deployLlmBinding)?.file_overrides || []).map((item, index) => (
-                    <div key={`deploy-file-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                    <div key={`deploy-file-${index}`} className="rounded-xl border border-theme-border bg-theme-surface p-3 space-y-2">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         <input
                           value={item.name || ''}
@@ -1655,7 +1656,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             next[index] = { ...next[index], name: e.target.value };
                             patchDeployLlmBinding({ file_overrides: next });
                           }}
-                          className="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs"
+                          className="form-input text-xs"
                           placeholder="文件名称"
                         />
                         <input
@@ -1665,7 +1666,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             next[index] = { ...next[index], path: e.target.value };
                             patchDeployLlmBinding({ file_overrides: next });
                           }}
-                          className="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-mono"
+                          className="form-input text-xs font-mono"
                           placeholder="/etc/service/config.toml"
                         />
                       </div>
@@ -1677,10 +1678,10 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             next[index] = { ...next[index], format: e.target.value };
                             patchDeployLlmBinding({ file_overrides: next });
                           }}
-                          className="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs"
+                          className="form-input text-xs"
                           placeholder="format"
                         />
-                        <label className="flex items-center gap-2 text-xs text-slate-700 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50">
+                        <label className="flex items-center gap-2 text-xs text-theme-text-secondary px-3 py-2 rounded-lg border border-theme-border bg-theme-elevated">
                           <input
                             type="checkbox"
                             checked={item.enabled !== false}
@@ -1700,7 +1701,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             next.splice(index, 1);
                             patchDeployLlmBinding({ file_overrides: next });
                           }}
-                          className="px-3 py-2 rounded-lg border border-red-200 bg-red-50 text-xs font-semibold text-red-700 hover:bg-red-100"
+                          className="px-3 py-2 rounded-lg border border-red-500/20 bg-red-500/15 text-xs font-semibold text-red-400 hover:bg-red-500/15"
                         >
                           删除
                         </button>
@@ -1713,7 +1714,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           next[index] = { ...next[index], content: e.target.value };
                           patchDeployLlmBinding({ file_overrides: next });
                         }}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-mono"
+                        className="form-textarea w-full text-xs font-mono"
                         placeholder="文件内容"
                       />
                     </div>
@@ -1731,7 +1732,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       });
                       patchDeployLlmBinding({ file_overrides: next });
                     }}
-                    className="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                    className="px-3 py-2 rounded-lg border border-theme-border bg-theme-elevated text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                   >
                     + 新增文件注入
                   </button>
@@ -1741,71 +1742,71 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
             {deployModalTab === 'confirm' && (
               <div className="space-y-4">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                  <h4 className="text-sm font-black text-slate-800 mb-3">最终确认</h4>
+                <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
+                  <h4 className="text-sm font-semibold text-theme-text-primary mb-3">最终确认</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                      <p className="text-[11px] text-slate-500">模板数量</p>
-                      <p className="text-xl font-black text-slate-800">{deploySource === 'detail' ? 1 : selectedNames.size}</p>
+                    <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
+                      <p className="text-[11px] text-theme-text-muted">模板数量</p>
+                      <p className="text-xl font-semibold text-theme-text-primary">{deploySource === 'detail' ? 1 : selectedNames.size}</p>
                     </div>
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                      <p className="text-[11px] text-slate-500">目标节点</p>
-                      <p className="text-xl font-black text-slate-800">{selectedAgentKeys.size}</p>
+                    <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
+                      <p className="text-[11px] text-theme-text-muted">目标节点</p>
+                      <p className="text-xl font-semibold text-theme-text-primary">{selectedAgentKeys.size}</p>
                     </div>
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                      <p className="text-[11px] text-slate-500">预计任务</p>
-                      <p className="text-xl font-black text-blue-700">{((deploySource === 'detail' ? 1 : selectedNames.size) * selectedAgentKeys.size) || 0}</p>
+                    <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
+                      <p className="text-[11px] text-theme-text-muted">预计任务</p>
+                      <p className="text-xl font-semibold text-blue-400">{((deploySource === 'detail' ? 1 : selectedNames.size) * selectedAgentKeys.size) || 0}</p>
                     </div>
                   </div>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                  <h4 className="text-sm font-black text-slate-800 mb-2">已选节点</h4>
+                <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
+                  <h4 className="text-sm font-semibold text-theme-text-primary mb-2">已选节点</h4>
                   <div className="max-h-52 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                     {Array.from(selectedAgentKeys).length === 0 ? (
-                      <p className="text-sm text-slate-500">尚未选择节点</p>
+                      <p className="text-sm text-theme-text-muted">尚未选择节点</p>
                     ) : (
                       Array.from(selectedAgentKeys).map((key) => {
                         const item = availableAgents.find((agent) => agent.key === key);
                         return (
-                          <div key={`confirm-agent-${key}`} className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700 flex items-center justify-between gap-2">
+                          <div key={`confirm-agent-${key}`} className="px-3 py-2 rounded-xl border border-theme-border bg-theme-surface text-sm text-theme-text-secondary flex items-center justify-between gap-2">
                             <span className="font-semibold truncate">{item?.hostname || key}</span>
-                            <span className="text-xs font-mono text-slate-500 truncate">{item?.ip_address || '-'}</span>
+                            <span className="text-xs font-mono text-theme-text-muted truncate">{item?.ip_address || '-'}</span>
                           </div>
                         );
                       })
                     )}
                   </div>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                  <h4 className="text-sm font-black text-slate-800 mb-2">最终部署注入预览（只读）</h4>
-                  <p className="text-xs text-slate-500 mb-3">此处为最终下发内容预览，第4步不可编辑。</p>
+                <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
+                  <h4 className="text-sm font-semibold text-theme-text-primary mb-2">最终部署注入预览（只读）</h4>
+                  <p className="text-xs text-theme-text-muted mb-3">此处为最终下发内容预览，第4步不可编辑。</p>
                   <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                      <div className="text-xs font-black text-slate-700 mb-2">环境变量 ({Object.keys(deployLlmFinalEnvPreview).length})</div>
+                    <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
+                      <div className="text-xs font-medium text-theme-text-secondary mb-2">环境变量 ({Object.keys(deployLlmFinalEnvPreview).length})</div>
                       <div className="max-h-56 overflow-y-auto space-y-1 custom-scrollbar">
                         {Object.entries(deployLlmFinalEnvPreview).length === 0 ? (
-                          <div className="text-xs text-slate-400">无环境变量注入</div>
+                          <div className="text-xs text-theme-text-muted">无环境变量注入</div>
                         ) : (
                           Object.entries(deployLlmFinalEnvPreview).map(([key, value]) => (
-                            <div key={`confirm-env-${key}`} className="grid grid-cols-[minmax(0,180px)_1fr] gap-2 rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-2 text-[11px] font-mono">
-                              <span className="truncate text-slate-700">{key}</span>
-                              <span className="break-all text-slate-500">{String(value || '')}</span>
+                            <div key={`confirm-env-${key}`} className="grid grid-cols-[minmax(0,180px)_1fr] gap-2 rounded-lg bg-theme-elevated border border-theme-border px-2.5 py-2 text-[11px] font-mono">
+                              <span className="truncate text-theme-text-secondary">{key}</span>
+                              <span className="break-all text-theme-text-muted">{String(value || '')}</span>
                             </div>
                           ))
                         )}
                       </div>
                     </div>
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                      <div className="text-xs font-black text-slate-700 mb-2">文件注入 ({deployLlmFinalFilePreview.length})</div>
+                    <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
+                      <div className="text-xs font-medium text-theme-text-secondary mb-2">文件注入 ({deployLlmFinalFilePreview.length})</div>
                       <div className="max-h-56 overflow-y-auto space-y-2 custom-scrollbar">
                         {deployLlmFinalFilePreview.length === 0 ? (
-                          <div className="text-xs text-slate-400">无文件注入</div>
+                          <div className="text-xs text-theme-text-muted">无文件注入</div>
                         ) : (
                           deployLlmFinalFilePreview.map((file, idx) => (
-                            <div key={`confirm-file-${idx}-${file.path}`} className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-[11px]">
-                              <div className="font-semibold text-slate-700">{file.name ||`file-${idx + 1}`}</div>
-                              <div className="font-mono text-slate-500 break-all mt-0.5">{file.path}</div>
-                              <pre className="mt-2 p-2 rounded bg-slate-50 border border-slate-100 text-[11px] font-mono text-slate-600 max-h-28 overflow-auto whitespace-pre-wrap break-all">{file.content || ''}</pre>
+                            <div key={`confirm-file-${idx}-${file.path}`} className="rounded-lg bg-theme-elevated border border-theme-border p-2.5 text-[11px]">
+                              <div className="font-semibold text-theme-text-secondary">{file.name ||`file-${idx + 1}`}</div>
+                              <div className="font-mono text-theme-text-muted break-all mt-0.5">{file.path}</div>
+                              <pre className="mt-2 p-2 rounded bg-theme-elevated border border-theme-border text-[11px] font-mono text-theme-text-secondary max-h-28 overflow-auto whitespace-pre-wrap break-all">{file.content || ''}</pre>
                             </div>
                           ))
                         )}
@@ -1817,10 +1818,10 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             )}
           </div>
 
-          <div className="p-6 border-t border-slate-100 bg-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
-            <div className="text-xs text-slate-500">
+          <div className="p-6 border-t border-theme-border bg-theme-elevated flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
+            <div className="text-xs text-theme-text-muted">
               当前步骤：
-              <span className="font-bold text-slate-700 ml-1">
+              <span className="font-medium text-theme-text-secondary ml-1">
                 {deployModalTab === 'agents' ? '节点选择' : deployModalTab === 'config' ? '部署配置' : deployModalTab === 'llm' ? 'LLM 注入' : '确认下发'}
               </span>
             </div>
@@ -1828,14 +1829,14 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               <button
                 onClick={() => setIsDeployModalOpen(false)}
                 disabled={deploying}
-                className="px-6 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 disabled:opacity-50"
+                className="px-6 py-2.5 bg-theme-elevated text-theme-text-secondary rounded-xl font-medium hover:bg-theme-elevated disabled:opacity-50"
               >
                 取消
               </button>
               <button
                 onClick={executeDeploy}
                 disabled={deploying || selectedAgentKeys.size === 0}
- className="px-7 py-2.5 bg-blue-600 text-white rounded-xl font-black hover:bg-blue-700 shadow-blue-600/20 disabled:opacity-50 flex items-center gap-2"
+ className="px-7 py-2.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 shadow-blue-600/20 disabled:opacity-50 flex items-center gap-2"
               >
                 {deploying ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} />}
                 执行批量部署
@@ -1850,18 +1851,18 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   const renderTemplateLlmModal = () => (
     isTemplateLlmModalOpen && templateDetail ? (
       <div className="fixed inset-0 z-[210] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
- <div className="bg-slate-50 w-full max-w-4xl rounded-[2.5rem] overflow-hidden flex flex-col max-h-[88vh] animate-in zoom-in-95">
-          <div className="p-6 border-b border-slate-100 bg-slate-100/40 shrink-0">
+ <div className="bg-theme-elevated w-full max-w-4xl rounded-xl overflow-hidden flex flex-col max-h-[88vh] animate-in zoom-in-95">
+          <div className="p-6 border-b border-theme-border bg-slate-100/40 shrink-0">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight">LLM Provider 混合与重新生成</h3>
-                <p className="text-xs text-slate-500 mt-1">
+                <h3 className="text-2xl font-bold text-theme-text-primary tracking-tight">LLM Provider 混合与重新生成</h3>
+                <p className="text-xs text-theme-text-muted mt-1">
                   当前模板：{templateDetail.name}。在此选择配置中心中的一个或多个 LLM Provider，对模板环境变量与配置文件做混合并重新生成当前模板。
                 </p>
               </div>
               <button
                 onClick={() => setIsTemplateLlmModalOpen(false)}
- className="p-3 text-slate-400 hover:bg-slate-50 hover:text-slate-600 rounded-xl transition-all"
+ className="p-3 text-theme-text-muted hover:bg-theme-elevated hover:text-theme-text-secondary rounded-xl transition-all"
               >
                 <X size={22} />
               </button>
@@ -1869,18 +1870,18 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
           </div>
           <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
             {!canManageTemplate(templateDetail) && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/15 px-3 py-2 text-xs text-amber-400">
                 当前模板仅拥有者可执行 LLM Provider 重新生成和恢复原始模板操作。
               </div>
             )}
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 space-y-2">
-              <div className="text-xs font-black text-slate-700">当前模板来源</div>
-              <div className="text-sm font-bold text-slate-800">
+            <div className="rounded-xl border border-theme-border bg-theme-elevated p-4 space-y-2">
+              <div className="text-xs font-medium text-theme-text-secondary">当前模板来源</div>
+              <div className="text-sm font-semibold text-theme-text-primary">
                 {templateDetail?.metadata?.llm_mix_state?.provider_keys?.length
                   ?`原始模板 + ${templateDetail.metadata.llm_mix_state.provider_keys.join(' + ')}`
                   : '原始模板'}
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-theme-text-muted">
                 原始 compose 备份：
                 {templateDetail?.metadata?.original_compose_backup?.file_path
                   ?` ${templateDetail.metadata.original_compose_backup.file_path}`
@@ -1897,10 +1898,10 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               description="始终基于原始 compose 备份重新生成当前模板内容，不在当前混合结果上叠加。"
             />
           </div>
-          <div className="p-6 border-t border-slate-100 bg-slate-50 shrink-0 flex items-center justify-between gap-3">
+          <div className="p-6 border-t border-theme-border bg-theme-elevated shrink-0 flex items-center justify-between gap-3">
             <button
               onClick={() => setIsTemplateLlmModalOpen(false)}
-              className="px-4 py-2.5 text-sm font-black rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
+              className="px-4 py-2.5 text-sm font-semibold rounded-xl bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated"
             >
               关闭
             </button>
@@ -1909,7 +1910,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 onClick={() => void handleRestoreOriginalCompose(templateDetail)}
                 disabled={!canManageTemplate(templateDetail) || savingTemplateLlmBinding}
                 title={canManageTemplate(templateDetail) ? '恢复为原始模板' : '仅模板拥有者可操作'}
-                className="px-4 py-2.5 text-sm font-black rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-4 py-2.5 text-sm font-semibold rounded-xl bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 恢复原始模板
               </button>
@@ -1917,7 +1918,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 onClick={() => void handleSaveTemplateLlmBinding(templateDetail, detailLlmBindingDraft)}
                 disabled={!canManageTemplate(templateDetail) || savingTemplateLlmBinding}
                 title={canManageTemplate(templateDetail) ? '使用所选 Provider 重新生成模板' : '仅模板拥有者可操作'}
-                className="px-4 py-2.5 text-sm font-black rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-4 py-2.5 text-sm font-semibold rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {savingTemplateLlmBinding ? '处理中...' : '重新生成模板'}
               </button>
@@ -1938,27 +1939,27 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       if (!isFile) return isExpanded ? <FolderOpen size={16} className="text-amber-400" /> : <Folder size={16} className="text-amber-400" />;
       const ext = node.name.split('.').pop()?.toLowerCase();
       if (['yaml', 'yml'].includes(ext!)) return <FileCode size={16} className="text-blue-500" />;
-      if (ext === 'json') return <FileJson size={16} className="text-amber-600" />;
-      return <FileText size={16} className="text-slate-400" />;
+      if (ext === 'json') return <FileJson size={16} className="text-amber-400" />;
+      return <FileText size={16} className="text-theme-text-muted" />;
     };
 
     return (
       <div className="select-none">
         <div
           onClick={() => !isFile && toggleFolder(node.path || 'root')}
-          className={`group flex items-center py-2 px-4 hover:bg-blue-50/50 cursor-pointer rounded-xl transition-all ${depth > 0 ? 'ml-6' : ''}`}
+          className={`group flex items-center py-2 px-4 hover:bg-blue-500/10 cursor-pointer rounded-xl transition-all ${depth > 0 ? 'ml-6' : ''}`}
         >
           <div className="flex items-center gap-3 flex-1 min-w-0">
             {!isFile && (
-              <ChevronRight size={14} className={`text-slate-300 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+              <ChevronRight size={14} className={`text-theme-text-faint transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
             )}
             {isFile && <div className="w-[14px]" />}
             {getIcon()}
-            <span className={`text-sm truncate font-medium ${isFile ? 'text-slate-600' : 'text-slate-800 font-bold'}`}>
+            <span className={`text-sm truncate font-medium ${isFile ? 'text-theme-text-secondary' : 'text-theme-text-primary font-bold'}`}>
               {node.name === 'root' ? 'Template Workspace' : node.name}
             </span>
             {isFile && (
-              <span className="text-[10px] font-black text-slate-300 uppercase ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-[10px] font-medium text-theme-text-faint uppercase ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 {(node.size! / 1024).toFixed(1)} KB
               </span>
             )}
@@ -1969,7 +1970,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               {canManageCurrentTemplate && isEditable(node.path) && (
                 <button
                   onClick={(e) => { e.stopPropagation(); handleEditFile(node.path); }}
-                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-50 rounded-lg transition-all"
+                  className="p-1.5 text-theme-text-muted hover:text-blue-400 hover:bg-theme-elevated rounded-lg transition-all"
                   title="在线编辑"
                 >
                   <Edit3 size={14} />
@@ -1977,7 +1978,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               )}
               <button
                 onClick={(e) => { e.stopPropagation(); handleDownloadFile(node.path); }}
-                className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-50 rounded-lg transition-all"
+                className="p-1.5 text-theme-text-muted hover:text-theme-text-primary hover:bg-theme-elevated rounded-lg transition-all"
                 title="下载文件"
               >
                 <Download size={14} />
@@ -1985,7 +1986,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               {canManageCurrentTemplate && (
                 <button
                   onClick={(e) => { e.stopPropagation(); handleDeleteFile(node.path); }}
-                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                  className="p-1.5 text-theme-text-muted hover:text-red-400 hover:bg-red-500/15 rounded-lg transition-all"
                   title="删除文件"
                 >
                   <Trash2 size={14} />
@@ -1997,7 +1998,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
               <button
                 onClick={(e) => { e.stopPropagation(); handleDeleteDirectory(node.path); }}
-                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                className="p-1.5 text-theme-text-muted hover:text-red-400 hover:bg-red-500/15 rounded-lg transition-all"
                 title="删除目录"
               >
                 <Trash2 size={14} />
@@ -2007,7 +2008,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
         </div>
 
         {(!isFile && isExpanded) && (
-          <div className="border-l border-slate-100 ml-6 mt-1">
+          <div className="border-l border-theme-border ml-6 mt-1">
             {/* Fix: Cast Object.values results to TreeNode[] to avoid 'unknown' type errors during property access */}
             {(Object.values(node.children) as TreeNode[]).map(child => (
               <RenderTreeNode key={child.path} node={child} depth={0} />
@@ -2043,34 +2044,34 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     ];
     return (
       <>
-      <div className="p-10 space-y-8 animate-in slide-in-from-right duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
+      <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in slide-in-from-right duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
         {/* Detail Header with Top Right Actions */}
- <div className="flex flex-col md:flex-row justify-between items-start gap-6 bg-slate-100 backdrop-blur-md p-8 rounded-[3rem] border border-slate-200">
+ <div className="flex flex-col md:flex-row justify-between items-start gap-6 bg-theme-elevated backdrop-blur-md p-8 rounded-xl border border-theme-border">
           <div className="flex items-center gap-8">
             <button
               onClick={() => setViewMode('list')}
- className="p-5 bg-slate-50 border border-slate-200 rounded-[1.5rem] hover:bg-slate-100 transition-all group active:scale-95"
+ className="p-5 bg-theme-surface border border-theme-border rounded-xl hover:bg-theme-elevated transition-all group active:scale-95"
             >
               <ChevronLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
             </button>
             <div>
               <div className="flex items-center gap-4">
-                <h2 className="text-4xl font-black text-slate-800 tracking-tight">{templateDetail.name}</h2>
+                <h2 className="text-4xl font-semibold text-theme-text-primary tracking-tight">{templateDetail.name}</h2>
                 <StatusBadge status={templateDetail.type} />
                 <StatusBadge status={templateDetail.visibility === 'private' ? 'private' : 'shared'} />
               </div>
               <div className="flex items-center gap-6 mt-3">
-                 <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
+                 <div className="flex items-center gap-2 text-theme-text-muted font-medium text-xs uppercase tracking-widest">
                    <Database size={14} /> {(templateDetail.file_size / 1024).toFixed(1)} KB
                  </div>
-                 <div className="w-1.5 h-1.5 bg-slate-200 rounded-full" />
-                 <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
+                 <div className="w-1.5 h-1.5 bg-theme-elevated rounded-full" />
+                 <div className="flex items-center gap-2 text-theme-text-muted font-medium text-xs uppercase tracking-widest">
                    <Calendar size={14} /> {templateDetail.updated_at?.replace('T', ' ')}
                  </div>
                  {templateDetail.owner_name && (
                    <>
-                     <div className="w-1.5 h-1.5 bg-slate-200 rounded-full" />
-                     <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
+                     <div className="w-1.5 h-1.5 bg-theme-elevated rounded-full" />
+                     <div className="flex items-center gap-2 text-theme-text-muted font-medium text-xs uppercase tracking-widest">
                        OWNER: {templateDetail.owner_name}
                      </div>
                    </>
@@ -2079,7 +2080,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               {getTemplateTags(templateDetail).length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-3">
                   {getTemplateTags(templateDetail).map((tag) => (
-                    <span key={tag} className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-black tracking-wide">
+                    <span key={tag} className="px-3 py-1 rounded-full bg-blue-500/15 text-blue-400 text-xs font-medium tracking-wide">
                       {tag}
                     </span>
                   ))}
@@ -2092,58 +2093,58 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             {canCopyCurrentTemplate && (
               <button
                 onClick={() => handleCopyTemplate(templateDetail.id)}
- className="px-8 py-4 bg-slate-50 border border-slate-200 text-slate-700 rounded-[1.5rem] font-black hover:bg-slate-100 transition-all flex items-center gap-3 active:scale-95"
+ className="btn-secondary btn-lg"
               >
-                <Layers size={20} className="text-indigo-600" /> 复制模板
+                <Layers size={20} className="text-indigo-400" /> 复制模板
               </button>
             )}
             {canManageCurrentTemplate && (
               <button
                 onClick={() => handleRenameTemplate(templateDetail)}
- className="px-8 py-4 bg-slate-50 border border-slate-200 text-slate-700 rounded-[1.5rem] font-black hover:bg-slate-100 transition-all flex items-center gap-3 active:scale-95"
+ className="btn-secondary btn-lg"
               >
-                <Edit3 size={20} className="text-emerald-600" /> 修改名称
+                <Edit3 size={20} className="text-emerald-400" /> 修改名称
               </button>
             )}
             {canManageCurrentTemplate && (
               <button
                 onClick={() => handleEditTemplateTags(templateDetail)}
- className="px-8 py-4 bg-slate-50 border border-slate-200 text-slate-700 rounded-[1.5rem] font-black hover:bg-slate-100 transition-all flex items-center gap-3 active:scale-95"
+ className="btn-secondary btn-lg"
               >
-                <Tags size={20} className="text-amber-600" /> 修改 TAG
+                <Tags size={20} className="text-amber-400" /> 修改 TAG
               </button>
             )}
             <button
               onClick={openDetailDeployModal}
- className="px-8 py-4 bg-blue-600 text-white rounded-[1.5rem] font-black hover:bg-blue-700 transition-all flex items-center gap-3 active:scale-95"
+              className="btn-primary btn-lg"
             >
               <Zap size={20} /> 部署到节点
             </button>
             <button
               onClick={handleDownloadAll}
- className="px-8 py-4 bg-slate-50 border border-slate-200 text-slate-700 rounded-[1.5rem] font-black hover:bg-slate-100 transition-all flex items-center gap-3 active:scale-95"
+ className="btn-secondary btn-lg"
             >
-              <Download size={20} className="text-blue-600" /> 下载全量包
+              <Download size={20} className="text-blue-400" /> 下载全量包
             </button>
             <button
               onClick={() => handleDeleteTrigger(String(templateDetail.id))}
               disabled={!canManageCurrentTemplate}
- className="px-8 py-4 bg-red-600 text-white rounded-[1.5rem] font-black hover:bg-red-700 transition-all flex items-center gap-3 shadow-red-500/20 active:scale-95"
+              className="btn-danger-soft btn-lg"
             >
               <Trash2 size={20} /> 销毁模板
             </button>
           </div>
         </div>
 
- <div className="inline-flex items-center gap-1.5 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-1.5">
+ <div className="inline-flex items-center gap-1.5 rounded-xl border border-theme-border bg-theme-surface p-1.5">
           {detailTabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setDetailTab(tab.key)}
-              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all ${
+              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-medium transition-all ${
                 detailTab === tab.key
-                  ? 'bg-slate-900 text-white shadow'
-                  : 'text-slate-600 hover:bg-slate-100'
+                  ? 'bg-theme-surface text-white shadow'
+                  : 'text-theme-text-secondary hover:bg-theme-elevated'
               }`}
             >
               {tab.icon}
@@ -2156,26 +2157,26 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
           <>
         {/* 模板说明 */}
         {templateDetail.description && (
- <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white relative overflow-hidden">
+ <div className="bg-theme-surface p-8 rounded-xl text-white relative overflow-hidden">
             <ShieldCheck className="absolute right-[-30px] top-[-30px] w-40 h-40 opacity-5 rotate-12" />
             <div className="relative z-10">
-              <h4 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-3">模板说明</h4>
-              <p className="text-sm text-slate-300 leading-relaxed font-medium">{templateDetail.description}</p>
+              <h4 className="text-xs font-medium text-theme-text-muted uppercase tracking-[0.2em] mb-3">模板说明</h4>
+              <p className="text-sm text-theme-text-faint leading-relaxed font-medium">{templateDetail.description}</p>
             </div>
           </div>
         )}
 
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-6">
- <div className="bg-slate-50 rounded-[2.5rem] border border-slate-200 p-6">
+ <div className="bg-theme-surface rounded-xl border border-theme-border p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h4 className="text-sm font-black text-slate-800">模板 TAG</h4>
-                <p className="text-xs text-slate-500 mt-1">用于模板分类、识别和自动化关联。</p>
+                <h4 className="text-sm font-semibold text-theme-text-primary">模板 TAG</h4>
+                <p className="text-xs text-theme-text-muted mt-1">用于模板分类、识别和自动化关联。</p>
               </div>
               {canManageCurrentTemplate && (
                 <button
                   onClick={() => handleEditTemplateTags(templateDetail)}
-                  className="px-3 py-2 text-xs font-black rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  className="px-3 py-2 text-xs font-medium rounded-xl bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated"
                 >
                   编辑 TAG
                 </button>
@@ -2184,53 +2185,53 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             <div className="flex flex-wrap gap-2 mt-4">
               {getTemplateTags(templateDetail).length > 0 ? (
                 getTemplateTags(templateDetail).map((tag) => (
-                  <span key={tag} className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-black tracking-wide">
+                  <span key={tag} className="px-3 py-1 rounded-full bg-amber-500/15 text-amber-400 text-xs font-medium tracking-wide">
                     {tag}
                   </span>
                 ))
               ) : (
-                <p className="text-xs text-slate-400">暂无 TAG</p>
+                <p className="text-xs text-theme-text-muted">暂无 TAG</p>
               )}
             </div>
           </div>
 
- <div className="bg-slate-50 rounded-[2.5rem] border border-slate-200 p-6 space-y-4">
+ <div className="bg-theme-surface rounded-xl border border-theme-border p-6 space-y-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h4 className="text-sm font-black text-slate-800">LLM Provider 重新生成模板</h4>
-                <p className="text-xs text-slate-500 mt-1">通过独立弹框选择配置中心中的一个或多个 LLM Provider，基于原始 docker-compose 备份重新生成当前模板结果。</p>
+                <h4 className="text-sm font-semibold text-theme-text-primary">LLM Provider 重新生成模板</h4>
+                <p className="text-xs text-theme-text-muted mt-1">通过独立弹框选择配置中心中的一个或多个 LLM Provider，基于原始 docker-compose 备份重新生成当前模板结果。</p>
               </div>
               <div className="flex items-center gap-3">
-                {savingTemplateLlmBinding && <Loader2 size={16} className="animate-spin text-slate-400" />}
+                {savingTemplateLlmBinding && <Loader2 size={16} className="animate-spin text-theme-text-muted" />}
                 <button
                   onClick={() => void openTemplateLlmModal(templateDetail)}
                   disabled={savingTemplateLlmBinding}
-                  className="px-3 py-2 text-xs font-black rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 whitespace-nowrap"
+                  className="px-3 py-2 text-xs font-medium rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 whitespace-nowrap"
                 >
                   打开混合配置
                 </button>
               </div>
             </div>
             {!canManageCurrentTemplate && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/15 px-3 py-2 text-xs text-amber-400">
                 当前模板仅拥有者可执行 LLM Provider 重新生成和恢复原始模板操作。
               </div>
             )}
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 space-y-2">
-              <div className="text-xs font-black text-slate-700">当前模板来源</div>
-              <div className="text-sm font-bold text-slate-800">
+            <div className="rounded-xl border border-theme-border bg-theme-elevated p-4 space-y-2">
+              <div className="text-xs font-medium text-theme-text-secondary">当前模板来源</div>
+              <div className="text-sm font-semibold text-theme-text-primary">
                 {templateDetail?.metadata?.llm_mix_state?.provider_keys?.length
                   ?`原始模板 + ${templateDetail.metadata.llm_mix_state.provider_keys.join(' + ')}`
                   : '原始模板'}
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-theme-text-muted">
                 原始 compose 备份：
                 {templateDetail?.metadata?.original_compose_backup?.file_path
                   ?` ${templateDetail.metadata.original_compose_backup.file_path}`
                   : ' 未建立'}
               </div>
               {templateDetail?.metadata?.llm_mix_state?.generated_at && (
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-theme-text-muted">
                   最近一次生成：{templateDetail.metadata.llm_mix_state.generated_at}
                   {templateDetail?.metadata?.llm_mix_state?.generated_by ?` · ${templateDetail.metadata.llm_mix_state.generated_by}` : ''}
                 </div>
@@ -2238,18 +2239,18 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               {Array.isArray(templateDetail?.metadata?.llm_mix_state?.mapped_env_keys) && templateDetail.metadata.llm_mix_state.mapped_env_keys.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-1">
                   {templateDetail.metadata.llm_mix_state.mapped_env_keys.slice(0, 12).map((key: string) => (
-                    <span key={key} className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-[11px] font-black">{key}</span>
+                    <span key={key} className="px-2 py-1 rounded-full bg-blue-500/15 text-blue-400 text-[11px] font-medium">{key}</span>
                   ))}
                 </div>
               )}
               {Array.isArray(templateDetail?.metadata?.llm_mix_state?.mapped_file_paths) && templateDetail.metadata.llm_mix_state.mapped_file_paths.length > 0 && (
                 <div className="pt-2 space-y-2">
-                  <div className="text-xs font-black text-slate-700">
+                  <div className="text-xs font-medium text-theme-text-secondary">
                     文件注入路径（{templateDetail.metadata.llm_mix_state.mapped_file_paths.length}）
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {templateDetail.metadata.llm_mix_state.mapped_file_paths.slice(0, 8).map((filePath: string) => (
-                      <span key={filePath} className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-black">
+                      <span key={filePath} className="px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-400 text-[11px] font-medium">
                         {filePath}
                       </span>
                     ))}
@@ -2258,9 +2259,9 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               )}
               {Array.isArray(templateDetail?.metadata?.llm_mix_history) && templateDetail.metadata.llm_mix_history.length > 0 && (
                 <div className="pt-2 space-y-1">
-                  <div className="text-xs font-black text-slate-700">最近生成记录</div>
+                  <div className="text-xs font-medium text-theme-text-secondary">最近生成记录</div>
                   {templateDetail.metadata.llm_mix_history.slice(-3).reverse().map((item: any, idx: number) => (
-                    <div key={`mix-history-${idx}`} className="text-[11px] text-slate-500">
+                    <div key={`mix-history-${idx}`} className="text-[11px] text-theme-text-muted">
                       {(item?.provider_keys || []).join(' + ') || '原始模板'} · {item?.generated_at || '-'}
                     </div>
                   ))}
@@ -2270,24 +2271,24 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
           </div>
         </div>
 
- <div className="bg-slate-50 rounded-[2.5rem] border border-slate-200 p-6 space-y-4">
+ <div className="bg-theme-surface rounded-xl border border-theme-border p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-black text-slate-800">WEB端口</h4>
-              <p className="text-xs text-slate-500 mt-1">分别预设 Ingress 访问协议与后端服务协议，用于服务详情页快速创建转发</p>
+              <h4 className="text-sm font-semibold text-theme-text-primary">WEB端口</h4>
+              <p className="text-xs text-theme-text-muted mt-1">分别预设 Ingress 访问协议与后端服务协议，用于服务详情页快速创建转发</p>
             </div>
             {canManageCurrentTemplate && (
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setDetailWebPortPresets(prev => [...prev, { name: '', port: 80, protocol: 'http', backend_protocol: 'http', description: '', path: '/', websocket_enabled: true, tls_enabled: true, ingress_tls_enabled: true }])}
-                  className="px-3 py-2 text-xs font-black rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  className="px-3 py-2 text-xs font-medium rounded-xl bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated"
                 >
                   新增端口
                 </button>
                 <button
                   onClick={saveDetailWebPortPresets}
                   disabled={savingWebPortPresets}
-                  className="px-3 py-2 text-xs font-black rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+                  className="px-3 py-2 text-xs font-medium rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
                 >
                   {savingWebPortPresets ? '保存中...' : '保存预设'}
                 </button>
@@ -2295,18 +2296,18 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             )}
           </div>
           {(detailWebPortPresets || []).length === 0 && (
-            <p className="text-xs text-slate-400">暂无WEB端口，支持在此维护，服务管理中可一键使用。</p>
+            <p className="text-xs text-theme-text-muted">暂无WEB端口，支持在此维护，服务管理中可一键使用。</p>
           )}
           <div className="space-y-2">
             {(detailWebPortPresets || []).map((preset, idx) => (
-              <div key={`detail-port-${idx}`} className="border border-slate-200 rounded-xl p-2 space-y-2">
+              <div key={`detail-port-${idx}`} className="border border-theme-border rounded-xl p-2 space-y-2">
                 <div className="grid grid-cols-12 gap-2 items-center">
                   <input
                     value={preset.name || ''}
                     onChange={(e) => setDetailWebPortPresets(prev => prev.map((p, i) => i === idx ? { ...p, name: e.target.value } : p))}
                     disabled={!canManageCurrentTemplate}
                     placeholder="名称"
-                    className="col-span-2 px-2 py-2 text-xs border border-slate-200 rounded-lg"
+                    className="form-input col-span-2 text-xs"
                   />
                   <input
                     value={preset.port || 0}
@@ -2316,7 +2317,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     min={1}
                     max={65535}
                     placeholder="端口"
-                    className="col-span-2 px-2 py-2 text-xs border border-slate-200 rounded-lg"
+                    className="form-input col-span-2 text-xs"
                   />
                   <select
                     value={preset.backend_protocol || preset.protocol || 'http'}
@@ -2326,7 +2327,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       backend_protocol: (e.target.value === 'https' ? 'https' : 'http') as 'http' | 'https'
                     } : p))}
                     disabled={!canManageCurrentTemplate}
-                    className="col-span-2 px-2 py-2 text-xs border border-slate-200 rounded-lg bg-slate-50"
+                    className="col-span-2 px-2 py-2 text-xs border border-theme-border rounded-lg bg-theme-elevated"
                   >
                     <option value="http">后端 HTTP</option>
                     <option value="https">后端 HTTPS</option>
@@ -2336,26 +2337,26 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     onChange={(e) => setDetailWebPortPresets(prev => prev.map((p, i) => i === idx ? { ...p, path: e.target.value } : p))}
                     disabled={!canManageCurrentTemplate}
                     placeholder="Path"
-                    className="col-span-2 px-2 py-2 text-xs border border-slate-200 rounded-lg"
+                    className="form-input col-span-2 text-xs"
                   />
                   <input
                     value={preset.description || ''}
                     onChange={(e) => setDetailWebPortPresets(prev => prev.map((p, i) => i === idx ? { ...p, description: e.target.value } : p))}
                     disabled={!canManageCurrentTemplate}
                     placeholder="说明"
-                    className="col-span-3 px-2 py-2 text-xs border border-slate-200 rounded-lg"
+                    className="form-input col-span-3 text-xs"
                   />
                   {canManageCurrentTemplate && (
                     <button
                       onClick={() => setDetailWebPortPresets(prev => prev.filter((_, i) => i !== idx))}
-                      className="col-span-1 px-2 py-2 text-xs font-black rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100"
+                      className="col-span-1 px-2 py-2 text-xs font-medium rounded-lg bg-rose-500/15 text-rose-400 hover:bg-rose-500/15"
                     >
                       删除
                     </button>
                   )}
                 </div>
                 <div className="flex items-center gap-4 px-1">
-                  <label className="text-xs text-slate-600 flex items-center gap-2">
+                  <label className="text-xs text-theme-text-secondary flex items-center gap-2">
                     <input
                       type="checkbox"
                       checked={preset.websocket_enabled !== false}
@@ -2364,7 +2365,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     />
                     启用 WebSocket
                   </label>
-                  <label className="text-xs text-slate-600 flex items-center gap-2">
+                  <label className="text-xs text-theme-text-secondary flex items-center gap-2">
                     <input
                       type="checkbox"
                       checked={(preset.ingress_tls_enabled ?? preset.tls_enabled) !== false}
@@ -2385,10 +2386,10 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
         {templateDetail.type === 'yaml' && detailTab === 'compose' && (
           <div className="space-y-8">
             {parseLoading ? (
- <div className="bg-slate-50 rounded-[3rem] border border-slate-200 p-12">
+ <div className="bg-theme-surface rounded-xl border border-theme-border p-12">
                 <div className="flex flex-col items-center justify-center py-16">
-                  <Loader2 className="w-12 h-12 animate-spin text-blue-600 mb-4" />
-                  <span className="text-slate-600 font-medium">正在解析 Docker Compose 配置...</span>
+                  <Loader2 className="w-12 h-12 animate-spin text-blue-400 mb-4" />
+                  <span className="text-theme-text-secondary font-medium">正在解析 Docker Compose 配置...</span>
                 </div>
               </div>
             ) : parsedCompose?.parsed_compose ? (
@@ -2398,15 +2399,15 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 onRefresh={() => fetchParsedCompose(selectedTemplate!)}
               />
             ) : parsedCompose?.parse_error ? (
-              <div className="bg-red-50 border border-red-200 rounded-[2rem] p-8">
+              <div className="bg-red-500/15 border border-red-500/20 rounded-xl p-8">
                 <div className="flex items-start gap-4">
-                  <AlertCircle className="w-8 h-8 text-red-600 shrink-0" />
+                  <AlertCircle className="w-8 h-8 text-red-400 shrink-0" />
                   <div className="flex-1">
-                    <div className="font-black text-red-900 text-lg mb-2">解析失败</div>
-                    <div className="text-sm text-red-700 mb-4">{parsedCompose.parse_error}</div>
+                    <div className="font-semibold text-red-300 text-lg mb-2">解析失败</div>
+                    <div className="text-sm text-red-400 mb-4">{parsedCompose.parse_error}</div>
                     <button
                       onClick={() => fetchParsedCompose(selectedTemplate!)}
-                      className="px-6 py-3 bg-red-600 text-white rounded-xl text-sm font-black hover:bg-red-700 transition-all"
+                      className="btn-danger-soft"
                     >
                       重试解析
                     </button>
@@ -2414,8 +2415,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 </div>
               </div>
             ) : (
- <div className="bg-slate-50 rounded-[3rem] border border-slate-200 p-12">
-                <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+ <div className="bg-theme-surface rounded-xl border border-theme-border p-12">
+                <div className="flex flex-col items-center justify-center py-16 text-theme-text-muted">
                   <Container size={64} className="mb-4 opacity-30" />
                   <p className="text-base font-medium">无法加载解析数据</p>
                 </div>
@@ -2426,15 +2427,15 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
         {/* YAML 类型 - 资源文件标签页 */}
         {templateDetail.type === 'yaml' && detailTab === 'files' && (
- <div className="bg-slate-50 rounded-[3rem] border border-slate-200 overflow-hidden">
-            <div className="px-8 py-6 border-b border-slate-100 bg-slate-100/30 flex items-center justify-between">
+ <div className="bg-theme-surface rounded-xl border border-theme-border overflow-hidden">
+            <div className="px-8 py-6 border-b border-theme-border bg-slate-100/30 flex items-center justify-between">
               <div className="flex items-center gap-4">
- <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-white">
+ <div className="w-12 h-12 bg-theme-surface rounded-xl flex items-center justify-center text-white">
                   <FileCode size={24} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-slate-800">源文件内容</h3>
-                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
+                  <h3 className="text-lg font-semibold text-theme-text-primary">源文件内容</h3>
+                  <p className="text-xs text-theme-text-muted font-semibold uppercase tracking-widest mt-1">
                     YAML 配置文件
                   </p>
                 </div>
@@ -2442,7 +2443,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               <div className="flex gap-2">
                 <button
                   onClick={handleDownloadAll}
- className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+ className="p-3 text-theme-text-muted hover:text-blue-400 hover:bg-blue-500/15 rounded-xl transition-all"
                   title="下载文件"
                 >
                   <Download size={18} />
@@ -2451,8 +2452,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                   onClick={() => handleOpenYamlEditor(canManageCurrentTemplate)}
  className={`p-3 rounded-xl transition-all ${
                     canManageCurrentTemplate
-                      ? 'text-slate-400 hover:text-green-600 hover:bg-green-50'
-                      : 'text-slate-300 hover:text-amber-600 hover:bg-amber-50'
+                      ? 'text-theme-text-muted hover:text-green-400 hover:bg-green-500/15'
+                      : 'text-theme-text-faint hover:text-amber-400 hover:bg-amber-500/15'
                   }`}
                   title="编辑文件"
                 >
@@ -2460,7 +2461,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 </button>
               </div>
             </div>
-            <div className="p-6 bg-slate-900 min-h-[300px]">
+            <div className="p-6 bg-theme-surface min-h-[300px]">
               {yamlFileLoading ? (
                 <div className="flex items-center justify-center py-16">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
@@ -2470,7 +2471,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                   {yamlFileContent || '# 文件为空'}
                 </pre>
               ) : (
-                <div className="flex flex-col items-center justify-center py-16 text-slate-500">
+                <div className="flex flex-col items-center justify-center py-16 text-theme-text-muted">
                   <FileCode size={48} className="mb-4 opacity-30" />
                   <p className="text-sm font-medium">无法加载文件内容</p>
                 </div>
@@ -2484,42 +2485,42 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* 左侧信息 */}
             <div className="lg:col-span-4 space-y-6">
- <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-200 space-y-4">
-                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+ <div className="bg-theme-surface p-6 rounded-xl border border-theme-border space-y-4">
+                <h4 className="text-xs font-medium text-theme-text-muted uppercase tracking-widest flex items-center gap-2">
                   <Info size={14} /> 模板信息
                 </h4>
                 <div className="space-y-3">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase">资源类型</p>
-                    <p className="text-sm font-black text-slate-700 mt-1">压缩包模板</p>
+                  <div className="p-3 bg-theme-surface rounded-xl border border-theme-border">
+                    <p className="text-[10px] font-medium text-theme-text-muted uppercase">资源类型</p>
+                    <p className="text-sm font-semibold text-theme-text-secondary mt-1">压缩包模板</p>
                   </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase">文件数量</p>
-                    <p className="text-sm font-black text-slate-700 mt-1">{templateDetail.directory_files?.length || 0} 个文件</p>
+                  <div className="p-3 bg-theme-surface rounded-xl border border-theme-border">
+                    <p className="text-[10px] font-medium text-theme-text-muted uppercase">文件数量</p>
+                    <p className="text-sm font-semibold text-theme-text-secondary mt-1">{templateDetail.directory_files?.length || 0} 个文件</p>
                   </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase">目录大小</p>
-                    <p className="text-sm font-black text-blue-600 mt-1">{((templateDetail.directory_size || 0) / 1024).toFixed(1)} KB</p>
+                  <div className="p-3 bg-theme-surface rounded-xl border border-theme-border">
+                    <p className="text-[10px] font-medium text-theme-text-muted uppercase">目录大小</p>
+                    <p className="text-sm font-semibold text-blue-400 mt-1">{((templateDetail.directory_size || 0) / 1024).toFixed(1)} KB</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* 右侧文件树 */}
- <div className="lg:col-span-8 flex flex-col min-h-[500px] bg-slate-50 rounded-[3rem] border border-slate-200 overflow-hidden">
-              <div className="px-8 py-6 border-b border-slate-100 bg-slate-100/30 flex items-center justify-between">
+ <div className="lg:col-span-8 flex flex-col min-h-[500px] bg-theme-surface rounded-xl border border-theme-border overflow-hidden">
+              <div className="px-8 py-6 border-b border-theme-border bg-slate-100/30 flex items-center justify-between">
                 <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white">
                     <FolderOpen size={24} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-slate-800">资源文件树</h3>
-                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
+                    <h3 className="text-lg font-semibold text-theme-text-primary">资源文件树</h3>
+                    <p className="text-xs text-theme-text-muted font-semibold uppercase tracking-widest mt-1">
                       {templateDetail.directory_files?.length || 0} 个资源项
                     </p>
                   </div>
                 </div>
- <button onClick={() => setExpandedFolders(new Set(['root']))} className="p-3 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all">
+ <button onClick={() => setExpandedFolders(new Set(['root']))} className="p-3 text-theme-text-muted hover:text-theme-text-secondary hover:bg-theme-elevated rounded-xl transition-all">
                   <RefreshCw size={18} />
                 </button>
               </div>
@@ -2542,8 +2543,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               onRefresh={() => fetchParsedCompose(selectedTemplate!)}
             />
           ) : (
- <div className="bg-slate-50 rounded-[3rem] border border-slate-200 p-12">
-              <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+ <div className="bg-theme-surface rounded-xl border border-theme-border p-12">
+              <div className="flex flex-col items-center justify-center py-12 text-theme-text-muted">
                 <Container size={56} className="mb-4 opacity-30" />
                 <p className="text-sm font-medium">该压缩包模板暂无可解析的 Compose 内容</p>
               </div>
@@ -2553,22 +2554,22 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
         {/* 部署实例标签页 */}
         {detailTab === 'deployments' && (
- <div className="bg-slate-50 rounded-[3rem] border border-slate-200 overflow-hidden">
-            <div className="px-8 py-6 border-b border-slate-100 bg-slate-100/30 flex items-center justify-between">
+ <div className="bg-theme-surface rounded-xl border border-theme-border overflow-hidden">
+            <div className="px-8 py-6 border-b border-theme-border bg-slate-100/30 flex items-center justify-between">
               <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white">
                   <Network size={24} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-slate-800">模板部署实例</h3>
-                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
+                  <h3 className="text-lg font-semibold text-theme-text-primary">模板部署实例</h3>
+                  <p className="text-xs text-theme-text-muted font-semibold uppercase tracking-widest mt-1">
                     基于当前服务列表 · 共 {deploymentAgentRows.length} 个 Agent
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => void loadTemplateDeployments(templateDetail.id)}
- className="p-3 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-all"
+ className="p-3 text-theme-text-muted hover:text-theme-text-secondary hover:bg-theme-elevated rounded-xl transition-all"
                 title="刷新部署实例"
               >
                 <RefreshCw size={18} className={templateDeploymentsLoading ? 'animate-spin' : ''} />
@@ -2576,7 +2577,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             </div>
 
             <div className="p-4">
-              <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-slate-500 border-b border-slate-100">
+              <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-theme-text-muted border-b border-theme-border">
                 <div className="col-span-4">节点标识</div>
                 <div className="col-span-3">网络</div>
                 <div className="col-span-2">节点状态</div>
@@ -2585,16 +2586,16 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               </div>
 
               {templateDeploymentsLoading ? (
-                <div className="py-12 flex items-center justify-center text-slate-500">
+                <div className="py-12 flex items-center justify-center text-theme-text-muted">
                   <Loader2 className="w-5 h-5 animate-spin mr-2" />
                   加载部署实例中...
                 </div>
               ) : templateDeploymentsError ? (
-                <div className="py-10 text-center text-sm text-red-600">{templateDeploymentsError}</div>
+                <div className="py-10 text-center text-sm text-red-400">{templateDeploymentsError}</div>
               ) : deploymentAgentRows.length === 0 ? (
-                <div className="py-12 text-center text-sm text-slate-400">当前服务列表中没有该模板的在线实例</div>
+                <div className="py-12 text-center text-sm text-theme-text-muted">当前服务列表中没有该模板的在线实例</div>
               ) : (
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-theme-border">
                   {deploymentAgentRows.map((row) => {
                     const agent = row.agent;
                     const nodeStatus = agent?.status || 'unknown';
@@ -2603,25 +2604,25 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     <div
                       key={row.agentKey}
                       onClick={() => setDeploymentDetailAgentKey(row.agentKey)}
-                      className="grid grid-cols-12 gap-2 px-3 py-2.5 text-sm items-center hover:bg-slate-100 cursor-pointer"
+                      className="grid grid-cols-12 gap-2 px-3 py-2.5 text-sm items-center hover:bg-theme-elevated cursor-pointer"
                     >
                       <div className="col-span-4 min-w-0 flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${nodeStatus === 'online' ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-500'}`}>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${nodeStatus === 'online' ? 'bg-green-500/15 text-green-400' : 'bg-theme-elevated text-theme-text-muted'}`}>
                           <Monitor size={16} />
                         </div>
                         <div className="min-w-0">
-                          <div className="font-bold text-slate-800 truncate">{agent?.hostname || row.agentKey}</div>
-                          <div className="text-xs text-slate-400 truncate font-mono">{row.agentKey}</div>
+                          <div className="font-semibold text-theme-text-primary truncate">{agent?.hostname || row.agentKey}</div>
+                          <div className="text-xs text-theme-text-muted truncate font-mono">{row.agentKey}</div>
                         </div>
                       </div>
                       <div className="col-span-3 min-w-0">
-                        <div className="font-semibold text-slate-700 truncate">{agent?.ip_address || row.services[0]?.agent_ip || '-'}</div>
-                        <div className="text-xs text-slate-400 truncate">{agent?.last_seen ?`Last: ${String(agent.last_seen).replace('T', ' ')}` : '-'}</div>
+                        <div className="font-semibold text-theme-text-secondary truncate">{agent?.ip_address || row.services[0]?.agent_ip || '-'}</div>
+                        <div className="text-xs text-theme-text-muted truncate">{agent?.last_seen ?`Last: ${String(agent.last_seen).replace('T', ' ')}` : '-'}</div>
                       </div>
                       <div className="col-span-2">
                         <StatusBadge status={nodeStatus} />
                       </div>
-                      <div className="col-span-1 text-xs text-slate-700 font-bold">
+                      <div className="col-span-1 text-xs text-theme-text-secondary font-medium">
                         {row.services.length}
                       </div>
                       <div className="col-span-2 text-right">
@@ -2630,7 +2631,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             e.stopPropagation();
                             setDeploymentDetailAgentKey(row.agentKey);
                           }}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-black text-slate-700 hover:bg-slate-50"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-theme-border text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated"
                           title={`查看节点详情（${latestServiceName} 等 ${row.services.length} 个服务）`}
                         >
                           详情
@@ -2648,24 +2649,24 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
         {/* Editor Overlay */}
         {isEditorOpen && editingFile && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
- <div className="bg-[#0f172a] w-full max-w-5xl h-[85vh] rounded-[3.5rem] border border-slate-200 flex flex-col overflow-hidden animate-in zoom-in-95">
- <div className="px-12 py-8 border-b border-slate-200/5 flex items-center justify-between bg-slate-100/10">
+ <div className="bg-theme-surface w-full max-w-5xl h-[85vh] rounded-[3.5rem] border border-theme-border flex flex-col overflow-hidden animate-in zoom-in-95">
+ <div className="px-6 py-6 border-b border-slate-200/5 flex items-center justify-between bg-slate-100/10">
                   <div className="flex items-center gap-5">
- <div className="w-12 h-12 bg-blue-600 rounded-[1.5rem] flex items-center justify-center text-white">
+ <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white">
                       <Edit3 size={24} />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black text-white tracking-wide">在线编辑: {editingFile.path}</h3>
-                      <p className="text-[10px] font-mono text-slate-500 uppercase mt-1">Target Template: {templateDetail.name}</p>
+                      <h3 className="text-lg font-semibold text-white tracking-wide">在线编辑: {editingFile.path}</h3>
+                      <p className="text-[10px] font-mono text-theme-text-muted uppercase mt-1">Target Template: {templateDetail.name}</p>
                     </div>
                   </div>
- <button onClick={() => setIsEditorOpen(false)} className="p-4 bg-slate-100/10 text-slate-400 hover:text-white hover:bg-slate-100 rounded-2xl transition-all">
+ <button onClick={() => setIsEditorOpen(false)} className="p-4 bg-slate-100/10 text-theme-text-muted hover:text-white hover:bg-theme-elevated rounded-lg transition-all">
                     <X size={24} />
                   </button>
                 </div>
                 <div className="flex-1 bg-black/40 relative">
                    <div className="absolute top-6 left-6 pointer-events-none z-10">
-                      <Terminal size={20} className="text-slate-700" />
+                      <Terminal size={20} className="text-theme-text-secondary" />
                    </div>
                    <textarea
                      className="w-full h-full p-12 pl-16 bg-transparent border-none outline-none font-mono text-xs text-blue-100/90 leading-relaxed resize-none custom-scrollbar"
@@ -2674,12 +2675,12 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                      spellCheck={false}
                    />
                 </div>
- <div className="px-12 py-8 bg-slate-100/10 border-t border-slate-200/5 flex justify-end gap-6">
- <button onClick={() => setIsEditorOpen(false)} className="px-10 py-4 bg-slate-100/10 text-slate-400 rounded-2xl text-xs font-black uppercase transition-all hover:bg-slate-100">放弃更改</button>
+ <div className="px-6 py-6 bg-slate-100/10 border-t border-slate-200/5 flex justify-end gap-6">
+ <button onClick={() => setIsEditorOpen(false)} className="btn-secondary">放弃更改</button>
                    <button
                      onClick={handleSaveFile}
                      disabled={isSavingFile}
- className="px-12 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase hover:bg-blue-500 transition-all disabled:opacity-50 flex items-center gap-3"
+ className="btn-primary btn-lg"
                    >
                       {isSavingFile ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                       提交并更新资源
@@ -2698,37 +2699,31 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
   return (
     <>
-    <div className="p-10 space-y-10 animate-in fade-in duration-300 pb-24 h-full overflow-y-auto custom-scrollbar">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-        <div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight">环境模板管理</h2>
-          <p className="text-slate-500 mt-1 font-medium">标准化、可复用的安全测试沙箱编排模版库</p>
-        </div>
-        <div className="flex gap-4">
- <button onClick={loadTemplates} className="p-4 bg-slate-50 border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-100 transition-all">
-            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-          </button>
- <button onClick={() => setIsUploadModalOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 transition-all active:scale-95">
-            <Plus size={20} /> 上传新模版
-          </button>
-        </div>
-      </div>
+    <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-300 pb-24 h-full overflow-y-auto custom-scrollbar">
+      <PageHeader
+        title="环境模板管理"
+        description="标准化、可复用的安全测试沙箱编排模版库"
+        actions={<div className="flex gap-4">
+            <button onClick={loadTemplates} className="p-4 bg-theme-elevated border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all"><RefreshCw size={20} className={loading ? 'animate-spin' : ''} /></button>
+            <button onClick={() => setIsUploadModalOpen(true)} className="btn-primary btn-lg"><Plus size={20} /> 上传新模版</button>
+          </div>}
+      />
 
       {/* Batch Action Bar */}
       {selectedNames.size > 0 && (
- <div className="bg-slate-900 px-8 py-5 rounded-[2rem] flex items-center justify-between animate-in slide-in-from-top-4">
+ <div className="bg-theme-surface px-8 py-5 rounded-2xl flex items-center justify-between animate-in slide-in-from-top-4">
            <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white"><CheckCircle2 size={20} /></div>
-              <span className="text-sm font-black text-white">已选中 {selectedNames.size} 个模版资源</span>
+              <span className="text-sm font-semibold text-white">已选中 {selectedNames.size} 个模版资源</span>
            </div>
            <div className="flex gap-4">
-              <button onClick={openDeployModal} className="px-6 py-3 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-blue-500 transition-all">
+              <button onClick={openDeployModal} className="btn-primary">
                  <Zap size={16} /> 批量部署到 Agent
               </button>
-              <button onClick={handleBatchDelete} className="px-6 py-3 bg-red-500/10 text-red-400 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-red-500/20 transition-all">
+              <button onClick={handleBatchDelete} className="px-6 py-3 bg-red-500/10 text-red-400 rounded-xl text-xs font-semibold uppercase tracking-widest flex items-center gap-2 hover:bg-red-500/20 transition-all">
                  <Trash2 size={16} /> 批量删除
               </button>
-              <button onClick={() => setSelectedNames(new Set())} className="px-6 py-3 bg-slate-100/10 text-slate-400 rounded-xl text-xs font-black uppercase tracking-widest hover:text-white transition-all">取消选择</button>
+              <button onClick={() => setSelectedNames(new Set())} className="px-6 py-3 bg-slate-100/10 text-theme-text-muted rounded-xl text-xs font-semibold uppercase tracking-widest hover:text-white transition-all">取消选择</button>
            </div>
         </div>
       )}
@@ -2736,30 +2731,30 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       {/* Card Grid View */}
       <div className="space-y-4">
         <div className="relative">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
- <input type="text" placeholder="检索模版名称、描述信息或文件类型..." className="w-full pl-16 pr-8 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-theme-text-faint" size={20} />
+ <input type="text" placeholder="检索模版名称、描述信息或文件类型..." className="form-input w-full pl-16 pr-8" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-3">
-            <button onClick={toggleSelectAll} className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-100 transition-all">
-              {selectedNames.size === filteredTemplates.length && filteredTemplates.length > 0 ? <CheckSquare size={16} className="text-blue-600" /> : <Square size={16} />}
+            <button onClick={toggleSelectAll} className="flex items-center gap-2 px-4 py-2 bg-theme-surface border border-theme-border rounded-xl text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated transition-all">
+              {selectedNames.size === filteredTemplates.length && filteredTemplates.length > 0 ? <CheckSquare size={16} className="text-blue-400" /> : <Square size={16} />}
               {selectedNames.size === filteredTemplates.length && filteredTemplates.length > 0 ? '取消全选' : '全选'}
             </button>
-            <span className="text-xs font-medium text-slate-400">共 {filteredTemplates.length} 个模板</span>
+            <span className="text-xs font-medium text-theme-text-muted">共 {filteredTemplates.length} 个模板</span>
           </div>
         </div>
         {loading ? (
- <div className="bg-slate-50 border border-slate-200 rounded-[2.5rem] p-12">
+ <div className="bg-theme-surface border border-theme-border rounded-xl p-12">
             <div className="flex flex-col items-center justify-center py-16">
-              <Loader2 className="w-12 h-12 animate-spin text-blue-600 mb-4" />
-              <span className="text-slate-600 font-medium">正在加载模板...</span>
+              <Loader2 className="w-12 h-12 animate-spin text-blue-400 mb-4" />
+              <span className="text-theme-text-secondary font-medium">正在加载模板...</span>
             </div>
           </div>
         ) : filteredTemplates.length === 0 ? (
- <div className="bg-slate-50 border border-slate-200 rounded-[2.5rem] p-12">
-            <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+ <div className="bg-theme-surface border border-theme-border rounded-xl p-12">
+            <div className="flex flex-col items-center justify-center py-16 text-theme-text-muted">
               <Box size={64} className="mb-4 opacity-30" />
-              <p className="text-lg font-black">暂无模板</p>
+              <p className="text-lg font-semibold">暂无模板</p>
               <p className="text-sm mt-2">点击右上角"新建模版"按钮创建您的第一个环境模板</p>
             </div>
           </div>
@@ -2778,39 +2773,39 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 <div
                   key={t.name}
                   onClick={() => viewDetail(t.id)}
- className={`bg-slate-50 border-2 rounded-[2rem] overflow-hidden cursor-pointer transition-all group hover:border-blue-200 ${selectedNames.has(String(t.id)) ? 'border-blue-600 ring-4 ring-blue-500/5' : 'border-slate-100'}`}
+ className={`bg-theme-surface border-2 rounded-xl overflow-hidden cursor-pointer transition-all group hover:border-blue-500/20 ${selectedNames.has(String(t.id)) ? 'border-blue-600 ring-4 ring-blue-500/5' : 'border-theme-border'}`}
                 >
                   {/* Card Header */}
-                  <div className="p-6 border-b border-slate-50">
+                  <div className="p-6 border-b border-theme-border">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-4 flex-1 min-w-0">
                         <button
                           onClick={e => toggleSelect(t.id, e)}
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0 ${selectedNames.has(String(t.id)) ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-300 hover:bg-slate-100'}`}
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0 ${selectedNames.has(String(t.id)) ? 'bg-blue-600 text-white' : 'bg-theme-elevated text-theme-text-faint hover:bg-theme-elevated'}`}
                         >
                           {selectedNames.has(String(t.id)) ? <CheckSquare size={20} /> : <Square size={20} />}
                         </button>
                         <div className="min-w-0">
                           <div className="flex items-center gap-3">
-                            <h3 className="text-lg font-black text-slate-800 truncate">{t.name}</h3>
+                            <h3 className="text-lg font-semibold text-theme-text-primary truncate">{t.name}</h3>
                             <StatusBadge status={t.type} />
                             <StatusBadge status={t.visibility === 'private' ? 'private' : 'shared'} />
                           </div>
                           {t.description && (
-                            <p className="text-xs text-slate-400 mt-1 truncate">{t.description}</p>
+                            <p className="text-xs text-theme-text-muted mt-1 truncate">{t.description}</p>
                           )}
                           {t.owner_name && (
-                            <p className="text-[10px] text-slate-400 mt-1 truncate">Owner: {t.owner_name}</p>
+                            <p className="text-[10px] text-theme-text-muted mt-1 truncate">Owner: {t.owner_name}</p>
                           )}
                           {getTemplateTags(t).length > 0 && (
                             <div className="flex flex-wrap gap-1.5 mt-2">
                               {getTemplateTags(t).slice(0, 4).map((tag) => (
-                                <span key={tag} className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-black">
+                                <span key={tag} className="text-[10px] bg-amber-500/15 text-amber-400 px-2 py-0.5 rounded font-semibold">
                                   {tag}
                                 </span>
                               ))}
                               {getTemplateTags(t).length > 4 && (
-                                <span className="text-[10px] text-slate-400 font-black">+{getTemplateTags(t).length - 4}</span>
+                                <span className="text-[10px] text-theme-text-muted font-semibold">+{getTemplateTags(t).length - 4}</span>
                               )}
                             </div>
                           )}
@@ -2825,33 +2820,33 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       <>
                         {/* Services Summary */}
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                            <Container size={16} className="text-blue-600" />
+                          <div className="w-8 h-8 bg-blue-500/15 rounded-lg flex items-center justify-center">
+                            <Container size={16} className="text-blue-400" />
                           </div>
                           <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">服务</p>
-                            <p className="text-sm font-black text-slate-800">{Object.keys(compose.services || {}).length} 个服务</p>
+                            <p className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">服务</p>
+                            <p className="text-sm font-semibold text-theme-text-primary">{Object.keys(compose.services || {}).length} 个服务</p>
                           </div>
                         </div>
 
                         {/* Ports Summary */}
                         {composeServices.some((s: any) => s.ports && s.ports.length > 0) && (
                           <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center shrink-0">
-                              <Globe size={16} className="text-green-600" />
+                            <div className="w-8 h-8 bg-green-500/15 rounded-lg flex items-center justify-center shrink-0">
+                              <Globe size={16} className="text-green-400" />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">端口映射</p>
+                              <p className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">端口映射</p>
                               <div className="flex flex-wrap gap-1.5 mt-1">
                                 {Object.entries(compose.services || {}).flatMap(([name, s]: [string, any]) =>
                                   (s.ports || []).slice(0, 4).map((p: any, i: number) => (
-                                    <span key={`${name}-${i}`} className="text-[10px] bg-green-100 text-green-800 px-2 py-0.5 rounded font-mono">
+                                    <span key={`${name}-${i}`} className="text-[10px] bg-green-500/15 text-green-400 px-2 py-0.5 rounded font-mono">
                                       {p.published}:{p.target}
                                     </span>
                                   ))
                                 ).slice(0, 6)}
                                 {totalPorts > 6 && (
-                                  <span className="text-[10px] text-slate-400">
+                                  <span className="text-[10px] text-theme-text-muted">
                                     +{totalPorts - 6} 更多
                                   </span>
                                 )}
@@ -2864,37 +2859,37 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                         <div className="flex gap-4">
                           {compose.networks && Object.keys(compose.networks).length > 0 && (
                             <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-purple-50 rounded-md flex items-center justify-center">
-                                <Network size={12} className="text-purple-600" />
+                              <div className="w-6 h-6 bg-purple-500/15 rounded-md flex items-center justify-center">
+                                <Network size={12} className="text-purple-400" />
                               </div>
-                              <span className="text-xs font-bold text-slate-600">{Object.keys(compose.networks).length} 网络</span>
+                              <span className="text-xs font-medium text-theme-text-secondary">{Object.keys(compose.networks).length} 网络</span>
                             </div>
                           )}
                           {compose.volumes && Object.keys(compose.volumes).length > 0 && (
                             <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-orange-50 rounded-md flex items-center justify-center">
-                                <HardDrive size={12} className="text-orange-600" />
+                              <div className="w-6 h-6 bg-orange-500/15 rounded-md flex items-center justify-center">
+                                <HardDrive size={12} className="text-orange-400" />
                               </div>
-                              <span className="text-xs font-bold text-slate-600">{Object.keys(compose.volumes).length} 卷</span>
+                              <span className="text-xs font-medium text-theme-text-secondary">{Object.keys(compose.volumes).length} 卷</span>
                             </div>
                           )}
                         </div>
 
                         {/* Services List Preview */}
-                        <div className="bg-slate-50 rounded-xl p-4">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">服务列表</p>
+                        <div className="bg-theme-elevated rounded-xl p-4">
+                          <p className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest mb-2">服务列表</p>
                           <div className="space-y-1.5">
                             {Object.entries(compose.services || {}).slice(0, 3).map(([name, s]: [string, any]) => (
                               <div key={name} className="flex items-center gap-2 text-xs">
                                 <div className="w-1.5 h-1.5 bg-blue-400 rounded-full" />
-                                <span className="font-bold text-slate-700">{name}</span>
+                                <span className="font-medium text-theme-text-secondary">{name}</span>
                                 {s.image && (
-                                  <code className="text-[10px] text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded truncate max-w-[120px]">{s.image}</code>
+                                  <code className="text-[10px] text-theme-text-muted bg-theme-elevated px-1.5 py-0.5 rounded truncate max-w-[120px]">{s.image}</code>
                                 )}
                               </div>
                             ))}
                             {Object.keys(compose.services || {}).length > 3 && (
-                              <p className="text-[10px] text-slate-400 pl-3.5">
+                              <p className="text-[10px] text-theme-text-muted pl-3.5">
                                 +{Object.keys(compose.services || {}).length - 3} 更多服务
                               </p>
                             )}
@@ -2902,33 +2897,33 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                         </div>
                       </>
                     ) : (t.type === 'yaml' || t.type === 'archive') && !compose ? (
-                      <div className="flex items-center gap-3 text-slate-400">
+                      <div className="flex items-center gap-3 text-theme-text-muted">
                         <Loader2 size={16} className="animate-spin" />
                         <span className="text-xs">正在解析模板...</span>
                       </div>
                     ) : null}
 
                   {cardWebPortPresets.length > 0 && (
-                    <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-3">
-                        <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2">WEB端口</p>
+                    <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3">
+                        <p className="text-[10px] font-medium text-indigo-400 uppercase tracking-widest mb-2">WEB端口</p>
                         <div className="flex flex-wrap gap-1.5">
                           {cardWebPortPresets.slice(0, 6).map((preset, idx) => (
-                            <span key={`preset-${t.id}-${idx}`} className="text-[10px] bg-slate-50 text-indigo-700 px-2 py-0.5 rounded font-mono border border-indigo-100">
+                            <span key={`preset-${t.id}-${idx}`} className="text-[10px] bg-theme-elevated text-indigo-400 px-2 py-0.5 rounded font-mono border border-indigo-500/20">
                               {(preset.name || 'WEB')}:{preset.port}/后端{String(preset.backend_protocol || preset.protocol || 'http').toUpperCase()}/Ingress{(preset.ingress_tls_enabled ?? preset.tls_enabled) !== false ? 'HTTPS' : 'HTTP'}
                             </span>
                           ))}
                           {cardWebPortPresets.length > 6 && (
-                            <span className="text-[10px] text-slate-500">+{cardWebPortPresets.length - 6} 更多</span>
+                            <span className="text-[10px] text-theme-text-muted">+{cardWebPortPresets.length - 6} 更多</span>
                           )}
                       </div>
                     </div>
                   )}
                   {getTemplateCurrentMixBinding(t)?.provider_keys?.length ? (
-                    <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-3">
-                      <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">当前 LLM 混合结果</p>
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
+                      <p className="text-[10px] font-medium text-emerald-400 uppercase tracking-widest mb-2">当前 LLM 混合结果</p>
                       <div className="flex flex-wrap gap-1.5">
                         {getTemplateCurrentMixBinding(t)?.provider_keys.map((providerKey) => (
-                          <span key={`${t.id}-${providerKey}`} className="text-[10px] bg-slate-50 text-emerald-700 px-2 py-0.5 rounded font-mono border border-emerald-100">
+                          <span key={`${t.id}-${providerKey}`} className="text-[10px] bg-theme-elevated text-emerald-400 px-2 py-0.5 rounded font-mono border border-emerald-500/20">
                             {providerKey}
                           </span>
                         ))}
@@ -2938,8 +2933,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 </div>
 
                   {/* Card Footer */}
-                  <div className="px-6 py-4 bg-slate-100/50 border-t border-slate-50 flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-xs text-slate-400">
+                  <div className="px-6 py-4 bg-slate-100/50 border-t border-theme-border flex items-center justify-between">
+                    <div className="flex items-center gap-4 text-xs text-theme-text-muted">
                       <div className="flex items-center gap-1.5">
                         <Database size={12} />
                         <span>{(t.file_size / 1024).toFixed(1)} KB</span>
@@ -2955,7 +2950,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           e.stopPropagation();
                           void openTemplateLlmModal(t);
                         }}
- className="px-2.5 py-2 bg-slate-50 border border-slate-200 text-slate-500 hover:text-blue-700 hover:border-blue-200 rounded-lg transition-all text-[11px] font-black"
+ className="px-2.5 py-2 bg-theme-elevated border border-theme-border text-theme-text-muted hover:text-blue-400 hover:border-blue-500/20 rounded-lg transition-all text-[11px] font-medium"
                         title="打开 LLM Provider 混合配置弹框"
                       >
                         LLM混合
@@ -2963,18 +2958,18 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       {canCopyCard && (
                         <button
                           onClick={(e) => handleCopyTemplate(t.id, e)}
- className="p-2 bg-slate-50 border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 rounded-lg transition-all"
+ className="p-2 bg-theme-elevated border border-theme-border text-theme-text-muted hover:text-indigo-400 hover:border-indigo-500/20 rounded-lg transition-all"
                         >
                           <Layers size={14} />
                         </button>
                       )}
- <button className="p-2 bg-slate-50 border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 rounded-lg transition-all">
+ <button className="p-2 bg-theme-elevated border border-theme-border text-theme-text-muted hover:text-blue-400 hover:border-blue-500/20 rounded-lg transition-all">
                         <Download size={14} />
                       </button>
                       {canManageCard && (
                         <button
                           onClick={(e) => handleDeleteTrigger(String(t.id), e)}
- className="p-2 bg-red-50 border border-red-100 text-red-400 hover:text-red-600 hover:border-red-200 rounded-lg transition-all"
+ className="p-2 bg-red-500/15 border border-red-500/20 text-red-400 hover:text-red-400 hover:border-red-500/20 rounded-lg transition-all"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -2993,24 +2988,24 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       {/* Upload Template Modal */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
- <div className={`bg-slate-50 w-full max-w-4xl rounded-[2.5rem] overflow-hidden flex flex-col animate-in zoom-in-95 transition-all duration-300 ${
+ <div className={`bg-theme-elevated w-full max-w-4xl rounded-xl overflow-hidden flex flex-col animate-in zoom-in-95 transition-all duration-300 ${
             uploadTab === 'editor' ? 'h-[90vh]' : 'max-h-[80vh]'
           }`}>
             {/* Modal Header */}
-            <div className="p-6 pb-4 border-b border-slate-50 bg-slate-100/30 shrink-0">
+            <div className="p-6 pb-4 border-b border-theme-border bg-slate-100/30 shrink-0">
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-4">
  <div className="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-blue-600/20">
                     <Upload size={24} />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black text-slate-800 tracking-tight">上传新模版</h3>
-                    <p className="text-xs text-slate-500 mt-0.5 font-medium">支持 YAML 配置文件或压缩包上传</p>
+                    <h3 className="text-2xl font-bold text-theme-text-primary tracking-tight">上传新模版</h3>
+                    <p className="text-xs text-theme-text-muted mt-0.5 font-medium">支持 YAML 配置文件或压缩包上传</p>
                   </div>
                 </div>
                 <button
                   onClick={() => { setIsUploadModalOpen(false); resetUploadForm(); }}
- className="p-3 text-slate-400 hover:bg-slate-50 hover:text-slate-600 rounded-xl transition-all"
+ className="p-3 text-theme-text-muted hover:bg-theme-elevated hover:text-theme-text-secondary rounded-xl transition-all"
                 >
                   <X size={24} />
                 </button>
@@ -3020,23 +3015,23 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             {/* Tab Switcher - 只在YAML类型时显示 */}
             {newTemplate.type === 'yaml' && (
               <div className="px-6 pt-4 bg-slate-100/30">
- <div className="flex gap-2 p-1 bg-slate-50 border border-slate-200 rounded-xl w-fit">
+ <div className="flex gap-2 p-1 bg-theme-surface border border-theme-border rounded-xl w-fit">
                   <button
                     onClick={() => setUploadTab('file')}
-                    className={`px-5 py-2.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-2 ${
+                    className={`px-5 py-2.5 rounded-lg text-xs font-medium uppercase transition-all flex items-center gap-2 ${
                       uploadTab === 'file'
  ? 'bg-blue-600 text-white '
-                        : 'text-slate-500 hover:bg-slate-100'
+                        : 'text-theme-text-muted hover:bg-theme-elevated'
                     }`}
                   >
                     <Upload size={14} /> 文件上传
                   </button>
                   <button
                     onClick={() => setUploadTab('editor')}
-                    className={`px-5 py-2.5 rounded-lg text-xs font-black uppercase transition-all flex items-center gap-2 ${
+                    className={`px-5 py-2.5 rounded-lg text-xs font-medium uppercase transition-all flex items-center gap-2 ${
                       uploadTab === 'editor'
  ? 'bg-blue-600 text-white '
-                        : 'text-slate-500 hover:bg-slate-100'
+                        : 'text-theme-text-muted hover:bg-theme-elevated'
                     }`}
                   >
                     <FileCode size={14} /> 在线编辑
@@ -3046,11 +3041,11 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             )}
 
             {/* Form Content */}
-            <div className={`flex-1 overflow-y-auto bg-slate-50/20 custom-scrollbar ${uploadTab === 'editor' ? 'p-6' : 'p-6'}`}>
+            <div className={`flex-1 overflow-y-auto bg-theme-elevated custom-scrollbar ${uploadTab === 'editor' ? 'p-6' : 'p-6'}`}>
               <form onSubmit={handleUploadSubmit} className="space-y-4">
                 {/* Template Name */}
                 <div>
-                  <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-2">
+                  <label className="form-label">
                     模版名称 <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -3059,13 +3054,13 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     value={newTemplate.name}
                     onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
                     placeholder="输入模版唯一标识符（如：pentest-v2-standard）"
- className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="form-input w-full"
                   />
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-2">
+                  <label className="form-label">
                     模版描述
                   </label>
                   <textarea
@@ -3073,12 +3068,12 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     onChange={(e) => setNewTemplate({ ...newTemplate, description: e.target.value })}
                     placeholder="简要说明模版用途、适用场景和安全基线标准..."
                     rows={2}
- className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium resize-none"
+ className="form-textarea w-full resize-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-2">
+                  <label className="form-label">
                     TAG
                   </label>
                   <input
@@ -3086,14 +3081,14 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     value={stringifyTemplateTags(newTemplate.tags)}
                     onChange={(e) => setNewTemplate({ ...newTemplate, tags: normalizeTemplateTags(e.target.value) })}
                     placeholder="使用英文逗号分隔，例如：AI_AGENT_HELPER, INTERNAL"
- className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="form-input w-full"
                   />
-                  <p className="text-[11px] text-slate-400 mt-2">模板 TAG 会用于分类、识别和自动化关联。</p>
+                  <p className="text-[11px] text-theme-text-muted mt-2">模板 TAG 会用于分类、识别和自动化关联。</p>
                 </div>
 
                 {/* Template Type */}
                 <div>
-                  <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-2">
+                  <label className="form-label">
                     模版类型
                   </label>
                   <div className="flex gap-3">
@@ -3107,12 +3102,12 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       }}
                       className={`flex-1 px-5 py-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${
                         newTemplate.type === 'yaml'
-                          ? 'bg-blue-50 border-blue-600 ring-4 ring-blue-500/5'
-                          : 'bg-slate-50 border-slate-200 hover:border-blue-200'
+                          ? 'bg-blue-500/15 border-blue-600 ring-4 ring-blue-500/5'
+                          : 'bg-theme-elevated border-theme-border hover:border-blue-500/20'
                       }`}
                     >
-                      <FileCode size={18} className={newTemplate.type === 'yaml' ? 'text-blue-600' : 'text-slate-400'} />
-                      <span className={`text-sm font-black ${newTemplate.type === 'yaml' ? 'text-blue-600' : 'text-slate-600'}`}>
+                      <FileCode size={18} className={newTemplate.type === 'yaml' ? 'text-blue-400' : 'text-theme-text-muted'} />
+                      <span className={`text-sm font-semibold ${newTemplate.type === 'yaml' ? 'text-blue-400' : 'text-theme-text-secondary'}`}>
                         YAML 配置
                       </span>
                     </button>
@@ -3127,12 +3122,12 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       }}
                       className={`flex-1 px-5 py-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${
                         newTemplate.type === 'archive'
-                          ? 'bg-blue-50 border-blue-600 ring-4 ring-blue-500/5'
-                          : 'bg-slate-50 border-slate-200 hover:border-blue-200'
+                          ? 'bg-blue-500/15 border-blue-600 ring-4 ring-blue-500/5'
+                          : 'bg-theme-elevated border-theme-border hover:border-blue-500/20'
                       }`}
                     >
-                      <FileArchive size={18} className={newTemplate.type === 'archive' ? 'text-blue-600' : 'text-slate-400'} />
-                      <span className={`text-sm font-black ${newTemplate.type === 'archive' ? 'text-blue-600' : 'text-slate-600'}`}>
+                      <FileArchive size={18} className={newTemplate.type === 'archive' ? 'text-blue-400' : 'text-theme-text-muted'} />
+                      <span className={`text-sm font-semibold ${newTemplate.type === 'archive' ? 'text-blue-400' : 'text-theme-text-secondary'}`}>
                         压缩包
                       </span>
                     </button>
@@ -3140,17 +3135,17 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-2">
+                  <label className="form-label">
                     模板可见性
                   </label>
                   <div className="flex gap-3">
                     <button
                       type="button"
                       onClick={() => setNewTemplate({ ...newTemplate, visibility: 'shared' })}
-                      className={`flex-1 px-5 py-3 rounded-xl border-2 transition-all text-sm font-black ${
+                      className={`flex-1 px-5 py-3 rounded-xl border-2 transition-all text-sm font-semibold ${
                         newTemplate.visibility === 'shared'
-                          ? 'bg-blue-50 border-blue-600 text-blue-600 ring-4 ring-blue-500/5'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-blue-200'
+                          ? 'bg-blue-500/15 border-blue-600 text-blue-400 ring-4 ring-blue-500/5'
+                          : 'bg-theme-elevated border-theme-border text-theme-text-secondary hover:border-blue-500/20'
                       }`}
                     >
                       共享模板
@@ -3158,10 +3153,10 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     <button
                       type="button"
                       onClick={() => setNewTemplate({ ...newTemplate, visibility: 'private' })}
-                      className={`flex-1 px-5 py-3 rounded-xl border-2 transition-all text-sm font-black ${
+                      className={`flex-1 px-5 py-3 rounded-xl border-2 transition-all text-sm font-semibold ${
                         newTemplate.visibility === 'private'
-                          ? 'bg-blue-50 border-blue-600 text-blue-600 ring-4 ring-blue-500/5'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-blue-200'
+                          ? 'bg-blue-500/15 border-blue-600 text-blue-400 ring-4 ring-blue-500/5'
+                          : 'bg-theme-elevated border-theme-border text-theme-text-secondary hover:border-blue-500/20'
                       }`}
                     >
                       私有模板
@@ -3169,24 +3164,24 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                   </div>
                 </div>
 
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                <div className="bg-theme-surface border border-theme-border rounded-xl p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-black text-slate-600 uppercase tracking-widest">
+                    <label className="form-label">
                       WEB端口（可选）
                     </label>
                     <button
                       type="button"
                       onClick={addUploadWebPortPreset}
-                      className="px-2.5 py-1.5 text-[11px] font-black rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      className="px-2.5 py-1.5 text-[11px] font-medium rounded-lg bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated"
                     >
                       新增端口
                     </button>
                   </div>
                   {(newTemplate.web_port_presets || []).length === 0 && (
-                    <p className="text-xs text-slate-400">可分别定义 Ingress 访问协议与后端服务协议，后续服务详情可一键创建转发。</p>
+                    <p className="text-xs text-theme-text-muted">可分别定义 Ingress 访问协议与后端服务协议，后续服务详情可一键创建转发。</p>
                   )}
                   {(newTemplate.web_port_presets || []).map((preset, idx) => (
-                    <div key={`upload-port-${idx}`} className="border border-slate-200 rounded-xl p-2 space-y-2">
+                    <div key={`upload-port-${idx}`} className="border border-theme-border rounded-xl p-2 space-y-2">
                       <div className="grid grid-cols-12 gap-2 items-center">
                         <input
                           value={preset.name || ''}
@@ -3195,7 +3190,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             web_port_presets: prev.web_port_presets.map((p, i) => i === idx ? { ...p, name: e.target.value } : p)
                           }))}
                           placeholder="名称"
-                          className="col-span-2 px-2 py-2 text-xs border border-slate-200 rounded-lg"
+                          className="form-input col-span-2 text-xs"
                         />
                         <input
                           value={preset.port || 0}
@@ -3207,7 +3202,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           min={1}
                           max={65535}
                           placeholder="端口"
-                          className="col-span-2 px-2 py-2 text-xs border border-slate-200 rounded-lg"
+                          className="form-input col-span-2 text-xs"
                         />
                         <select
                           value={preset.backend_protocol || preset.protocol || 'http'}
@@ -3219,7 +3214,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                               backend_protocol: (e.target.value === 'https' ? 'https' : 'http') as 'http' | 'https'
                             } : p)
                           }))}
-                          className="col-span-2 px-2 py-2 text-xs border border-slate-200 rounded-lg bg-slate-50"
+className="form-select col-span-2 text-xs"
                         >
                           <option value="http">后端 HTTP</option>
                           <option value="https">后端 HTTPS</option>
@@ -3231,7 +3226,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             web_port_presets: prev.web_port_presets.map((p, i) => i === idx ? { ...p, path: e.target.value } : p)
                           }))}
                           placeholder="Path"
-                          className="col-span-2 px-2 py-2 text-xs border border-slate-200 rounded-lg"
+                          className="form-input col-span-2 text-xs"
                         />
                         <input
                           value={preset.description || ''}
@@ -3240,7 +3235,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             web_port_presets: prev.web_port_presets.map((p, i) => i === idx ? { ...p, description: e.target.value } : p)
                           }))}
                           placeholder="说明"
-                          className="col-span-3 px-2 py-2 text-xs border border-slate-200 rounded-lg"
+                          className="form-input col-span-3 text-xs"
                         />
                         <button
                           type="button"
@@ -3248,13 +3243,13 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                             ...prev,
                             web_port_presets: prev.web_port_presets.filter((_, i) => i !== idx)
                           }))}
-                          className="col-span-1 px-2 py-2 text-xs font-black rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100"
+                          className="col-span-1 px-2 py-2 text-xs font-medium rounded-lg bg-rose-500/15 text-rose-400 hover:bg-rose-500/15"
                         >
                           删除
                         </button>
                       </div>
                       <div className="flex items-center gap-4 px-1">
-                        <label className="text-xs text-slate-600 flex items-center gap-2">
+                        <label className="text-xs text-theme-text-secondary flex items-center gap-2">
                           <input
                             type="checkbox"
                             checked={preset.websocket_enabled !== false}
@@ -3265,7 +3260,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           />
                           启用 WebSocket
                         </label>
-                        <label className="text-xs text-slate-600 flex items-center gap-2">
+                        <label className="text-xs text-theme-text-secondary flex items-center gap-2">
                           <input
                             type="checkbox"
                             checked={(preset.ingress_tls_enabled ?? preset.tls_enabled) !== false}
@@ -3284,7 +3279,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 {/* File Upload or Editor */}
                 {uploadTab === 'file' ? (
                   <div>
-                    <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-2">
+                    <label className="form-label">
                       上传文件 <span className="text-red-500">*</span>
                     </label>
                     <div
@@ -3304,10 +3299,10 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                         setIsDragOverUpload(false);
                       }}
                       onDrop={handleUploadDrop}
-                      className={`border-2 border-dashed rounded-xl p-8 text-center transition-all bg-slate-50 ${
+                      className={`border-2 border-dashed rounded-xl p-8 text-center transition-all bg-theme-elevated ${
                         isDragOverUpload
-                          ? 'border-blue-500 bg-blue-50/50'
-                          : 'border-slate-200 hover:border-blue-400'
+                          ? 'border-blue-500 bg-blue-500/10'
+                          : 'border-theme-border hover:border-blue-400'
                       }`}
                     >
                       <input
@@ -3319,20 +3314,20 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                         onChange={handleUploadInputChange}
                       />
                       <label htmlFor="template-file-upload" className="cursor-pointer">
-                        <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-3">
-                          <Upload size={28} className="text-blue-600" />
+                        <div className="w-14 h-14 bg-blue-500/15 rounded-xl flex items-center justify-center mx-auto mb-3">
+                          <Upload size={28} className="text-blue-400" />
                         </div>
-                        <p className="text-sm font-black text-slate-700 mb-1.5">
+                        <p className="text-sm font-semibold text-theme-text-secondary mb-1.5">
                           {newTemplate.type === 'yaml' ? '点击或拖拽上传 YAML 配置文件' : '点击或拖拽上传压缩包文件'}
                         </p>
-                        <p className="text-xs text-slate-400 font-medium">
+                        <p className="text-xs text-theme-text-muted font-medium">
                           {getUploadAcceptHint()}
                         </p>
                       </label>
                       {selectedUploadFile && (
-                        <div className="mt-4 mx-auto max-w-xl text-left bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between gap-3">
+                        <div className="mt-4 mx-auto max-w-xl text-left bg-blue-500/15 border border-blue-500/20 rounded-lg p-3 flex items-center justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="text-xs font-black text-blue-700 truncate">{selectedUploadFile.name}</p>
+                            <p className="text-xs font-medium text-blue-400 truncate">{selectedUploadFile.name}</p>
                             <p className="text-[11px] text-blue-500 mt-0.5">
                               {(selectedUploadFile.size / 1024).toFixed(1)} KB
                             </p>
@@ -3344,7 +3339,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                               setSelectedUploadFile(null);
                               if (fileInputRef.current) fileInputRef.current.value = '';
                             }}
-                            className="px-3 py-1.5 text-[11px] font-black text-slate-600 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100"
+                            className="px-3 py-1.5 text-[11px] font-medium text-theme-text-secondary bg-theme-elevated border border-theme-border rounded-lg hover:bg-theme-elevated"
                           >
                             清除
                           </button>
@@ -3354,12 +3349,12 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-2">
+                    <label className="form-label">
                       YAML 内容 <span className="text-red-500">*</span>
                     </label>
-                    <div className="bg-slate-900 rounded-xl p-5 relative">
+                    <div className="bg-theme-surface rounded-xl p-5 relative">
                       <div className="absolute top-6 left-6 pointer-events-none z-10">
-                        <Terminal size={18} className="text-slate-700" />
+                        <Terminal size={18} className="text-theme-text-secondary" />
                       </div>
                       <textarea
                         value={newTemplate.content}
@@ -3384,30 +3379,30 @@ spec:
 
                 {/* Error Message */}
                 {uploadError && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
-                    <div className="w-9 h-9 bg-red-100 rounded-lg flex items-center justify-center shrink-0">
-                      <AlertCircle size={18} className="text-red-600" />
+                  <div className="bg-red-500/15 border border-red-500/20 rounded-xl p-4 flex items-center gap-3">
+                    <div className="w-9 h-9 bg-red-500/15 rounded-lg flex items-center justify-center shrink-0">
+                      <AlertCircle size={18} className="text-red-400" />
                     </div>
-                    <p className="text-sm font-black text-red-600">{uploadError}</p>
+                    <p className="text-sm font-semibold text-red-400">{uploadError}</p>
                   </div>
                 )}
               </form>
             </div>
 
             {/* Modal Footer */}
-            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 shrink-0">
+            <div className="p-6 border-t border-theme-border bg-theme-elevated flex justify-end gap-3 shrink-0">
               <button
                 type="button"
                 onClick={() => { setIsUploadModalOpen(false); resetUploadForm(); }}
                 disabled={isUploading}
-                className="px-8 py-3 bg-slate-100 text-slate-600 rounded-xl font-black hover:bg-slate-200 transition-all disabled:opacity-50"
+                className="px-8 py-3 bg-theme-elevated text-theme-text-secondary rounded-xl font-semibold hover:bg-theme-elevated transition-all disabled:opacity-50"
               >
                 取消
               </button>
               <button
                 onClick={handleUploadSubmit}
                 disabled={isUploading || !newTemplate.name.trim()}
- className="px-10 py-3 bg-blue-600 text-white rounded-xl font-black hover:bg-blue-700 transition-all flex items-center gap-2 min-w-[140px] disabled:opacity-50 disabled:cursor-not-allowed"
+ className="btn-primary btn-lg"
               >
                 {isUploading ? (
                   <>
@@ -3429,47 +3424,47 @@ spec:
       {/* Delete Confirmation Modal */}
       {deleteConfirm.show && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
- <div className="bg-slate-50 w-full max-w-lg rounded-[3rem] overflow-hidden animate-in zoom-in-95">
-            <div className="p-10">
+ <div className="bg-theme-elevated w-full max-w-lg rounded-2xl overflow-hidden animate-in zoom-in-95">
+            <div className="p-6">
               <div className="flex items-center gap-5 mb-6">
-                <div className="w-16 h-16 bg-red-100 rounded-[1.5rem] flex items-center justify-center">
-                  <AlertTriangle size={32} className="text-red-600" />
+                <div className="w-16 h-16 bg-red-500/15 rounded-xl flex items-center justify-center">
+                  <AlertTriangle size={32} className="text-red-400" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black text-slate-800">确认删除</h3>
-                  <p className="text-sm text-slate-500 mt-1">此操作不可撤销</p>
+                  <h3 className="text-2xl font-bold text-theme-text-primary">确认删除</h3>
+                  <p className="text-sm text-theme-text-muted mt-1">此操作不可撤销</p>
                 </div>
               </div>
 
-              <p className="text-sm text-slate-600 font-medium mb-4">
+              <p className="text-sm text-theme-text-secondary font-medium mb-4">
                 即将删除以下模板：
               </p>
-              <div className="bg-slate-50 rounded-2xl p-5 space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+              <div className="bg-theme-elevated rounded-2xl p-5 space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
                 {deleteConfirm.names.map(id => {
                   const templateName = templates.find((t) => t.id === Number(id))?.name || id;
                   return (
                   <div key={id} className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center shrink-0">
-                      <Trash2 size={16} className="text-red-600" />
+                    <div className="w-8 h-8 bg-red-500/15 rounded-lg flex items-center justify-center shrink-0">
+                      <Trash2 size={16} className="text-red-400" />
                     </div>
-                    <span className="text-sm font-black text-slate-700">{templateName}</span>
+                    <span className="text-sm font-semibold text-theme-text-secondary">{templateName}</span>
                   </div>
                 )})}
               </div>
             </div>
 
-            <div className="p-10 pt-0 flex gap-4">
+            <div className="p-6 pt-0 flex gap-4">
               <button
                 onClick={() => setDeleteConfirm({ show: false, names: [] })}
                 disabled={isDeleting}
-                className="flex-1 px-8 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all disabled:opacity-50"
+                className="btn-secondary btn-lg flex-1"
               >
                 取消
               </button>
               <button
                 onClick={executeDelete}
                 disabled={isDeleting}
- className="flex-1 px-8 py-4 bg-red-600 text-white rounded-2xl font-black hover:bg-red-700 transition-all flex items-center justify-center gap-3 shadow-red-500/20 disabled:opacity-50"
+ className="btn-danger-soft btn-lg flex-1"
               >
                 {isDeleting ? (
                   <>

@@ -7,6 +7,7 @@ import {
   Box,
   Briefcase,
   Building2,
+  Brain,
   Cpu,
   FileBox,
   FileSearch,
@@ -15,6 +16,7 @@ import {
   FolderTree,
   GitBranch,
   Globe,
+  GraduationCap,
   HardDrive,
   Key,
   Layers3,
@@ -112,10 +114,10 @@ export const NAV_ROLE_CONFIG: Record<string, { label: string; color: string; act
 export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
   { id: 'home', label: '首页', role: null },
   { id: 'project-mgmt-nav', label: '项目管理', role: null },
-  { id: 'test-object', label: '测试对象', role: null },
-  { id: 'test-env', label: '测试环境', role: null },
   { id: 'test-task', label: '测试任务', role: null },
   { id: 'vuln-center', label: '漏洞中心', role: null },
+  { id: 'test-object', label: '测试对象', role: null },
+  { id: 'test-env', label: '测试环境', role: null },
   { id: 'assets', label: '资产', role: 'developer', showDividerBefore: true },
   { id: 'assessment', label: '评测', role: 'developer' },
   { id: 'observe', label: '观测', role: 'developer' },
@@ -180,8 +182,12 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'dataflow-vuln-scan-task',
   'dataflow-vuln-scan-detail',
   'dataflow-vuln-scan-config',
+  'cfg-guided-explore-task',
+  'cfg-guided-explore-detail',
+  'cfg-guided-explore-config',
   'pentest-vuln-verify',
   'vuln-verify-task',
+  'pentest-vuln-verify-v2',
   'entry-analysis-root',
   'entry-analysis-task',
   'entry-analysis-config',
@@ -194,6 +200,10 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'binary-module-security-detail',
   'source-security',
   'source-security-detail',
+  'kg-source-security',
+  'kg-source-security-detail',
+  'cfg-db-vuln-tool',
+  'cfg-db-vuln-detail',
   'mobile-security-ipc-vuln',
   'kernel-scan',
   'security-assessment',
@@ -237,13 +247,13 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'vuln-repro-config',
   'vuln-parameter-config',
   'task-list',
+  'task-vuln-list',
   'developer-atomic-capability',
   'developer-atomic-capability-overview',
   'developer-tools',
   'developer-tools-overview',
   'redline-verification',
   'redline-verification-detail',
-  'ai4red-detail',
 ]);
 
 const DEVELOPER_ATOMIC_CAPABILITY_VIEWS = new Set<string>([
@@ -252,6 +262,7 @@ const DEVELOPER_ATOMIC_CAPABILITY_VIEWS = new Set<string>([
   'pentest-exec-b2s',
   'pentest-threat',
   'pentest-dataflow-vuln-scan',
+  'pentest-cfg-guided-explore',
   'pentest-exec-firmware-task-list',
   'system-analysis-task',
   'system-analysis-detail',
@@ -268,8 +279,12 @@ const DEVELOPER_ATOMIC_CAPABILITY_VIEWS = new Set<string>([
   'dataflow-vuln-scan-task',
   'dataflow-vuln-scan-detail',
   'dataflow-vuln-scan-config',
+  'cfg-guided-explore-task',
+  'cfg-guided-explore-detail',
+  'cfg-guided-explore-config',
   'pentest-vuln-verify',
   'vuln-verify-task',
+  'pentest-vuln-verify-v2',
 ]);
 
 const DEVELOPER_TOOL_VIEWS = new Set<string>([
@@ -279,6 +294,10 @@ const DEVELOPER_TOOL_VIEWS = new Set<string>([
   'binary-security-detail',
   'source-security',
   'source-security-detail',
+  'kg-source-security',
+  'kg-source-security-detail',
+  'cfg-db-vuln-tool',
+  'cfg-db-vuln-detail',
   'binary-module-security',
   'binary-module-security-detail',
   'app-security-scan',
@@ -286,9 +305,7 @@ const DEVELOPER_TOOL_VIEWS = new Set<string>([
   'app-security-scan-monitor',
   'redline-verification',
   'redline-verification-detail',
-  'ai4red-detail',
 ]);
-
 const ASSESSMENT_VIEWS = new Set([
   'pentest-exec-code',
   'security-assessment',
@@ -330,6 +347,7 @@ const AIGW_VIEWS = new Set([
 
 const SCHEDULE_VIEWS = new Set([
   'chimera-platform-schedule',
+  'chimera-platform-schedule-config',
   'static-packages',
   'static-package-detail',
   'deploy-script-mgmt',
@@ -340,6 +358,10 @@ const EVOLUTION_VIEWS = new Set([
   'binary-evolution-firmware-unpacker',
   'binary-security-config',
   'binary-security-metrics',
+  'secocto-overview',
+  'secocto-skills',
+  'secocto-memories',
+  'secocto-vulns',
 ]);
 
 const TENANT_VIEWS = new Set([
@@ -394,10 +416,11 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (SYSTEM_ADMIN_ENVIRONMENT_VIEWS.has(view) || view.startsWith('env-')) return 'system-admin';
   if (AIGW_VIEWS.has(view)) return 'system-admin';
   if (SCHEDULE_VIEWS.has(view)) return 'system-admin';
-  if (EVOLUTION_VIEWS.has(view) || view.startsWith('binary-evolution-')) return 'system-admin';
+  if (EVOLUTION_VIEWS.has(view) || view.startsWith('binary-evolution-') || view.startsWith('secocto-')) return 'system-admin';
   if (TENANT_VIEWS.has(view)) return 'system-admin';
   if (ROLE_VIEWS.has(view)) return 'system-admin';
   if (view === 'sys-settings' || view === 'change-password') return 'system-admin';
+  if (view === 'vuln-confirm-engines') return 'system-admin';
   return 'home';
 };
 
@@ -513,9 +536,11 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
         { id: 'developer-tools-overview', label: '工具总览', icon: Settings, requiresProject: true, aliases: ['developer-tools'] },
         { id: 'binary-security', label: '盖亚-二进制固件', icon: Settings, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
         { id: 'source-security', label: '盖亚-源码', icon: Settings, aliases: ['source-security-detail'], requiresProject: true },
+        { id: 'kg-source-security', label: '知识图谱-源码漏洞挖掘', icon: Settings, aliases: ['kg-source-security-detail'], requiresProject: true },
+        { id: 'cfg-db-vuln-tool', label: 'CFG-数据库漏洞挖掘', icon: GitBranch, aliases: ['cfg-db-vuln-detail'], requiresProject: true },
         { id: 'binary-module-security', label: '盖亚-二进制模块', icon: Settings, aliases: ['binary-module-security-detail'], requiresProject: true },
-        { id: 'app-security-scan', label: '应用端到端扫描', icon: Smartphone, aliases: ['app-security-scan-detail', 'app-security-scan-monitor'], requiresProject: true },
-        { id: 'redline-verification', label: '红线验证', icon: ShieldCheck, aliases: ['redline-verification-detail', 'ai4red-detail'], requiresProject: true },
+        { id: 'app-security-scan', label: 'turing 扫描工具', icon: Smartphone, aliases: ['app-security-scan-detail', 'app-security-scan-monitor'], requiresProject: true },
+        { id: 'redline-verification', label: '红线验证', icon: ShieldCheck, aliases: ['redline-verification-detail'], requiresProject: true },
       ],
     },
   ],
@@ -529,7 +554,9 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
         { id: 'pentest-exec-b2s', label: '二进制逆向', icon: Zap, aliases: ['pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result', 'pentest-exec-b2s-detail', 'pentest-exec-b2s-advanced'], requiresProject: true },
         { id: 'pentest-threat', label: '入口分析', icon: Zap, aliases: ['entry-analysis-root', 'entry-analysis-task', 'entry-analysis-detail'], requiresProject: true },
         { id: 'pentest-dataflow-vuln-scan', label: '数据流漏洞挖掘', icon: Zap, aliases: ['dataflow-vuln-scan-task', 'dataflow-vuln-scan-detail', 'dataflow-vuln-scan-config'], requiresProject: true },
+        { id: 'pentest-cfg-guided-explore', label: 'CFG Guided Explore', icon: Zap, aliases: ['cfg-guided-explore-task', 'cfg-guided-explore-detail', 'cfg-guided-explore-config'], requiresProject: true },
         { id: 'pentest-vuln-verify', label: '漏洞验证', icon: Zap, aliases: ['vuln-verify-task'], requiresProject: true },
+        { id: 'pentest-vuln-verify-v2', label: '漏洞验证v2', icon: Zap, requiresProject: true },
       ],
     },
   ],
@@ -577,8 +604,25 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
         { id: 'binary-security-metrics', label: '性能看板', icon: Monitor, requiresProject: true },
       ],
     },
+    {
+      title: 'SecOcto',
+      items: [
+        { id: 'secocto-overview', label: '总览', icon: LayoutDashboard },
+        { id: 'secocto-skills', label: '技能进化', icon: GraduationCap },
+        { id: 'secocto-memories', label: '记忆进化', icon: Brain },
+        { id: 'secocto-vulns', label: '漏洞管理', icon: ShieldAlert },
+      ],
+    },
   ],
   tenant: PLATFORM_ACCOUNT_ORG_SECTIONS,
+  vulnConfig: [
+    {
+      title: '漏洞配置',
+      items: [
+        { id: 'vuln-confirm-engines', label: '漏洞确认引擎', icon: ShieldCheck },
+      ],
+    },
+  ],
   environment: [
     {
       title: '测试环境',
@@ -615,7 +659,7 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
   ],
 };
 
-export type SystemAdminChildKey = 'dashboard' | 'aigw' | 'schedule' | 'evolution' | 'tenant' | 'environment';
+export type SystemAdminChildKey = 'dashboard' | 'aigw' | 'schedule' | 'evolution' | 'tenant' | 'environment' | 'vulnConfig';
 
 export const SYSTEM_ADMIN_CHILDREN: { key: SystemAdminChildKey; label: string; defaultView: string }[] = [
   { key: 'dashboard', label: '仪表盘', defaultView: 'dashboard' },
@@ -624,14 +668,16 @@ export const SYSTEM_ADMIN_CHILDREN: { key: SystemAdminChildKey; label: string; d
   { key: 'evolution', label: '进化', defaultView: 'binary-evolution-center' },
   { key: 'tenant', label: '租户', defaultView: 'user-mgmt-access' },
   { key: 'environment', label: '环境', defaultView: 'env-agent' },
+  { key: 'vulnConfig', label: '漏洞配置', defaultView: 'vuln-confirm-engines' },
 ];
 
 export const getSystemAdminActiveChild = (currentView: string): SystemAdminChildKey => {
   if (currentView.startsWith('env-')) return 'environment';
   if (AIGW_VIEWS.has(currentView) || currentView.startsWith('aigw-') || currentView.startsWith('config-center-')) return 'aigw';
   if (SCHEDULE_VIEWS.has(currentView) || currentView === 'chimera-platform-schedule-config') return 'schedule';
-  if (EVOLUTION_VIEWS.has(currentView) || currentView.startsWith('binary-evolution-')) return 'evolution';
+  if (EVOLUTION_VIEWS.has(currentView) || currentView.startsWith('binary-evolution-') || currentView.startsWith('secocto-')) return 'evolution';
   if (TENANT_VIEWS.has(currentView) || ROLE_VIEWS.has(currentView) || currentView.startsWith('user-mgmt-') || currentView.startsWith('org-mgmt-')) return 'tenant';
+  if (currentView === 'vuln-confirm-engines') return 'vulnConfig';
   return 'dashboard';
 };
 

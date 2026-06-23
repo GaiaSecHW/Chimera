@@ -19,6 +19,7 @@ import { api } from '../../clients/api';
 import { AppTemplate, WorkflowInstance, WorkflowNodeInstance, WorkflowStatus } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
 import { XTerminal } from '../../components/XTerminal';
+import { PageHeader } from '../../design-system';
 import { ProjectDirectoryPickerModal, ProjectDirectorySelection } from '../../components/assets/ProjectDirectoryPickerModal';
 
 const nodeColor = (status: WorkflowStatus) => {
@@ -214,8 +215,8 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
         data: {
           label: (
             <div className="flex flex-col items-center p-2">
-              <div className="font-bold text-sm">{n.name}</div>
-              <div className="text-[10px] text-slate-500 uppercase">{n.node_type}</div>
+              <div className="font-semibold text-sm">{n.name}</div>
+              <div className="text-[10px] text-theme-text-muted uppercase">{n.node_type}</div>
               <div className="mt-2">
                 <StatusBadge status={n.status} />
               </div>
@@ -1382,7 +1383,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   if (loading && !instance) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 className="animate-spin text-blue-600" size={40} />
+        <Loader2 className="animate-spin text-blue-400" size={40} />
       </div>
     );
   }
@@ -1409,156 +1410,153 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   })();
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 animate-in fade-in duration-500">
+    <div className="flex flex-col h-full bg-theme-surface animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex items-center justify-between p-6 bg-slate-50 border-b border-slate-200 shrink-0">
-        <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all">
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-black text-slate-800 tracking-tight">{instance?.name}</h2>
-              {instance?.status && <StatusBadge status={instance.status} />}
-              {instance?.has_warning && (
-                <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full flex items-center gap-1">
-                  <AlertCircle size={12} /> 警告
-                </span>
-              )}
-            </div>
-            <p className="text-xs font-mono text-slate-400 mt-1">ID: {instance?.id}</p>
+      <PageHeader
+        title={
+          <div className="flex items-center gap-3">
+            {instance?.name}
+            {instance?.status && <StatusBadge status={instance.status} />}
+            {instance?.has_warning && (
+              <span className="px-2 py-0.5 bg-yellow-500/15 text-yellow-400 text-xs font-medium rounded-full flex items-center gap-1">
+                <AlertCircle size={12} /> 警告
+              </span>
+            )}
           </div>
-        </div>
+        }
+        description={<p className="text-xs font-mono text-theme-text-muted mt-1">ID: {instance?.id}</p>}
+        back={{ label: '返回实例列表', onClick: onBack }}
+        actions={
+          <div className="flex items-center gap-3">
+            <button onClick={() => loadInstance()} className="p-3 text-theme-text-muted hover:bg-theme-elevated rounded-xl transition-all" title="刷新">
+              <RefreshCw size={18} />
+            </button>
 
-        <div className="flex items-center gap-3">
-          <button onClick={() => loadInstance()} className="p-3 text-slate-500 hover:bg-slate-100 rounded-xl transition-all" title="刷新">
-            <RefreshCw size={18} />
-          </button>
-
-          {isEditMode ? (
-            <>
-              <button onClick={() => setIsEditMode(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
-                取消
-              </button>
- <button onClick={handleExitEdit} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all">
-                <LogOut size={16} /> 退出编辑
-              </button>
- <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all">
-                <Save size={16} /> 保存
-              </button>
-            </>
-          ) : (
-            <>
-              {workflowStatus === 'pending' && (
+            {isEditMode ? (
+              <>
+                <button onClick={() => setIsEditMode(false)} className="px-5 py-2.5 text-sm font-medium text-theme-text-secondary bg-theme-elevated hover:bg-theme-elevated rounded-xl transition-all">
+                  取消
+                </button>
+                <button onClick={handleExitEdit} className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-theme-text-secondary bg-theme-surface border border-theme-border hover:bg-theme-elevated rounded-xl transition-all">
+                  <LogOut size={16} /> 退出编辑
+                </button>
+                <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all">
+                  <Save size={16} /> 保存
+                </button>
+              </>
+            ) : (
+              <>
+                {workflowStatus === 'pending' && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        await orchestrationApi.workflow.initializeInstance(instanceId);
+                        await loadInstance();
+                        showToast("初始化成功","success");
+                      } catch (e: any) {
+                        showToast("初始化失败:" + e.message,"error");
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-theme-text-secondary bg-theme-surface border border-theme-border hover:bg-theme-elevated rounded-xl transition-all"
+                  >
+                    <Activity size={16} /> 初始化
+                  </button>
+                )}
                 <button
                   onClick={async () => {
                     try {
                       setLoading(true);
-                      await orchestrationApi.workflow.initializeInstance(instanceId);
+                      await orchestrationApi.workflow.syncInstanceStatus(instanceId);
                       await loadInstance();
-                      showToast("初始化成功","success");
+                      showToast("同步成功","success");
                     } catch (e: any) {
-                      showToast("初始化失败:" + e.message,"error");
+                      showToast("同步失败:" + e.message,"error");
                     } finally {
                       setLoading(false);
                     }
                   }}
- className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all"
+                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-theme-text-secondary bg-theme-surface border border-theme-border hover:bg-theme-elevated rounded-xl transition-all"
                 >
-                  <Activity size={16} /> 初始化
+                  <RefreshCw size={16} /> 同步状态
                 </button>
-              )}
-              <button
-                onClick={async () => {
-                  try {
-                    setLoading(true);
-                    await orchestrationApi.workflow.syncInstanceStatus(instanceId);
-                    await loadInstance();
-                    showToast("同步成功","success");
-                  } catch (e: any) {
-                    showToast("同步失败:" + e.message,"error");
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
- className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all"
-              >
-                <RefreshCw size={16} /> 同步状态
-              </button>
 
-              {['unready', 'ready'].includes(workflowStatus) && (
-                <button
-                  onClick={() => setIsUninitModalOpen(true)}
- className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all"
-                >
-                  <RotateCcw size={16} /> 反初始化
-                </button>
-              )}
+                {['unready', 'ready'].includes(workflowStatus) && (
+                  <button
+                    onClick={() => setIsUninitModalOpen(true)}
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-theme-text-secondary bg-theme-surface border border-theme-border hover:bg-theme-elevated rounded-xl transition-all"
+                  >
+                    <RotateCcw size={16} /> 反初始化
+                  </button>
+                )}
 
-              {workflowStatus === 'pending' && (
-                <button
-                  onClick={async () => {
-                    try {
-                      setLoading(true);
-                      await orchestrationApi.workflow.startInstance(instanceId);
-                      await loadInstance();
-                      showToast("启动成功","success");
-                    } catch (e: any) {
-                      showToast("启动失败:" + e.message,"error");
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
- className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-all shadow-green-500/20"
-                >
-                  <Play size={16} /> 启动
-                </button>
-              )}
+                {workflowStatus === 'pending' && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        await orchestrationApi.workflow.startInstance(instanceId);
+                        await loadInstance();
+                        showToast("启动成功","success");
+                      } catch (e: any) {
+                        showToast("启动失败:" + e.message,"error");
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-xl transition-all shadow-green-500/20"
+                  >
+                    <Play size={16} /> 启动
+                  </button>
+                )}
 
-              {['unready', 'ready'].includes(workflowStatus) && (instance?.run_mode === 'once' || instance?.is_active) && (
-                <button
-                  onClick={async () => {
-                    try {
-                      setLoading(true);
-                      await orchestrationApi.workflow.triggerInstance(instanceId);
-                      await loadInstance();
-                      showToast("触发执行成功","success");
-                    } catch (e: any) {
-                      showToast("触发执行失败:" + e.message,"error");
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
- className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl transition-all shadow-cyan-500/20"
-                >
-                  <Zap size={16} /> 触发执行
-                </button>
-              )}
+                {['unready', 'ready'].includes(workflowStatus) && (instance?.run_mode === 'once' || instance?.is_active) && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        await orchestrationApi.workflow.triggerInstance(instanceId);
+                        await loadInstance();
+                        showToast("触发执行成功","success");
+                      } catch (e: any) {
+                        showToast("触发执行失败:" + e.message,"error");
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl transition-all shadow-cyan-500/20"
+                  >
+                    <Zap size={16} /> 触发执行
+                  </button>
+                )}
 
-              {workflowStatus === 'pending' && (
-                <button
-                  onClick={() => {
-                    setInitialNodes(nodes);
-                    setInitialEdges(edges);
-                    setIsEditMode(true);
-                  }}
- className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all"
-                >
-                  <Settings size={16} /> 编辑模式
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+                {workflowStatus === 'pending' && (
+                  <button
+                    onClick={() => {
+                      setInitialNodes(nodes);
+                      setInitialEdges(edges);
+                      setIsEditMode(true);
+                    }}
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-theme-text-secondary bg-theme-surface border border-theme-border hover:bg-theme-elevated rounded-xl transition-all"
+                  >
+                    <Settings size={16} /> 编辑模式
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        }
+      />
 
       {/* Warning Banner */}
       {instance?.has_warning && instance?.message && (
-        <div className="mx-6 mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl flex items-start gap-3">
-          <AlertCircle className="text-yellow-600 shrink-0 mt-0.5" size={20} />
+        <div className="mx-6 mt-4 p-4 bg-yellow-500/15 border border-yellow-500/20 rounded-xl flex items-start gap-3">
+          <AlertCircle className="text-yellow-400 shrink-0 mt-0.5" size={20} />
           <div className="flex-1">
-            <div className="font-bold text-yellow-800 mb-1">工作流状态警告</div>
-            <div className="text-sm text-yellow-700">{instance.message}</div>
+            <div className="font-medium text-yellow-400 mb-1">工作流状态警告</div>
+            <div className="text-sm text-yellow-400">{instance.message}</div>
             <div className="mt-3 flex gap-2">
               <button
                 onClick={async () => {
@@ -1574,7 +1572,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                     }
                   }
                 }}
-                className="px-3 py-1.5 text-xs font-bold bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all"
+                className="px-3 py-1.5 text-xs font-medium bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all"
               >
                 取消初始化
               </button>
@@ -1590,7 +1588,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                     setLoading(false);
                   }
                 }}
-                className="px-3 py-1.5 text-xs font-bold bg-slate-50 border border-yellow-300 text-yellow-700 rounded-lg hover:bg-yellow-50 transition-all"
+                className="px-3 py-1.5 text-xs font-medium bg-theme-elevated border border-yellow-300 text-yellow-400 rounded-lg hover:bg-yellow-500/15 transition-all"
               >
                 重新初始化
               </button>
@@ -1626,7 +1624,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               <Panel position="top-left" className="m-4">
                 <button
                   onClick={() => setIsAddNodeModalOpen(true)}
- className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-100 font-bold text-sm"
+ className="flex items-center gap-2 px-4 py-2 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl hover:bg-theme-elevated font-medium text-sm"
                 >
                   <Plus size={16} /> 添加节点
                 </button>
@@ -1637,35 +1635,35 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
           {/* Context Menu */}
           {menu && (
             <div
- className="fixed bg-slate-50 border border-slate-200 rounded-xl z-[100] py-2 min-w-[160px] animate-in zoom-in-95 duration-100"
+ className="fixed bg-theme-surface border border-theme-border rounded-xl z-[100] py-2 min-w-[160px] animate-in zoom-in-95 duration-100"
               style={{ top: menu.top, left: menu.left }}
               onClick={e => e.stopPropagation()}
             >
-              <div className="px-4 py-2 border-b border-slate-100 mb-1">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">节点操作</div>
-                <div className="text-xs font-bold text-slate-600 truncate max-w-[140px]">{menu.id}</div>
+              <div className="px-4 py-2 border-b border-theme-border mb-1">
+                <div className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">节点操作</div>
+                <div className="text-xs font-medium text-theme-text-secondary truncate max-w-[140px]">{menu.id}</div>
               </div>
 
               {isEditMode ? (
                 <>
                   <button
                     onClick={() => handleModifyNode(menu.id)}
-                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-all"
+                    className="w-full px-4 py-2 text-left text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated flex items-center gap-2 transition-all"
                   >
-                    <Settings size={14} className="text-slate-400" /> 修改配置
+                    <Settings size={14} className="text-theme-text-muted" /> 修改配置
                   </button>
                   <button
                     onClick={() => handleCopyNode(menu.id)}
-                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-all"
+                    className="w-full px-4 py-2 text-left text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated flex items-center gap-2 transition-all"
                   >
-                    <Plus size={14} className="text-slate-400" /> 复制节点
+                    <Plus size={14} className="text-theme-text-muted" /> 复制节点
                   </button>
                   <button
                     onClick={() => {
                       handleDeleteNode(menu.id);
                       setMenu(null);
                     }}
-                    className="w-full px-4 py-2 text-left text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition-all"
+                    className="w-full px-4 py-2 text-left text-sm font-medium text-red-400 hover:bg-red-500/15 flex items-center gap-2 transition-all"
                   >
                     <Trash2 size={14} /> 删除节点
                   </button>
@@ -1675,7 +1673,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   {/* 状态监控 */}
                   <button
                     onClick={() => handleViewStatus(menu.id)}
-                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-all"
+                    className="w-full px-4 py-2 text-left text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated flex items-center gap-2 transition-all"
                   >
                     <Activity size={14} className="text-green-500" /> 实时状态
                   </button>
@@ -1683,7 +1681,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   {/* 日志 */}
                   <button
                     onClick={() => handleViewLogs(menu.id)}
-                    className="w-full px-4 py-2 text-left text-sm font-bold text-blue-600 hover:bg-blue-50 flex items-center gap-2 transition-all"
+                    className="w-full px-4 py-2 text-left text-sm font-medium text-blue-400 hover:bg-blue-500/15 flex items-center gap-2 transition-all"
                   >
                     <Terminal size={14} /> 查看日志
                   </button>
@@ -1691,7 +1689,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   {/* 进入终端 */}
                   <button
                     onClick={() => handleOpenTerminal(menu.id)}
-                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-all"
+                    className="w-full px-4 py-2 text-left text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated flex items-center gap-2 transition-all"
                   >
                     <Zap size={14} className="text-yellow-500" /> 进入终端
                   </button>
@@ -1699,7 +1697,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   {/* 新开终端 */}
                   <button
                     onClick={() => handleOpenNewTerminal(menu.id)}
-                    className="w-full px-4 py-2 text-left text-sm font-bold text-emerald-600 hover:bg-emerald-50 flex items-center gap-2 transition-all"
+                    className="w-full px-4 py-2 text-left text-sm font-medium text-emerald-400 hover:bg-emerald-500/15 flex items-center gap-2 transition-all"
                   >
                     <ExternalLink size={14} className="text-emerald-500" /> 新开终端
                   </button>
@@ -1707,7 +1705,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   {/* 事件历史 */}
                   <button
                     onClick={() => handleViewEvents(menu.id)}
-                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-all"
+                    className="w-full px-4 py-2 text-left text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated flex items-center gap-2 transition-all"
                   >
                     <Clock size={14} className="text-orange-500" /> 执行历史
                   </button>
@@ -1715,13 +1713,13 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   {/* 资源指标 */}
                   <button
                     onClick={() => handleViewMetrics(menu.id)}
-                    className="w-full px-4 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-all"
+                    className="w-full px-4 py-2 text-left text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated flex items-center gap-2 transition-all"
                   >
                     <BarChart2 size={14} className="text-purple-500" /> 资源监控
                   </button>
 
                   {/* 分隔线 */}
-                  <div className="border-t border-slate-100 my-1"></div>
+                  <div className="border-t border-theme-border my-1"></div>
 
                   {/* 访问服务 - 仅APP类型节点显示 */}
                   {(() => {
@@ -1730,7 +1728,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                       return (
                         <button
                           onClick={() => handleAccessService(menu.id)}
-                          className="w-full px-4 py-2 text-left text-sm font-bold text-cyan-600 hover:bg-cyan-50 flex items-center gap-2 transition-all"
+                          className="w-full px-4 py-2 text-left text-sm font-medium text-cyan-400 hover:bg-cyan-500/15 flex items-center gap-2 transition-all"
                         >
                           <Database size={14} /> 访问服务
                         </button>
@@ -1747,7 +1745,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                         <button
                           onClick={() => handleRestartNode(menu.id)}
                           disabled={restarting}
-                          className="w-full px-4 py-2 text-left text-sm font-bold text-orange-600 hover:bg-orange-50 flex items-center gap-2 transition-all disabled:opacity-50"
+                          className="w-full px-4 py-2 text-left text-sm font-medium text-orange-400 hover:bg-orange-500/15 flex items-center gap-2 transition-all disabled:opacity-50"
                         >
                           <RefreshCw size={14} className={restarting ? 'animate-spin' : ''} /> 重启服务
                         </button>
@@ -1757,7 +1755,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                         <button
                           onClick={() => handleRetryNode(menu.id)}
                           disabled={recreating}
-                          className="w-full px-4 py-2 text-left text-sm font-bold text-orange-600 hover:bg-orange-50 flex items-center gap-2 transition-all disabled:opacity-50"
+                          className="w-full px-4 py-2 text-left text-sm font-medium text-orange-400 hover:bg-orange-500/15 flex items-center gap-2 transition-all disabled:opacity-50"
                         >
                           <RotateCcw size={14} className={recreating ? 'animate-spin' : ''} /> 重试任务
                         </button>
@@ -1773,11 +1771,11 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
         {/* Sidebar for Node Details */}
         {selectedNode && (
-          <div className="w-96 bg-slate-50 border-l border-slate-200 flex flex-col shrink-0 animate-in slide-in-from-right-8">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-black text-slate-800">节点详情</h3>
+          <div className="w-96 bg-theme-surface border-l border-theme-border flex flex-col shrink-0 animate-in slide-in-from-right-8">
+            <div className="p-5 border-b border-theme-border flex items-center justify-between">
+              <h3 className="font-semibold text-theme-text-primary">节点详情</h3>
               {isEditMode && (
-                <button onClick={() => handleDeleteNode()} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all" title="删除节点">
+                <button onClick={() => handleDeleteNode()} className="p-2 text-red-500 hover:bg-red-500/15 rounded-lg transition-all" title="删除节点">
                   <Trash2 size={16} />
                 </button>
               )}
@@ -1786,24 +1784,24 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
             <div className="p-5 space-y-6 overflow-y-auto custom-scrollbar flex-1">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">节点名称</label>
-                  <div className="mt-1 text-sm font-bold text-slate-800">{selectedNode.data.name as string}</div>
+                  <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">节点名称</label>
+                  <div className="mt-1 text-sm font-semibold text-theme-text-primary">{selectedNode.data.name as string}</div>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">节点类型</label>
-                  <div className="mt-1 text-sm font-bold text-slate-800 uppercase">{selectedNode.data.node_type as string}</div>
+                  <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">节点类型</label>
+                  <div className="mt-1 text-sm font-semibold text-theme-text-primary uppercase">{selectedNode.data.node_type as string}</div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">节点 ID</label>
-                  <div className="mt-1 text-xs font-mono text-slate-600 truncate" title={selectedNode.data.id}>
+                  <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">节点 ID</label>
+                  <div className="mt-1 text-xs font-mono text-theme-text-secondary truncate" title={selectedNode.data.id}>
                     {selectedNode.data.id as string}
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">运行状态</label>
+                  <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">运行状态</label>
                   <div className="mt-1">
                     <StatusBadge status={selectedNode.data.status as WorkflowStatus} />
                   </div>
@@ -1812,17 +1810,17 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
               {/* Node Configuration (Inputs) */}
               {(selectedNode.data.input_env_vars?.length > 0 || selectedNode.data.input_volume_mounts?.length > 0) && (
-                <div className="space-y-4 pt-4 border-t border-slate-100">
-                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">节点配置 (实例化参数)</h4>
+                <div className="space-y-4 pt-4 border-t border-theme-border">
+                  <h4 className="text-xs font-medium text-theme-text-primary uppercase tracking-wider">节点配置 (实例化参数)</h4>
 
                   {selectedNode.data.input_env_vars?.length > 0 && (
                     <div className="space-y-2">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">环境变量</label>
+                      <label className="text-[9px] font-medium text-theme-text-muted uppercase tracking-widest">环境变量</label>
                       <div className="space-y-1.5">
                         {selectedNode.data.input_env_vars.map((ev: any, i: number) => (
-                          <div key={i} className="p-2 bg-slate-50 rounded-lg border border-slate-100">
-                            <div className="text-[9px] font-black text-slate-400 uppercase">{ev.name}</div>
-                            <div className="text-xs font-mono text-slate-700 break-all">{ev.value || ev.default_value || '-'}</div>
+                          <div key={i} className="p-2 bg-theme-elevated rounded-lg border border-theme-border">
+                            <div className="text-[9px] font-medium text-theme-text-muted uppercase">{ev.name}</div>
+                            <div className="text-xs font-mono text-theme-text-secondary break-all">{ev.value || ev.default_value || '-'}</div>
                           </div>
                         ))}
                       </div>
@@ -1831,12 +1829,12 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
                   {selectedNode.data.input_volume_mounts?.length > 0 && (
                     <div className="space-y-2">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">存储挂载</label>
+                      <label className="text-[9px] font-medium text-theme-text-muted uppercase tracking-widest">存储挂载</label>
                       <div className="space-y-1.5">
                         {selectedNode.data.input_volume_mounts.map((vm: any, i: number) => (
-                          <div key={i} className="p-2 bg-slate-50 rounded-lg border border-slate-100">
-                            <div className="text-[9px] font-black text-slate-400 uppercase">路径: {vm.mount_path}</div>
-                            <div className="text-xs font-bold text-slate-700">PVC: {vm.pvc_name || '-'}</div>
+                          <div key={i} className="p-2 bg-theme-elevated rounded-lg border border-theme-border">
+                            <div className="text-[9px] font-medium text-theme-text-muted uppercase">路径: {vm.mount_path}</div>
+                            <div className="text-xs font-medium text-theme-text-secondary">PVC: {vm.pvc_name || '-'}</div>
                           </div>
                         ))}
                       </div>
@@ -1846,39 +1844,39 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               )}
 
               {/* Template Details (Read-only) */}
-              <div className="space-y-4 pt-4 border-t border-slate-100">
+              <div className="space-y-4 pt-4 border-t border-theme-border">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">模板详细信息</h4>
-                  {loadingTemplate && <Loader2 size={12} className="animate-spin text-blue-600" />}
+                  <h4 className="text-xs font-medium text-theme-text-primary uppercase tracking-wider">模板详细信息</h4>
+                  {loadingTemplate && <Loader2 size={12} className="animate-spin text-blue-400" />}
                 </div>
 
                 {selectedNodeTemplateDetails ? (
                   <div className="space-y-4">
                     <div>
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">模板名称</label>
-                      <div className="mt-1 text-xs font-bold text-slate-700">{selectedNodeTemplateDetails.name}</div>
+                      <label className="text-[9px] font-medium text-theme-text-muted uppercase tracking-widest">模板名称</label>
+                      <div className="mt-1 text-xs font-medium text-theme-text-secondary">{selectedNodeTemplateDetails.name}</div>
                     </div>
 
                     {selectedNodeTemplateDetails.containers?.map((container: any, cIdx: number) => (
-                      <div key={cIdx} className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
+                      <div key={cIdx} className="p-3 bg-theme-surface rounded-xl border border-theme-border space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black text-blue-600 uppercase">容器: {container.name}</span>
+                          <span className="text-[10px] font-medium text-blue-400 uppercase">容器: {container.name}</span>
                         </div>
 
                         <div>
-                          <label className="text-[8px] font-black text-slate-400 uppercase">镜像</label>
-                          <div className="text-[10px] font-mono text-slate-600 break-all">{container.image}</div>
+                          <label className="text-[8px] font-medium text-theme-text-muted uppercase">镜像</label>
+                          <div className="text-[10px] font-mono text-theme-text-secondary break-all">{container.image}</div>
                         </div>
 
                         {(container.command || container.args) && (
                           <div>
-                            <label className="text-[8px] font-black text-slate-400 uppercase">启动命令 & 参数</label>
-                            <div className="text-[10px] font-mono text-slate-600 break-all bg-slate-50 p-1.5 rounded border border-slate-100 space-y-1">
+                            <label className="text-[8px] font-medium text-theme-text-muted uppercase">启动命令 & 参数</label>
+                            <div className="text-[10px] font-mono text-theme-text-secondary break-all bg-theme-elevated p-1.5 rounded border border-theme-border space-y-1">
                               {container.command && (
-                                <div><span className="text-slate-400">Command:</span> {Array.isArray(container.command) ? container.command.join(' ') : container.command}</div>
+                                <div><span className="text-theme-text-muted">Command:</span> {Array.isArray(container.command) ? container.command.join(' ') : container.command}</div>
                               )}
                               {container.args && (
-                                <div><span className="text-slate-400">Args:</span> {Array.isArray(container.args) ? container.args.join(' ') : container.args}</div>
+                                <div><span className="text-theme-text-muted">Args:</span> {Array.isArray(container.args) ? container.args.join(' ') : container.args}</div>
                               )}
                             </div>
                           </div>
@@ -1886,12 +1884,12 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
                         {container.env_vars?.length > 0 && (
                           <div>
-                            <label className="text-[8px] font-black text-slate-400 uppercase">环境变量 (模板定义)</label>
+                            <label className="text-[8px] font-medium text-theme-text-muted uppercase">环境变量 (模板定义)</label>
                             <div className="space-y-1 mt-1">
                               {container.env_vars.map((ev: any, i: number) => (
-                                <div key={i} className="flex justify-between text-[10px] font-mono border-b border-slate-200 last:border-0 pb-1 last:pb-0">
-                                  <span className="text-slate-500">{ev.name}</span>
-                                  <span className="text-slate-700 truncate max-w-[120px]" title={ev.value}>{ev.value}</span>
+                                <div key={i} className="flex justify-between text-[10px] font-mono border-b border-theme-border last:border-0 pb-1 last:pb-0">
+                                  <span className="text-theme-text-muted">{ev.name}</span>
+                                  <span className="text-theme-text-secondary truncate max-w-[120px]" title={ev.value}>{ev.value}</span>
                                 </div>
                               ))}
                             </div>
@@ -1900,10 +1898,10 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
                         {container.volume_mounts?.length > 0 && (
                           <div>
-                            <label className="text-[8px] font-black text-slate-400 uppercase">存储挂载 (模板定义)</label>
+                            <label className="text-[8px] font-medium text-theme-text-muted uppercase">存储挂载 (模板定义)</label>
                             <div className="space-y-1 mt-1">
                               {container.volume_mounts.map((vm: any, i: number) => (
-                                <div key={i} className="text-[10px] font-mono text-slate-600">
+                                <div key={i} className="text-[10px] font-mono text-theme-text-secondary">
                                   {vm.mount_path} {vm.read_only ? '(RO)' : ''}
                                 </div>
                               ))}
@@ -1914,12 +1912,12 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                         {container.resources && (
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <label className="text-[8px] font-black text-slate-400 uppercase">CPU 限制</label>
-                              <div className="text-[10px] font-mono text-slate-600">{container.resources.limits?.cpu || '-'}</div>
+                              <label className="text-[8px] font-medium text-theme-text-muted uppercase">CPU 限制</label>
+                              <div className="text-[10px] font-mono text-theme-text-secondary">{container.resources.limits?.cpu || '-'}</div>
                             </div>
                             <div>
-                              <label className="text-[8px] font-black text-slate-400 uppercase">内存限制</label>
-                              <div className="text-[10px] font-mono text-slate-600">{container.resources.limits?.memory || '-'}</div>
+                              <label className="text-[8px] font-medium text-theme-text-muted uppercase">内存限制</label>
+                              <div className="text-[10px] font-mono text-theme-text-secondary">{container.resources.limits?.memory || '-'}</div>
                             </div>
                           </div>
                         )}
@@ -1927,28 +1925,28 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                     ))}
 
                     {selectedNodeTemplateDetails.create_service && (
-                      <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 space-y-3">
+                      <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20 space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black text-indigo-600 uppercase">服务配置</span>
-                          <span className="text-[9px] font-bold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] font-medium text-indigo-400 uppercase">服务配置</span>
+                          <span className="text-[9px] font-medium bg-indigo-500/15 text-indigo-400 px-1.5 py-0.5 rounded">
                             {selectedNodeTemplateDetails.service_type || 'ClusterIP'}
                           </span>
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="text-[8px] font-black text-slate-400 uppercase">服务名称</label>
-                            <div className="text-[10px] font-mono text-slate-700">{selectedNodeTemplateDetails.service_name || '-'}</div>
+                            <label className="text-[8px] font-medium text-theme-text-muted uppercase">服务名称</label>
+                            <div className="text-[10px] font-mono text-theme-text-secondary">{selectedNodeTemplateDetails.service_name || '-'}</div>
                           </div>
                         </div>
 
                         {selectedNodeTemplateDetails.service_ports?.length > 0 && (
                           <div>
-                            <label className="text-[8px] font-black text-slate-400 uppercase">服务端口</label>
+                            <label className="text-[8px] font-medium text-theme-text-muted uppercase">服务端口</label>
                             <div className="flex flex-wrap gap-2 mt-1">
                               {selectedNodeTemplateDetails.service_ports.map((p: any, i: number) => (
- <div key={i} className="px-2 py-1 bg-slate-50 text-indigo-700 rounded-md text-[10px] font-bold border border-indigo-100">
-                                  {p.name}: {p.port} → {p.target_port} <span className="text-[8px] text-slate-400">({p.protocol})</span>
+ <div key={i} className="px-2 py-1 bg-theme-elevated text-indigo-400 rounded-md text-[10px] font-medium border border-indigo-500/20">
+                                  {p.name}: {p.port} → {p.target_port} <span className="text-[8px] text-theme-text-muted">({p.protocol})</span>
                                 </div>
                               ))}
                             </div>
@@ -1958,14 +1956,14 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                     )}
                   </div>
                 ) : !loadingTemplate && (
-                  <div className="text-center py-4 text-slate-400 text-[10px] font-bold italic">未找到模板详情</div>
+                  <div className="text-center py-4 text-theme-text-muted text-[10px] font-medium italic">未找到模板详情</div>
                 )}
               </div>
 
               {!isEditMode && selectedNode.data.k8s_resource_name && (
-                <div className="pt-4 border-t border-slate-100">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">K8S 资源名称</label>
-                  <div className="mt-1 text-xs font-mono text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100 break-all">
+                <div className="pt-4 border-t border-theme-border">
+                  <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">K8S 资源名称</label>
+                  <div className="mt-1 text-xs font-mono text-theme-text-secondary bg-theme-elevated p-2 rounded-lg border border-theme-border break-all">
                     {selectedNode.data.k8s_resource_name as string}
                   </div>
                 </div>
@@ -1978,30 +1976,30 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Uninitialize Confirmation Modal */}
       {isUninitModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-slate-50 rounded-[2rem] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-8 text-center">
-              <div className="w-20 h-20 bg-orange-50 text-orange-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+ <div className="bg-theme-surface rounded-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-20 h-20 bg-orange-500/15 text-orange-400 rounded-lg flex items-center justify-center mx-auto mb-6">
                 <RotateCcw size={40} />
               </div>
-              <h3 className="text-2xl font-black text-slate-800">确认反初始化？</h3>
-              <p className="text-slate-500 mt-4 font-medium">
+              <h3 className="text-2xl font-bold text-theme-text-primary">确认反初始化？</h3>
+              <p className="text-theme-text-muted mt-4 font-medium">
                 您确定要反初始化这个工作流实例吗？这将删除所有关联的 K8S 资源并重置状态。
               </p>
-              <p className="text-red-500 mt-2 font-bold text-sm bg-red-50 p-3 rounded-xl border border-red-100">
+              <p className="text-red-500 mt-2 font-semibold text-sm bg-red-500/15 p-3 rounded-xl border border-red-500/20">
                 警告：所有的非持久化数据将全部丢失！
               </p>
             </div>
-            <div className="p-8 bg-slate-50 flex gap-4">
+            <div className="p-6 bg-theme-elevated flex gap-4">
               <button
                 onClick={() => setIsUninitModalOpen(false)}
-                className="flex-1 py-4 bg-slate-50 border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-100 transition-all"
+                className="btn-secondary"
               >
                 取消
               </button>
               <button
                 onClick={handleUninitialize}
                 disabled={loading}
- className="flex-1 py-4 bg-orange-600 text-white rounded-2xl font-bold hover:bg-orange-700 transition-all shadow-orange-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
+ className="flex-1 py-4 btn-danger-soft disabled:opacity-50"
               >
                 {loading && <Loader2 size={18} className="animate-spin" />}
                 确认反初始化
@@ -2014,15 +2012,15 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Add Node Modal */}
       {isAddNodeModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-slate-50 rounded-[2rem] w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-xl font-black text-slate-800">
+ <div className="bg-theme-surface rounded-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
+            <div className="p-6 border-b border-theme-border flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-theme-text-primary">
                 {addNodeStep === 'select' ? '选择模板' :`配置节点: ${selectedTemplate?.name}`}
               </h3>
               {addNodeStep === 'configure' && (
                 <button
                   onClick={() => setAddNodeStep('select')}
-                  className="text-sm font-bold text-blue-600 hover:text-blue-700"
+                  className="text-sm font-medium text-blue-400 hover:text-blue-400"
                 >
                   返回选择
                 </button>
@@ -2033,21 +2031,21 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               {addNodeStep === 'select' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {templates.length === 0 ? (
-                    <div className="col-span-2 text-center py-8 text-slate-400 text-sm font-bold">暂无可用模板</div>
+                    <div className="col-span-2 text-center py-8 text-theme-text-muted text-sm font-medium">暂无可用模板</div>
                   ) : (
                     templates.map(t => (
                       <div
                         key={t.id}
                         onClick={() => handleTemplateSelect(t)}
-                        className="p-4 border border-slate-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-all group"
+                        className="p-4 border border-theme-border rounded-xl hover:border-blue-500 hover:bg-blue-500/15 cursor-pointer transition-all group"
                       >
                         <div className="flex items-center justify-between">
-                          <div className="font-bold text-slate-800 group-hover:text-blue-700">{t.name}</div>
-                          <span className="text-[10px] font-black uppercase px-2 py-1 bg-slate-100 text-slate-500 rounded-md group-hover:bg-blue-100 group-hover:text-blue-600">
+                          <div className="font-semibold text-theme-text-primary group-hover:text-blue-400">{t.name}</div>
+                          <span className="text-[10px] font-medium uppercase px-2 py-1 bg-theme-elevated text-theme-text-muted rounded-md group-hover:bg-blue-500/15 group-hover:text-blue-400">
                             {t.type}
                           </span>
                         </div>
-                        <div className="text-xs font-mono text-slate-400 mt-2 truncate">{t.id}</div>
+                        <div className="text-xs font-mono text-theme-text-muted mt-2 truncate">{t.id}</div>
                       </div>
                     ))
                   )}
@@ -2055,10 +2053,10 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               ) : (
                 <div className="space-y-6">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">显示名称</label>
+                    <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">显示名称</label>
                     <input
                       type="text"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all font-bold text-sm"
+                      className="form-input w-full"
                       value={newNodeConfig.name}
                       onChange={e => setNewNodeConfig({...newNodeConfig, name: e.target.value})}
                       placeholder="e.g. 前端服务"
@@ -2067,15 +2065,15 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
                   {newNodeConfig.env_vars.length > 0 && (
                     <div className="space-y-3">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">环境变量依赖</label>
+                      <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">环境变量依赖</label>
                       <div className="space-y-2">
                         {newNodeConfig.env_vars.map((ev, i) => (
-                          <div key={ev.name} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                          <div key={ev.name} className="flex items-center gap-3 p-3 bg-theme-surface rounded-xl border border-theme-border">
                             <div className="flex-1">
-                              <div className="text-[10px] font-black text-slate-500 uppercase">{ev.name}</div>
+                              <div className="text-[10px] font-medium text-theme-text-muted uppercase">{ev.name}</div>
                               <input
                                 type="text"
-                                className="w-full mt-1 bg-transparent outline-none text-sm font-bold text-slate-800"
+                                className="w-full mt-1 bg-transparent outline-none text-sm font-semibold text-theme-text-primary"
                                 value={ev.value}
                                 onChange={e => {
                                   const n = [...newNodeConfig.env_vars];
@@ -2093,12 +2091,12 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
                   {newNodeConfig.volume_mounts.length > 0 && (
                     <div className="space-y-3">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">存储挂载依赖</label>
+                      <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">存储挂载依赖</label>
                       <div className="space-y-2">
                         {newNodeConfig.volume_mounts.map((vm, i) => (
-                          <div key={vm.mount_path} className="flex flex-col gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                          <div key={vm.mount_path} className="flex flex-col gap-2 p-3 bg-theme-surface rounded-xl border border-theme-border">
                             <div className="flex items-center justify-between gap-3">
-                              <div className="text-[10px] font-black text-slate-500 uppercase">挂载路径: {vm.mount_path}</div>
+                              <div className="text-[10px] font-medium text-theme-text-muted uppercase">挂载路径: {vm.mount_path}</div>
                               <div className="flex items-center gap-2">
                                 <button
                                   type="button"
@@ -2107,7 +2105,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                     n[i] = { ...createNodeMountConfig(vm.mount_path, vm.read_only), source_type: 'pvc' };
                                     setNewNodeConfig({ ...newNodeConfig, volume_mounts: n });
                                   }}
-                                  className={`rounded-full px-3 py-1 text-[10px] font-bold ${vm.source_type === 'pvc' ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}
+                                  className={`rounded-full px-3 py-1 text-[10px] font-medium ${vm.source_type === 'pvc' ? 'bg-blue-600 text-white' : 'bg-theme-elevated text-theme-text-muted border border-theme-border'}`}
                                 >
                                   PVC
                                 </button>
@@ -2118,7 +2116,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                     n[i] = { ...createNodeMountConfig(vm.mount_path, true), source_type: 'project_file' };
                                     setNewNodeConfig({ ...newNodeConfig, volume_mounts: n });
                                   }}
-                                  className={`rounded-full px-3 py-1 text-[10px] font-bold ${vm.source_type === 'project_file' ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}
+                                  className={`rounded-full px-3 py-1 text-[10px] font-medium ${vm.source_type === 'project_file' ? 'bg-blue-600 text-white' : 'bg-theme-elevated text-theme-text-muted border border-theme-border'}`}
                                 >
                                   项目文件夹
                                 </button>
@@ -2129,20 +2127,20 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                 <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                                   <button
                                     type="button"
-                                    className="mt-1 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 hover:border-blue-400"
+                                    className="mt-1 flex items-center justify-between rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-secondary hover:border-blue-400"
                                     onClick={() => setDirectoryPickerTarget(vm.mount_path)}
                                   >
                                     <span className="truncate">{vm.subproject_id ?`${vm.subproject_name || '子项目'} ${vm.display_path || '/'}` : '选择项目文件夹'}</span>
                                     <FolderTree size={16} className="text-blue-500" />
                                   </button>
-                                  <div className="mt-1 rounded-lg border border-dashed border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+                                  <div className="mt-1 rounded-lg border border-dashed border-blue-500/20 bg-blue-500/15 px-3 py-2 text-xs text-blue-400">
                                     支持选择任意层级文件夹，保存时会自动解析成 fileserver PVC 目录挂载。
                                   </div>
                                 </div>
                               ) : (
                                 <>
                                   <select
-                                    className="w-full mt-1 bg-transparent outline-none text-sm font-bold text-slate-800"
+className="form-select w-full mt-1 bg-transparent"
                                     value={vm.pvc_name}
                                     onChange={e => {
                                       const n = [...newNodeConfig.volume_mounts];
@@ -2159,7 +2157,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                   </select>
                                   <input
                                     type="text"
-                                    className="w-full mt-2 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 outline-none text-xs font-mono text-slate-600 focus:border-blue-500 transition-all"
+                                     className="form-input w-full mt-2 text-xs font-mono"
                                     value={vm.sub_path || ''}
                                     onChange={e => {
                                       const n = [...newNodeConfig.volume_mounts];
@@ -2178,9 +2176,9 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   )}
 
                   {selectedTemplate?.type === 'app' && (
-                    <div className="space-y-4 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100">
+                    <div className="space-y-4 p-4 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
                       <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">服务配置</label>
+                        <label className="text-[10px] font-medium text-indigo-400 uppercase tracking-widest">服务配置</label>
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input
                             type="checkbox"
@@ -2193,9 +2191,9 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                               ingress_host: e.target.checked ? newNodeConfig.ingress_host : '',
                               ingress_ip: e.target.checked ? newNodeConfig.ingress_ip : ''
                             })}
-                            className="w-4 h-4 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
+                            className="w-4 h-4 rounded border-indigo-300 text-indigo-400 focus:ring-indigo-500"
                           />
-                          <span className="text-xs font-bold text-indigo-700">创建 K8S Service</span>
+                          <span className="text-xs font-medium text-indigo-400">创建 K8S Service</span>
                         </label>
                       </div>
 
@@ -2203,19 +2201,19 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                         <div className="space-y-4">
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                              <label className="text-[9px] font-black text-slate-500 uppercase">服务名称</label>
-                              <input
-                                type="text"
-                                className="w-full px-3 py-2 bg-slate-50 border border-indigo-200 rounded-lg outline-none focus:border-indigo-500 text-sm font-bold text-slate-800"
-                                value={newNodeConfig.service_name}
+                              <label className="text-[9px] font-medium text-theme-text-muted uppercase">服务名称</label>
+                               <input
+                                 type="text"
+                                 className="form-input w-full"
+                                 value={newNodeConfig.service_name}
                                 onChange={e => setNewNodeConfig({...newNodeConfig, service_name: e.target.value})}
                                 placeholder="my-service"
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-[9px] font-black text-slate-500 uppercase">服务类型</label>
+                              <label className="text-[9px] font-medium text-theme-text-muted uppercase">服务类型</label>
                               <select
-                                className="w-full px-3 py-2 bg-slate-50 border border-indigo-200 rounded-lg outline-none focus:border-indigo-500 text-sm font-bold text-slate-800"
+                                className="form-select w-full"
                                 value={newNodeConfig.service_type}
                                 onChange={e => setNewNodeConfig({...newNodeConfig, service_type: e.target.value as any})}
                               >
@@ -2228,24 +2226,24 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <label className="text-[9px] font-black text-slate-500 uppercase">服务端口</label>
+                              <label className="text-[9px] font-medium text-theme-text-muted uppercase">服务端口</label>
                               <button
                                 type="button"
                                 onClick={() => setNewNodeConfig({
                                   ...newNodeConfig,
                                   service_ports: [...newNodeConfig.service_ports, { name:`port-${newNodeConfig.service_ports.length + 1}`, port: 80, target_port: 80, protocol: 'TCP' }]
                                 })}
-                                className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700"
+                                className="text-[10px] font-medium text-indigo-400 hover:text-indigo-400"
                               >
                                 + 添加端口
                               </button>
                             </div>
                             <div className="space-y-2">
                               {newNodeConfig.service_ports.map((sp, i) => (
-                                <div key={i} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-indigo-100">
+                                <div key={i} className="flex items-center gap-2 p-2 bg-theme-elevated rounded-lg border border-indigo-500/20">
                                   <input
                                     type="text"
-                                    className="flex-1 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs font-mono"
+                                    className="form-input flex-1 text-xs font-mono"
                                     value={sp.name}
                                     onChange={e => {
                                       const n = [...newNodeConfig.service_ports];
@@ -2256,7 +2254,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                   />
                                   <input
                                     type="number"
-                                    className="w-20 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs font-mono"
+                                    className="form-input w-20 text-xs font-mono"
                                     value={sp.port}
                                     onChange={e => {
                                       const n = [...newNodeConfig.service_ports];
@@ -2265,10 +2263,10 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                     }}
                                     placeholder="端口"
                                   />
-                                  <span className="text-slate-400">→</span>
+                                  <span className="text-theme-text-muted">→</span>
                                   <input
                                     type="number"
-                                    className="w-20 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs font-mono"
+                                    className="form-input w-20 text-xs font-mono"
                                     value={sp.target_port}
                                     onChange={e => {
                                       const n = [...newNodeConfig.service_ports];
@@ -2278,7 +2276,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                     placeholder="目标端口"
                                   />
                                   <select
-                                    className="w-20 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs font-mono"
+                                    className="form-select w-20 text-xs font-mono"
                                     value={sp.protocol}
                                     onChange={e => {
                                       const n = [...newNodeConfig.service_ports];
@@ -2295,7 +2293,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                       const n = newNodeConfig.service_ports.filter((_, idx) => idx !== i);
                                       setNewNodeConfig({...newNodeConfig, service_ports: n});
                                     }}
-                                    className="p-1 text-red-500 hover:bg-red-50 rounded"
+                                    className="p-1 text-red-500 hover:bg-red-500/15 rounded"
                                   >
                                     <Trash2 size={14} />
                                   </button>
@@ -2305,7 +2303,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                           </div>
 
                           {/* Ingress 配置 */}
-                          <div className="space-y-2 pt-2 border-t border-indigo-100">
+                          <div className="space-y-2 pt-2 border-t border-indigo-500/20">
                             <div className="flex items-center justify-between">
                               <label className="flex items-center gap-2 cursor-pointer">
                                 <input
@@ -2318,14 +2316,14 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                                     ingress_host: e.target.checked ? newNodeConfig.ingress_host : '',
                                     ingress_ip: e.target.checked ? newNodeConfig.ingress_ip : ''
                                   })}
-                                  className="w-4 h-4 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
+                                  className="w-4 h-4 rounded border-indigo-300 text-indigo-400 focus:ring-indigo-500"
                                 />
-                                <span className="text-xs font-bold text-indigo-700">创建 Ingress</span>
+                                <span className="text-xs font-medium text-indigo-400">创建 Ingress</span>
                               </label>
-                              <label className="text-[9px] font-black text-slate-500 uppercase">Ingress 配置</label>
+                              <label className="text-[9px] font-medium text-theme-text-muted uppercase">Ingress 配置</label>
                             </div>
                             {newNodeConfig.create_ingress && (
-                              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/15 px-4 py-3 text-sm text-emerald-400">
                                 默认使用`nginx` Ingress，域名会按当前 Service 自动生成。节点初始化完成后，可在节点“访问服务”里直接打开入口地址。
                               </div>
                             )}
@@ -2336,10 +2334,10 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   )}
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">超时时间 (秒)</label>
+                    <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">超时时间 (秒)</label>
                     <input
                       type="number"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all font-bold text-sm"
+                      className="form-input w-full"
                       value={newNodeConfig.timeout_seconds || ''}
                       onChange={e => setNewNodeConfig({...newNodeConfig, timeout_seconds: e.target.value ? parseInt(e.target.value) : null})}
                       placeholder="可选，单位：秒"
@@ -2349,7 +2347,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               )}
             </div>
 
-            <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
+            <div className="p-6 border-t border-theme-border bg-theme-elevated flex gap-3">
               <button
                 onClick={() => {
                   setIsAddNodeModalOpen(false);
@@ -2360,7 +2358,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   setTemplateDetails(null);
                   setDirectoryPickerTarget(null);
                 }}
-                className="flex-1 py-3 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-100 transition-all"
+                className="flex-1 py-3 bg-theme-surface border border-theme-border text-theme-text-secondary rounded-xl font-medium hover:bg-theme-elevated transition-all"
               >
                 取消
               </button>
@@ -2368,7 +2366,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 <button
                   onClick={handleCreateNode}
                   disabled={loading}
- className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+ className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {loading && <Loader2 size={16} className="animate-spin" />}
                   确认创建
@@ -2382,28 +2380,28 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Logs Modal */}
       {isLogsModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-slate-900 rounded-[2rem] w-full max-w-4xl overflow-hidden animate-in zoom-in-95 border border-slate-800">
-            <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+ <div className="bg-theme-surface rounded-xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 border border-theme-border">
+            <div className="p-6 border-b border-theme-border flex items-center justify-between bg-slate-900/50">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-500/10 rounded-lg">
                   <Terminal size={20} className="text-blue-400" />
                 </div>
-                <h3 className="text-xl font-black text-white">节点日志</h3>
+                <h3 className="text-xl font-semibold text-white">节点日志</h3>
               </div>
               <button
                 onClick={() => setIsLogsModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+                className="p-2 text-theme-text-muted hover:text-white hover:bg-theme-elevated rounded-xl transition-all"
               >
                 <Plus size={24} className="rotate-45" />
               </button>
             </div>
 
             <div className="p-6">
-              <div className="bg-black/50 rounded-2xl border border-slate-800 p-4 h-[60vh] overflow-y-auto custom-scrollbar font-mono text-sm text-slate-300 leading-relaxed">
+              <div className="bg-black/50 rounded-xl border border-theme-border p-4 h-[60vh] overflow-y-auto custom-scrollbar font-mono text-sm text-theme-text-faint leading-relaxed">
                 {loadingLogs ? (
                   <div className="flex flex-col items-center justify-center h-full gap-4">
                     <Loader2 className="animate-spin text-blue-500" size={32} />
-                    <div className="text-slate-500 font-bold animate-pulse">正在获取实时日志...</div>
+                    <div className="text-theme-text-muted font-medium animate-pulse">正在获取实时日志...</div>
                   </div>
                 ) : (
                   <pre className="whitespace-pre-wrap">{nodeLogs}</pre>
@@ -2411,10 +2409,10 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               </div>
             </div>
 
-            <div className="p-6 border-t border-slate-800 bg-slate-900/50 flex justify-end">
+            <div className="p-6 border-t border-theme-border bg-slate-900/50 flex justify-end">
               <button
                 onClick={() => setIsLogsModalOpen(false)}
-                className="px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all"
+                className="px-8 py-3 bg-theme-elevated text-white rounded-xl font-medium hover:bg-theme-elevated transition-all"
               >
                 关闭
               </button>
@@ -2426,17 +2424,17 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Status Modal */}
       {isStatusModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-slate-50 rounded-[2rem] w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+ <div className="bg-theme-surface rounded-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
+            <div className="p-6 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-50 rounded-lg">
-                  <Activity size={20} className="text-green-600" />
+                <div className="p-2 bg-green-500/15 rounded-lg">
+                  <Activity size={20} className="text-green-400" />
                 </div>
-                <h3 className="text-xl font-black text-slate-800">实时状态</h3>
+                <h3 className="text-xl font-semibold text-theme-text-primary">实时状态</h3>
               </div>
               <button
                 onClick={() => setIsStatusModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all"
+                className="p-2 text-theme-text-muted hover:text-theme-text-primary hover:bg-theme-elevated rounded-xl transition-all"
               >
                 <Plus size={24} className="rotate-45" />
               </button>
@@ -2446,45 +2444,45 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               {loadingStatus ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
                   <Loader2 className="animate-spin text-blue-500" size={32} />
-                  <div className="text-slate-500 font-bold">获取状态中...</div>
+                  <div className="text-theme-text-muted font-medium">获取状态中...</div>
                 </div>
               ) : nodeStatus?.error ? (
                 <div className="text-center py-8 text-red-500">{nodeStatus.error}</div>
               ) : nodeStatus ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-slate-50 rounded-xl">
-                      <div className="text-[10px] font-black text-slate-400 uppercase">Phase</div>
-                      <div className="text-lg font-bold text-slate-800">{nodeStatus.phase}</div>
+                    <div className="p-4 bg-theme-elevated rounded-xl">
+                      <div className="text-[10px] font-medium text-theme-text-muted uppercase">Phase</div>
+                      <div className="text-lg font-semibold text-theme-text-primary">{nodeStatus.phase}</div>
                     </div>
-                    <div className="p-4 bg-slate-50 rounded-xl">
-                      <div className="text-[10px] font-black text-slate-400 uppercase">Pod IP</div>
-                      <div className="text-lg font-bold text-slate-800 font-mono">{nodeStatus.pod_ip || '-'}</div>
+                    <div className="p-4 bg-theme-elevated rounded-xl">
+                      <div className="text-[10px] font-medium text-theme-text-muted uppercase">Pod IP</div>
+                      <div className="text-lg font-semibold text-theme-text-primary font-mono">{nodeStatus.pod_ip || '-'}</div>
                     </div>
-                    <div className="p-4 bg-slate-50 rounded-xl">
-                      <div className="text-[10px] font-black text-slate-400 uppercase">Host IP</div>
-                      <div className="text-lg font-bold text-slate-800 font-mono">{nodeStatus.host_ip || '-'}</div>
+                    <div className="p-4 bg-theme-elevated rounded-xl">
+                      <div className="text-[10px] font-medium text-theme-text-muted uppercase">Host IP</div>
+                      <div className="text-lg font-semibold text-theme-text-primary font-mono">{nodeStatus.host_ip || '-'}</div>
                     </div>
-                    <div className="p-4 bg-slate-50 rounded-xl">
-                      <div className="text-[10px] font-black text-slate-400 uppercase">Node</div>
-                      <div className="text-lg font-bold text-slate-800 truncate">{nodeStatus.node_name || '-'}</div>
+                    <div className="p-4 bg-theme-elevated rounded-xl">
+                      <div className="text-[10px] font-medium text-theme-text-muted uppercase">Node</div>
+                      <div className="text-lg font-semibold text-theme-text-primary truncate">{nodeStatus.node_name || '-'}</div>
                     </div>
                   </div>
 
                   {nodeStatus.container_statuses?.length > 0 && (
                     <div>
-                      <div className="text-xs font-black text-slate-400 uppercase mb-2">容器状态</div>
+                      <div className="text-xs font-medium text-theme-text-muted uppercase mb-2">容器状态</div>
                       <div className="space-y-2">
                         {nodeStatus.container_statuses.map((cs: any, i: number) => (
-                          <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                          <div key={i} className="p-3 bg-theme-surface rounded-xl border border-theme-border">
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-slate-800">{cs.name}</span>
-                              <span className={`text-xs font-bold px-2 py-1 rounded ${cs.ready ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                              <span className="font-semibold text-theme-text-primary">{cs.name}</span>
+                              <span className={`text-xs font-medium px-2 py-1 rounded ${cs.ready ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400'}`}>
                                 {cs.ready ? 'Ready' : 'Not Ready'}
                               </span>
                             </div>
-                            <div className="text-xs text-slate-500 mt-1">{cs.state}</div>
-                            <div className="text-xs text-slate-400 mt-1">重启次数: {cs.restart_count}</div>
+                            <div className="text-xs text-theme-text-muted mt-1">{cs.state}</div>
+                            <div className="text-xs text-theme-text-muted mt-1">重启次数: {cs.restart_count}</div>
                           </div>
                         ))}
                       </div>
@@ -2493,13 +2491,13 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
                   {nodeStatus.conditions?.length > 0 && (
                     <div>
-                      <div className="text-xs font-black text-slate-400 uppercase mb-2">条件</div>
+                      <div className="text-xs font-medium text-theme-text-muted uppercase mb-2">条件</div>
                       <div className="space-y-1">
                         {nodeStatus.conditions.map((c: any, i: number) => (
                           <div key={i} className="flex items-center gap-2 text-sm">
                             {c.status === 'True' ? <CheckCircle size={14} className="text-green-500" /> : <XCircle size={14} className="text-red-500" />}
-                            <span className="font-bold text-slate-700">{c.type}</span>
-                            {c.reason && <span className="text-slate-400">({c.reason})</span>}
+                            <span className="font-medium text-theme-text-secondary">{c.type}</span>
+                            {c.reason && <span className="text-theme-text-muted">({c.reason})</span>}
                           </div>
                         ))}
                       </div>
@@ -2509,8 +2507,8 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               ) : null}
             </div>
 
-            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
-              <button onClick={() => setIsStatusModalOpen(false)} className="px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all">关闭</button>
+            <div className="p-6 border-t border-theme-border bg-theme-elevated flex justify-end">
+              <button onClick={() => setIsStatusModalOpen(false)} className="px-8 py-3 bg-theme-elevated text-white rounded-xl font-medium hover:bg-theme-elevated transition-all">关闭</button>
             </div>
           </div>
         </div>
@@ -2519,15 +2517,15 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Events Modal */}
       {isEventsModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-slate-50 rounded-[2rem] w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+ <div className="bg-theme-surface rounded-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
+            <div className="p-6 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-50 rounded-lg">
-                  <Clock size={20} className="text-orange-600" />
+                <div className="p-2 bg-orange-500/15 rounded-lg">
+                  <Clock size={20} className="text-orange-400" />
                 </div>
-                <h3 className="text-xl font-black text-slate-800">执行历史</h3>
+                <h3 className="text-xl font-semibold text-theme-text-primary">执行历史</h3>
               </div>
-              <button onClick={() => setIsEventsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all">
+              <button onClick={() => setIsEventsModalOpen(false)} className="p-2 text-theme-text-muted hover:text-theme-text-primary hover:bg-theme-elevated rounded-xl transition-all">
                 <Plus size={24} className="rotate-45" />
               </button>
             </div>
@@ -2536,22 +2534,22 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               {loadingEvents ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
                   <Loader2 className="animate-spin text-blue-500" size={32} />
-                  <div className="text-slate-500 font-bold">获取事件中...</div>
+                  <div className="text-theme-text-muted font-medium">获取事件中...</div>
                 </div>
               ) : nodeEvents.length === 0 ? (
-                <div className="text-center py-8 text-slate-400">暂无事件记录</div>
+                <div className="text-center py-8 text-theme-text-muted">暂无事件记录</div>
               ) : (
                 <div className="space-y-3">
                   {nodeEvents.map((event, i) => (
-                    <div key={i} className={`p-4 rounded-xl border ${event.type === 'Warning' ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
+                    <div key={i} className={`p-4 rounded-xl border ${event.type === 'Warning' ? 'bg-red-500/15 border-red-500/20' : 'bg-theme-elevated border-theme-border'}`}>
                       <div className="flex items-center gap-2 mb-2">
                         {event.type === 'Warning' ? <AlertCircle size={14} className="text-red-500" /> : <CheckCircle size={14} className="text-green-500" />}
-                        <span className="font-bold text-slate-800">{event.reason}</span>
-                        {event.count > 1 && <span className="text-xs bg-slate-200 px-2 py-0.5 rounded-full">x{event.count}</span>}
+                        <span className="font-semibold text-theme-text-primary">{event.reason}</span>
+                        {event.count > 1 && <span className="text-xs bg-theme-elevated px-2 py-0.5 rounded-full">x{event.count}</span>}
                       </div>
-                      <div className="text-sm text-slate-600">{event.message}</div>
+                      <div className="text-sm text-theme-text-secondary">{event.message}</div>
                       {event.last_timestamp && (
-                        <div className="text-xs text-slate-400 mt-2">{new Date(event.last_timestamp).toLocaleString()}</div>
+                        <div className="text-xs text-theme-text-muted mt-2">{new Date(event.last_timestamp).toLocaleString()}</div>
                       )}
                     </div>
                   ))}
@@ -2559,8 +2557,8 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               )}
             </div>
 
-            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
-              <button onClick={() => setIsEventsModalOpen(false)} className="px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all">关闭</button>
+            <div className="p-6 border-t border-theme-border bg-theme-elevated flex justify-end">
+              <button onClick={() => setIsEventsModalOpen(false)} className="px-8 py-3 bg-theme-elevated text-white rounded-xl font-medium hover:bg-theme-elevated transition-all">关闭</button>
             </div>
           </div>
         </div>
@@ -2569,15 +2567,15 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Metrics Modal */}
       {isMetricsModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-slate-50 rounded-[2rem] w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+ <div className="bg-theme-surface rounded-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
+            <div className="p-6 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-50 rounded-lg">
-                  <BarChart2 size={20} className="text-purple-600" />
+                <div className="p-2 bg-purple-500/15 rounded-lg">
+                  <BarChart2 size={20} className="text-purple-400" />
                 </div>
-                <h3 className="text-xl font-black text-slate-800">资源监控</h3>
+                <h3 className="text-xl font-semibold text-theme-text-primary">资源监控</h3>
               </div>
-              <button onClick={() => setIsMetricsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all">
+              <button onClick={() => setIsMetricsModalOpen(false)} className="p-2 text-theme-text-muted hover:text-theme-text-primary hover:bg-theme-elevated rounded-xl transition-all">
                 <Plus size={24} className="rotate-45" />
               </button>
             </div>
@@ -2586,24 +2584,24 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               {loadingMetrics ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
                   <Loader2 className="animate-spin text-blue-500" size={32} />
-                  <div className="text-slate-500 font-bold">获取指标中...</div>
+                  <div className="text-theme-text-muted font-medium">获取指标中...</div>
                 </div>
               ) : nodeMetrics?.error ? (
                 <div className="text-center py-8 text-red-500">{nodeMetrics.error}</div>
               ) : nodeMetrics ? (
                 <div className="space-y-4">
-                  <div className="text-xs text-slate-400 mb-2">需要安装 Metrics Server 才能获取资源指标</div>
+                  <div className="text-xs text-theme-text-muted mb-2">需要安装 Metrics Server 才能获取资源指标</div>
                   {nodeMetrics.containers?.map((c: any, i: number) => (
-                    <div key={i} className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                      <div className="font-bold text-slate-800 mb-3">{c.name}</div>
+                    <div key={i} className="p-4 bg-theme-surface rounded-xl border border-theme-border">
+                      <div className="font-semibold text-theme-text-primary mb-3">{c.name}</div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <div className="text-[10px] font-black text-slate-400 uppercase">CPU</div>
-                          <div className="text-lg font-bold text-blue-600 font-mono">{c.cpu}</div>
+                          <div className="text-[10px] font-medium text-theme-text-muted uppercase">CPU</div>
+                          <div className="text-lg font-medium text-blue-400 font-mono">{c.cpu}</div>
                         </div>
                         <div>
-                          <div className="text-[10px] font-black text-slate-400 uppercase">Memory</div>
-                          <div className="text-lg font-bold text-purple-600 font-mono">{c.memory}</div>
+                          <div className="text-[10px] font-medium text-theme-text-muted uppercase">Memory</div>
+                          <div className="text-lg font-medium text-purple-400 font-mono">{c.memory}</div>
                         </div>
                       </div>
                     </div>
@@ -2612,8 +2610,8 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               ) : null}
             </div>
 
-            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
-              <button onClick={() => setIsMetricsModalOpen(false)} className="px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all">关闭</button>
+            <div className="p-6 border-t border-theme-border bg-theme-elevated flex justify-end">
+              <button onClick={() => setIsMetricsModalOpen(false)} className="px-8 py-3 bg-theme-elevated text-white rounded-xl font-medium hover:bg-theme-elevated transition-all">关闭</button>
             </div>
           </div>
         </div>
@@ -2622,7 +2620,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Terminal Modal - 使用xterm.js 浮动窗口 */}
       {isTerminalModalOpen && !terminalIsMinimized && (
         <div
- className="fixed bg-slate-900 rounded-xl overflow-hidden flex flex-col border border-slate-700"
+ className="fixed bg-theme-surface rounded-xl overflow-hidden flex flex-col border border-theme-border"
           style={{
             left: terminalIsMaximized ? 0 : terminalPosition.x,
             top: terminalIsMaximized ? 0 : terminalPosition.y,
@@ -2633,12 +2631,12 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
         >
           {/* 终端标题栏 */}
           <div
-            className={`flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700 ${terminalIsMaximized ? '' : 'cursor-move'}`}
+            className={`flex items-center justify-between px-4 py-2 bg-theme-elevated border-b border-theme-border ${terminalIsMaximized ? '' : 'cursor-move'}`}
             onMouseDown={handleTerminalStartDrag}
           >
             <div className="flex items-center gap-3">
               <div className={`w-3 h-3 rounded-full ${terminalConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-              <span className="text-slate-300 font-mono text-sm">{terminalNodeName} - {terminalPodName}</span>
+              <span className="text-theme-text-faint font-mono text-sm">{terminalNodeName} - {terminalPodName}</span>
             </div>
             <div className="flex items-center gap-1">
               <span className={`px-2 py-0.5 rounded text-xs font-medium ${
@@ -2656,7 +2654,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   className="w-3.5 h-3.5 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-all group"
                   title="关闭"
                 >
-                  <svg className="w-2 h-2 text-red-900 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg className="w-2 h-2 text-red-300 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M3 3l6 6M9 3l-6 6" />
                   </svg>
                 </button>
@@ -2666,7 +2664,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   className="w-3.5 h-3.5 rounded-full bg-yellow-500 hover:bg-yellow-600 flex items-center justify-center transition-all group"
                   title="最小化"
                 >
-                  <svg className="w-2 h-2 text-yellow-900 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <svg className="w-2 h-2 text-yellow-300 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M2 6h8" />
                   </svg>
                 </button>
@@ -2677,12 +2675,12 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   title={terminalIsMaximized ?"还原" :"最大化"}
                 >
                   {terminalIsMaximized ? (
-                    <svg className="w-2 h-2 text-green-900 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <svg className="w-2 h-2 text-green-300 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <rect x="2" y="4" width="4" height="4" />
                       <rect x="4" y="2" width="4" height="4" fill="none" />
                     </svg>
                   ) : (
-                    <svg className="w-2 h-2 text-green-900 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <svg className="w-2 h-2 text-green-300 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <rect x="2" y="2" width="8" height="8" />
                     </svg>
                   )}
@@ -2705,8 +2703,8 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
       {/* 终端最小化任务栏 */}
       {isTerminalModalOpen && terminalIsMinimized && (
- <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-800/95 backdrop-blur-sm rounded-xl px-4 py-2 border border-slate-700 z-[9999] flex items-center gap-2">
-          <span className="text-xs text-slate-400 font-medium mr-2">终端窗口:</span>
+ <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-800/95 backdrop-blur-sm rounded-xl px-4 py-2 border border-theme-border z-[9999] flex items-center gap-2">
+          <span className="text-xs text-theme-text-muted font-medium mr-2">终端窗口:</span>
           <button
             onClick={() => {
               setTerminalIsMinimized(false);
@@ -2714,7 +2712,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               setMaxZIndex(newZIndex);
               setTerminalZIndex(newZIndex);
             }}
-            className="flex items-center gap-2 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200 text-sm font-medium transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 bg-theme-elevated hover:bg-theme-text-muted/10 rounded-lg text-theme-text-primary text-sm font-medium transition-all"
           >
             <Terminal size={14} className={terminalConnected ? 'text-green-400' : 'text-red-400'} />
             <span className="max-w-[120px] truncate">{terminalNodeName}</span>
@@ -2725,17 +2723,17 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Access Service Modal */}
       {isAccessModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
- <div className="bg-slate-50 rounded-[2rem] w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+ <div className="bg-theme-surface rounded-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
+            <div className="p-6 border-b border-theme-border flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-cyan-50 rounded-lg">
-                  <Database size={20} className="text-cyan-600" />
+                <div className="p-2 bg-cyan-500/15 rounded-lg">
+                  <Database size={20} className="text-cyan-400" />
                 </div>
-                <h3 className="text-xl font-black text-slate-800">访问服务</h3>
+                <h3 className="text-xl font-semibold text-theme-text-primary">访问服务</h3>
               </div>
               <button
                 onClick={() => setIsAccessModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all"
+                className="p-2 text-theme-text-muted hover:text-theme-text-primary hover:bg-theme-elevated rounded-xl transition-all"
               >
                 <Plus size={24} className="rotate-45" />
               </button>
@@ -2745,7 +2743,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               {loadingAccess ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
                   <Loader2 className="animate-spin text-blue-500" size={32} />
-                  <div className="text-slate-500 font-bold">获取访问信息中...</div>
+                  <div className="text-theme-text-muted font-medium">获取访问信息中...</div>
                 </div>
               ) : serviceAccessInfo?.error ? (
                 <div className="text-center py-8 text-red-500">{serviceAccessInfo.error}</div>
@@ -2753,25 +2751,25 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 <div className="space-y-6">
                   {/* 服务基本信息 */}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-slate-50 rounded-xl">
-                      <div className="text-[10px] font-black text-slate-400 uppercase">Service名称</div>
-                      <div className="text-lg font-bold text-slate-800">{serviceAccessInfo.name}</div>
+                    <div className="p-4 bg-theme-elevated rounded-xl">
+                      <div className="text-[10px] font-medium text-theme-text-muted uppercase">Service名称</div>
+                      <div className="text-lg font-semibold text-theme-text-primary">{serviceAccessInfo.name}</div>
                     </div>
-                    <div className="p-4 bg-slate-50 rounded-xl">
-                      <div className="text-[10px] font-black text-slate-400 uppercase">Service类型</div>
-                      <div className="text-lg font-bold text-slate-800">{serviceAccessInfo.type}</div>
+                    <div className="p-4 bg-theme-elevated rounded-xl">
+                      <div className="text-[10px] font-medium text-theme-text-muted uppercase">Service类型</div>
+                      <div className="text-lg font-semibold text-theme-text-primary">{serviceAccessInfo.type}</div>
                     </div>
-                    <div className="p-4 bg-slate-50 rounded-xl">
-                      <div className="text-[10px] font-black text-slate-400 uppercase">Cluster IP</div>
-                      <div className="text-lg font-bold text-slate-800 font-mono">{serviceAccessInfo.cluster_ip || '-'}</div>
+                    <div className="p-4 bg-theme-elevated rounded-xl">
+                      <div className="text-[10px] font-medium text-theme-text-muted uppercase">Cluster IP</div>
+                      <div className="text-lg font-semibold text-theme-text-primary font-mono">{serviceAccessInfo.cluster_ip || '-'}</div>
                     </div>
-                    <div className="p-4 bg-slate-50 rounded-xl">
-                      <div className="text-[10px] font-black text-slate-400 uppercase">Namespace</div>
-                      <div className="text-lg font-bold text-slate-800">{serviceAccessInfo.namespace}</div>
+                    <div className="p-4 bg-theme-elevated rounded-xl">
+                      <div className="text-[10px] font-medium text-theme-text-muted uppercase">Namespace</div>
+                      <div className="text-lg font-semibold text-theme-text-primary">{serviceAccessInfo.namespace}</div>
                     </div>
-                    <div className="p-4 bg-slate-50 rounded-xl col-span-2">
-                      <div className="text-[10px] font-black text-slate-400 uppercase">访问域名</div>
-                      <div className="text-sm font-mono font-bold text-slate-800 break-all">
+                    <div className="p-4 bg-theme-elevated rounded-xl col-span-2">
+                      <div className="text-[10px] font-medium text-theme-text-muted uppercase">访问域名</div>
+                      <div className="text-sm font-mono font-semibold text-theme-text-primary break-all">
                         {ingressAccessItems[0]?.host || '-'}
                       </div>
                     </div>
@@ -2780,27 +2778,27 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   {/* 端口信息 */}
                   {serviceAccessInfo.ports?.length > 0 && (
                     <div>
-                      <div className="text-xs font-black text-slate-400 uppercase mb-3">端口配置</div>
+                      <div className="text-xs font-medium text-theme-text-muted uppercase mb-3">端口配置</div>
                       <div className="space-y-2">
                         {serviceAccessInfo.ports.map((port: any, i: number) => (
-                          <div key={i} className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                          <div key={i} className="p-4 bg-theme-surface rounded-xl border border-theme-border">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="font-bold text-slate-800">{port.name ||`port-${i}`}</span>
-                              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-bold">{port.protocol}</span>
+                              <span className="font-semibold text-theme-text-primary">{port.name ||`port-${i}`}</span>
+                              <span className="text-xs bg-blue-500/15 text-blue-400 px-2 py-1 rounded-full font-medium">{port.protocol}</span>
                             </div>
                             <div className="grid grid-cols-3 gap-2 text-sm">
                               <div>
-                                <span className="text-slate-400">Port:</span>
-                                <span className="font-mono font-bold text-slate-700 ml-1">{port.port}</span>
+                                <span className="text-theme-text-muted">Port:</span>
+                                <span className="font-mono font-medium text-theme-text-secondary ml-1">{port.port}</span>
                               </div>
                               <div>
-                                <span className="text-slate-400">Target:</span>
-                                <span className="font-mono font-bold text-slate-700 ml-1">{port.target_port}</span>
+                                <span className="text-theme-text-muted">Target:</span>
+                                <span className="font-mono font-medium text-theme-text-secondary ml-1">{port.target_port}</span>
                               </div>
                               {port.node_port && (
                                 <div>
-                                  <span className="text-slate-400">NodePort:</span>
-                                  <span className="font-mono font-bold text-cyan-600 ml-1">{port.node_port}</span>
+                                  <span className="text-theme-text-muted">NodePort:</span>
+                                  <span className="font-mono font-medium text-cyan-400 ml-1">{port.node_port}</span>
                                 </div>
                               )}
                             </div>
@@ -2812,14 +2810,14 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
                   {ingressAccessItems.length > 0 && (
                     <div>
-                      <div className="text-xs font-black text-slate-400 uppercase mb-3">访问服务</div>
+                      <div className="text-xs font-medium text-theme-text-muted uppercase mb-3">访问服务</div>
                       <div className="space-y-3">
                         {ingressAccessItems.map((item: any, i: number) => (
-                          <div key={i} className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                          <div key={i} className="p-4 bg-emerald-500/15 rounded-xl border border-emerald-500/20">
                             <button
                               onClick={() => handleOpenIngressUrl(item)}
                               disabled={!String(item.host || '').trim()}
-                              className="w-full py-2 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition-all text-sm disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed"
+                              className="w-full py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-all text-sm disabled:bg-theme-elevated disabled:text-theme-text-muted disabled:cursor-not-allowed"
                             >
                               访问服务
                             </button>
@@ -2831,23 +2829,23 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
                   {ingressAccessItems.length === 0 && serviceAccessInfo.access_urls?.length > 0 && (
                     <div>
-                      <div className="text-xs font-black text-slate-400 uppercase mb-3">访问方式</div>
+                      <div className="text-xs font-medium text-theme-text-muted uppercase mb-3">访问方式</div>
                       <div className="space-y-3">
                         {serviceAccessInfo.access_urls.map((access: any, i: number) => (
-                          <div key={i} className="p-4 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl border border-cyan-100">
+                          <div key={i} className="p-4 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl border border-cyan-500/20">
                             <div className="flex items-center justify-between mb-2">
-                              <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                                access.type === 'NodePort' ? 'bg-orange-100 text-orange-700' :
-                                access.type === 'LoadBalancer' ? 'bg-green-100 text-green-700' :
-                                'bg-slate-100 text-slate-700'
+                              <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                                access.type === 'NodePort' ? 'bg-orange-500/15 text-orange-400' :
+                                access.type === 'LoadBalancer' ? 'bg-green-500/15 text-green-400' :
+                                'bg-theme-elevated text-theme-text-secondary'
                               }`}>{access.type}</span>
-                              <span className="text-sm text-slate-500">{access.port_name}</span>
+                              <span className="text-sm text-theme-text-muted">{access.port_name}</span>
                             </div>
-                            <div className="font-mono text-sm text-slate-700 break-all">{access.url}</div>
+                            <div className="font-mono text-sm text-theme-text-secondary break-all">{access.url}</div>
                             {access.type === 'ClusterIP' && (
                               <button
                                 onClick={() => handleOpenProxyUrl(access.port, '/')}
-                                className="mt-3 w-full py-2 bg-cyan-600 text-white rounded-lg font-bold hover:bg-cyan-700 transition-all text-sm"
+                                className="mt-3 w-full py-2 bg-cyan-600 text-white rounded-lg font-medium hover:bg-cyan-700 transition-all text-sm"
                               >
                                 通过代理访问
                               </button>
@@ -2860,18 +2858,18 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
                   {/* 代理访问说明 */}
                   {ingressAccessItems.length > 0 ? (
-                    <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                      <div className="text-xs font-black text-emerald-700 mb-2">访问服务说明</div>
-                      <ul className="text-xs text-emerald-700 space-y-1 list-disc list-inside">
+                    <div className="p-4 bg-emerald-500/15 rounded-xl border border-emerald-500/20">
+                      <div className="text-xs font-medium text-emerald-400 mb-2">访问服务说明</div>
+                      <ul className="text-xs text-emerald-400 space-y-1 list-disc list-inside">
                         <li>优先使用上方已绑定的域名访问节点服务。</li>
                         <li>请先在本机`hosts` 文件中配置`Ingress IP 域名` 的映射。</li>
                         <li>配置完成后，可直接通过域名 URL 访问对应节点服务。</li>
                       </ul>
                     </div>
                   ) : (
-                  <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100">
-                    <div className="text-xs font-black text-yellow-700 mb-2">访问说明</div>
-                    <ul className="text-xs text-yellow-700 space-y-1 list-disc list-inside">
+                  <div className="p-4 bg-yellow-500/15 rounded-xl border border-yellow-500/20">
+                    <div className="text-xs font-medium text-yellow-400 mb-2">访问说明</div>
+                    <ul className="text-xs text-yellow-400 space-y-1 list-disc list-inside">
                       <li><strong>ClusterIP</strong>: 仅集群内部可访问，可通过代理访问</li>
                       <li><strong>NodePort</strong>: 通过节点IP和NodePort访问，需确保防火墙开放</li>
                       <li><strong>LoadBalancer</strong>: 通过外部负载均衡器IP访问</li>
@@ -2882,8 +2880,8 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               ) : null}
             </div>
 
-            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
-              <button onClick={() => setIsAccessModalOpen(false)} className="px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all">关闭</button>
+            <div className="p-6 border-t border-theme-border bg-theme-elevated flex justify-end">
+              <button onClick={() => setIsAccessModalOpen(false)} className="px-8 py-3 bg-theme-elevated text-white rounded-xl font-medium hover:bg-theme-elevated transition-all">关闭</button>
             </div>
           </div>
         </div>
@@ -2892,13 +2890,13 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {/* Unsaved Changes Modal */}
       {showUnsavedChangesModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]">
- <div className="bg-slate-50 rounded-xl p-6 w-[400px] animate-in zoom-in-95 duration-200">
-            <h3 className="text-lg font-bold text-slate-800 mb-2">未保存的更改</h3>
-            <p className="text-slate-600 mb-6">您有未保存的更改，是否保存并退出？</p>
+ <div className="bg-theme-surface rounded-xl p-6 w-[400px] animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-semibold text-theme-text-primary mb-2">未保存的更改</h3>
+            <p className="text-theme-text-secondary mb-6">您有未保存的更改，是否保存并退出？</p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowUnsavedChangesModal(false)}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-bold transition-all"
+                className="px-4 py-2 text-theme-text-secondary hover:bg-theme-elevated rounded-lg font-medium transition-all"
               >
                 取消
               </button>
@@ -2908,7 +2906,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   setShowUnsavedChangesModal(false);
                   loadInstance(); // Reload to discard changes
                 }}
-                className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-bold transition-all"
+                className="px-4 py-2 text-red-400 hover:bg-red-500/15 rounded-lg font-medium transition-all"
               >
                 不保存退出
               </button>
@@ -2918,7 +2916,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   setIsEditMode(false);
                   setShowUnsavedChangesModal(false);
                 }}
-                className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-bold transition-all"
+                className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-medium transition-all"
               >
                 保存并退出
               </button>
@@ -2931,7 +2929,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       {floatingTerminals.filter(t => !t.isMinimized).map(terminal => (
         <div
           key={terminal.id}
- className="fixed bg-slate-900 rounded-xl overflow-hidden flex flex-col border border-slate-700"
+ className="fixed bg-theme-surface rounded-xl overflow-hidden flex flex-col border border-theme-border"
           style={{
             left: terminal.isMaximized ? 0 : terminal.position.x,
             top: terminal.isMaximized ? 0 : terminal.position.y,
@@ -2943,12 +2941,12 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
         >
           {/* 终端标题栏 */}
           <div
-            className={`flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700 ${terminal.isMaximized ? '' : 'cursor-move'}`}
+            className={`flex items-center justify-between px-4 py-2 bg-theme-elevated border-b border-theme-border ${terminal.isMaximized ? '' : 'cursor-move'}`}
             onMouseDown={(e) => handleStartDrag(e, terminal.id)}
           >
             <div className="flex items-center gap-3">
               <div className={`w-3 h-3 rounded-full ${terminal.connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-              <span className="text-slate-300 font-mono text-sm">{terminal.nodeName} - {terminal.podName}</span>
+              <span className="text-theme-text-faint font-mono text-sm">{terminal.nodeName} - {terminal.podName}</span>
             </div>
             <div className="flex items-center gap-1">
               <span className={`px-2 py-0.5 rounded text-xs font-medium ${
@@ -2969,7 +2967,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   className="w-3.5 h-3.5 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-all group"
                   title="关闭"
                 >
-                  <svg className="w-2 h-2 text-red-900 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg className="w-2 h-2 text-red-300 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M3 3l6 6M9 3l-6 6" />
                   </svg>
                 </button>
@@ -2982,7 +2980,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   className="w-3.5 h-3.5 rounded-full bg-yellow-500 hover:bg-yellow-600 flex items-center justify-center transition-all group"
                   title="最小化"
                 >
-                  <svg className="w-2 h-2 text-yellow-900 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <svg className="w-2 h-2 text-yellow-300 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M2 6h8" />
                   </svg>
                 </button>
@@ -3000,12 +2998,12 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   title={terminal.isMaximized ?"还原" :"最大化"}
                 >
                   {terminal.isMaximized ? (
-                    <svg className="w-2 h-2 text-green-900 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <svg className="w-2 h-2 text-green-300 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <rect x="2" y="4" width="4" height="4" />
                       <rect x="4" y="2" width="4" height="4" fill="none" />
                     </svg>
                   ) : (
-                    <svg className="w-2 h-2 text-green-900 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <svg className="w-2 h-2 text-green-300 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <rect x="2" y="2" width="8" height="8" />
                     </svg>
                   )}
@@ -3028,13 +3026,13 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
       {/* 底部任务栏 - 显示最小化的终端 */}
       {floatingTerminals.filter(t => t.isMinimized).length > 0 && (
- <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-800/95 backdrop-blur-sm rounded-xl px-4 py-2 border border-slate-700 z-[9999] flex items-center gap-2">
-          <span className="text-xs text-slate-400 font-medium mr-2">终端窗口:</span>
+ <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-800/95 backdrop-blur-sm rounded-xl px-4 py-2 border border-theme-border z-[9999] flex items-center gap-2">
+          <span className="text-xs text-theme-text-muted font-medium mr-2">终端窗口:</span>
           {floatingTerminals.filter(t => t.isMinimized).map(terminal => (
             <button
               key={terminal.id}
               onClick={() => handleRestoreTerminal(terminal.id)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200 text-sm font-medium transition-all"
+              className="flex items-center gap-2 px-3 py-1.5 bg-theme-elevated hover:bg-theme-text-muted/10 rounded-lg text-theme-text-primary text-sm font-medium transition-all"
             >
               <Terminal size={14} className={terminal.connected ? 'text-green-400' : 'text-red-400'} />
               <span className="max-w-[120px] truncate">{terminal.nodeName}</span>
@@ -3063,11 +3061,11 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                 transform: translateX(-50%) translateY(0);
               }
             }`}</style>
- <div className={`px-6 py-3 rounded-xl border font-bold text-sm flex items-center gap-2 ${
+ <div className={`px-6 py-3 rounded-xl border font-semibold text-sm flex items-center gap-2 ${
             toast.type === 'success' ? 'bg-green-600 text-white border-green-500' :
             toast.type === 'error' ? 'bg-red-600 text-white border-red-500' :
-            toast.type === 'warning' ? 'bg-yellow-500 text-yellow-900 border-yellow-400' :
-            'bg-slate-800 text-white border-slate-700'
+            toast.type === 'warning' ? 'bg-yellow-500 text-yellow-300 border-yellow-400' :
+            'bg-theme-elevated text-white border-theme-border'
           }`}>
             {toast.type === 'success' && <CheckCircle size={18} />}
             {toast.type === 'error' && <XCircle size={18} />}
@@ -3093,25 +3091,25 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
               }
             }`}</style>
           <div
- className="bg-slate-50 rounded-2xl w-full max-w-sm overflow-hidden"
+ className="bg-theme-surface rounded-2xl w-full max-w-sm overflow-hidden"
             style={{ animation: 'zoomIn 0.2s ease-out' }}
           >
             <div className="p-6 text-center">
-              <div className="w-14 h-14 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-14 h-14 bg-orange-500/15 text-orange-400 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertCircle size={28} />
               </div>
-              <p className="text-slate-700 font-bold text-base">{confirmDialog.message}</p>
+              <p className="text-theme-text-secondary font-medium text-base">{confirmDialog.message}</p>
             </div>
-            <div className="flex border-t border-slate-100">
+            <div className="flex border-t border-theme-border">
               <button
                 onClick={confirmDialog.onCancel}
-                className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 transition-all"
+                className="flex-1 py-3 text-theme-text-secondary font-medium hover:bg-theme-elevated transition-all"
               >
                 取消
               </button>
               <button
                 onClick={confirmDialog.onConfirm}
-                className="flex-1 py-3 text-orange-600 font-bold hover:bg-orange-50 transition-all border-l border-slate-100"
+                className="flex-1 py-3 text-orange-400 font-medium hover:bg-orange-500/15 transition-all border-l border-theme-border"
               >
                 确定
               </button>

@@ -35,6 +35,7 @@ import {
   useAiHelpers,
   useProjectAiAgents,
 } from './ai-agent/shared';
+import { PageHeader } from '../../design-system';
 
 const environmentApi = api.domains.environment;
 
@@ -117,14 +118,14 @@ const LlmStatusBadge: React.FC<{ status: LlmBindingStatus }> = ({ status }) => {
           : '状态未知';
   const cls =
     status === 'unbound'
-      ? 'bg-slate-100 text-slate-600 border-slate-200'
+      ? 'bg-theme-elevated text-theme-text-secondary border-theme-border'
       : status === 'bound_fresh'
-        ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+        ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20'
         : status === 'bound_stale'
-          ? 'bg-amber-100 text-amber-700 border-amber-200'
-          : 'bg-zinc-100 text-zinc-600 border-zinc-200';
+          ? 'bg-amber-500/15 text-amber-400 border-amber-500/20'
+          : 'bg-theme-elevated text-theme-text-secondary border-theme-border';
 
-  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-black tracking-[0.12em] ${cls}`}>{text}</span>;
+  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-[0.12em] ${cls}`}>{text}</span>;
 };
 
 type EnvEntry = {
@@ -279,9 +280,9 @@ const StatsStrip: React.FC<{ agents: ProjectAiAgentItem[]; selectedCount: number
   return (
     <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
       {items.map((item) => (
- <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{item.label}</div>
-          <div className="mt-2 text-2xl font-black text-slate-900">{item.value}</div>
+ <div key={item.label} className="rounded-xl border border-theme-border bg-theme-surface p-4">
+          <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">{item.label}</div>
+          <div className="mt-2 text-2xl font-bold text-theme-text-primary">{item.value}</div>
         </div>
       ))}
     </div>
@@ -290,9 +291,9 @@ const StatsStrip: React.FC<{ agents: ProjectAiAgentItem[]; selectedCount: number
 
 const backendTypeIcon = (backendType?: string) => {
   const text = String(backendType || '').toLowerCase();
-  if (text.includes('codex')) return <Settings2 size={14} className="text-violet-600" />;
-  if (text.includes('open')) return <WandSparkles size={14} className="text-amber-600" />;
-  return <Bot size={14} className="text-cyan-700" />;
+  if (text.includes('codex')) return <Settings2 size={14} className="text-violet-400" />;
+  if (text.includes('open')) return <WandSparkles size={14} className="text-amber-400" />;
+  return <Bot size={14} className="text-cyan-400" />;
 };
 
 const healthDotTone = (status?: string) => {
@@ -313,15 +314,15 @@ const ModalShell: React.FC<{
 }> = ({ title, description, onClose, children, maxWidthClassName = 'max-w-5xl', compactHeight = false }) => (
   <div className="fixed inset-0 z-[260] bg-slate-950/55 backdrop-blur-sm p-4 md:p-8" onClick={onClose}>
     <div
-      className={`mx-auto flex w-full ${maxWidthClassName} flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50 ${compactHeight ? 'max-h-[85vh]' : 'h-full'}`}
+      className={`mx-auto flex w-full ${maxWidthClassName} flex-col overflow-hidden rounded-xl border border-theme-border bg-theme-surface ${compactHeight ? 'max-h-[85vh]' : 'h-full'}`}
       onClick={(event) => event.stopPropagation()}
     >
-      <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5 md:px-8">
+      <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5 md:px-8">
         <div>
-          <h3 className="text-2xl font-black tracking-tight text-slate-900">{title}</h3>
-          <p className="mt-2 text-sm text-slate-500">{description}</p>
+          <h3 className="text-2xl font-bold tracking-tight text-theme-text-primary">{title}</h3>
+          <p className="mt-2 text-sm text-theme-text-muted">{description}</p>
         </div>
-        <button onClick={onClose} className="rounded-2xl bg-slate-100 p-3 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800">
+        <button onClick={onClose} className="rounded-lg bg-theme-elevated p-3 text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-primary">
           <X size={18} />
         </button>
       </div>
@@ -335,7 +336,7 @@ const LlmProviderPreview: React.FC<{
   emptyText: string;
 }> = ({ providerDetail, emptyText }) => {
   if (!providerDetail) {
-    return <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-sm text-slate-500">{emptyText}</div>;
+    return <div className="rounded-xl border border-dashed border-theme-border bg-theme-elevated px-4 py-8 text-sm text-theme-text-muted">{emptyText}</div>;
   }
 
   const envBindings = Object.entries(providerDetail.env_bindings || {});
@@ -344,31 +345,31 @@ const LlmProviderPreview: React.FC<{
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Provider</div>
-          <div className="mt-2 text-sm font-black text-slate-900">{providerDetail.display_name}</div>
-          <div className="mt-1 text-xs text-slate-500">{providerDetail.provider_key} · {providerDetail.provider_type}</div>
+        <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
+          <div className="text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">Provider</div>
+          <div className="mt-2 text-sm font-semibold text-theme-text-primary">{providerDetail.display_name}</div>
+          <div className="mt-1 text-xs text-theme-text-muted">{providerDetail.provider_key} · {providerDetail.provider_type}</div>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Model</div>
-          <div className="mt-2 text-sm font-black text-slate-900">{providerDetail.model || '-'}</div>
-          <div className="mt-1 text-xs text-slate-500">{providerDetail.api_base || '-'}</div>
+        <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
+          <div className="text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">Model</div>
+          <div className="mt-2 text-sm font-semibold text-theme-text-primary">{providerDetail.model || '-'}</div>
+          <div className="mt-1 text-xs text-theme-text-muted">{providerDetail.api_base || '-'}</div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
         <div className="flex items-center justify-between gap-3">
-          <div className="text-sm font-black text-slate-900">环境变量注入</div>
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black tracking-[0.12em] text-slate-700">{envBindings.length}</span>
+          <div className="text-sm font-semibold text-theme-text-primary">环境变量注入</div>
+          <span className="rounded-full bg-theme-elevated px-2.5 py-1 text-[11px] font-medium tracking-[0.12em] text-theme-text-secondary">{envBindings.length}</span>
         </div>
         {envBindings.length === 0 ? (
-          <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-500">该 Provider 暂无环境变量注入。</div>
+          <div className="mt-3 rounded-xl border border-dashed border-theme-border bg-theme-elevated px-3 py-3 text-xs text-theme-text-muted">该 Provider 暂无环境变量注入。</div>
         ) : (
           <div className="mt-3 space-y-2">
             {envBindings.map(([key, value]) => (
-              <div key={key} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">{key}</div>
-                <div className="mt-1 text-xs text-slate-700 break-all">
+              <div key={key} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-theme-text-muted">{key}</div>
+                <div className="mt-1 text-xs text-theme-text-secondary break-all">
                   {typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
                     ? String(value)
                     : prettyJson(value)}
@@ -379,23 +380,23 @@ const LlmProviderPreview: React.FC<{
         )}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
         <div className="flex items-center justify-between gap-3">
-          <div className="text-sm font-black text-slate-900">文件注入</div>
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black tracking-[0.12em] text-slate-700">{fileBindings.length}</span>
+          <div className="text-sm font-semibold text-theme-text-primary">文件注入</div>
+          <span className="rounded-full bg-theme-elevated px-2.5 py-1 text-[11px] font-medium tracking-[0.12em] text-theme-text-secondary">{fileBindings.length}</span>
         </div>
         {fileBindings.length === 0 ? (
-          <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-500">该 Provider 暂无文件注入配置。</div>
+          <div className="mt-3 rounded-xl border border-dashed border-theme-border bg-theme-elevated px-3 py-3 text-xs text-theme-text-muted">该 Provider 暂无文件注入配置。</div>
         ) : (
           <div className="mt-3 space-y-3">
             {fileBindings.map((file, index) => (
-              <div key={`${file.path || file.name || 'file'}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                <div className="text-sm font-semibold text-slate-900">{file.path || file.name ||`文件 ${index + 1}`}</div>
-                <div className="mt-1 text-xs text-slate-500">
+              <div key={`${file.path || file.name || 'file'}-${index}`} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
+                <div className="text-sm font-semibold text-theme-text-primary">{file.path || file.name ||`文件 ${index + 1}`}</div>
+                <div className="mt-1 text-xs text-theme-text-muted">
                   名称: {file.name || '-'} · 格式: {file.format || '-'} · 启用: {file.enabled ? '是' : '否'}
                 </div>
                 {file.content ? (
-                  <pre className="mt-2 max-h-36 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-700">{file.content}</pre>
+                  <pre className="mt-2 max-h-36 overflow-auto rounded-lg border border-theme-border bg-theme-elevated p-2 text-[11px] text-theme-text-secondary">{file.content}</pre>
                 ) : null}
               </div>
             ))}
@@ -403,9 +404,9 @@ const LlmProviderPreview: React.FC<{
         )}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-        <div className="text-sm font-black text-slate-900">映射预览</div>
-        <JsonBlock title="Env 映射" value={providerDetail.mapped_env_preview || {}} className="mt-3 bg-slate-50" />
+      <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
+        <div className="text-sm font-semibold text-theme-text-primary">映射预览</div>
+        <JsonBlock title="Env 映射" value={providerDetail.mapped_env_preview || {}} className="mt-3 bg-theme-elevated" />
       </div>
     </div>
   );
@@ -438,30 +439,30 @@ const CreateAgentModal: React.FC<{
     compactHeight
   >
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <select value={createHelperKey} onChange={(e) => setCreateHelperKey(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm xl:col-span-3">
+      <select value={createHelperKey} onChange={(e) => setCreateHelperKey(e.target.value)} className="form-select xl:col-span-3">
         {helperOptions.map((item) => (
           <option key={item.key} value={item.key}>
             {item.label}
           </option>
         ))}
       </select>
-      <input value={createForm.agent_id} onChange={(e) => setCreateForm((prev) => ({ ...prev, agent_id: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="agent_id" />
-      <select value={createForm.backend_type} onChange={(e) => setCreateForm((prev) => ({ ...prev, backend_type: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2 text-sm">
+      <input value={createForm.agent_id} onChange={(e) => setCreateForm((prev) => ({ ...prev, agent_id: e.target.value }))} className="form-input" placeholder="agent_id" />
+      <select value={createForm.backend_type} onChange={(e) => setCreateForm((prev) => ({ ...prev, backend_type: e.target.value }))} className="form-select">
         <option value="claude">claude</option>
         <option value="codex">codex</option>
         <option value="opencode">opencode</option>
       </select>
-      <input value={createForm.command} onChange={(e) => setCreateForm((prev) => ({ ...prev, command: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="二进制/命令路径，例如 /usr/local/bin/codex" />
-      <input value={createForm.cwd} onChange={(e) => setCreateForm((prev) => ({ ...prev, cwd: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2 text-sm md:col-span-2 xl:col-span-2" placeholder="工作目录（可选），例如 /workspace/project" />
-      <input value={createForm.description} onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2 text-sm md:col-span-2 xl:col-span-3" placeholder="description" />
-      <textarea value={createForm.args} onChange={(e) => setCreateForm((prev) => ({ ...prev, args: e.target.value }))} rows={5} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-mono md:col-span-1 xl:col-span-1" placeholder='args JSON，例如 ["serve"]' />
-      <textarea value={createForm.env} onChange={(e) => setCreateForm((prev) => ({ ...prev, env: e.target.value }))} rows={5} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-mono md:col-span-1 xl:col-span-2" placeholder='env JSON，例如 {"OPENAI_API_KEY":"..."}' />
-      <label className="flex items-center gap-2 text-sm text-slate-700 xl:col-span-3">
+      <input value={createForm.command} onChange={(e) => setCreateForm((prev) => ({ ...prev, command: e.target.value }))} className="form-input" placeholder="二进制/命令路径，例如 /usr/local/bin/codex" />
+      <input value={createForm.cwd} onChange={(e) => setCreateForm((prev) => ({ ...prev, cwd: e.target.value }))} className="form-input md:col-span-2 xl:col-span-2" placeholder="工作目录（可选），例如 /workspace/project" />
+      <input value={createForm.description} onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))} className="form-input md:col-span-2 xl:col-span-3" placeholder="description" />
+      <textarea value={createForm.args} onChange={(e) => setCreateForm((prev) => ({ ...prev, args: e.target.value }))} rows={5} className="form-textarea font-mono md:col-span-1 xl:col-span-1" placeholder='args JSON，例如 ["serve"]' />
+      <textarea value={createForm.env} onChange={(e) => setCreateForm((prev) => ({ ...prev, env: e.target.value }))} rows={5} className="form-textarea font-mono md:col-span-1 xl:col-span-2" placeholder='env JSON，例如 {"OPENAI_API_KEY":"..."}' />
+      <label className="flex items-center gap-2 text-sm text-theme-text-secondary xl:col-span-3">
         <input type="checkbox" checked={createForm.enabled} onChange={(e) => setCreateForm((prev) => ({ ...prev, enabled: e.target.checked }))} />
         默认启用
       </label>
       <div className="flex justify-end gap-3 xl:col-span-3">
-        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
+        <button onClick={onClose} className="rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary">
           取消
         </button>
         <button onClick={() => void onCreate()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">
@@ -823,18 +824,18 @@ const BatchLlmApplyModal: React.FC<{
       compactHeight
     >
       <div className="space-y-6">
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="min-w-[180px]">
-              <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">目标范围</div>
+              <div className="text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">目标范围</div>
               <div className="mt-1 flex items-end gap-2">
-                <span className="text-2xl font-black text-slate-900">{selectedAgents.length}</span>
-                <span className="pb-0.5 text-sm text-slate-500">个 AI Agent</span>
+                <span className="text-2xl font-bold text-theme-text-primary">{selectedAgents.length}</span>
+                <span className="pb-0.5 text-sm text-theme-text-muted">个 AI Agent</span>
               </div>
             </div>
             <div className="flex flex-wrap gap-2 md:justify-end">
               {backendTypes.map((item) => (
-                <span key={item} className="rounded-full bg-slate-50 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-slate-700 ring-1 ring-slate-200">
+                <span key={item} className="rounded-full bg-theme-elevated px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-theme-text-secondary ring-1 ring-theme-border">
                   {item}
                 </span>
               ))}
@@ -842,46 +843,46 @@ const BatchLlmApplyModal: React.FC<{
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2">
+        <div className="flex flex-wrap gap-2 rounded-xl border border-theme-border bg-theme-surface p-2">
           <button
             type="button"
             onClick={() => setActiveTab('providers')}
-            className={`rounded-xl px-3 py-2 text-xs font-black tracking-[0.08em] ${activeTab === 'providers' ? 'bg-cyan-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+            className={`rounded-xl px-3 py-2 text-xs font-medium tracking-[0.08em] ${activeTab === 'providers' ? 'bg-cyan-600 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}
           >
             Provider编排
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('env')}
-            className={`rounded-xl px-3 py-2 text-xs font-black tracking-[0.08em] ${activeTab === 'env' ? 'bg-cyan-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+            className={`rounded-xl px-3 py-2 text-xs font-medium tracking-[0.08em] ${activeTab === 'env' ? 'bg-cyan-600 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}
           >
             环境变量
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('files')}
-            className={`rounded-xl px-3 py-2 text-xs font-black tracking-[0.08em] ${activeTab === 'files' ? 'bg-cyan-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+            className={`rounded-xl px-3 py-2 text-xs font-medium tracking-[0.08em] ${activeTab === 'files' ? 'bg-cyan-600 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}
           >
             文件注入
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('submit')}
-            className={`rounded-xl px-3 py-2 text-xs font-black tracking-[0.08em] ${activeTab === 'submit' ? 'bg-cyan-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+            className={`rounded-xl px-3 py-2 text-xs font-medium tracking-[0.08em] ${activeTab === 'submit' ? 'bg-cyan-600 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}
           >
             下发与结果
           </button>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
           {activeTab === 'providers' ? (
             <div className="space-y-3">
-              <div className="text-sm font-black text-slate-900">选择 Provider 后点击“增加”</div>
+              <div className="text-sm font-semibold text-theme-text-primary">选择 Provider 后点击“增加”</div>
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
                 <select
                   value={providerToAdd}
                   onChange={(e) => setProviderToAdd(e.target.value)}
-                  className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                  className="form-select flex-1 text-xs"
                 >
                   {providerOptions.map((provider) => (
                     <option key={provider.provider_key} value={provider.provider_key}>
@@ -893,7 +894,7 @@ const BatchLlmApplyModal: React.FC<{
                   type="button"
                   onClick={addProvider}
                   disabled={!providerToAdd}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-medium text-white disabled:opacity-50"
                 >
                   <Plus size={14} />
                   增加
@@ -901,50 +902,50 @@ const BatchLlmApplyModal: React.FC<{
               </div>
               <div className="max-h-[220px] space-y-2 overflow-auto pr-1">
                 {selectedProviderKeys.length === 0 ? (
-                  <div className="text-xs text-slate-400">尚未添加 Provider。</div>
+                  <div className="text-xs text-theme-text-muted">尚未添加 Provider。</div>
                 ) : selectedProviderKeys.map((providerKey, index) => {
                   const provider = providerOptions.find((item) => item.provider_key === providerKey);
                   return (
-                    <div key={providerKey} className="rounded-xl border border-slate-200 px-3 py-2">
+                    <div key={providerKey} className="rounded-xl border border-theme-border px-3 py-2">
                       <div className="flex items-center gap-2">
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-semibold text-slate-900">{provider?.display_name || providerKey}</div>
-                          <div className="text-xs text-slate-500">{providerKey} · {provider?.provider_type || 'unknown'}</div>
+                          <div className="truncate text-sm font-semibold text-theme-text-primary">{provider?.display_name || providerKey}</div>
+                          <div className="text-xs text-theme-text-muted">{providerKey} · {provider?.provider_type || 'unknown'}</div>
                         </div>
                         <div className="flex items-center gap-1">
-                          <button type="button" onClick={() => moveProvider(index, -1)} disabled={index === 0} className="rounded border border-slate-200 px-2 py-1 text-xs disabled:opacity-40">↑</button>
-                          <button type="button" onClick={() => moveProvider(index, 1)} disabled={index === selectedProviderKeys.length - 1} className="rounded border border-slate-200 px-2 py-1 text-xs disabled:opacity-40">↓</button>
-                          <button type="button" onClick={() => removeProvider(providerKey)} className="rounded border border-rose-200 px-2 py-1 text-xs text-rose-700">删除</button>
+                          <button type="button" onClick={() => moveProvider(index, -1)} disabled={index === 0} className="rounded border border-theme-border px-2 py-1 text-xs disabled:opacity-40">↑</button>
+                          <button type="button" onClick={() => moveProvider(index, 1)} disabled={index === selectedProviderKeys.length - 1} className="rounded border border-theme-border px-2 py-1 text-xs disabled:opacity-40">↓</button>
+                          <button type="button" onClick={() => removeProvider(providerKey)} className="rounded border border-rose-500/20 px-2 py-1 text-xs text-rose-400">删除</button>
                         </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">本次即将添加预览</div>
-                <div className="mt-2 text-xs text-slate-600">环境变量 {providerPreview.env.length} 项 · 文件注入 {providerPreview.files.length} 项</div>
+              <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
+                <div className="text-xs font-medium uppercase tracking-[0.14em] text-theme-text-muted">本次即将添加预览</div>
+                <div className="mt-2 text-xs text-theme-text-secondary">环境变量 {providerPreview.env.length} 项 · 文件注入 {providerPreview.files.length} 项</div>
                 <div className="mt-2 grid grid-cols-1 gap-3 lg:grid-cols-2">
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                    <div className="text-xs font-black text-slate-700">环境变量</div>
+                  <div className="rounded-lg border border-theme-border bg-theme-elevated p-2">
+                    <div className="text-xs font-medium text-theme-text-secondary">环境变量</div>
                     <div className="mt-2 max-h-[180px] space-y-1 overflow-auto pr-1">
-                      {providerPreview.env.length === 0 ? <div className="text-[11px] text-slate-400">暂无</div> : providerPreview.env.map((item) => (
-                        <div key={item.key} className="rounded border border-slate-200 px-2 py-1 text-[11px]">
-                          <div className="font-semibold text-slate-800">{item.key}</div>
-                          <div className="truncate text-slate-600">{item.value}</div>
-                          <div className="text-slate-400">来源: {item.provider_key}</div>
+                      {providerPreview.env.length === 0 ? <div className="text-[11px] text-theme-text-muted">暂无</div> : providerPreview.env.map((item) => (
+                        <div key={item.key} className="rounded border border-theme-border px-2 py-1 text-[11px]">
+                          <div className="font-semibold text-theme-text-primary">{item.key}</div>
+                          <div className="truncate text-theme-text-secondary">{item.value}</div>
+                          <div className="text-theme-text-muted">来源: {item.provider_key}</div>
                         </div>
                       ))}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                    <div className="text-xs font-black text-slate-700">文件注入</div>
+                  <div className="rounded-lg border border-theme-border bg-theme-elevated p-2">
+                    <div className="text-xs font-medium text-theme-text-secondary">文件注入</div>
                     <div className="mt-2 max-h-[180px] space-y-1 overflow-auto pr-1">
-                      {providerPreview.files.length === 0 ? <div className="text-[11px] text-slate-400">暂无</div> : providerPreview.files.map((item) => (
-                        <div key={`${item.path}-${item.provider_key || ''}`} className="rounded border border-slate-200 px-2 py-1 text-[11px]">
-                          <div className="font-semibold text-slate-800">{item.path}</div>
-                          <div className="text-slate-600">{item.name || '-'}</div>
-                          <div className="text-slate-400">来源: {item.provider_key || '-'}</div>
+                      {providerPreview.files.length === 0 ? <div className="text-[11px] text-theme-text-muted">暂无</div> : providerPreview.files.map((item) => (
+                        <div key={`${item.path}-${item.provider_key || ''}`} className="rounded border border-theme-border px-2 py-1 text-[11px]">
+                          <div className="font-semibold text-theme-text-primary">{item.path}</div>
+                          <div className="text-theme-text-secondary">{item.name || '-'}</div>
+                          <div className="text-theme-text-muted">来源: {item.provider_key || '-'}</div>
                         </div>
                       ))}
                     </div>
@@ -957,15 +958,15 @@ const BatchLlmApplyModal: React.FC<{
           {activeTab === 'env' ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div className="text-sm font-black text-slate-900">环境变量覆盖</div>
-                <button type="button" onClick={() => setEnvEntries((prev) => [...prev, createEnvEntry('', '')])} className="rounded border border-slate-200 px-2 py-1 text-xs">新增</button>
+                <div className="text-sm font-semibold text-theme-text-primary">环境变量覆盖</div>
+                <button type="button" onClick={() => setEnvEntries((prev) => [...prev, createEnvEntry('', '')])} className="rounded border border-theme-border px-2 py-1 text-xs">新增</button>
               </div>
               <div className="max-h-[420px] space-y-2 overflow-auto pr-1">
                 {envEntries.map((entry) => (
                   <div key={entry.id} className="grid grid-cols-1 gap-2 md:grid-cols-[220px_minmax(0,1fr)_72px]">
-                    <input value={entry.key} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, key: e.target.value } : it))} className="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="KEY" />
-                    <input value={entry.value} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, value: e.target.value } : it))} className="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="VALUE" />
-                    <button type="button" onClick={() => setEnvEntries((prev) => prev.filter((it) => it.id !== entry.id))} className="rounded border border-rose-200 px-2 py-1 text-xs text-rose-700">删除</button>
+                    <input value={entry.key} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, key: e.target.value } : it))} className="form-input text-xs" placeholder="KEY" />
+                    <input value={entry.value} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, value: e.target.value } : it))} className="form-input text-xs" placeholder="VALUE" />
+                    <button type="button" onClick={() => setEnvEntries((prev) => prev.filter((it) => it.id !== entry.id))} className="rounded border border-rose-500/20 px-2 py-1 text-xs text-rose-400">删除</button>
                   </div>
                 ))}
               </div>
@@ -975,37 +976,37 @@ const BatchLlmApplyModal: React.FC<{
           {activeTab === 'files' ? (
             <div>
               <div className="flex items-center justify-between">
-                <div className="text-sm font-black text-slate-900">文件注入覆盖</div>
-                <button type="button" onClick={() => setFileEntries((prev) => [...prev, createFileEntry()])} className="rounded border border-slate-200 px-2 py-1 text-xs">新增</button>
+                <div className="text-sm font-semibold text-theme-text-primary">文件注入覆盖</div>
+                <button type="button" onClick={() => setFileEntries((prev) => [...prev, createFileEntry()])} className="rounded border border-theme-border px-2 py-1 text-xs">新增</button>
               </div>
               <div className="mt-3 max-h-[420px] space-y-3 overflow-auto pr-1">
                 {fileEntries.map((entry) => (
-                  <div key={entry.id} className="rounded-xl border border-slate-200 p-3">
+                  <div key={entry.id} className="rounded-xl border border-theme-border p-3">
                     <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                      <label className="text-xs text-slate-600">
-                        <div className="mb-1 font-semibold text-slate-700">名称（name）</div>
-                        <input value={entry.name} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, name: e.target.value } : it))} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="例如: claude-config" />
+                      <label className="text-xs text-theme-text-secondary">
+                        <div className="mb-1 font-semibold text-theme-text-secondary">名称（name）</div>
+                        <input value={entry.name} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, name: e.target.value } : it))} className="form-input w-full text-xs" placeholder="例如: claude-config" />
                       </label>
-                      <label className="text-xs text-slate-600">
-                        <div className="mb-1 font-semibold text-slate-700">注入路径（path）</div>
-                        <input value={entry.path} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, path: e.target.value } : it))} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="例如: /etc/agent/config.json" />
+                      <label className="text-xs text-theme-text-secondary">
+                        <div className="mb-1 font-semibold text-theme-text-secondary">注入路径（path）</div>
+                        <input value={entry.path} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, path: e.target.value } : it))} className="form-input w-full text-xs" placeholder="例如: /etc/agent/config.json" />
                       </label>
-                      <label className="text-xs text-slate-600">
-                        <div className="mb-1 font-semibold text-slate-700">格式（format）</div>
-                        <input value={entry.format} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, format: e.target.value } : it))} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="json/yaml/env/other" />
+                      <label className="text-xs text-theme-text-secondary">
+                        <div className="mb-1 font-semibold text-theme-text-secondary">格式（format）</div>
+                        <input value={entry.format} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, format: e.target.value } : it))} className="form-input w-full text-xs" placeholder="json/yaml/env/other" />
                       </label>
-                      <label className="text-xs text-slate-600">
-                        <div className="mb-1 font-semibold text-slate-700">来源 Provider（可选）</div>
-                        <input value={entry.provider_key || ''} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, provider_key: e.target.value } : it))} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="provider_key(optional)" />
+                      <label className="text-xs text-theme-text-secondary">
+                        <div className="mb-1 font-semibold text-theme-text-secondary">来源 Provider（可选）</div>
+                        <input value={entry.provider_key || ''} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, provider_key: e.target.value } : it))} className="form-input w-full text-xs" placeholder="provider_key(optional)" />
                       </label>
                     </div>
-                    <label className="mt-2 block text-xs text-slate-600">
-                      <div className="mb-1 font-semibold text-slate-700">文件内容（content）</div>
-                      <textarea value={entry.content} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, content: e.target.value } : it))} rows={4} className="w-full rounded border border-slate-200 px-2 py-1 text-xs font-mono" placeholder="输入将注入到文件中的完整内容" />
+                    <label className="mt-2 block text-xs text-theme-text-secondary">
+                      <div className="mb-1 font-semibold text-theme-text-secondary">文件内容（content）</div>
+                      <textarea value={entry.content} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, content: e.target.value } : it))} rows={4} className="form-textarea w-full text-xs font-mono" placeholder="输入将注入到文件中的完整内容" />
                     </label>
                     <div className="mt-2 flex items-center justify-between">
-                      <label className="inline-flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={entry.enabled} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, enabled: e.target.checked } : it))} />启用（enabled）</label>
-                      <button type="button" onClick={() => setFileEntries((prev) => prev.filter((it) => it.id !== entry.id))} className="rounded border border-rose-200 px-2 py-1 text-xs text-rose-700">删除</button>
+                      <label className="inline-flex items-center gap-2 text-xs text-theme-text-secondary"><input type="checkbox" checked={entry.enabled} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, enabled: e.target.checked } : it))} />启用（enabled）</label>
+                      <button type="button" onClick={() => setFileEntries((prev) => prev.filter((it) => it.id !== entry.id))} className="rounded border border-rose-500/20 px-2 py-1 text-xs text-rose-400">删除</button>
                     </div>
                   </div>
                 ))}
@@ -1015,40 +1016,40 @@ const BatchLlmApplyModal: React.FC<{
 
           {activeTab === 'submit' ? (
             <div className="space-y-4">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">冲突策略</div>
+              <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
+                <div className="text-xs font-medium uppercase tracking-[0.14em] text-theme-text-muted">冲突策略</div>
                 <div className="mt-2 flex items-center gap-4 text-sm">
                   <label className="inline-flex items-center gap-2"><input type="radio" checked={mergeStrategy === 'overwrite'} onChange={() => setMergeStrategy('overwrite')} />覆盖</label>
                   <label className="inline-flex items-center gap-2"><input type="radio" checked={mergeStrategy === 'merge'} onChange={() => setMergeStrategy('merge')} />合并</label>
                 </div>
               </div>
-              <div className="text-xs text-slate-500">Provider: {selectedProviderKeys.length}，Env: {envEntries.length}，Files: {fileEntries.length}</div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">最终配置注入预览（只读）</div>
+              <div className="text-xs text-theme-text-muted">Provider: {selectedProviderKeys.length}，Env: {envEntries.length}，Files: {fileEntries.length}</div>
+              <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
+                <div className="text-xs font-medium uppercase tracking-[0.14em] text-theme-text-muted">最终配置注入预览（只读）</div>
                 <div className="mt-2 grid grid-cols-1 gap-3 lg:grid-cols-2">
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                    <div className="text-xs font-black text-slate-700">环境变量（{submitEnvPreview.length}）</div>
+                  <div className="rounded-lg border border-theme-border bg-theme-elevated p-2">
+                    <div className="text-xs font-medium text-theme-text-secondary">环境变量（{submitEnvPreview.length}）</div>
                     <div className="mt-2 max-h-[220px] space-y-1 overflow-auto pr-1">
                       {submitEnvPreview.length === 0 ? (
-                        <div className="text-[11px] text-slate-400">暂无</div>
+                        <div className="text-[11px] text-theme-text-muted">暂无</div>
                       ) : submitEnvPreview.map((item) => (
-                        <div key={item.key} className="rounded border border-slate-200 px-2 py-1 text-[11px]">
-                          <div className="font-semibold text-slate-800">{item.key}</div>
-                          <div className="break-all text-slate-600">{item.value}</div>
+                        <div key={item.key} className="rounded border border-theme-border px-2 py-1 text-[11px]">
+                          <div className="font-semibold text-theme-text-primary">{item.key}</div>
+                          <div className="break-all text-theme-text-secondary">{item.value}</div>
                         </div>
                       ))}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                    <div className="text-xs font-black text-slate-700">文件注入（{submitFilePreview.length}）</div>
+                  <div className="rounded-lg border border-theme-border bg-theme-elevated p-2">
+                    <div className="text-xs font-medium text-theme-text-secondary">文件注入（{submitFilePreview.length}）</div>
                     <div className="mt-2 max-h-[220px] space-y-1 overflow-auto pr-1">
                       {submitFilePreview.length === 0 ? (
-                        <div className="text-[11px] text-slate-400">暂无</div>
+                        <div className="text-[11px] text-theme-text-muted">暂无</div>
                       ) : submitFilePreview.map((item, index) => (
-                        <div key={`${item.path}-${index}`} className="rounded border border-slate-200 px-2 py-1 text-[11px]">
-                          <div className="font-semibold text-slate-800">{item.path}</div>
-                          <div className="text-slate-600">名称: {item.name || '-'} · 格式: {item.format || '-'} · 启用: {item.enabled ? '是' : '否'}</div>
-                          <div className="text-slate-400">来源: {item.provider_key || '-'}</div>
+                        <div key={`${item.path}-${index}`} className="rounded border border-theme-border px-2 py-1 text-[11px]">
+                          <div className="font-semibold text-theme-text-primary">{item.path}</div>
+                          <div className="text-theme-text-secondary">名称: {item.name || '-'} · 格式: {item.format || '-'} · 启用: {item.enabled ? '是' : '否'}</div>
+                          <div className="text-theme-text-muted">来源: {item.provider_key || '-'}</div>
                         </div>
                       ))}
                     </div>
@@ -1059,7 +1060,7 @@ const BatchLlmApplyModal: React.FC<{
                 {llmBusy === 'configure-batch' ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 确定配置并下发
               </button>
-              {result ? <JsonBlock title="最近一次批量配置结果" value={result} className="bg-slate-50" /> : <EmptyState text="暂无批量执行结果。" />}
+              {result ? <JsonBlock title="最近一次批量配置结果" value={result} className="bg-theme-elevated" /> : <EmptyState text="暂无批量执行结果。" />}
             </div>
           ) : null}
         </div>
@@ -1427,18 +1428,18 @@ const SingleAgentLlmModal: React.FC<{
       compactHeight
     >
       <div className="space-y-6">
-        <div className="rounded-2xl border border-slate-200 bg-slate-800 p-4">
-          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-400">Target Agent</div>
-          <div className="mt-2 text-xl font-black text-slate-200">{agent.agent_id}</div>
-          <div className="mt-1 text-sm text-slate-400">{agent.agent_hostname || agent.agent_key} · {agent.service_name}</div>
+        <div className="rounded-xl border border-theme-border bg-theme-elevated p-4">
+          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-cyan-400">Target Agent</div>
+          <div className="mt-2 text-xl font-semibold text-theme-text-primary">{agent.agent_id}</div>
+          <div className="mt-1 text-sm text-theme-text-muted">{agent.agent_hostname || agent.agent_key} · {agent.service_name}</div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <span className="rounded-full bg-slate-700 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-slate-300 ring-1 ring-slate-200">{agent.backend_type}</span>
-            <span className="rounded-full bg-slate-700 px-2.5 py-1 text-[11px] font-semibold text-slate-300 ring-1 ring-slate-200">当前: {currentBindingName}</span>
+            <span className="rounded-full bg-theme-elevated px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-theme-text-faint ring-1 ring-theme-border">{agent.backend_type}</span>
+            <span className="rounded-full bg-theme-elevated px-2.5 py-1 text-[11px] font-semibold text-theme-text-faint ring-1 ring-theme-border">当前: {currentBindingName}</span>
           </div>
         </div>
 
         {initialLoading ? (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-600">
+          <div className="rounded-xl border border-theme-border bg-theme-surface p-6 text-sm text-theme-text-secondary">
             <div className="inline-flex items-center gap-2">
               <Loader2 size={16} className="animate-spin" />
               正在从 helper 加载当前已生效配置...
@@ -1446,46 +1447,46 @@ const SingleAgentLlmModal: React.FC<{
           </div>
         ) : (
           <>
-            <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2">
+            <div className="flex flex-wrap gap-2 rounded-xl border border-theme-border bg-theme-surface p-2">
               <button
                 type="button"
                 onClick={() => setActiveTab('providers')}
-                className={`rounded-xl px-3 py-2 text-xs font-black tracking-[0.08em] ${activeTab === 'providers' ? 'bg-cyan-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                className={`rounded-xl px-3 py-2 text-xs font-medium tracking-[0.08em] ${activeTab === 'providers' ? 'bg-cyan-600 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}
               >
                 Provider编排
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('env')}
-                className={`rounded-xl px-3 py-2 text-xs font-black tracking-[0.08em] ${activeTab === 'env' ? 'bg-cyan-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                className={`rounded-xl px-3 py-2 text-xs font-medium tracking-[0.08em] ${activeTab === 'env' ? 'bg-cyan-600 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}
               >
                 环境变量
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('files')}
-                className={`rounded-xl px-3 py-2 text-xs font-black tracking-[0.08em] ${activeTab === 'files' ? 'bg-cyan-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                className={`rounded-xl px-3 py-2 text-xs font-medium tracking-[0.08em] ${activeTab === 'files' ? 'bg-cyan-600 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}
               >
                 文件注入
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('submit')}
-                className={`rounded-xl px-3 py-2 text-xs font-black tracking-[0.08em] ${activeTab === 'submit' ? 'bg-cyan-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                className={`rounded-xl px-3 py-2 text-xs font-medium tracking-[0.08em] ${activeTab === 'submit' ? 'bg-cyan-600 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}
               >
                 下发与结果
               </button>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
               {activeTab === 'providers' ? (
                 <div className="space-y-4">
-                  <div className="text-sm font-black text-slate-900">选择 Provider 后点击“新增”加入草稿</div>
+                  <div className="text-sm font-semibold text-theme-text-primary">选择 Provider 后点击“新增”加入草稿</div>
                   <div className="flex flex-col gap-2 md:flex-row md:items-center">
                     <select
                       value={providerToAdd}
                       onChange={(e) => setProviderToAdd(e.target.value)}
-                      className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                      className="form-select flex-1 text-xs"
                     >
                       <option value="">选择 LLM Provider</option>
                       {providerOptions.map((provider) => (
@@ -1498,7 +1499,7 @@ const SingleAgentLlmModal: React.FC<{
                       type="button"
                       onClick={addProvider}
                       disabled={!providerToAdd}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white disabled:opacity-50"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-medium text-white disabled:opacity-50"
                     >
                       <Plus size={14} />
                       新增
@@ -1507,20 +1508,20 @@ const SingleAgentLlmModal: React.FC<{
 
                   <div className="max-h-[220px] space-y-2 overflow-auto pr-1">
                     {selectedProviderKeys.length === 0 ? (
-                      <div className="text-xs text-slate-400">尚未添加 Provider。</div>
+                      <div className="text-xs text-theme-text-muted">尚未添加 Provider。</div>
                     ) : selectedProviderKeys.map((providerKey, index) => {
                       const provider = providerOptions.find((item) => item.provider_key === providerKey);
                       return (
-                        <div key={`${providerKey}-${index}`} className="rounded-xl border border-slate-200 px-3 py-2">
+                        <div key={`${providerKey}-${index}`} className="rounded-xl border border-theme-border px-3 py-2">
                           <div className="flex items-center gap-2">
                             <div className="min-w-0 flex-1">
-                              <div className="truncate text-sm font-semibold text-slate-900">{provider?.display_name || providerKey}</div>
-                              <div className="text-xs text-slate-500">{providerKey} · {provider?.provider_type || 'unknown'}</div>
+                              <div className="truncate text-sm font-semibold text-theme-text-primary">{provider?.display_name || providerKey}</div>
+                              <div className="text-xs text-theme-text-muted">{providerKey} · {provider?.provider_type || 'unknown'}</div>
                             </div>
                             <div className="flex items-center gap-1">
-                              <button type="button" onClick={() => moveProvider(index, -1)} disabled={index === 0} className="rounded border border-slate-200 px-2 py-1 text-xs disabled:opacity-40">↑</button>
-                              <button type="button" onClick={() => moveProvider(index, 1)} disabled={index === selectedProviderKeys.length - 1} className="rounded border border-slate-200 px-2 py-1 text-xs disabled:opacity-40">↓</button>
-                              <button type="button" onClick={() => removeProvider(providerKey)} className="rounded border border-rose-200 px-2 py-1 text-xs text-rose-700">删除</button>
+                              <button type="button" onClick={() => moveProvider(index, -1)} disabled={index === 0} className="rounded border border-theme-border px-2 py-1 text-xs disabled:opacity-40">↑</button>
+                              <button type="button" onClick={() => moveProvider(index, 1)} disabled={index === selectedProviderKeys.length - 1} className="rounded border border-theme-border px-2 py-1 text-xs disabled:opacity-40">↓</button>
+                              <button type="button" onClick={() => removeProvider(providerKey)} className="rounded border border-rose-500/20 px-2 py-1 text-xs text-rose-400">删除</button>
                             </div>
                           </div>
                         </div>
@@ -1528,30 +1529,30 @@ const SingleAgentLlmModal: React.FC<{
                     })}
                   </div>
 
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">当前 Provider 合并预览</div>
-                    <div className="mt-2 text-xs text-slate-600">环境变量 {providerPreview.env.length} 项 · 文件注入 {providerPreview.files.length} 项</div>
+                  <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
+                    <div className="text-xs font-medium uppercase tracking-[0.14em] text-theme-text-muted">当前 Provider 合并预览</div>
+                    <div className="mt-2 text-xs text-theme-text-secondary">环境变量 {providerPreview.env.length} 项 · 文件注入 {providerPreview.files.length} 项</div>
                     <div className="mt-2 grid grid-cols-1 gap-3 lg:grid-cols-2">
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                        <div className="text-xs font-black text-slate-700">环境变量</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated p-2">
+                        <div className="text-xs font-medium text-theme-text-secondary">环境变量</div>
                         <div className="mt-2 max-h-[180px] space-y-1 overflow-auto pr-1">
-                          {providerPreview.env.length === 0 ? <div className="text-[11px] text-slate-400">暂无</div> : providerPreview.env.map((item) => (
-                            <div key={item.key} className="rounded border border-slate-200 px-2 py-1 text-[11px]">
-                              <div className="font-semibold text-slate-800">{item.key}</div>
-                              <div className="truncate text-slate-600">{item.value}</div>
-                              <div className="text-slate-400">来源: {item.provider_key}</div>
+                          {providerPreview.env.length === 0 ? <div className="text-[11px] text-theme-text-muted">暂无</div> : providerPreview.env.map((item) => (
+                            <div key={item.key} className="rounded border border-theme-border px-2 py-1 text-[11px]">
+                              <div className="font-semibold text-theme-text-primary">{item.key}</div>
+                              <div className="truncate text-theme-text-secondary">{item.value}</div>
+                              <div className="text-theme-text-muted">来源: {item.provider_key}</div>
                             </div>
                           ))}
                         </div>
                       </div>
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                        <div className="text-xs font-black text-slate-700">文件注入</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated p-2">
+                        <div className="text-xs font-medium text-theme-text-secondary">文件注入</div>
                         <div className="mt-2 max-h-[180px] space-y-1 overflow-auto pr-1">
-                          {providerPreview.files.length === 0 ? <div className="text-[11px] text-slate-400">暂无</div> : providerPreview.files.map((item) => (
-                            <div key={`${item.path}-${item.provider_key || ''}`} className="rounded border border-slate-200 px-2 py-1 text-[11px]">
-                              <div className="font-semibold text-slate-800">{item.path}</div>
-                              <div className="text-slate-600">{item.name || '-'}</div>
-                              <div className="text-slate-400">来源: {item.provider_key || '-'}</div>
+                          {providerPreview.files.length === 0 ? <div className="text-[11px] text-theme-text-muted">暂无</div> : providerPreview.files.map((item) => (
+                            <div key={`${item.path}-${item.provider_key || ''}`} className="rounded border border-theme-border px-2 py-1 text-[11px]">
+                              <div className="font-semibold text-theme-text-primary">{item.path}</div>
+                              <div className="text-theme-text-secondary">{item.name || '-'}</div>
+                              <div className="text-theme-text-muted">来源: {item.provider_key || '-'}</div>
                             </div>
                           ))}
                         </div>
@@ -1564,15 +1565,15 @@ const SingleAgentLlmModal: React.FC<{
               {activeTab === 'env' ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="text-sm font-black text-slate-900">环境变量覆盖（可编辑）</div>
-                    <button type="button" onClick={() => setEnvEntries((prev) => [...prev, createEnvEntry('', '')])} className="rounded border border-slate-200 px-2 py-1 text-xs">新增</button>
+                    <div className="text-sm font-semibold text-theme-text-primary">环境变量覆盖（可编辑）</div>
+                    <button type="button" onClick={() => setEnvEntries((prev) => [...prev, createEnvEntry('', '')])} className="rounded border border-theme-border px-2 py-1 text-xs">新增</button>
                   </div>
                   <div className="max-h-[420px] space-y-2 overflow-auto pr-1">
                     {envEntries.map((entry) => (
                       <div key={entry.id} className="grid grid-cols-1 gap-2 md:grid-cols-[220px_minmax(0,1fr)_72px]">
-                        <input value={entry.key} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, key: e.target.value } : it))} className="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="KEY" />
-                        <input value={entry.value} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, value: e.target.value } : it))} className="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="VALUE" />
-                        <button type="button" onClick={() => setEnvEntries((prev) => prev.filter((it) => it.id !== entry.id))} className="rounded border border-rose-200 px-2 py-1 text-xs text-rose-700">删除</button>
+                        <input value={entry.key} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, key: e.target.value } : it))} className="form-input text-xs" placeholder="KEY" />
+                        <input value={entry.value} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, value: e.target.value } : it))} className="form-input text-xs" placeholder="VALUE" />
+                        <button type="button" onClick={() => setEnvEntries((prev) => prev.filter((it) => it.id !== entry.id))} className="rounded border border-rose-500/20 px-2 py-1 text-xs text-rose-400">删除</button>
                       </div>
                     ))}
                   </div>
@@ -1582,37 +1583,37 @@ const SingleAgentLlmModal: React.FC<{
               {activeTab === 'files' ? (
                 <div>
                   <div className="flex items-center justify-between">
-                    <div className="text-sm font-black text-slate-900">文件注入覆盖（可编辑）</div>
-                    <button type="button" onClick={() => setFileEntries((prev) => [...prev, createFileEntry()])} className="rounded border border-slate-200 px-2 py-1 text-xs">新增</button>
+                    <div className="text-sm font-semibold text-theme-text-primary">文件注入覆盖（可编辑）</div>
+                    <button type="button" onClick={() => setFileEntries((prev) => [...prev, createFileEntry()])} className="rounded border border-theme-border px-2 py-1 text-xs">新增</button>
                   </div>
                   <div className="mt-3 max-h-[420px] space-y-3 overflow-auto pr-1">
                     {fileEntries.map((entry) => (
-                      <div key={entry.id} className="rounded-xl border border-slate-200 p-3">
+                      <div key={entry.id} className="rounded-xl border border-theme-border p-3">
                         <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                          <label className="text-xs text-slate-600">
-                            <div className="mb-1 font-semibold text-slate-700">名称（name）</div>
-                            <input value={entry.name} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, name: e.target.value } : it))} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="例如: claude-config" />
+                          <label className="text-xs text-theme-text-secondary">
+                            <div className="mb-1 font-semibold text-theme-text-secondary">名称（name）</div>
+                            <input value={entry.name} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, name: e.target.value } : it))} className="form-input w-full text-xs" placeholder="例如: claude-config" />
                           </label>
-                          <label className="text-xs text-slate-600">
-                            <div className="mb-1 font-semibold text-slate-700">注入路径（path）</div>
-                            <input value={entry.path} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, path: e.target.value } : it))} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="例如: /etc/agent/config.json" />
+                          <label className="text-xs text-theme-text-secondary">
+                            <div className="mb-1 font-semibold text-theme-text-secondary">注入路径（path）</div>
+                            <input value={entry.path} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, path: e.target.value } : it))} className="form-input w-full text-xs" placeholder="例如: /etc/agent/config.json" />
                           </label>
-                          <label className="text-xs text-slate-600">
-                            <div className="mb-1 font-semibold text-slate-700">格式（format）</div>
-                            <input value={entry.format} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, format: e.target.value } : it))} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="json/yaml/env/other" />
+                          <label className="text-xs text-theme-text-secondary">
+                            <div className="mb-1 font-semibold text-theme-text-secondary">格式（format）</div>
+                            <input value={entry.format} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, format: e.target.value } : it))} className="form-input w-full text-xs" placeholder="json/yaml/env/other" />
                           </label>
-                          <label className="text-xs text-slate-600">
-                            <div className="mb-1 font-semibold text-slate-700">来源 Provider（可选）</div>
-                            <input value={entry.provider_key || ''} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, provider_key: e.target.value } : it))} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="provider_key(optional)" />
+                          <label className="text-xs text-theme-text-secondary">
+                            <div className="mb-1 font-semibold text-theme-text-secondary">来源 Provider（可选）</div>
+                            <input value={entry.provider_key || ''} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, provider_key: e.target.value } : it))} className="form-input w-full text-xs" placeholder="provider_key(optional)" />
                           </label>
                         </div>
-                        <label className="mt-2 block text-xs text-slate-600">
-                          <div className="mb-1 font-semibold text-slate-700">文件内容（content）</div>
-                          <textarea value={entry.content} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, content: e.target.value } : it))} rows={4} className="w-full rounded border border-slate-200 px-2 py-1 text-xs font-mono" placeholder="输入将注入到文件中的完整内容" />
+                        <label className="mt-2 block text-xs text-theme-text-secondary">
+                          <div className="mb-1 font-semibold text-theme-text-secondary">文件内容（content）</div>
+                          <textarea value={entry.content} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, content: e.target.value } : it))} rows={4} className="form-textarea w-full text-xs font-mono" placeholder="输入将注入到文件中的完整内容" />
                         </label>
                         <div className="mt-2 flex items-center justify-between">
-                          <label className="inline-flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={entry.enabled} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, enabled: e.target.checked } : it))} />启用（enabled）</label>
-                          <button type="button" onClick={() => setFileEntries((prev) => prev.filter((it) => it.id !== entry.id))} className="rounded border border-rose-200 px-2 py-1 text-xs text-rose-700">删除</button>
+                          <label className="inline-flex items-center gap-2 text-xs text-theme-text-secondary"><input type="checkbox" checked={entry.enabled} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, enabled: e.target.checked } : it))} />启用（enabled）</label>
+                          <button type="button" onClick={() => setFileEntries((prev) => prev.filter((it) => it.id !== entry.id))} className="rounded border border-rose-500/20 px-2 py-1 text-xs text-rose-400">删除</button>
                         </div>
                       </div>
                     ))}
@@ -1622,40 +1623,40 @@ const SingleAgentLlmModal: React.FC<{
 
               {activeTab === 'submit' ? (
                 <div className="space-y-4">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">冲突策略</div>
+                  <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
+                    <div className="text-xs font-medium uppercase tracking-[0.14em] text-theme-text-muted">冲突策略</div>
                     <div className="mt-2 flex items-center gap-4 text-sm">
                       <label className="inline-flex items-center gap-2"><input type="radio" checked={mergeStrategy === 'overwrite'} onChange={() => setMergeStrategy('overwrite')} />覆盖</label>
                       <label className="inline-flex items-center gap-2"><input type="radio" checked={mergeStrategy === 'merge'} onChange={() => setMergeStrategy('merge')} />合并</label>
                     </div>
                   </div>
-                  <div className="text-xs text-slate-500">Provider: {selectedProviderKeys.length}，Env: {submitEnvPreview.length}，Files: {submitFilePreview.length}</div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">最终配置注入预览（只读）</div>
+                  <div className="text-xs text-theme-text-muted">Provider: {selectedProviderKeys.length}，Env: {submitEnvPreview.length}，Files: {submitFilePreview.length}</div>
+                  <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
+                    <div className="text-xs font-medium uppercase tracking-[0.14em] text-theme-text-muted">最终配置注入预览（只读）</div>
                     <div className="mt-2 grid grid-cols-1 gap-3 lg:grid-cols-2">
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                        <div className="text-xs font-black text-slate-700">环境变量（{submitEnvPreview.length}）</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated p-2">
+                        <div className="text-xs font-medium text-theme-text-secondary">环境变量（{submitEnvPreview.length}）</div>
                         <div className="mt-2 max-h-[220px] space-y-1 overflow-auto pr-1">
                           {submitEnvPreview.length === 0 ? (
-                            <div className="text-[11px] text-slate-400">暂无</div>
+                            <div className="text-[11px] text-theme-text-muted">暂无</div>
                           ) : submitEnvPreview.map((item) => (
-                            <div key={item.key} className="rounded border border-slate-200 px-2 py-1 text-[11px]">
-                              <div className="font-semibold text-slate-800">{item.key}</div>
-                              <div className="break-all text-slate-600">{item.value}</div>
+                            <div key={item.key} className="rounded border border-theme-border px-2 py-1 text-[11px]">
+                              <div className="font-semibold text-theme-text-primary">{item.key}</div>
+                              <div className="break-all text-theme-text-secondary">{item.value}</div>
                             </div>
                           ))}
                         </div>
                       </div>
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                        <div className="text-xs font-black text-slate-700">文件注入（{submitFilePreview.length}）</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated p-2">
+                        <div className="text-xs font-medium text-theme-text-secondary">文件注入（{submitFilePreview.length}）</div>
                         <div className="mt-2 max-h-[220px] space-y-1 overflow-auto pr-1">
                           {submitFilePreview.length === 0 ? (
-                            <div className="text-[11px] text-slate-400">暂无</div>
+                            <div className="text-[11px] text-theme-text-muted">暂无</div>
                           ) : submitFilePreview.map((item, index) => (
-                            <div key={`${item.path}-${index}`} className="rounded border border-slate-200 px-2 py-1 text-[11px]">
-                              <div className="font-semibold text-slate-800">{item.path}</div>
-                              <div className="text-slate-600">名称: {item.name || '-'} · 格式: {item.format || '-'} · 启用: {item.enabled ? '是' : '否'}</div>
-                              <div className="text-slate-400">来源: {item.provider_key || '-'}</div>
+                            <div key={`${item.path}-${index}`} className="rounded border border-theme-border px-2 py-1 text-[11px]">
+                              <div className="font-semibold text-theme-text-primary">{item.path}</div>
+                              <div className="text-theme-text-secondary">名称: {item.name || '-'} · 格式: {item.format || '-'} · 启用: {item.enabled ? '是' : '否'}</div>
+                              <div className="text-theme-text-muted">来源: {item.provider_key || '-'}</div>
                             </div>
                           ))}
                         </div>
@@ -1675,13 +1676,13 @@ const SingleAgentLlmModal: React.FC<{
               ) : null}
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm font-black text-slate-900">清除绑定</div>
-              <div className="mt-2 text-xs text-slate-500">保留原有清除逻辑：移除映射环境变量并清空 LLM 绑定信息。</div>
+            <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
+              <div className="text-sm font-semibold text-theme-text-primary">清除绑定</div>
+              <div className="mt-2 text-xs text-theme-text-muted">保留原有清除逻辑：移除映射环境变量并清空 LLM 绑定信息。</div>
               <button
                 onClick={() => void onClear()}
                 disabled={!agent.llm_provider_key && (agent.llm_provider_mapped_env_keys || []).length === 0}
-                className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 disabled:opacity-50"
+                className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-2.5 text-sm font-semibold text-rose-400 disabled:opacity-50"
               >
                 {llmBusy === 'clear-single' ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                 清除当前映射
@@ -1691,7 +1692,7 @@ const SingleAgentLlmModal: React.FC<{
         )}
 
         {notice ? (
-          <div className={`rounded-xl border px-3 py-2 text-sm ${notice.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700'}`}>
+          <div className={`rounded-xl border px-3 py-2 text-sm ${notice.type === 'success' ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-red-500/20 bg-red-500/15 text-red-400'}`}>
             {notice.text}
           </div>
         ) : null}
@@ -1699,16 +1700,16 @@ const SingleAgentLlmModal: React.FC<{
         {showSubmitConfirm ? (
           <div className="fixed inset-0 z-[280] bg-slate-950/50 p-4 md:p-8" onClick={() => setShowSubmitConfirm(false)}>
             <div
-              className="mx-auto w-full max-w-5xl rounded-[1.5rem] border border-slate-200 bg-slate-50"
+              className="mx-auto w-full max-w-5xl rounded-xl border border-theme-border bg-theme-surface"
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-6 py-5">
+              <div className="flex items-start justify-between gap-3 border-b border-theme-border px-6 py-5">
                 <div>
-                  <div className="text-xs font-black uppercase tracking-[0.18em] text-cyan-600">最终确认</div>
-                  <div className="mt-1 text-lg font-black text-slate-900">确认下发到 {agent.agent_id}</div>
-                  <div className="mt-1 text-xs text-slate-500">请确认最终配置内容，确认后将立即写入 helper 并生效。</div>
+                  <div className="text-xs font-medium uppercase tracking-[0.18em] text-cyan-400">最终确认</div>
+                  <div className="mt-1 text-lg font-semibold text-theme-text-primary">确认下发到 {agent.agent_id}</div>
+                  <div className="mt-1 text-xs text-theme-text-muted">请确认最终配置内容，确认后将立即写入 helper 并生效。</div>
                 </div>
-                <button onClick={() => setShowSubmitConfirm(false)} className="rounded-lg bg-slate-100 p-2 text-slate-500 hover:bg-slate-200">
+                <button onClick={() => setShowSubmitConfirm(false)} className="rounded-lg bg-theme-elevated p-2 text-theme-text-muted hover:bg-theme-elevated">
                   <X size={16} />
                 </button>
               </div>
@@ -1726,11 +1727,11 @@ const SingleAgentLlmModal: React.FC<{
                     env_overrides: submitDraft.env_overrides,
                     file_overrides: submitDraft.file_overrides,
                   }}
-                  className="bg-slate-50"
+                  className="bg-theme-elevated"
                 />
               </div>
-              <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
-                <button onClick={() => setShowSubmitConfirm(false)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
+              <div className="flex justify-end gap-3 border-t border-theme-border px-6 py-4">
+                <button onClick={() => setShowSubmitConfirm(false)} className="rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary">
                   取消
                 </button>
                 <button
@@ -1811,70 +1812,70 @@ const AgentDetailDrawer: React.FC<{
   const [showArgImportModal, setShowArgImportModal] = useState(false);
 
   return (
-    <div className="fixed inset-y-0 right-0 z-[210] w-full max-w-[840px] border-l border-slate-200 bg-slate-900 shadow-panel">
+    <div className="fixed inset-y-0 right-0 z-[210] w-full max-w-[840px] border-l border-theme-border bg-theme-surface shadow-panel">
       <div className="flex h-full flex-col">
-        <div className="border-b border-slate-200 bg-slate-800 px-6 py-5">
+        <div className="border-b border-theme-border bg-theme-elevated px-6 py-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-black tracking-tight text-slate-200">{agent.agent_id}</h2>
-              <div className="mt-2 text-sm text-slate-400">{agent.agent_hostname || agent.agent_key} · {agent.service_name} · {agent.backend_type}</div>
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                <span className="rounded-full bg-slate-700 px-2.5 py-1 font-semibold ring-1 ring-slate-200">当前 LLM: {formatProviderText(agent.llm_provider_snapshot || { provider_key: agent.llm_provider_key })}</span>
-                <span className="rounded-full bg-slate-50 px-2.5 py-1 font-semibold ring-1 ring-slate-200">最近应用: {formatTimestamp(agent.llm_provider_applied_at)}</span>
-                <span className="rounded-full bg-slate-50 px-2.5 py-1 font-semibold ring-1 ring-slate-200">命令: {agent.command || '-'}</span>
+              <h2 className="text-2xl font-bold tracking-tight text-theme-text-primary">{agent.agent_id}</h2>
+              <div className="mt-2 text-sm text-theme-text-muted">{agent.agent_hostname || agent.agent_key} · {agent.service_name} · {agent.backend_type}</div>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-theme-text-muted">
+                <span className="rounded-full bg-theme-elevated px-2.5 py-1 font-semibold ring-1 ring-theme-border">当前 LLM: {formatProviderText(agent.llm_provider_snapshot || { provider_key: agent.llm_provider_key })}</span>
+                <span className="rounded-full bg-theme-elevated px-2.5 py-1 font-semibold ring-1 ring-theme-border">最近应用: {formatTimestamp(agent.llm_provider_applied_at)}</span>
+                <span className="rounded-full bg-theme-elevated px-2.5 py-1 font-semibold ring-1 ring-theme-border">命令: {agent.command || '-'}</span>
               </div>
             </div>
- <button onClick={onClose} className="rounded-2xl bg-slate-50 p-3 text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-100 hover:text-slate-800">
+ <button onClick={onClose} className="rounded-lg bg-theme-elevated p-3 text-theme-text-muted ring-1 ring-theme-border transition hover:bg-theme-elevated hover:text-theme-text-primary">
               <X size={18} />
             </button>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <button onClick={() => void onAction('activate', agent)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"><Play size={14} />激活</button>
-            <button onClick={() => void onAction('start', agent)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"><Play size={14} />启动</button>
-            <button onClick={() => void onAction('stop', agent)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"><Power size={14} />停止</button>
+            <button onClick={() => void onAction('activate', agent)} className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3 py-2 text-sm font-semibold text-theme-text-secondary"><Play size={14} />激活</button>
+            <button onClick={() => void onAction('start', agent)} className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3 py-2 text-sm font-semibold text-theme-text-secondary"><Play size={14} />启动</button>
+            <button onClick={() => void onAction('stop', agent)} className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3 py-2 text-sm font-semibold text-theme-text-secondary"><Power size={14} />停止</button>
             <button onClick={onOpenLlmModal} className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-3 py-2 text-sm font-semibold text-white"><WandSparkles size={14} />选择 LLM 配置</button>
-            <button onClick={() => void onAction('delete', agent)} className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600"><Trash2 size={14} />删除</button>
+            <button onClick={() => void onAction('delete', agent)} className="inline-flex items-center gap-2 rounded-xl border border-red-500/20 px-3 py-2 text-sm font-semibold text-red-400"><Trash2 size={14} />删除</button>
           </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto px-6 py-6">
           <div className="space-y-5">
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm font-black text-slate-900">基础配置</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
+              <div className="text-sm font-semibold text-theme-text-primary">基础配置</div>
               <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                <label className="text-sm text-slate-700 md:col-span-2">
-                  <div className="mb-1.5 font-semibold text-slate-800">二进制/命令路径</div>
-                  <input value={editForm.command} onChange={(e) => setEditForm((prev) => ({ ...prev, command: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="例如 /usr/local/bin/codex" />
+                <label className="text-sm text-theme-text-secondary md:col-span-2">
+                  <div className="mb-1.5 font-semibold text-theme-text-primary">二进制/命令路径</div>
+                  <input value={editForm.command} onChange={(e) => setEditForm((prev) => ({ ...prev, command: e.target.value }))} className="form-input w-full" placeholder="例如 /usr/local/bin/codex" />
                 </label>
-                <label className="text-sm text-slate-700 md:col-span-2">
-                  <div className="mb-1.5 font-semibold text-slate-800">工作目录</div>
-                  <input value={editForm.cwd} onChange={(e) => setEditForm((prev) => ({ ...prev, cwd: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="可选，例如 /workspace/project" />
+                <label className="text-sm text-theme-text-secondary md:col-span-2">
+                  <div className="mb-1.5 font-semibold text-theme-text-primary">工作目录</div>
+                  <input value={editForm.cwd} onChange={(e) => setEditForm((prev) => ({ ...prev, cwd: e.target.value }))} className="form-input w-full" placeholder="可选，例如 /workspace/project" />
                 </label>
-                <label className="text-sm text-slate-700 md:col-span-2">
-                  <div className="mb-1.5 font-semibold text-slate-800">命令行参数</div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                <label className="text-sm text-theme-text-secondary md:col-span-2">
+                  <div className="mb-1.5 font-semibold text-theme-text-primary">命令行参数</div>
+                  <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="text-xs text-slate-500">按行管理参数；每一行代表一个独立参数。</div>
-                      <button onClick={() => setShowArgImportModal(true)} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+                      <div className="text-xs text-theme-text-muted">按行管理参数；每一行代表一个独立参数。</div>
+                      <button onClick={() => setShowArgImportModal(true)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
                         批量导入参数
                       </button>
                     </div>
                     <div className="mt-3 space-y-2">
                       {argEntries.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-sm text-slate-500">当前没有参数，点击下方按钮添加或批量导入。</div>
+                        <div className="rounded-xl border border-dashed border-theme-border bg-theme-elevated px-3 py-4 text-sm text-theme-text-muted">当前没有参数，点击下方按钮添加或批量导入。</div>
                       ) : (
                         argEntries.map((entry, index) => (
-                          <div key={entry.id} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5">
-                            <span className="w-8 shrink-0 text-center text-xs font-black text-slate-400">{index + 1}</span>
+                          <div key={entry.id} className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface p-2.5">
+                            <span className="w-8 shrink-0 text-center text-xs font-medium text-theme-text-muted">{index + 1}</span>
                             <input
                               value={entry.value}
                               onChange={(e) => setArgEntries((prev) => prev.map((item) => (item.id === entry.id ? { ...item, value: e.target.value } : item)))}
-                              className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-mono"
+className="form-input min-w-0 flex-1 font-mono"
                               placeholder="例如 --port 或 8080"
                             />
                             <button
                               onClick={() => setArgEntries((prev) => prev.filter((item) => item.id !== entry.id))}
-                              className="shrink-0 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600"
+                              className="shrink-0 rounded-xl border border-red-500/20 px-3 py-2 text-sm font-semibold text-red-400"
                             >
                               删除
                             </button>
@@ -1883,18 +1884,18 @@ const AgentDetailDrawer: React.FC<{
                       )}
                     </div>
                     <div className="mt-3 flex justify-end">
-                      <button onClick={() => setArgEntries((prev) => [...prev, createArgEntry('')])} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+                      <button onClick={() => setArgEntries((prev) => [...prev, createArgEntry('')])} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
                         <Plus size={14} />
                         添加参数
                       </button>
                     </div>
                   </div>
                 </label>
-                <label className="text-sm text-slate-700 md:col-span-2">
-                  <div className="mb-1.5 font-semibold text-slate-800">描述</div>
-                  <input value={editForm.description} onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="描述这个 AI Agent 的用途" />
+                <label className="text-sm text-theme-text-secondary md:col-span-2">
+                  <div className="mb-1.5 font-semibold text-theme-text-primary">描述</div>
+                  <input value={editForm.description} onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))} className="form-input w-full" placeholder="描述这个 AI Agent 的用途" />
                 </label>
-                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 md:col-span-2"><input type="checkbox" checked={editForm.enabled} onChange={(e) => setEditForm((prev) => ({ ...prev, enabled: e.target.checked }))} />启用该 AI Agent</label>
+                <label className="flex items-center gap-2 text-sm font-semibold text-theme-text-secondary md:col-span-2"><input type="checkbox" checked={editForm.enabled} onChange={(e) => setEditForm((prev) => ({ ...prev, enabled: e.target.checked }))} />启用该 AI Agent</label>
                 <button onClick={() => void onSaveAgent()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white md:col-span-2">
                   {busyAction ===`update:${agent.agent_id}` ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                   保存配置
@@ -1902,42 +1903,42 @@ const AgentDetailDrawer: React.FC<{
               </div>
             </div>
 
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-black text-slate-900">环境变量</div>
-                <button onClick={() => void onSaveEnv()} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white">
+                <div className="text-sm font-semibold text-theme-text-primary">环境变量</div>
+                <button onClick={() => void onSaveEnv()} className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-sm font-semibold text-white">
                   {busyAction ===`env:${agent.agent_id}` ? <Loader2 size={15} className="animate-spin" /> : <Settings2 size={15} />}
                   保存环境变量
                 </button>
               </div>
-              <div className="mt-3 flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="text-xs text-slate-500">支持批量导入`key=value`（换行或分号分隔，且兼容引号中的分号）</div>
-                <button onClick={() => setShowEnvImportModal(true)} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+              <div className="mt-3 flex items-center justify-between rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
+                <div className="text-xs text-theme-text-muted">支持批量导入`key=value`（换行或分号分隔，且兼容引号中的分号）</div>
+                <button onClick={() => setShowEnvImportModal(true)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
                   批量导入
                 </button>
               </div>
               <div className="mt-4 space-y-3">
                 {envEntries.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">当前没有环境变量，点击下方按钮添加，或通过“批量导入”快速写入。</div>
+                  <div className="rounded-xl border border-dashed border-theme-border bg-theme-elevated px-4 py-6 text-sm text-theme-text-muted">当前没有环境变量，点击下方按钮添加，或通过“批量导入”快速写入。</div>
                 ) : (
                   envEntries.map((entry) => (
-                    <div key={entry.id} className="flex items-center gap-2 rounded-2xl border border-slate-200 p-3">
+                    <div key={entry.id} className="flex items-center gap-2 rounded-xl border border-theme-border p-3">
                       <input
                         value={entry.key}
                         onChange={(e) => setEnvEntries((prev) => prev.map((item) => (item.id === entry.id ? { ...item, key: e.target.value } : item)))}
-                        className="w-56 shrink-0 rounded-xl border border-slate-200 px-3 py-2 text-sm font-mono"
+                        className="form-input w-full shrink-0 font-mono"
                         placeholder="KEY"
                       />
-                      <span className="shrink-0 text-slate-400">=</span>
+                      <span className="shrink-0 text-theme-text-muted">=</span>
                       <input
                         value={entry.value}
                         onChange={(e) => setEnvEntries((prev) => prev.map((item) => (item.id === entry.id ? { ...item, value: e.target.value } : item)))}
-                        className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-mono"
+                        className="form-input min-w-0 flex-1 font-mono"
                         placeholder="value"
                       />
                       <button
                         onClick={() => setEnvEntries((prev) => prev.filter((item) => item.id !== entry.id))}
-                        className="shrink-0 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600"
+                        className="shrink-0 rounded-xl border border-red-500/20 px-3 py-2 text-sm font-semibold text-red-400"
                       >
                         删除
                       </button>
@@ -1946,25 +1947,25 @@ const AgentDetailDrawer: React.FC<{
                 )}
               </div>
               <div className="mt-4 flex justify-end">
-                <button onClick={() => setEnvEntries((prev) => [...prev, createEnvEntry('', '')])} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">
+                <button onClick={() => setEnvEntries((prev) => [...prev, createEnvEntry('', '')])} className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3 py-2 text-sm font-semibold text-theme-text-secondary">
                   <Plus size={14} />
                   添加环境变量
                 </button>
               </div>
             </div>
 
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-black text-slate-900">HELPER运行环境变量</div>
+                <div className="text-sm font-semibold text-theme-text-primary">HELPER运行环境变量</div>
                 <button
                   onClick={() => void onRefreshHelperRuntimeEnv()}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"
+                  className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3 py-2 text-sm font-semibold text-theme-text-secondary"
                 >
                   {helperRuntimeEnvLoading ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
                   实时刷新
                 </button>
               </div>
-              <div className="mt-2 text-xs text-slate-500">
+              <div className="mt-2 text-xs text-theme-text-muted">
                 当前 Agent 未显式配置的变量将继承 Helper 进程环境变量；当 Agent 自身配置了同名变量时，将覆盖 Helper 变量。
               </div>
               <JsonBlock
@@ -1975,7 +1976,7 @@ const AgentDetailDrawer: React.FC<{
                   updated_at: helperRuntimeEnv?.updated_at || null,
                   env: helperRuntimeEnv?.env || {},
                 }}
-                className="mt-3 bg-slate-50"
+                className="mt-3 bg-theme-elevated"
               />
             </div>
 
@@ -1992,12 +1993,12 @@ const AgentDetailDrawer: React.FC<{
                     value={envImportText}
                     onChange={(e) => setEnvImportText(e.target.value)}
                     rows={10}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-mono"
+                    className="form-textarea w-full font-mono"
                     placeholder={'例如 OPENAI_API_KEY=xxx\\nHTTP_PROXY=\"http://a;b@proxy:8080\";DEBUG=true'}
                   />
-                  {envImportError ? <div className="text-sm font-semibold text-red-600">{envImportError}</div> : null}
+                  {envImportError ? <div className="text-sm font-semibold text-red-400">{envImportError}</div> : null}
                   <div className="flex justify-end gap-3">
-                    <button onClick={() => setShowEnvImportModal(false)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
+                    <button onClick={() => setShowEnvImportModal(false)} className="rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary">
                       取消
                     </button>
                     <button
@@ -2027,12 +2028,12 @@ const AgentDetailDrawer: React.FC<{
                     value={argImportText}
                     onChange={(e) => setArgImportText(e.target.value)}
                     rows={10}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-mono"
+                    className="form-textarea w-full font-mono"
                     placeholder={'例如 --serve\\n--port\\n8080\\n或 --flag-a;--flag-b;\"--note=a;b\"'}
                   />
-                  {argImportError ? <div className="text-sm font-semibold text-red-600">{argImportError}</div> : null}
+                  {argImportError ? <div className="text-sm font-semibold text-red-400">{argImportError}</div> : null}
                   <div className="flex justify-end gap-3">
-                    <button onClick={() => setShowArgImportModal(false)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
+                    <button onClick={() => setShowArgImportModal(false)} className="rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary">
                       取消
                     </button>
                     <button
@@ -2050,21 +2051,21 @@ const AgentDetailDrawer: React.FC<{
             ) : null}
 
             <JsonBlock title="能力与健康" value={{ health: agent.health || {}, capabilities: agent.capabilities || {} }} />
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-4 space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-black text-slate-900">LLM 应用状态</div>
+                <div className="text-sm font-semibold text-theme-text-primary">LLM 应用状态</div>
                 <LlmStatusBadge status={llmStatus} />
               </div>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                  <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">当前 Provider</div>
-                  <div className="mt-1 text-sm font-semibold text-slate-900">{formatProviderText(agent.llm_provider_snapshot || { provider_key: agent.llm_provider_key })}</div>
-                  <div className="mt-1 text-xs text-slate-500">{agent.llm_provider_key || '-'}</div>
+                <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+                  <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-theme-text-muted">当前 Provider</div>
+                  <div className="mt-1 text-sm font-semibold text-theme-text-primary">{formatProviderText(agent.llm_provider_snapshot || { provider_key: agent.llm_provider_key })}</div>
+                  <div className="mt-1 text-xs text-theme-text-muted">{agent.llm_provider_key || '-'}</div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                  <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">应用时间</div>
-                  <div className="mt-1 text-sm font-semibold text-slate-900">{formatTimestamp(agent.llm_provider_applied_at)}</div>
-                  <div className="mt-1 text-xs text-slate-500">配置中心版本：{summaryUpdatedAt || '-'}</div>
+                <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+                  <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-theme-text-muted">应用时间</div>
+                  <div className="mt-1 text-sm font-semibold text-theme-text-primary">{formatTimestamp(agent.llm_provider_applied_at)}</div>
+                  <div className="mt-1 text-xs text-theme-text-muted">配置中心版本：{summaryUpdatedAt || '-'}</div>
                 </div>
               </div>
               <JsonBlock
@@ -2073,7 +2074,7 @@ const AgentDetailDrawer: React.FC<{
                   llm_provider_snapshot: agent.llm_provider_snapshot || null,
                   llm_provider_mapped_env_keys: agent.llm_provider_mapped_env_keys || [],
                 }}
-                className="bg-slate-50"
+                className="bg-theme-elevated"
               />
             </div>
             <JsonBlock
@@ -2685,18 +2686,11 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
         <div className="space-y-6">
           {feedbackNodes}
 
- <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <h1 className="text-3xl font-black tracking-tight text-slate-900">AI Agent 管理</h1>
-                <p className="mt-2 max-w-3xl text-sm text-slate-500">
-                  先从列表查看当前项目下的全部 AI Agent，再按需进入右侧详情抽屉管理；LLM 快速应用已改为单个与批量两个对话框流程。
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setShowCreateAgent((v) => !v)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">
-                  新增 AI Agent
-                </button>
+          <PageHeader
+            title="AI Agent 管理"
+            description="先从列表查看当前项目下的全部 AI Agent，再按需进入右侧详情抽屉管理；LLM 快速应用已改为单个与批量两个对话框流程。"
+            actions={<div className="flex items-center gap-2">
+                <button onClick={() => setShowCreateAgent((v) => !v)} className="rounded-xl border border-theme-border px-3 py-2 text-sm font-semibold text-theme-text-secondary">新增 AI Agent</button>
                 <button
                   onClick={() => {
                     if (selectedAgents.length === 0) {
@@ -2705,30 +2699,29 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                     }
                     setShowBatchLlmModal(true);
                   }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-700"
+                  className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/20 bg-cyan-500/15 px-3 py-2 text-sm font-semibold text-cyan-400"
                 >
                   <WandSparkles size={15} />
                   批量配置AI Agent
                 </button>
-                <button onClick={() => void refreshAll()} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+                <button onClick={() => void refreshAll()} className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2 text-sm font-semibold text-white">
                   <RefreshCw size={16} />
                   刷新
                 </button>
-              </div>
-            </div>
-          </section>
+              </div>}
+          />
 
           <StatsStrip agents={agents} selectedCount={selectedAgentKeys.length} />
 
- <section className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6 flex-1">
-                <input value={search} onChange={(e) => setSearch(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm xl:col-span-2" placeholder="搜索节点、helper、agent_id、backend、provider" />
-                <select value={nodeFilter} onChange={(e) => setNodeFilter(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm"><option value="">全部节点</option>{nodeOptions.map((node) => <option key={node} value={node}>{node}</option>)}</select>
-                <select value={backendFilter} onChange={(e) => setBackendFilter(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm"><option value="">全部后端</option>{backendOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select>
-                <select value={installedFilter} onChange={(e) => setInstalledFilter(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm"><option value="">Installed 全部</option><option value="true">已安装</option><option value="false">未安装</option></select>
-                <select value={runningFilter} onChange={(e) => setRunningFilter(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm"><option value="">Running 全部</option><option value="true">运行中</option><option value="false">已停止</option></select>
-                <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm"><option value="">Active 全部</option><option value="true">已激活</option><option value="false">未激活</option></select>
+                <input value={search} onChange={(e) => setSearch(e.target.value)} className="form-input xl:col-span-2" placeholder="搜索节点、helper、agent_id、backend、provider" />
+                <select value={nodeFilter} onChange={(e) => setNodeFilter(e.target.value)} className="form-select"><option value="">全部节点</option>{nodeOptions.map((node) => <option key={node} value={node}>{node}</option>)}</select>
+                <select value={backendFilter} onChange={(e) => setBackendFilter(e.target.value)} className="form-select"><option value="">全部后端</option>{backendOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+                <select value={installedFilter} onChange={(e) => setInstalledFilter(e.target.value)} className="form-select"><option value="">Installed 全部</option><option value="true">已安装</option><option value="false">未安装</option></select>
+                <select value={runningFilter} onChange={(e) => setRunningFilter(e.target.value)} className="form-select"><option value="">Running 全部</option><option value="true">运行中</option><option value="false">已停止</option></select>
+                <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} className="form-select"><option value="">Active 全部</option><option value="true">已激活</option><option value="false">未激活</option></select>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3 xl:justify-end">
                 <button
@@ -2736,8 +2729,8 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                   onClick={() => toggleAllAgents(true)}
                   className={`rounded-lg border px-2.5 py-1 text-xs font-semibold ${
                     allAgentsSelected
-                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-100'
+                      ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400'
+                      : 'border-theme-border text-theme-text-secondary hover:bg-theme-elevated'
                   }`}
                 >
                   全选全部 AI Agent
@@ -2747,8 +2740,8 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                   onClick={() => toggleAllFiltered(!allFilteredSelected)}
                   className={`rounded-lg border px-2.5 py-1 text-xs font-semibold ${
                     allFilteredSelected
-                      ? 'border-cyan-200 bg-cyan-50 text-cyan-700'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-100'
+                      ? 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400'
+                      : 'border-theme-border text-theme-text-secondary hover:bg-theme-elevated'
                   }`}
                 >
                   全选当前筛选结果
@@ -2756,26 +2749,26 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                 <button
                   type="button"
                   onClick={() => setSelectedAgentKeys([])}
-                  className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                  className="rounded-lg border border-theme-border px-2.5 py-1 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                 >
                   清空选择
                 </button>
-                <span className="text-xs text-slate-500">已勾选 {selectedAgentKeys.length} 个</span>
-                <span className="mx-2 text-slate-300">|</span>
-                <span className="text-xs text-slate-500">总计 {total} 个</span>
+                <span className="text-xs text-theme-text-muted">已勾选 {selectedAgentKeys.length} 个</span>
+                <span className="mx-2 text-theme-text-faint">|</span>
+                <span className="text-xs text-theme-text-muted">总计 {total} 个</span>
               </div>
             </div>
 
             <div className="mt-5">
               {loading ? (
-                <div className="col-span-full flex items-center gap-2 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" />加载中...</div>
+                <div className="col-span-full flex items-center gap-2 text-sm text-theme-text-muted"><Loader2 size={15} className="animate-spin" />加载中...</div>
               ) : filteredAgents.length === 0 ? (
                 <div className="col-span-full"><EmptyState text="当前筛选条件下没有 AI Agent。" /></div>
               ) : (
-                <div className="overflow-x-auto rounded-2xl border border-slate-200">
-                  <table className="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead className="bg-slate-50">
-                      <tr className="text-left text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
+                <div className="overflow-x-auto rounded-xl border border-theme-border">
+                  <table className="min-w-full divide-y divide-theme-border text-sm">
+                    <thead className="bg-theme-elevated">
+                      <tr className="text-left text-[11px] font-medium uppercase tracking-[0.12em] text-theme-text-muted">
                         <th className="px-3 py-3 w-12">选</th>
                         <th className="px-3 py-3">Agent ID</th>
                         <th className="px-3 py-3">节点</th>
@@ -2788,7 +2781,7 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                         <th className="px-3 py-3 text-right">操作</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 bg-slate-50">
+                    <tbody className="divide-y divide-theme-border bg-theme-elevated">
                       {sortedFilteredAgents.map((agent) => {
                         const key = buildAgentKey(agent);
                         const isSelected = selectedKey === key;
@@ -2799,7 +2792,7 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                           <tr
                             key={key}
                             onClick={() => setSelectedKey(key)}
-                            className={`cursor-pointer transition-colors hover:bg-slate-100 ${isSelected ? 'bg-cyan-50/60' : ''}`}
+                            className={`cursor-pointer transition-colors hover:bg-theme-elevated ${isSelected ? 'bg-cyan-50/60' : ''}`}
                           >
                             <td className="px-3 py-3">
                               <input
@@ -2810,35 +2803,35 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                               />
                             </td>
                             <td className="px-3 py-3 align-top">
-                              <div className="max-w-[220px] truncate font-semibold text-slate-800" title={agent.agent_id}>
+                              <div className="max-w-[220px] truncate font-semibold text-theme-text-primary" title={agent.agent_id}>
                                 {agent.agent_id || '-'}
                               </div>
                             </td>
                             <td className="px-3 py-3 align-top">
-                              <div className="max-w-[180px] truncate text-slate-700" title={agent.agent_hostname || agent.agent_key}>
+                              <div className="max-w-[180px] truncate text-theme-text-secondary" title={agent.agent_hostname || agent.agent_key}>
                                 {agent.agent_hostname || agent.agent_key || '-'}
                               </div>
                             </td>
                             <td className="px-3 py-3 align-top">
-                              <div className="max-w-[240px] truncate text-slate-700" title={agent.service_name}>
+                              <div className="max-w-[240px] truncate text-theme-text-secondary" title={agent.service_name}>
                                 {agent.service_name || '-'}
                               </div>
                             </td>
                             <td className="px-3 py-3 align-top">
-                              <div className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">
+                              <div className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 text-xs font-semibold text-theme-text-secondary">
                                 {backendTypeIcon(agent.backend_type)}
                                 <span>{agent.backend_type || '-'}</span>
                               </div>
                             </td>
                             <td className="px-3 py-3 align-top">
                               <div className="flex flex-wrap gap-1.5">
-                                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${agent.installed ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>I</span>
-                                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${agent.running ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>R</span>
-                                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${agent.active ? 'border-cyan-200 bg-cyan-50 text-cyan-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>A</span>
+                                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${agent.installed ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-theme-border bg-theme-elevated text-theme-text-muted'}`}>I</span>
+                                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${agent.running ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-theme-border bg-theme-elevated text-theme-text-muted'}`}>R</span>
+                                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${agent.active ? 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400' : 'border-theme-border bg-theme-elevated text-theme-text-muted'}`}>A</span>
                               </div>
                             </td>
                             <td className="px-3 py-3 align-top">
-                              <div className="inline-flex items-center gap-2 text-xs text-slate-700">
+                              <div className="inline-flex items-center gap-2 text-xs text-theme-text-secondary">
                                 <span className={`h-2 w-2 rounded-full ${healthDotTone(agent.health_status)}`} />
                                 <span>{agent.health_status || 'unknown'}</span>
                               </div>
@@ -2849,22 +2842,22 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                                   {providerLabels.slice(0, 2).map((name) => (
                                     <span
                                       key={`${key}-${name}`}
-                                      className="inline-flex max-w-[180px] truncate rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[11px] font-semibold text-cyan-800"
+                                      className="inline-flex max-w-[180px] truncate rounded-full border border-cyan-500/20 bg-cyan-500/15 px-2 py-0.5 text-[11px] font-semibold text-cyan-400"
                                     >
                                       {name}
                                     </span>
                                   ))}
                                   {overflowCount > 0 ? (
-                                    <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                                    <span className="inline-flex rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[11px] font-semibold text-theme-text-secondary">
                                       +{overflowCount}
                                     </span>
                                   ) : null}
                                 </div>
                               ) : (
-                                <span className="text-xs text-slate-400">未绑定</span>
+                                <span className="text-xs text-theme-text-muted">未绑定</span>
                               )}
                             </td>
-                            <td className="px-3 py-3 align-top text-xs text-slate-600">
+                            <td className="px-3 py-3 align-top text-xs text-theme-text-secondary">
                               {formatTimestamp(agent.updated_at || '')}
                             </td>
                             <td className="px-3 py-3 align-top text-right">
@@ -2874,7 +2867,7 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                                   event.stopPropagation();
                                   setSelectedKey(key);
                                 }}
-                                className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                                className="rounded-lg border border-theme-border px-2.5 py-1 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                               >
                                 详情
                               </button>
@@ -2887,7 +2880,7 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                 </div>
               )}
             </div>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs text-theme-text-secondary">
               <div className="flex items-center gap-2">
                 <span>每页</span>
                 <select
@@ -2897,7 +2890,7 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                     setPerPage(next);
                     setPage(1);
                   }}
-                  className="rounded border border-slate-300 px-2 py-1 text-xs"
+className="form-select text-xs"
                 >
                   {[50, 100, 200, 500, 1000].map((size) => (
                     <option key={size} value={size}>{size}</option>
@@ -2910,7 +2903,7 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                   type="button"
                   disabled={page <= 1}
                   onClick={() => setPage((current) => Math.max(1, current - 1))}
-                  className="rounded border border-slate-300 px-2 py-1 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded border border-theme-border px-2 py-1 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   上一页
                 </button>
@@ -2919,7 +2912,7 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                   type="button"
                   disabled={page >= totalPages}
                   onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-                  className="rounded border border-slate-300 px-2 py-1 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded border border-theme-border px-2 py-1 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   下一页
                 </button>

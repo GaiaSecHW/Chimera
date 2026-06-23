@@ -203,4 +203,40 @@ export const aigwApi = {
     const suffix = query.toString() ? `?${query.toString()}` : '';
     return handleResponse(await fetch(`${API_BASE}/api/aigw/token-stats/trend${suffix}`, { headers: getHeaders() }));
   },
+
+  getDashboardSummary: async (params?: Record<string, string | number>): Promise<any> => {
+    const query = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== '' && value !== undefined && value !== null) query.set(key, String(value));
+    });
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    return handleResponse(await fetch(`${API_BASE}/api/aigw/dashboard/summary${suffix}`, { headers: getHeaders() }));
+  },
+
+  getDashboardActiveTaskKeys: async (params?: Record<string, string | number>): Promise<any> => {
+    const query = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== '' && value !== undefined && value !== null) query.set(key, String(value));
+    });
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    return handleResponse(await fetch(`${API_BASE}/api/aigw/dashboard/active-task-keys${suffix}`, { headers: getHeaders() }));
+  },
+
+  getDashboardActiveModels: async (params?: Record<string, string | number>): Promise<any> => {
+    const query = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== '' && value !== undefined && value !== null) query.set(key, String(value));
+    });
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    return handleResponse(await fetch(`${API_BASE}/api/aigw/dashboard/active-models${suffix}`, { headers: getHeaders() }));
+  },
+
+  getDashboardRecentLogs: async (params?: Record<string, string | number>): Promise<any> => {
+    const query = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== '' && value !== undefined && value !== null) query.set(key, String(value));
+    });
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    return handleResponse(await fetch(`${API_BASE}/api/aigw/dashboard/recent-logs${suffix}`, { headers: getHeaders() }));
+  },
 };

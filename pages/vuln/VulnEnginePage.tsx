@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Cpu, RefreshCw, Sparkles } from 'lucide-react';
+import { Modal, PageHeader } from '../../design-system';
 import { api } from '../../clients/api';
+import { ServiceBuildVersionBadge, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 
 const LK = {
   primary: '#4f73ff',
@@ -142,6 +144,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
   detailEntryLabel = '查看详情',
   summaryCards = [],
 }) => {
+  const buildVersion = useServiceBuildVersion(vulnApi.vuln.getHealth);
   const mergedServiceForm = useMemo(
     () => ({ ...DEFAULT_SERVICE_FORM, ...(initialServiceForm || {}) }),
     [initialServiceForm],
@@ -266,11 +269,11 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
               <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>推荐动作</div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{recommendedActions.length}</div>
+              <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{recommendedActions.length}</div>
             </div>
             <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
               <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>待处理人工任务</div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{openTaskCount}</div>
+              <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{openTaskCount}</div>
             </div>
           </div>
           <div>
@@ -296,11 +299,11 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
               <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>运行中动作</div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{runningActionCount}</div>
+              <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{runningActionCount}</div>
             </div>
             <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
               <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>人工验证任务</div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{openTaskCount}</div>
+              <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{openTaskCount}</div>
             </div>
           </div>
           <div>
@@ -335,7 +338,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
             </div>
             <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
               <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>历史报告数</div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{caseReports.length}</div>
+              <div className="mt-2 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{caseReports.length}</div>
             </div>
           </div>
           <div className="rounded-lg px-4 py-3 text-sm leading-6" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}>
@@ -1056,30 +1059,27 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
         ? 'px-5 py-5 pb-12 space-y-5 xl:px-6 2xl:px-8'
         : effectiveListEntryMode
           ? 'p-6 pb-16 space-y-5'
-          : 'p-10 pb-24 space-y-8'
-    }`} style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
-      <div className="flex flex-col 2xl:flex-row 2xl:items-end 2xl:justify-between gap-6" style={{ borderBottom:`1px solid ${LK.borderSoft}`, paddingBottom: '1rem' }}>
-        <div>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider" style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}>
-            <Cpu size={14} />
-            生命周期引擎
-          </div>
-          <h2 className="text-3xl font-semibold tracking-tight mt-4" style={{ color: LK.ink }}>{pageTitle}</h2>
-          <p className="mt-2 text-sm max-w-3xl" style={{ color: LK.body }}>{pageDescription}</p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={refreshAll}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold transition-colors"
-            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
-          >
-            <RefreshCw size={16} />
-            刷新工作台
-          </button>
-        </div>
-      </div>
+          : 'px-5 py-5 md:px-6 2xl:px-8 pb-24 space-y-4'
+      }`} style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
+      <PageHeader
+        title={(
+          <span className="inline-flex flex-wrap items-center gap-3">
+            <span>{pageTitle}</span>
+            <ServiceBuildVersionBadge version={buildVersion} />
+          </span>
+        )}
+        description={pageDescription}
+        actions={<button
+          onClick={refreshAll}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold transition-colors"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
+        >
+          <RefreshCw size={16} />
+          刷新工作台
+        </button>}
+      />
 
       {error && (
         <div className="rounded-xl px-6 py-4 text-sm" style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}>
@@ -1198,11 +1198,11 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
                   <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>阶段内案例</div>
-                  <div className="mt-1 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{stageScopeCount}</div>
+                  <div className="mt-1 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{stageScopeCount}</div>
                 </div>
                 <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
                   <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>覆盖阶段数</div>
-                  <div className="mt-1 text-2xl font-semibold tabular-nums" style={{ color: LK.ink }}>{stageScope.length}</div>
+                  <div className="mt-1 text-2xl font-bold tabular-nums" style={{ color: LK.ink }}>{stageScope.length}</div>
                 </div>
               </div>
             ) : null}
@@ -1457,16 +1457,21 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
         />
       )}
 
-      {showEvolutionDialog && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in" style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}>
-          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl p-6 animate-in" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+      <Modal
+        open={showEvolutionDialog}
+        onClose={() => {
+          setShowEvolutionDialog(false);
+          setEvolutionPreview(null);
+        }}
+        className="max-w-4xl w-full"
+      >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider" style={{ backgroundColor: `${LK.warning}14`, color: LK.warning }}>
                   <Sparkles size={14} />
                   漏洞台账 {'->'} 进化中心
                 </div>
-                <h2 className="mt-3 text-2xl font-semibold" style={{ color: LK.ink }}>从已选案例创建进化任务</h2>
+                <h2 className="mt-3 text-2xl font-bold" style={{ color: LK.ink }}>从已选案例创建进化任务</h2>
                 <p className="mt-2 text-sm" style={{ color: LK.body }}>先预览整批，再确认创建。若同一 normal 任务存在遗漏案例，预览会自动补齐。</p>
               </div>
               <button
@@ -1525,9 +1530,9 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                   />
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <input type="number" min={1} max={100} value={evolutionForm.minRounds} onChange={(event) => setEvolutionForm((current) => ({ ...current, minRounds: Number(event.target.value || 1) }))} className="px-4 py-3 text-sm outline-none rounded-lg" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
-                  <input type="number" min={1} max={100} value={evolutionForm.maxRounds} onChange={(event) => setEvolutionForm((current) => ({ ...current, maxRounds: Number(event.target.value || 1) }))} className="px-4 py-3 text-sm outline-none rounded-lg" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
-                  <input type="number" min={1} max={64} value={evolutionForm.maxConcurrentSourceTasks} onChange={(event) => setEvolutionForm((current) => ({ ...current, maxConcurrentSourceTasks: Number(event.target.value || 1) }))} className="px-4 py-3 text-sm outline-none rounded-lg" style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }} onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)} onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)} />
+                  <input type="number" min={1} max={100} value={evolutionForm.minRounds} onChange={(event) => setEvolutionForm((current) => ({ ...current, minRounds: Number(event.target.value || 1) }))} className="form-input text-sm" />
+                  <input type="number" min={1} max={100} value={evolutionForm.maxRounds} onChange={(event) => setEvolutionForm((current) => ({ ...current, maxRounds: Number(event.target.value || 1) }))} className="form-input text-sm" />
+                  <input type="number" min={1} max={64} value={evolutionForm.maxConcurrentSourceTasks} onChange={(event) => setEvolutionForm((current) => ({ ...current, maxConcurrentSourceTasks: Number(event.target.value || 1) }))} className="form-input text-sm" />
                 </div>
               </div>
 
@@ -1602,9 +1607,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
                 )}
               </div>
             </div>
-          </div>
-        </div>
-      )}
+        </Modal>
     </div>
   );
 };

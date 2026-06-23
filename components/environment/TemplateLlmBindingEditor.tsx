@@ -211,10 +211,10 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
     <div className="rounded-2xl border border-theme-border bg-theme-surface p-4 space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h4 className="text-sm font-black text-theme-text-primary">{title}</h4>
-          <p className="text-xs text-slate-500 mt-1">{description}</p>
+          <h4 className="text-sm font-semibold text-theme-text-primary">{title}</h4>
+          <p className="text-xs text-theme-text-muted mt-1">{description}</p>
         </div>
-        {providersLoading && <Loader2 size={16} className="animate-spin text-slate-400 shrink-0" />}
+        {providersLoading && <Loader2 size={16} className="animate-spin text-theme-text-muted shrink-0" />}
       </div>
 
       <>
@@ -223,7 +223,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
               value={providerToAdd}
               disabled={disabled || providers.length === 0}
               onChange={(e) => setProviderToAdd(e.target.value)}
-              className="flex-1 px-3 py-2 text-xs border border-theme-border rounded-xl outline-none focus:ring-2 ring-blue-500/10"
+              className="form-select flex-1 text-xs"
             >
               {providers.length === 0 && <option value="">暂无可用 Provider</option>}
               {providers.map((provider) => (
@@ -236,7 +236,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
               type="button"
               disabled={disabled || !providerToAdd}
               onClick={addProvider}
-              className="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-black hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+              className="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
             >
               <Plus size={14} /> 添加 Provider
             </button>
@@ -244,20 +244,20 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
 
           <div className="space-y-2">
             {selectedProviderKeys.length === 0 ? (
-              <div className="text-xs text-slate-400">当前未选择 Provider，重新生成时不会额外注入 LLM 环境变量或配置文件。</div>
+              <div className="text-xs text-theme-text-muted">当前未选择 Provider，重新生成时不会额外注入 LLM 环境变量或配置文件。</div>
             ) : (
               selectedProviderKeys.map((providerKey, index) => {
                 const provider = providerMap.get(providerKey);
                 return (
                   <div key={providerKey} className="flex items-center justify-between gap-3 rounded-xl border border-theme-border px-3 py-2">
                     <div className="min-w-0">
-                      <div className="text-xs font-black text-theme-text-primary truncate">{provider?.display_name || providerKey}</div>
-                      <div className="text-[11px] text-slate-500 truncate">{providerKey} · {provider?.provider_type || 'unknown'}</div>
+                      <div className="text-xs font-medium text-theme-text-primary truncate">{provider?.display_name || providerKey}</div>
+                      <div className="text-[11px] text-theme-text-muted truncate">{providerKey} · {provider?.provider_type || 'unknown'}</div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <button type="button" disabled={disabled || index === 0} onClick={() => moveProvider(index, -1)} className="p-2 rounded-lg text-theme-text-faint hover:bg-theme-elevated disabled:opacity-40"><ArrowUp size={14} /></button>
                       <button type="button" disabled={disabled || index === selectedProviderKeys.length - 1} onClick={() => moveProvider(index, 1)} className="p-2 rounded-lg text-theme-text-faint hover:bg-theme-elevated disabled:opacity-40"><ArrowDown size={14} /></button>
-                      <button type="button" disabled={disabled} onClick={() => removeProvider(providerKey)} className="p-2 rounded-lg text-red-500 hover:bg-red-50 disabled:opacity-40"><Trash2 size={14} /></button>
+                      <button type="button" disabled={disabled} onClick={() => removeProvider(providerKey)} className="p-2 rounded-lg text-red-500 hover:bg-red-500/15 disabled:opacity-40"><Trash2 size={14} /></button>
                     </div>
                   </div>
                 );
@@ -266,7 +266,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
           </div>
 
           <div className="rounded-xl border border-theme-border p-3 space-y-3">
-            <div className="text-xs font-black text-theme-text-primary">注入目标</div>
+            <div className="text-xs font-medium text-theme-text-primary">注入目标</div>
             <label className="flex items-center gap-2 text-xs text-theme-text-primary">
               <input
                 type="radio"
@@ -301,7 +301,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
                     {serviceName}
                   </label>
                 )) : (
-                  <div className="text-xs text-amber-600 flex items-center gap-2"><AlertCircle size={14} /> 当前模板未解析出可选 service，部署时仅支持全部 service</div>
+                  <div className="text-xs text-amber-400 flex items-center gap-2"><AlertCircle size={14} /> 当前模板未解析出可选 service，部署时仅支持全部 service</div>
                 )}
               </div>
             )}
@@ -310,14 +310,14 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
           <div className="rounded-xl border border-theme-border p-3 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs font-black text-theme-text-primary">最终环境变量预览</div>
-                <div className="text-[11px] text-slate-500 mt-1">按当前 Provider 顺序合并，后者覆盖前者。</div>
+                <div className="text-xs font-medium text-theme-text-primary">最终环境变量预览</div>
+                <div className="text-[11px] text-theme-text-muted mt-1">按当前 Provider 顺序合并，后者覆盖前者。</div>
               </div>
-              {previewLoading && <Loader2 size={14} className="animate-spin text-slate-400" />}
+              {previewLoading && <Loader2 size={14} className="animate-spin text-theme-text-muted" />}
             </div>
-            {previewError && <div className="text-xs text-red-600">{previewError}</div>}
+            {previewError && <div className="text-xs text-red-400">{previewError}</div>}
             {!previewError && !previewLoading && (!preview || Object.keys(preview.merged_env || {}).length === 0) && (
-              <div className="text-xs text-slate-400">暂无预览内容</div>
+              <div className="text-xs text-theme-text-muted">暂无预览内容</div>
             )}
             {!previewError && preview && Object.keys(preview.merged_env || {}).length > 0 && (
               <div className="space-y-2 max-h-56 overflow-auto">
@@ -337,14 +337,14 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
           <div className="rounded-xl border border-theme-border p-3 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs font-black text-theme-text-primary">最终文件注入预览</div>
-                <div className="text-[11px] text-slate-500 mt-1">按当前 Provider 顺序合并，同路径后者覆盖前者。</div>
+                <div className="text-xs font-medium text-theme-text-primary">最终文件注入预览</div>
+                <div className="text-[11px] text-theme-text-muted mt-1">按当前 Provider 顺序合并，同路径后者覆盖前者。</div>
               </div>
-              {previewLoading && <Loader2 size={14} className="animate-spin text-slate-400" />}
+              {previewLoading && <Loader2 size={14} className="animate-spin text-theme-text-muted" />}
             </div>
-            {previewError && <div className="text-xs text-red-600">{previewError}</div>}
+            {previewError && <div className="text-xs text-red-400">{previewError}</div>}
             {!previewError && !previewLoading && (!preview?.mapped_file_paths || preview.mapped_file_paths.length === 0) && (
-              <div className="text-xs text-slate-400">暂无文件注入内容</div>
+              <div className="text-xs text-theme-text-muted">暂无文件注入内容</div>
             )}
             {!previewError && preview && Array.isArray(preview.mapped_file_paths) && preview.mapped_file_paths.length > 0 && (
               <div className="space-y-2 max-h-56 overflow-auto">

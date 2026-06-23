@@ -1,5 +1,5 @@
 export type BinarySecurityReturnContext = {
-  view: 'binary-security-detail' | 'source-security-detail' | 'binary-module-security-detail';
+  view: 'binary-security-detail' | 'source-security-detail' | 'kg-source-security-detail' | 'binary-module-security-detail';
   taskId: string;
   taskType: 'binary' | 'source' | 'binary_module';
 };
@@ -9,6 +9,8 @@ export type ExecutionReturnContext =
   | { view: 'system-analysis-task' }
   | { view: 'dataflow-analysis-task' }
   | { view: 'dataflow-vuln-scan-task' }
+  | { view: 'cfg-guided-explore-task' }
+  | { view: 'cfg-db-vuln-tool' }
   | { view: 'pentest-exec-b2s' }
   | { view: 'pentest-exec-b2s-detail'; b2sTaskId: string };
 
@@ -19,6 +21,8 @@ type NavigateDetail = {
   binarySecurityTaskId?: string;
   sourceSecurityTaskId?: string;
   b2sTaskId?: string;
+  dataflowVulnScanTaskId?: string;
+  cfgGuidedExploreTaskId?: string;
 };
 
 export type BinarySecurityTaskOrigin = {
@@ -41,7 +45,7 @@ export const getBinarySecurityReturnContext = (): BinarySecurityReturnContext | 
   try {
     const parsed = JSON.parse(raw) as Partial<BinarySecurityReturnContext>;
     if (
-      (parsed.view === 'binary-security-detail' || parsed.view === 'source-security-detail' || parsed.view === 'binary-module-security-detail')
+      (parsed.view === 'binary-security-detail' || parsed.view === 'source-security-detail' || parsed.view === 'kg-source-security-detail' || parsed.view === 'binary-module-security-detail')
       && (parsed.taskType === 'binary' || parsed.taskType === 'source' || parsed.taskType === 'binary_module')
       && typeof parsed.taskId === 'string'
       && parsed.taskId.trim()
@@ -76,6 +80,7 @@ export const getExecutionReturnContext = (): ExecutionReturnContext | null => {
         || parsed.view === 'system-analysis-task'
         || parsed.view === 'dataflow-analysis-task'
         || parsed.view === 'dataflow-vuln-scan-task'
+        || parsed.view === 'cfg-guided-explore-task'
         || parsed.view === 'pentest-exec-b2s')
     ) {
       return { view: parsed.view };

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Bot, Boxes, Braces, Check, CheckCircle2, ChevronDown, ChevronUp, Copy, Cpu, FileJson2, Hash, Image as ImageIcon, Layers3, MessageSquareText, Route, ScrollText, X } from 'lucide-react';
 
 import { AiGatewayLogDetail } from '../../types/types';
@@ -35,6 +35,14 @@ const formatCost = (value?: number) => typeof value === 'number' ? `$${value.toF
 const formatLatency = (value?: number) => value ? `${Math.round(value)} ms` : '-';
 const formatBytes = (value?: number) => typeof value === 'number' ? `${value} B` : '-';
 const formatNumber = (value?: number) => typeof value === 'number' ? String(value) : '-';
+const getAttributionLabel = (log: AiGatewayLogDetail) => {
+  if (log.app_id) return log.app_name ? `${log.app_name} / ${log.app_id}` : log.app_id;
+  return log.task_id || '-';
+};
+const getAttributionHint = (log: AiGatewayLogDetail) => {
+  if (log.app_id) return '应用归因';
+  return log.sub_task_id || '无子任务';
+};
 
 const parseJsonMaybe = (value?: string | null): unknown => {
   if (!value) return null;
@@ -298,17 +306,17 @@ const extractResponseVisualEntries = (responseJson: unknown): VisualEntry[] => {
 const getRoleTone = (role: string) => {
   switch (role) {
     case 'system':
-      return 'border-slate-200 bg-white text-slate-900';
+      return 'border-theme-border bg-theme-surface text-theme-text-primary';
     case 'user':
-      return 'border-slate-200 bg-white text-slate-900';
+      return 'border-theme-border bg-theme-surface text-theme-text-primary';
     case 'assistant':
-      return 'border-slate-200 bg-white text-slate-900';
+      return 'border-theme-border bg-theme-surface text-theme-text-primary';
     case 'tool':
     case 'tool-call':
     case 'tools':
-      return 'border-slate-200 bg-white text-slate-900';
+      return 'border-theme-border bg-theme-surface text-theme-text-primary';
     default:
-      return 'border-slate-200 bg-white text-slate-900';
+      return 'border-theme-border bg-theme-surface text-theme-text-primary';
   }
 };
 
@@ -325,24 +333,24 @@ const getRoleAccentTone = (role: string) => {
     case 'tools':
       return 'border-l-violet-500';
     default:
-      return 'border-l-slate-300';
+      return 'border-l-zinc-600';
   }
 };
 
 const getRoleBadgeTone = (role: string) => {
   switch (role) {
     case 'system':
-      return 'bg-amber-50 text-amber-800 ring-amber-200';
+      return 'bg-amber-500/15 text-amber-400 ring-amber-500/20';
     case 'user':
-      return 'bg-sky-50 text-sky-800 ring-sky-200';
+      return 'bg-sky-500/15 text-sky-400 ring-sky-500/20';
     case 'assistant':
-      return 'bg-emerald-50 text-emerald-800 ring-emerald-200';
+      return 'bg-emerald-500/15 text-emerald-400 ring-emerald-500/20';
     case 'tool':
     case 'tool-call':
     case 'tools':
-      return 'bg-violet-50 text-violet-800 ring-violet-200';
+      return 'bg-violet-500/15 text-violet-400 ring-violet-500/20';
     default:
-      return 'bg-slate-50 text-slate-700 ring-slate-200';
+      return 'bg-theme-elevated text-theme-text-secondary ring-theme-border';
   }
 };
 
@@ -368,15 +376,15 @@ const getRoleLabel = (role: string) => {
 const getFinishReasonTone = (reason?: string) => {
   switch (reason) {
     case 'stop':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      return 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400';
     case 'length':
-      return 'border-amber-200 bg-amber-50 text-amber-700';
+      return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
     case 'tool_calls':
-      return 'border-violet-200 bg-violet-50 text-violet-700';
+      return 'border-violet-500/20 bg-violet-500/15 text-violet-400';
     case 'content_filter':
-      return 'border-red-200 bg-red-50 text-red-700';
+      return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
     default:
-      return 'border-slate-200 bg-slate-50 text-slate-600';
+      return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
   }
 };
 
@@ -406,10 +414,10 @@ const JsonNode: React.FC<{ label?: string; value: unknown; depth?: number }> = (
 
   if (!isObject) {
     return (
-      <div className="font-mono text-xs leading-6 text-slate-700">
-        {label ? <span className="text-sky-700">"{label}"</span> : null}
-        {label ? <span className="text-slate-500">: </span> : null}
-        <span className={typeof value === 'string' ? 'text-emerald-700' : 'text-amber-700'}>
+      <div className="font-mono text-xs leading-6 text-theme-text-secondary">
+        {label ? <span className="text-sky-400">"{label}"</span> : null}
+        {label ? <span className="text-theme-text-faint">: </span> : null}
+        <span className={typeof value === 'string' ? 'text-emerald-400' : 'text-amber-400'}>
           {typeof value === 'string' ? `"${value}"` : String(value)}
         </span>
       </div>
@@ -422,13 +430,13 @@ const JsonNode: React.FC<{ label?: string; value: unknown; depth?: number }> = (
   const summary = Array.isArray(value) ? `Array(${entries.length})` : `Object(${entries.length})`;
 
   return (
-    <details open={depth < 1} className="font-mono text-xs text-slate-700">
-      <summary className="cursor-pointer list-none select-none text-slate-700 marker:hidden">
-        {label ? <span className="text-sky-700">"{label}"</span> : null}
-        {label ? <span className="text-slate-500">: </span> : null}
-        <span className="text-violet-700">{summary}</span>
+    <details open={depth < 1} className="font-mono text-xs text-theme-text-secondary">
+      <summary className="cursor-pointer list-none select-none text-theme-text-secondary marker:hidden">
+        {label ? <span className="text-sky-400">"{label}"</span> : null}
+        {label ? <span className="text-theme-text-faint">: </span> : null}
+        <span className="text-violet-400">{summary}</span>
       </summary>
-      <div className="mt-2 space-y-1 border-l border-slate-200 pl-4">
+      <div className="mt-2 space-y-1 border-l border-theme-border pl-4">
         {entries.map(([childKey, childValue]) => (
           <JsonNode key={childKey} label={childKey} value={childValue} depth={depth + 1} />
         ))}
@@ -438,22 +446,22 @@ const JsonNode: React.FC<{ label?: string; value: unknown; depth?: number }> = (
 };
 
 const MetricCard: React.FC<{ icon: React.ReactNode; label: string; value: string; hint?: string }> = ({ icon, label, value, hint }) => (
-  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-    <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
-      <span className="text-slate-500">{icon}</span>
+  <div className="rounded-2xl border border-theme-border bg-theme-surface p-4 shadow-panel">
+    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-faint">
+      <span className="text-theme-text-muted">{icon}</span>
       {label}
     </div>
-    <div className="mt-3 text-lg font-black text-slate-900">{value}</div>
-    {hint ? <div className="mt-1 text-xs text-slate-500">{hint}</div> : null}
+    <div className="mt-3 text-lg font-semibold text-theme-text-primary">{value}</div>
+    {hint ? <div className="mt-1 text-xs text-theme-text-muted">{hint}</div> : null}
   </div>
 );
 
 const SectionCard: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode; action?: React.ReactNode }> = ({ title, icon, children, action }) => (
-  <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+  <section className="rounded-[1.5rem] border border-theme-border bg-theme-surface p-5 shadow-panel">
     <div className="mb-4 flex items-center justify-between gap-3">
       <div className="flex items-center gap-2">
-        <span className="text-slate-500">{icon}</span>
-        <h4 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">{title}</h4>
+        <span className="text-theme-text-muted">{icon}</span>
+        <h4 className="text-sm font-semibold uppercase tracking-[0.18em] text-theme-text-muted">{title}</h4>
       </div>
       {action}
     </div>
@@ -479,6 +487,17 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
   const responseUsage = useMemo(() => getResponseUsage(responseJson), [responseJson]);
   const streamEvents = useMemo(() => parseStreamEvents(log?.stream_response), [log?.stream_response]);
 
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
+
   if (!open || !log) return null;
 
   const tabButton = (tab: DetailTab, label: string) => (
@@ -487,8 +506,8 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
       onClick={() => setActiveTab(tab)}
       className={`rounded-2xl px-4 py-2 text-sm font-bold transition ${
         activeTab === tab
-          ? 'bg-slate-900 text-white'
-          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+          ? 'bg-brand-primary text-white'
+          : 'bg-theme-elevated text-theme-text-muted hover:bg-theme-bg-app hover:text-theme-text-primary'
       }`}
     >
       {label}
@@ -509,10 +528,10 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
     const expanded = expandedKeys.has(key);
     const displayText = long && !expanded ? `${text.slice(0, 520)}...` : text;
     return (
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <pre className="whitespace-pre-wrap break-words font-mono text-[12px] leading-6 text-slate-800">{displayText}</pre>
+      <div className="rounded-xl border border-theme-border bg-theme-bg-app p-4">
+        <pre className="whitespace-pre-wrap break-words font-mono text-[12px] leading-6 text-theme-text-secondary">{displayText}</pre>
         {long ? (
-          <button onClick={() => toggleExpanded(key)} className="mt-3 inline-flex items-center gap-1 rounded-xl bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-slate-700">
+          <button onClick={() => toggleExpanded(key)} className="mt-3 inline-flex items-center gap-1 rounded-xl bg-brand-primary px-3 py-1.5 text-[11px] font-bold text-white hover:bg-brand-secondary">
             {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
             {expanded ? '收起' : '展开完整内容'}
           </button>
@@ -530,8 +549,8 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
           const key = `entry-${index}-part-${partIndex}`;
           if (part.type === 'image_url') {
             return (
-              <div key={key} className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">
-                <ImageIcon className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+              <div key={key} className="flex items-start gap-2 rounded-xl border border-theme-border bg-theme-bg-app p-4 text-xs text-theme-text-secondary">
+                <ImageIcon className="mt-0.5 h-4 w-4 shrink-0 text-theme-text-muted" />
                 <span className="break-all font-mono">{part.image_url?.url || 'Image data'}</span>
               </div>
             );
@@ -545,16 +564,16 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
-      <div className="flex max-h-[92vh] w-full max-w-[min(96vw,1380px)] flex-col overflow-hidden rounded-[2rem] bg-slate-50 shadow-2xl">
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-white px-6 py-5">
+      <div className="flex max-h-[92vh] w-full max-w-[min(96vw,1380px)] flex-col overflow-hidden rounded-[2rem] bg-theme-bg-app shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-theme-border bg-theme-surface px-6 py-5">
           <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">日志详情工作区</div>
-            <h3 className="mt-2 text-2xl font-black text-slate-900">请求日志 #{log.id}</h3>
-            <p className="mt-1 text-sm text-slate-500">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-faint">日志详情工作区</div>
+            <h3 className="mt-2 text-2xl font-semibold text-theme-text-primary">请求日志 #{log.id}</h3>
+            <p className="mt-1 text-sm text-theme-text-muted">
               {log.model_name || '-'} {'->'} {log.backend_model_name || '-'} · {log.endpoint || '-'} · {log.is_stream ? 'stream' : 'json'}
             </p>
           </div>
-          <button onClick={onClose} className="rounded-2xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200">
+          <button onClick={onClose} className="rounded-2xl bg-theme-elevated p-2 text-theme-text-muted hover:bg-theme-surface hover:text-theme-text-primary">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -566,29 +585,29 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
                 <MetricCard icon={<Cpu className="h-4 w-4" />} label="公开模型" value={log.model_name || '-'} hint={`Backend: ${log.backend_model_name || '-'}`} />
                 <MetricCard icon={<Hash className="h-4 w-4" />} label="日志时间" value={formatDateTime(log.created_at)} hint={`状态 ${log.status_code || '-'}`} />
                 <MetricCard icon={<Layers3 className="h-4 w-4" />} label="调用模式" value={log.is_stream ? 'Stream' : 'JSON'} hint={`Endpoint ${log.endpoint || '-'}`} />
-                <MetricCard icon={<MessageSquareText className="h-4 w-4" />} label="任务归因" value={log.task_id || '-'} hint={log.sub_task_id || '无子任务'} />
+                <MetricCard icon={<MessageSquareText className="h-4 w-4" />} label="调用归因" value={getAttributionLabel(log)} hint={getAttributionHint(log)} />
                 <MetricCard icon={<Route className="h-4 w-4" />} label="别名 / 单元 / 配置" value={`A${log.model_alias_id || '-'} / U${log.backend_unit_id || '-'} / B${log.backend_config_id || '-'}`} />
                 <MetricCard icon={<CheckCircle2 className="h-4 w-4" />} label="密钥前缀" value={log.llm_key_prefix || '-'} hint={`Task Key: ${log.task_key_prefix || '-'}`} />
               </div>
             </SectionCard>
 
             <SectionCard title="路由归因" icon={<Boxes className="h-4 w-4" />}>
-              <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-                <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Backend URL</div>
-                  <div className="mt-1 break-all font-mono text-xs text-slate-800">{log.backend_api_base_url || '-'}</div>
+              <div className="grid gap-3 text-sm text-theme-text-secondary md:grid-cols-2">
+                <div className="rounded-2xl bg-theme-bg-app px-4 py-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-faint">Backend URL</div>
+                  <div className="mt-1 break-all font-mono text-xs text-theme-text-secondary">{log.backend_api_base_url || '-'}</div>
                 </div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Fingerprint</div>
-                  <div className="mt-1 break-all font-mono text-xs text-slate-800">{log.fingerprint || '-'}</div>
+                <div className="rounded-2xl bg-theme-bg-app px-4 py-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-faint">Fingerprint</div>
+                  <div className="mt-1 break-all font-mono text-xs text-theme-text-secondary">{log.fingerprint || '-'}</div>
                 </div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Usage Source</div>
-                  <div className="mt-1 text-sm font-bold text-slate-900">{log.usage_source || '-'}</div>
+                <div className="rounded-2xl bg-theme-bg-app px-4 py-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-faint">Usage Source</div>
+                  <div className="mt-1 text-sm font-bold text-theme-text-primary">{log.usage_source || '-'}</div>
                 </div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Pricing Version</div>
-                  <div className="mt-1 text-sm font-bold text-slate-900">{log.pricing_version || '-'}</div>
+                <div className="rounded-2xl bg-theme-bg-app px-4 py-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-faint">Pricing Version</div>
+                  <div className="mt-1 text-sm font-bold text-theme-text-primary">{log.pricing_version || '-'}</div>
                 </div>
               </div>
             </SectionCard>
@@ -623,11 +642,11 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
             </SectionCard>
           </div>
 
-          <div className="mt-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mt-4 rounded-[1.5rem] border border-theme-border bg-theme-surface p-5 shadow-panel">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">内容视图</div>
-                <h4 className="mt-1 text-lg font-black text-slate-900">Request / Response / Stream</h4>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-faint">内容视图</div>
+                <h4 className="mt-1 text-lg font-semibold text-theme-text-primary">Request / Response / Stream</h4>
               </div>
               <div className="flex flex-wrap gap-2">
                 {tabButton('visual', 'Visual')}
@@ -646,19 +665,19 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
                         const fn = tool.function && typeof tool.function === 'object' ? tool.function as Record<string, unknown> : {};
                         const name = typeof fn.name === 'string' ? fn.name : 'Unknown';
                         return (
-                          <details key={`${name}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-black text-slate-900 marker:hidden">
+                          <details key={`${name}-${index}`} className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-theme-text-primary marker:hidden">
                               <span className="flex items-center gap-2">
-                                <span className="rounded-lg bg-violet-50 px-2 py-1 text-[11px] uppercase tracking-[0.14em] text-violet-700 ring-1 ring-violet-200">{String(tool.type || 'function')}</span>
+                                <span className="rounded-lg bg-violet-500/15 px-2 py-1 text-[11px] uppercase tracking-[0.14em] text-violet-400 ring-1 ring-violet-500/20">{String(tool.type || 'function')}</span>
                                 {name}
                               </span>
-                              <ChevronDown className="h-4 w-4 text-slate-500" />
+                              <ChevronDown className="h-4 w-4 text-theme-text-muted" />
                             </summary>
                             {typeof fn.description === 'string' && fn.description ? (
-                              <p className="mt-3 text-sm leading-6 text-slate-700">{fn.description}</p>
+                              <p className="mt-3 text-sm leading-6 text-theme-text-secondary">{fn.description}</p>
                             ) : null}
                             {fn.parameters ? (
-                              <pre className="mt-3 whitespace-pre-wrap break-words rounded-xl border border-slate-200 bg-white p-3 font-mono text-[12px] leading-6 text-slate-800">{stringifyPretty(fn.parameters)}</pre>
+                              <pre className="mt-3 whitespace-pre-wrap break-words rounded-xl border border-theme-border bg-theme-surface p-3 font-mono text-[12px] leading-6 text-theme-text-secondary">{stringifyPretty(fn.parameters)}</pre>
                             ) : null}
                           </details>
                         );
@@ -686,17 +705,17 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
-                                <span className={`rounded-lg px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.14em] ring-1 ${getRoleBadgeTone(entry.role)}`}>{getRoleLabel(entry.role)}</span>
-                                {entry.source ? <span className="rounded-lg bg-slate-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-600 ring-1 ring-slate-200">{entry.source}</span> : null}
+                                <span className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ring-1 ${getRoleBadgeTone(entry.role)}`}>{getRoleLabel(entry.role)}</span>
+                                {entry.source ? <span className="rounded-lg bg-theme-elevated px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-theme-text-secondary ring-1 ring-theme-border">{entry.source}</span> : null}
                                 {'finishReason' in entry && entry.finishReason ? (
                                   <span className={`rounded-xl border px-2.5 py-1 text-[11px] font-bold ${getFinishReasonTone(entry.finishReason)}`}>{entry.finishReason}</span>
                                 ) : null}
                               </div>
-                              <div className="mt-2 text-sm font-black">{entry.title}</div>
+                              <div className="mt-2 text-sm font-semibold">{entry.title}</div>
                             </div>
                             <button
                               onClick={() => void onCopy(entry.body, `${entry.title} 已复制`)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50"
+                              className="inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-surface px-3 py-1.5 text-[11px] font-bold text-theme-text-secondary hover:bg-theme-elevated"
                             >
                               <Copy className="h-3.5 w-3.5" />
                               复制
@@ -704,13 +723,13 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
                           </div>
 
                           {'reasoningContent' in entry && entry.reasoningContent ? (
-                            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
-                              <button onClick={() => toggleExpanded(`reasoning-${index}`)} className="flex w-full items-center justify-between gap-3 text-left text-xs font-black text-amber-900">
+                            <div className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3">
+                              <button onClick={() => toggleExpanded(`reasoning-${index}`)} className="flex w-full items-center justify-between gap-3 text-left text-xs font-medium text-amber-400">
                                 <span className="inline-flex items-center gap-2"><Check className="h-4 w-4" /> Reasoning Content</span>
                                 {expandedKeys.has(`reasoning-${index}`) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                               </button>
                               {expandedKeys.has(`reasoning-${index}`) ? (
-                                <pre className="mt-3 whitespace-pre-wrap break-words font-mono text-xs leading-6 text-amber-950">{entry.reasoningContent}</pre>
+                                <pre className="mt-3 whitespace-pre-wrap break-words font-mono text-xs leading-6 text-amber-200">{entry.reasoningContent}</pre>
                               ) : null}
                             </div>
                           ) : null}
@@ -719,7 +738,7 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
 
                           {'toolCalls' in entry && entry.toolCalls?.length ? (
                             <div className="mt-3 space-y-2">
-                              <div className="flex items-center gap-2 text-xs font-black text-slate-700">
+                              <div className="flex items-center gap-2 text-xs font-medium text-theme-text-secondary">
                                 <Cpu className="h-4 w-4" />
                                 Tool Calls ({entry.toolCalls.length})
                               </div>
@@ -727,15 +746,15 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
                                 const call = toolCall && typeof toolCall === 'object' ? toolCall as Record<string, unknown> : {};
                                 const fn = call.function && typeof call.function === 'object' ? call.function as Record<string, unknown> : {};
                                 return (
-                                  <div key={toolIndex} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                  <div key={toolIndex} className="rounded-xl border border-theme-border bg-theme-bg-app p-3">
                                     <div className="flex flex-wrap items-center gap-2 text-xs">
-                                      <span className="rounded-lg bg-violet-100 px-2 py-1 font-black text-violet-800">{String(fn.name || 'Unknown')}</span>
-                                      {typeof call.id === 'string' ? <span className="break-all font-mono text-slate-500">ID: {call.id}</span> : null}
+                                      <span className="rounded-lg bg-violet-500/15 px-2 py-1 font-medium text-violet-400">{String(fn.name || 'Unknown')}</span>
+                                      {typeof call.id === 'string' ? <span className="break-all font-mono text-theme-text-muted">ID: {call.id}</span> : null}
                                     </div>
                                     {fn.arguments ? (
-                                      <div className="mt-3 overflow-hidden rounded-xl border border-violet-200 bg-white">
-                                        <div className="border-b border-violet-100 bg-violet-50 px-3 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-violet-800">请求参数</div>
-                                        <pre className="whitespace-pre-wrap break-words p-3 font-mono text-[12px] leading-6 text-slate-800">{formatToolArguments(fn.arguments)}</pre>
+                                      <div className="mt-3 overflow-hidden rounded-xl border border-violet-500/20 bg-theme-surface">
+                                        <div className="border-b border-violet-500/20 bg-violet-500/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-400">请求参数</div>
+                                        <pre className="whitespace-pre-wrap break-words p-3 font-mono text-[12px] leading-6 text-theme-text-secondary">{formatToolArguments(fn.arguments)}</pre>
                                       </div>
                                     ) : null}
                                   </div>
@@ -748,7 +767,7 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
                     </div>
                   </SectionCard>
                 ) : (
-                  <div className="rounded-[1.25rem] border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
+                  <div className="rounded-[1.25rem] border border-dashed border-theme-border bg-theme-bg-app px-4 py-10 text-center text-sm text-theme-text-muted">
                     当前日志缺少可识别的会话结构，建议切到 JSON 或 Stream 视图查看原始内容。
                   </div>
                 )}
@@ -759,14 +778,14 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
               <SectionCard
                 title="Request JSON"
                 icon={<FileJson2 className="h-4 w-4" />}
-                action={<button onClick={() => void onCopy(log.request || '', '请求内容已复制')} className="rounded-xl bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-200">复制 Request</button>}
+                action={<button onClick={() => void onCopy(log.request || '', '请求内容已复制')} className="rounded-xl bg-theme-elevated px-3 py-1.5 text-[11px] font-bold text-theme-text-secondary hover:bg-theme-surface">复制 Request</button>}
               >
                 {requestJson !== null ? (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
                     <JsonNode value={requestJson} />
                   </div>
                 ) : (
-                  <pre className="rounded-2xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-6 text-slate-900">{log.request || '暂无 request 内容'}</pre>
+                  <pre className="rounded-2xl border border-theme-border bg-theme-bg-app p-4 font-mono text-xs leading-6 text-theme-text-primary">{log.request || '暂无 request 内容'}</pre>
                 )}
               </SectionCard>
             ) : null}
@@ -775,14 +794,14 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
               <SectionCard
                 title="Response JSON"
                 icon={<Braces className="h-4 w-4" />}
-                action={<button onClick={() => void onCopy(log.response || '', '响应内容已复制')} className="rounded-xl bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-200">复制 Response</button>}
+                action={<button onClick={() => void onCopy(log.response || '', '响应内容已复制')} className="rounded-xl bg-theme-elevated px-3 py-1.5 text-[11px] font-bold text-theme-text-secondary hover:bg-theme-surface">复制 Response</button>}
               >
                 {responseJson !== null ? (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
                     <JsonNode value={responseJson} />
                   </div>
                 ) : (
-                  <pre className="rounded-2xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-6 text-slate-900">{log.response || '暂无 response 内容'}</pre>
+                  <pre className="rounded-2xl border border-theme-border bg-theme-bg-app p-4 font-mono text-xs leading-6 text-theme-text-primary">{log.response || '暂无 response 内容'}</pre>
                 )}
               </SectionCard>
             ) : null}
@@ -792,7 +811,7 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
                 <SectionCard
                   title="Stream Overview"
                   icon={<Bot className="h-4 w-4" />}
-                  action={<button onClick={() => void onCopy(log.stream_response || '', '流式响应已复制')} className="rounded-xl bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-200">复制 Stream</button>}
+                  action={<button onClick={() => void onCopy(log.stream_response || '', '流式响应已复制')} className="rounded-xl bg-theme-elevated px-3 py-1.5 text-[11px] font-bold text-theme-text-secondary hover:bg-theme-surface">复制 Stream</button>}
                 >
                   <div className="grid gap-3 md:grid-cols-3">
                     <MetricCard icon={<Bot className="h-4 w-4" />} label="模式" value={log.is_stream ? 'Stream' : 'Non-stream'} />
@@ -806,17 +825,17 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
                     {streamEvents.map((event) => (
                       <SectionCard key={event.index} title={`Event ${event.index}${event.eventName ? ` · ${event.eventName}` : ''}`} icon={<Bot className="h-4 w-4" />}>
                         {event.dataJson !== null ? (
-                          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="rounded-2xl border border-theme-border bg-theme-bg-app p-4">
                             <JsonNode value={event.dataJson} />
                           </div>
                         ) : (
-                          <pre className="rounded-2xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-6 text-slate-900">{event.dataText || event.raw}</pre>
+                          <pre className="rounded-2xl border border-theme-border bg-theme-bg-app p-4 font-mono text-xs leading-6 text-theme-text-primary">{event.dataText || event.raw}</pre>
                         )}
                       </SectionCard>
                     ))}
                   </div>
                 ) : (
-                  <pre className="rounded-2xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-6 text-slate-900">{streamJson !== null ? stringifyPretty(streamJson) : (log.stream_response || '暂无 stream_response 内容')}</pre>
+                  <pre className="rounded-2xl border border-theme-border bg-theme-bg-app p-4 font-mono text-xs leading-6 text-theme-text-primary">{streamJson !== null ? stringifyPretty(streamJson) : (log.stream_response || '暂无 stream_response 内容')}</pre>
                 )}
               </div>
             ) : null}

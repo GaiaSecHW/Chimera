@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { History, Loader2, Pencil, Play, Plus, RefreshCw, Search, Share2, Trash2 } from 'lucide-react';
+import { PageHeader } from '../../design-system';
 import {
   ExecutionTable,
   ExecutionTableEmptyRow,
@@ -20,26 +21,26 @@ interface Props {
 }
 
 const STATUS_MAP: Record<string, { label: string; tone: string }> = {
-  CREATED: { label: '待上传', tone: 'bg-slate-100 text-slate-600 border-slate-200' },
-  PARSE_PENDING: { label: '排队中', tone: 'bg-sky-50 text-sky-700 border-sky-200' },
-  PARSING: { label: '解析中', tone: 'bg-sky-50 text-sky-700 border-sky-200' },
-  PARSED: { label: '待执行', tone: 'bg-amber-50 text-amber-700 border-amber-200' },
-  EXECUTING: { label: '执行中', tone: 'bg-blue-50 text-blue-700 border-blue-200' },
-  COMPLETED: { label: '已完成', tone: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  FAILED: { label: '失败', tone: 'bg-rose-50 text-rose-700 border-rose-200' },
-  UPLOAD_FAILED: { label: '上传失败', tone: 'bg-rose-50 text-rose-700 border-rose-200' },
+  CREATED: { label: '待上传', tone: 'bg-theme-elevated text-theme-text-secondary border-theme-border' },
+  PARSE_PENDING: { label: '排队中', tone: 'bg-sky-500/15 text-sky-400 border-sky-500/20' },
+  PARSING: { label: '解析中', tone: 'bg-sky-500/15 text-sky-400 border-sky-500/20' },
+  PARSED: { label: '待执行', tone: 'bg-amber-500/15 text-amber-400 border-amber-500/20' },
+  EXECUTING: { label: '执行中', tone: 'bg-blue-500/15 text-blue-400 border-blue-500/20' },
+  COMPLETED: { label: '已完成', tone: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
+  FAILED: { label: '失败', tone: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
+  UPLOAD_FAILED: { label: '上传失败', tone: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
 };
 
 function getStatusDisplay(task: RedlineTask) {
   if (task.status === 'COMPLETED') {
     if (task.execSuccess === true) {
-      return { label: '成功', tone: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+      return { label: '成功', tone: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' };
     }
     if (task.execSuccess === false) {
-      return { label: '失败', tone: 'bg-rose-50 text-rose-700 border-rose-200' };
+      return { label: '失败', tone: 'bg-rose-500/15 text-rose-400 border-rose-500/20' };
     }
   }
-  return STATUS_MAP[task.status] || { label: task.status, tone: 'bg-slate-100 text-slate-600 border-slate-200' };
+  return STATUS_MAP[task.status] || { label: task.status, tone: 'bg-theme-elevated text-theme-text-secondary border-theme-border' };
 }
 
 export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
@@ -200,33 +201,20 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
 
   return (
     <div className="flex flex-col gap-5 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-theme-text-primary">红线验证</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={fetchTasks}
-            className="p-1.5 rounded-lg hover:bg-theme-surface-hover transition-colors"
-            title="刷新"
-          >
-            <RefreshCw className="h-4 w-4 text-theme-text-secondary" />
-          </button>
-          <button
-            onClick={openCreateDialog}
-            className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1.5"
-          >
-            <Plus className="h-4 w-4" />
-            新建任务
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="红线验证"
+        actions={<div className="flex items-center gap-2">
+          <button onClick={fetchTasks} className="p-1.5 rounded-lg hover:bg-theme-surface-hover transition-colors" title="刷新"><RefreshCw className="h-4 w-4 text-theme-text-secondary" /></button>
+          <button onClick={openCreateDialog} className="btn-primary flex items-center gap-1.5"><Plus className="h-4 w-4" />新建任务</button>
+        </div>}
+      />
 
       {/* Filters */}
       <div className="flex items-center gap-3">
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary"
+          className="form-select"
         >
           <option value="">全部状态</option>
           {Object.entries(STATUS_MAP).map(([key, { label }]) => (
@@ -239,7 +227,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="搜索任务名称..."
-            className="w-64 rounded-lg border border-theme-border bg-theme-surface pl-9 pr-3 py-2 text-sm text-theme-text-primary placeholder:text-theme-text-tertiary focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            className="form-input w-full pl-9 pr-3"
           />
         </div>
       </div>
@@ -327,24 +315,24 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
       {/* Create Task Dialog */}
       {showCreateDialog && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50" onClick={closeDialogs}>
- <div className="bg-theme-surface rounded-2xl p-6 w-[480px] border border-theme-border" onClick={(e) => e.stopPropagation()}>
+ <div className="bg-theme-surface rounded-xl p-6 w-[480px] border border-theme-border" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-theme-text-primary mb-4">新建任务</h3>
             <div className="flex flex-col gap-4">
               <div>
-                <label className="block text-sm text-theme-text-secondary mb-1">任务名称</label>
+                <label className="form-label">任务名称</label>
                 <input
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="请输入任务名称"
-                  className="w-full rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary placeholder:text-theme-text-tertiary focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  className="form-input w-full"
                 />
               </div>
               <div>
-                <label className="block text-sm text-theme-text-secondary mb-1">产品</label>
+                <label className="form-label">产品</label>
                 <select
                   value={formProduct}
                   onChange={(e) => handleProductChange(e.target.value)}
-                  className="w-full rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary"
+                  className="form-select w-full"
                 >
                   <option value="">请选择产品</option>
                   {uniqueProducts.map((p) => (
@@ -353,11 +341,11 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-theme-text-secondary mb-1">版本</label>
+                <label className="form-label">版本</label>
                 <select
                   value={formVersion}
                   onChange={(e) => setFormVersion(e.target.value)}
-                  className="w-full rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary"
+                  className="form-select w-full"
                   disabled={!formProduct}
                 >
                   <option value="">请选择版本</option>
@@ -369,7 +357,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
             </div>
             <div className="flex justify-end gap-3 mt-6">
               <button onClick={closeDialogs} className="px-4 py-2 text-sm rounded-lg border border-theme-border text-theme-text-secondary hover:bg-theme-surface-hover">取消</button>
-              <button onClick={handleCreate} disabled={submitting || !formName.trim()} className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">确认</button>
+              <button onClick={handleCreate} disabled={submitting || !formName.trim()} className="btn-primary disabled:opacity-50">确认</button>
             </div>
           </div>
         </div>
@@ -378,24 +366,24 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
       {/* Edit Task Dialog */}
       {showEditDialog && editingTask && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50" onClick={closeDialogs}>
- <div className="bg-theme-surface rounded-2xl p-6 w-[480px] border border-theme-border" onClick={(e) => e.stopPropagation()}>
+ <div className="bg-theme-surface rounded-xl p-6 w-[480px] border border-theme-border" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-theme-text-primary mb-4">编辑任务</h3>
             <div className="flex flex-col gap-4">
               <div>
-                <label className="block text-sm text-theme-text-secondary mb-1">任务名称</label>
+                <label className="form-label">任务名称</label>
                 <input
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="请输入任务名称"
-                  className="w-full rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary placeholder:text-theme-text-tertiary focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  className="form-input w-full"
                 />
               </div>
               <div>
-                <label className="block text-sm text-theme-text-secondary mb-1">产品</label>
+                <label className="form-label">产品</label>
                 <select
                   value={formProduct}
                   onChange={(e) => handleProductChange(e.target.value)}
-                  className="w-full rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary"
+                  className="form-select w-full"
                 >
                   <option value="">请选择产品</option>
                   {uniqueProducts.map((p) => (
@@ -404,11 +392,11 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-theme-text-secondary mb-1">版本</label>
+                <label className="form-label">版本</label>
                 <select
                   value={formVersion}
                   onChange={(e) => setFormVersion(e.target.value)}
-                  className="w-full rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary"
+                  className="form-select w-full"
                   disabled={!formProduct}
                 >
                   <option value="">请选择版本</option>
@@ -420,7 +408,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
             </div>
             <div className="flex justify-end gap-3 mt-6">
               <button onClick={closeDialogs} className="px-4 py-2 text-sm rounded-lg border border-theme-border text-theme-text-secondary hover:bg-theme-surface-hover">取消</button>
-              <button onClick={handleEdit} disabled={submitting || !formName.trim()} className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">确认</button>
+              <button onClick={handleEdit} disabled={submitting || !formName.trim()} className="btn-primary disabled:opacity-50">确认</button>
             </div>
           </div>
         </div>

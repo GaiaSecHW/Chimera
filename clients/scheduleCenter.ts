@@ -11,7 +11,7 @@ export const scheduleCenterApi = {
     handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/runtime/queue-preview`, { headers: getHeaders() })),
 
   getTaskOverview: async (): Promise<any> =>
-    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/runtime/overview`, { headers: getHeaders() })),
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/tasks/overview`, { headers: getHeaders() })),
 
   getRuntimeConfig: async (): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/config/runtime`, { headers: getHeaders() })),

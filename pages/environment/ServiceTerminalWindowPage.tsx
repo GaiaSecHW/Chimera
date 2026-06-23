@@ -282,14 +282,14 @@ export const ServiceTerminalWindowPage: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-screen bg-slate-950 text-slate-100 flex flex-col">
-      <div className="px-4 py-3 border-b border-slate-800 bg-slate-900/95 flex items-start gap-3">
+    <div className="h-screen w-screen bg-theme-elevated text-white flex flex-col">
+      <div className="px-4 py-3 border-b border-theme-border bg-slate-900/95 flex items-start gap-3">
         <div className="flex items-start gap-2 min-w-0 flex-1">
           <TerminalSquare size={16} className="text-blue-400" />
           <div className="min-w-0 flex-1">
             <div className="flex items-start gap-2 min-w-0">
-              <p className="text-sm font-black leading-5 break-all">{serviceName || 'Service Terminal'}</p>
-              <span className="text-[10px] text-slate-400 font-mono leading-4 break-all max-w-[180px]">
+              <p className="text-sm font-semibold leading-5 break-all">{serviceName || 'Service Terminal'}</p>
+              <span className="text-[10px] text-theme-text-muted font-mono leading-4 break-all max-w-[180px]">
                 {agentKey}
               </span>
             </div>
@@ -298,14 +298,14 @@ export const ServiceTerminalWindowPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowConnectionDetails((prev) => !prev)}
-                  className="max-w-full flex items-center gap-2 text-left rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1 hover:bg-slate-950/70 transition-colors"
+                  className="max-w-full flex items-center gap-2 text-left rounded-md border border-theme-border bg-slate-950/40 px-2 py-1 hover:bg-slate-950/70 transition-colors"
                 >
-                  <span className="text-[10px] text-slate-200 font-bold shrink-0">连接详情</span>
-                  <span className="text-[10px] text-slate-400 truncate">
+                  <span className="text-[10px] text-theme-text-primary font-bold shrink-0">连接详情</span>
+                  <span className="text-[10px] text-theme-text-muted truncate">
                     {connectionTargets.find((item) => item.active)?.label || '当前连接'}
                     {connectionInfo?.ws_url ?`: ${connectionInfo.ws_url}` : ''}
                   </span>
-                  <span className="shrink-0 text-slate-400">
+                  <span className="shrink-0 text-theme-text-muted">
                     {showConnectionDetails ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                   </span>
                 </button>
@@ -317,7 +317,7 @@ export const ServiceTerminalWindowPage: React.FC = () => {
         <select
           value={mode}
           onChange={(e) => setMode(e.target.value === 'attach' ? 'attach' : 'shell')}
-          className="px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-100 shrink-0"
+          className="form-select text-xs shrink-0"
         >
           <option value="attach">Attach 模式</option>
           <option value="shell">新建 Shell</option>
@@ -328,13 +328,13 @@ export const ServiceTerminalWindowPage: React.FC = () => {
           onChange={(e) => setShell(e.target.value)}
           placeholder="/bin/bash 或 /bin/sh"
           disabled={mode === 'attach'}
-          className="px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-100 w-40 xl:w-48 shrink-0 disabled:opacity-50"
+          className="px-2 py-1.5 rounded-lg bg-theme-elevated border border-theme-border text-xs text-white w-40 xl:w-48 shrink-0 disabled:opacity-50"
         />
 
         <button
           onClick={() => void connectTerminal(mode)}
           disabled={connecting}
-          className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-black hover:bg-blue-500 disabled:opacity-60 flex items-center gap-2 shrink-0"
+          className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-500 disabled:opacity-60 flex items-center gap-2 shrink-0"
         >
           {connecting ? <Loader2 size={13} className="animate-spin" /> : <Plug size={13} />}
           连接
@@ -346,7 +346,7 @@ export const ServiceTerminalWindowPage: React.FC = () => {
             setTerminalWs(null);
             setConnected(false);
           }}
-          className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-200 text-xs font-black hover:bg-slate-700 flex items-center gap-2 shrink-0"
+          className="px-3 py-1.5 rounded-lg bg-theme-elevated text-theme-text-primary text-xs font-medium hover:bg-theme-elevated flex items-center gap-2 shrink-0"
         >
           <PlugZap size={13} />
           断开
@@ -371,7 +371,7 @@ export const ServiceTerminalWindowPage: React.FC = () => {
       ) : null}
 
       {connectionInfo && showConnectionDetails ? (
-        <div className="px-4 py-2 text-[11px] bg-slate-900 border-b border-slate-800 text-slate-300">
+        <div className="px-4 py-2 text-[11px] bg-theme-surface border-b border-theme-border text-theme-text-faint">
           <div className="space-y-2">
             <div className="grid gap-2">
               {connectionTargets.map((item) => (
@@ -380,13 +380,13 @@ export const ServiceTerminalWindowPage: React.FC = () => {
                   className={`rounded-lg border px-3 py-2 ${
                     item.active
                       ? 'border-emerald-400/60 bg-emerald-500/10 text-emerald-200'
-                      : 'border-slate-700 bg-slate-950/70 text-slate-300'
+                      : 'border-theme-border bg-slate-950/70 text-theme-text-faint'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-bold">{item.label}</span>
                     {item.active ? (
-                      <span className="px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 text-[10px] font-black">
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 text-[10px] font-semibold">
                         当前连接
                       </span>
                     ) : null}

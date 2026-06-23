@@ -1,15 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import {
   Activity,
+  AlertTriangle,
   ArrowUpRight,
   BarChart3,
   Briefcase,
+  Bug,
+  Building2,
+  CheckCircle2,
+  Clock,
   HardDrive,
+  Hourglass,
+  Layers,
+  ListChecks,
+  Loader,
   Monitor,
   Package,
+  RefreshCw,
+  Server,
+  ShieldCheck,
   Workflow,
+  XCircle,
 } from 'lucide-react';
 import { api } from '../clients/api';
+import { PageHeader } from '../design-system';
+import { API_BASE, getHeaders, handleResponse } from '../clients/base';
 import {
   AdminDashboardStats,
   Agent,
@@ -143,7 +158,7 @@ const KpiCard: React.FC<KpiCardProps> = ({ icon: Icon, value, label, caption, ac
       <ArrowUpRight size={14} style={{ color: LK.muted }} className="transition-colors group-hover:opacity-100" />
     </div>
     <div>
-      <div className="text-2xl font-semibold leading-8 tracking-tight" style={{ color: accent }}>
+      <div className="text-2xl font-bold leading-8 tracking-tight" style={{ color: accent }}>
         {value}
       </div>
       <div className="mt-0.5 text-sm font-semibold" style={{ color: LK.inkSoft }}>
@@ -244,6 +259,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [providerStats, setProviderStats] = useState<AiGatewayProviderStat[]>([]);
   const [providerStatsLoading, setProviderStatsLoading] = useState(false);
 
+  const [taskCount, setTaskCount] = useState<number | null>(null);
+  const [taskQueued, setTaskQueued] = useState<number | null>(null);
+  const [taskRunning, setTaskRunning] = useState<number | null>(null);
+  const [taskFailed, setTaskFailed] = useState<number | null>(null);
+  const [envCount, setEnvCount] = useState<number | null>(null);
+  const [vulnCount, setVulnCount] = useState<number | null>(null);
+  const [vulnTotal, setVulnTotal] = useState<number | null>(null);
+  const [vulnPendingVerify, setVulnPendingVerify] = useState<number | null>(null);
+  const [vulnValidating, setVulnValidating] = useState<number | null>(null);
+  const [vulnVerified, setVulnVerified] = useState<number | null>(null);
+  const [vulnConfirmed, setVulnConfirmed] = useState<number | null>(null);
+  const [vulnRuledOut, setVulnRuledOut] = useState<number | null>(null);
+
   useEffect(() => {
     let mounted = true;
     setProviderStatsLoading(true);
@@ -260,6 +288,70 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const scheduleApi = api.domains.platform.scheduleCenter;
+    const vulnApi = api.domains.vuln.vuln;
+    const loadStats = async () => {
+      const perProject = (projects || []).map((p) =>
+        Promise.allSettled([
+          scheduleApi.listUserTasks(p.id, { page_size: 1 }),
+          fetch(`${API_BASE}/api/agent/agents/stats?project_id=${encodeURIComponent(p.id)}`, { headers: getHeaders() })
+            .then((r) => handleResponse(r))
+            .catch(() => null),
+        ]),
+      );
+      const [vulnRes, ...projectResults] = await Promise.allSettled([
+        vulnApi.getOverview(),
+        ...perProject,
+      ]);
+      if (!mounted) return;
+      let taskTotalSum = 0;
+      let taskQueuedSum = 0;
+      let taskRunningSum = 0;
+      let taskFailedSum = 0;
+      let envTotal = 0;
+      let anyTaskOk = false;
+      let anyEnvOk = false;
+      projectResults.forEach((res) => {
+        if (res.status !== 'fulfilled') return;
+        const [taskR, envR] = res.value;
+        if (taskR.status === 'fulfilled' && taskR.value?.stats) {
+          anyTaskOk = true;
+          taskTotalSum += Number(taskR.value.stats.total || 0);
+          taskQueuedSum += Number(taskR.value.stats.queued || 0);
+          taskRunningSum += Number(taskR.value.stats.running || 0);
+          taskFailedSum += Number(taskR.value.stats.failed || 0);
+        }
+        if (envR.status === 'fulfilled' && envR.value) {
+          anyEnvOk = true;
+          envTotal += Number(envR.value?.summary?.total_agents || 0);
+        }
+      });
+      setTaskCount(anyTaskOk ? taskTotalSum : null);
+      setTaskQueued(anyTaskOk ? taskQueuedSum : null);
+      setTaskRunning(anyTaskOk ? taskRunningSum : null);
+      setTaskFailed(anyTaskOk ? taskFailedSum : null);
+      setEnvCount(anyEnvOk ? envTotal : null);
+      const vulnOverview = vulnRes.status === 'fulfilled' ? vulnRes.value : null;
+      setVulnCount(vulnOverview ? Number(vulnOverview?.metrics?.total_cases || 0) : null);
+      setVulnTotal(vulnOverview ? Number(vulnOverview?.metrics?.total_cases || 0) : null);
+      setVulnPendingVerify(
+        vulnOverview
+          ? Number(vulnOverview?.stage_counts?.receive || 0) + Number(vulnOverview?.stage_counts?.triage || 0)
+          : null,
+      );
+      setVulnValidating(vulnOverview ? Number(vulnOverview?.stage_counts?.validation || 0) : null);
+      setVulnVerified(vulnOverview ? Number(vulnOverview?.metrics?.finished_cases || 0) : null);
+      setVulnConfirmed(vulnOverview ? Number(vulnOverview?.finished_reason_counts?.vulnerable || 0) : null);
+      setVulnRuledOut(vulnOverview ? Number(vulnOverview?.finished_reason_counts?.non_vulnerable || 0) : null);
+    };
+    void loadStats();
+    return () => {
+      mounted = false;
+    };
+  }, [projects.length]);
 
   const localProjectsCount = (projects || []).length;
   const localAgentsTotal = (agents || []).length;
@@ -333,32 +425,103 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}
     >
       <div className="mx-auto w-full max-w-[1600px] space-y-4">
-        <header className="flex flex-wrap items-end justify-between gap-3 pb-4" style={{ borderBottom:`1px solid ${LK.borderSoft}` }}>
-          <div>
-            <span
-              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-              style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}
+        <PageHeader
+          title={<div className="flex flex-col gap-1"><span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}><BarChart3 size={13} /> 平台结果看板</span><span>Chimera 平台结果看板</span></div>}
+          description="汇总各模块的结果性数据：交付范围、节点状态、工作流执行、服务健康、资源占用与 AI 网关调用。"
+          actions={<button type="button" onClick={() => setCurrentView('aigw-dashboard')} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = LK.primaryDeep)} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = LK.primary)}>AI 网关详情 <ArrowUpRight size={13} /></button>}
+        />
+
+        <section className="grid grid-cols-4 gap-3">
+          {[
+            { label: '项目', value: projects.length, icon: Building2, color: LK.primary },
+            { label: '任务', value: taskCount !== null ? taskCount : '-', icon: Layers, color: LK.success },
+            { label: '环境', value: envCount !== null ? envCount : '-', icon: Server, color: LK.warning },
+            { label: '漏洞', value: vulnCount !== null ? vulnCount : '-', icon: AlertTriangle, color: LK.error },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className="flex items-center justify-between rounded-xl px-4 py-3"
+              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
             >
-              <BarChart3 size={13} /> 平台结果看板
-            </span>
-            <h1 className="mt-3 text-2xl font-semibold leading-8 tracking-tight" style={{ color: LK.ink }}>
-              Chimera 平台结果看板
-            </h1>
-            <p className="mt-1.5 max-w-3xl text-sm leading-6" style={{ color: LK.body }}>
-              汇总各模块的结果性数据：交付范围、节点状态、工作流执行、服务健康、资源占用与 AI 网关调用。
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setCurrentView('aigw-dashboard')}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors"
-            style={{ backgroundColor: LK.primary, color: '#ffffff' }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = LK.primaryDeep)}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = LK.primary)}
-          >
-            AI 网关详情 <ArrowUpRight size={13} />
-          </button>
-        </header>
+              <div>
+                <div className="text-xs" style={{ color: LK.muted }}>
+                  {stat.label}
+                </div>
+                <div className="mt-1 text-2xl font-semibold leading-7 tabular-nums" style={{ color: stat.color }}>
+                  {stat.value}
+                </div>
+              </div>
+              <div
+                className="flex h-9 w-9 items-center justify-center rounded-md"
+                style={{ backgroundColor: `${stat.color}22`, color: stat.color }}
+              >
+                <stat.icon size={18} />
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <section className="grid grid-cols-4 gap-3">
+          {[
+            { label: '系统中总的任务', value: taskCount !== null ? taskCount : '-', icon: ListChecks, color: LK.primary },
+            { label: '排队中任务', value: taskQueued !== null ? taskQueued : '-', icon: Clock, color: LK.warning },
+            { label: '运行中的任务', value: taskRunning !== null ? taskRunning : '-', icon: Loader, color: LK.info },
+            { label: '失败的任务', value: taskFailed !== null ? taskFailed : '-', icon: XCircle, color: LK.error },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className="flex items-center justify-between rounded-xl px-4 py-3"
+              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+            >
+              <div>
+                <div className="text-xs" style={{ color: LK.muted }}>
+                  {stat.label}
+                </div>
+                <div className="mt-1 text-2xl font-semibold leading-7 tabular-nums" style={{ color: stat.color }}>
+                  {stat.value}
+                </div>
+              </div>
+              <div
+                className="flex h-9 w-9 items-center justify-center rounded-md"
+                style={{ backgroundColor: `${stat.color}22`, color: stat.color }}
+              >
+                <stat.icon size={18} />
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <section className="grid grid-cols-6 gap-3">
+          {[
+            { label: '漏洞总数', value: vulnTotal !== null ? vulnTotal : '-', icon: Bug, color: LK.primary },
+            { label: '待验证', value: vulnPendingVerify !== null ? vulnPendingVerify : '-', icon: Hourglass, color: LK.warning },
+            { label: '验证中', value: vulnValidating !== null ? vulnValidating : '-', icon: RefreshCw, color: LK.info },
+            { label: '已验证', value: vulnVerified !== null ? vulnVerified : '-', icon: CheckCircle2, color: LK.primaryDeep },
+            { label: '漏洞', value: vulnConfirmed !== null ? vulnConfirmed : '-', icon: AlertTriangle, color: LK.error },
+            { label: '非漏洞', value: vulnRuledOut !== null ? vulnRuledOut : '-', icon: ShieldCheck, color: LK.success },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className="flex flex-col rounded-xl px-3 py-3"
+              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-[11px]" style={{ color: LK.muted }}>
+                  {stat.label}
+                </div>
+                <div
+                  className="flex h-7 w-7 items-center justify-center rounded-md"
+                  style={{ backgroundColor: `${stat.color}22`, color: stat.color }}
+                >
+                  <stat.icon size={14} />
+                </div>
+              </div>
+              <div className="mt-2 text-2xl font-semibold leading-7 tabular-nums" style={{ color: stat.color }}>
+                {stat.value}
+              </div>
+            </div>
+          ))}
+        </section>
 
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <KpiCard

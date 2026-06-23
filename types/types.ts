@@ -2260,9 +2260,13 @@ export interface VirtualKey {
 export type ScheduleCenterUserTaskType =
   | 'binary_firmware_e2e'
   | 'source_scan_e2e'
+  | 'kg_source_vuln_scan_e2e'
   | 'binary_module_e2e'
   | 'ai4red'
-  | 'ai4apk'
+  | 'ai4app_fast'
+  | 'ai4app_deep'
+  | 'ai4web_fast'
+  | 'ai4web_deep'
   | 'sechps_tool'
   | 'redline_verification_e2e';
 
@@ -2344,7 +2348,7 @@ export interface ScheduleCenterUserTask {
   sync_lease_expires_at?: string | null;
   last_sync_error?: string | null;
   last_sync_http_status?: number | null;
-  delete_status?: 'none' | 'queued' | 'running' | 'failed' | string;
+  delete_status?: 'none' | 'queued' | 'running' | 'blocked' | 'failed' | string;
   delete_error?: string | null;
   delete_requested_at?: string | null;
   delete_started_at?: string | null;
@@ -2373,7 +2377,7 @@ export interface ScheduleCenterUserTaskDeleteQueueItem {
   name: string;
   task_type: ScheduleCenterUserTaskType | string;
   display_status: string;
-  delete_status: 'queued' | 'running' | 'failed' | string;
+  delete_status: 'queued' | 'running' | 'blocked' | 'failed' | string;
   delete_error?: string | null;
   last_error?: string | null;
   downstream_task_id?: string | null;
@@ -2391,6 +2395,7 @@ export interface ScheduleCenterUserTaskDeleteQueueResponse {
   stats: {
     queued_total: number;
     running_total: number;
+    blocked_total: number;
     failed_total: number;
   };
 }
@@ -2485,9 +2490,13 @@ export interface ScheduleCenterUserTaskBulkDeleteResult {
 export type ScheduleRuntimeTaskType =
   | 'binary_firmware_e2e'
   | 'source_scan_e2e'
+  | 'kg_source_vuln_scan_e2e'
   | 'binary_module_e2e'
   | 'ai4red'
-  | 'ai4apk'
+  | 'ai4app_fast'
+  | 'ai4app_deep'
+  | 'ai4web_fast'
+  | 'ai4web_deep'
   | 'sechps_tool';
 
 export type ScheduleDispatchMode = 'balanced' | 'fifo' | 'priority_first';
@@ -2503,10 +2512,26 @@ export interface ScheduleRuntimeSchedulerPolicy {
   db_fallback_batch_size: number;
 }
 
+export interface ScheduleRuntimeUserTaskSyncPolicy {
+  enabled: boolean;
+  worker_concurrency: number;
+  lease_seconds: number;
+  heartbeat_interval_seconds: number;
+  db_fallback_batch_size: number;
+  queue_pop_timeout_seconds: number;
+  reclaim_batch_size: number;
+  dispatching_seconds: number;
+  running_seconds: number;
+  paused_seconds: number;
+  terminal_verify_seconds: number;
+  retry_initial_seconds: number;
+  retry_max_seconds: number;
+  failure_threshold: number;
+}
+
 export interface ScheduleRuntimeToolDefault {
   task_type: ScheduleRuntimeTaskType;
   label: string;
-  default_concurrency: number;
   root_task_key_max_concurrency: number;
   capacity_pool_ids: number[];
   root_task_key_expires_at?: string | null;
@@ -2518,6 +2543,7 @@ export interface ScheduleRuntimeTimeWindow {
   start_time: string;
   end_time: string;
   scheduler_policy?: ScheduleRuntimeSchedulerPolicy | null;
+  user_task_sync_policy?: ScheduleRuntimeUserTaskSyncPolicy | null;
   tool_defaults: ScheduleRuntimeToolDefault[];
 }
 
@@ -2526,6 +2552,7 @@ export interface ScheduleRuntimeEffectiveConfig {
   active_time_window_name?: string | null;
   timezone: string;
   scheduler_policy: ScheduleRuntimeSchedulerPolicy;
+  user_task_sync_policy: ScheduleRuntimeUserTaskSyncPolicy;
   tool_defaults: ScheduleRuntimeToolDefault[];
 }
 
@@ -2533,6 +2560,7 @@ export interface ScheduleRuntimeConfig {
   config_key: string;
   timezone: string;
   scheduler_policy: ScheduleRuntimeSchedulerPolicy;
+  user_task_sync_policy: ScheduleRuntimeUserTaskSyncPolicy;
   tool_defaults: ScheduleRuntimeToolDefault[];
   time_windows: ScheduleRuntimeTimeWindow[];
   version: number;
@@ -2575,11 +2603,12 @@ export type ViewType =
   | 'pentest-root' | 'pentest-system'
   | 'pentest-threat' | 'pentest-exec-code' | 'pentest-exec-work' | 'pentest-dataflow'
   | 'pentest-dataflow-vuln-scan'
-  | 'pentest-vuln-verify' | 'vuln-verify-task'
+  | 'pentest-vuln-verify' | 'vuln-verify-task' | 'pentest-vuln-verify-v2'
   | 'pentest-exec-firmware-unpacker' | 'pentest-exec-firmware-task-list' | 'pentest-exec-firmware-config'
   | 'pentest-exec-b2s' | 'pentest-exec-b2s-root' | 'pentest-exec-b2s-task-list' | 'pentest-exec-b2s-create' | 'pentest-exec-b2s-queue' | 'pentest-exec-b2s-result' | 'pentest-exec-b2s-detail' | 'pentest-exec-b2s-advanced'
   | 'binary-security' | 'binary-security-root' | 'binary-security-task-list' | 'binary-security-detail' | 'binary-security-config'
   | 'source-security' | 'source-security-detail'
+  | 'kg-source-security' | 'kg-source-security-detail'
   | 'binary-module-security' | 'binary-module-security-detail'
   | 'app-security-scan' | 'app-security-scan-detail' | 'app-security-scan-monitor'
   | 'mobile-security-ipc-vuln'
@@ -2700,12 +2729,18 @@ export interface AiGatewayProviderStat {
 export interface AiGatewayLlmKey {
   id: number;
   key_name: string;
-  key_type: 'task' | 'work' | string;
+  key_type: 'task' | 'work' | 'app' | string;
+  app_id?: string;
+  app_name?: string;
   parent_key_id?: number | null;
   key_prefix: string;
   max_concurrency: number;
+  project_id?: string;
+  project_name?: string;
   task_id: string;
+  task_name?: string;
   sub_task_id: string;
+  sub_task_name?: string;
   enabled: boolean;
   expires_at?: string | null;
   description: string;
@@ -2725,11 +2760,17 @@ export interface AiGatewayLlmKeyTaskBindingInput {
 
 export interface AiGatewayLlmKeyCreatePayload {
   key_name: string;
-  key_type: 'task' | 'work';
+  key_type: 'task' | 'work' | 'app';
+  app_id?: string;
+  app_name?: string;
   parent_key_id?: number | null;
   max_concurrency: number;
+  project_id?: string;
+  project_name?: string;
   task_id: string;
+  task_name?: string;
   sub_task_id: string;
+  sub_task_name?: string;
   enabled: boolean;
   expires_at?: string | null;
   description: string;
@@ -2776,6 +2817,8 @@ export interface AiGatewayLogSummary {
   llm_key_prefix: string;
   task_key_id: number;
   task_key_prefix: string;
+  app_id: string;
+  app_name?: string;
   task_id: string;
   sub_task_id: string;
   model_alias_id: number;
@@ -3061,6 +3104,7 @@ export interface SystemAnalysisServiceConfig {
   module_granularity: string;
   filter_engine: 'script' | 'agent';
   enable_final_check: boolean;
+  super_fast_mode: boolean;
   worker_task_concurrency: number;
   parallel_modules: number;
   parallel_sub_workers: number;
@@ -3448,6 +3492,14 @@ export interface AppSaStageEvent {
 export interface AppSaStagesJson {
   events: AppSaStageEvent[];
   final?: boolean;
+  event_count?: number;
+  last_event_ts?: number | null;
+  step_summary?: Record<string, {
+    start_ts?: number | null;
+    end_ts?: number | null;
+    status?: 'pending' | 'running' | 'completed' | 'failed' | string;
+  }>;
+  latest_stage_data?: Record<string, Record<string, any>>;
 }
 
 export interface AppSaTaskDetail extends AppSaTaskItem {
@@ -3473,15 +3525,15 @@ export interface AppSaTaskDetail extends AppSaTaskItem {
     [key: string]: any;
   } | null;
   stages_json?: AppSaStagesJson | null;
-  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean; start_stage?: number; resume_workspace?: string; resolved_config_snapshot?: Record<string, any> } | null;
+  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean; super_fast_mode?: boolean; start_stage?: number; resume_workspace?: string; resolved_config_snapshot?: Record<string, any> } | null;
   agent_auth_json?: Record<string, any> | null;
   role_config_snapshot?: Record<string, any> | null;
   provider_runtime_summary?: Record<string, any> | null;
   llm_binding_snapshot?: Record<string, any> | null;
   /** 实际生效配置（task_config_json 覆盖项目配置后的合并结果） */
-  effective_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean } | null;
+  effective_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean; super_fast_mode?: boolean } | null;
   /** 每个字段的来源："task" = 任务级覆盖，"project" = 项目默认 */
-  effective_config_source?: { analyse_targets?: 'task' | 'project'; binary_arch?: 'task' | 'project'; security_focus_categories?: 'task' | 'project'; module_granularity?: 'task' | 'project'; filter_engine?: 'task' | 'project'; enable_final_check?: 'task' | 'project'; continue_on_module_failure?: 'task' | 'project' } | null;
+  effective_config_source?: { analyse_targets?: 'task' | 'project'; binary_arch?: 'task' | 'project'; security_focus_categories?: 'task' | 'project'; module_granularity?: 'task' | 'project'; filter_engine?: 'task' | 'project'; enable_final_check?: 'task' | 'project'; continue_on_module_failure?: 'task' | 'project'; super_fast_mode?: 'task' | 'project' } | null;
   task_root?: string | null;
   run_root?: string | null;
   workspace_root?: string | null;
@@ -3628,11 +3680,29 @@ export interface AppSaTaskEvent {
   payload?: Record<string, any> | null;
   payload_json?: Record<string, any> | null;
   created_at?: string | null;
+  recorder_instance_id?: string | null;
+  recorder_hostname?: string | null;
+  recorder_pod_name?: string | null;
+  recorder_node_name?: string | null;
+  recorder_pod_ip?: string | null;
+  recorder_role?: string | null;
+  origin_instance_id?: string | null;
+  origin_hostname?: string | null;
+  origin_pod_name?: string | null;
+  origin_node_name?: string | null;
+  origin_role?: string | null;
 }
 
 export interface AppSaTaskTimeline {
   task_id: string;
   events: AppSaTaskEvent[];
+}
+
+export interface AppSaTaskStageEvents {
+  task_id: string;
+  status: string;
+  final: boolean;
+  events: AppSaStageEvent[];
 }
 
 export interface AppSaTaskActionResponse {
@@ -4157,6 +4227,18 @@ export interface AppEaTaskEvent {
   message?: string | null;
   payload?: Record<string, any> | null;
   payload_json?: Record<string, any> | null;
+  recorder_instance_id?: string | null;
+  recorder_hostname?: string | null;
+  recorder_pod_name?: string | null;
+  recorder_node_name?: string | null;
+  recorder_pod_ip?: string | null;
+  recorder_role?: string | null;
+  origin_instance_id?: string | null;
+  origin_hostname?: string | null;
+  origin_pod_name?: string | null;
+  origin_node_name?: string | null;
+  origin_pod_ip?: string | null;
+  origin_role?: string | null;
   dedupe_key?: string | null;
   created_at: string;
 }
@@ -4471,6 +4553,8 @@ export interface EntryAnalysisServiceConfig {
   // 快速模式：R2 完成后批量 LLM 预筛入口（不保证全面性）
   fast_mode: boolean;
   fast_mode_batch_size: number;
+  // 极速模式：关闭所有 Judge，跳过报告阶段
+  super_fast_mode: boolean;
   updated_at?: string | null;
 }
 
@@ -4520,6 +4604,18 @@ export interface AppDfaTaskEvent {
   parent_stage_item_id?: string | null;
   message: string;
   payload?: Record<string, any> | null;
+  recorder_instance_id?: string | null;
+  recorder_hostname?: string | null;
+  recorder_pod_name?: string | null;
+  recorder_node_name?: string | null;
+  recorder_pod_ip?: string | null;
+  recorder_role?: string | null;
+  origin_instance_id?: string | null;
+  origin_hostname?: string | null;
+  origin_pod_name?: string | null;
+  origin_node_name?: string | null;
+  origin_pod_ip?: string | null;
+  origin_role?: string | null;
   created_at?: string | null;
 }
 
@@ -4700,6 +4796,7 @@ export interface AppDfaSessionMeta {
   message_count?: number;
   is_active: boolean;
   display_name: string;
+  agent_session?: Record<string, any>;
 }
 
 export type AppDfaSessionIndexNode = AppSaSessionIndexNode;
@@ -4757,6 +4854,44 @@ export interface AppDfaResultFile {
   mtime: number;
 }
 
+export interface AppDfaSourceSnippetLine {
+  n: number;
+  text: string;
+}
+
+export interface AppDfaSourceSnippet {
+  file?: string;
+  abs_path?: string;
+  start_line: number;
+  end_line: number;
+  focus_line?: number | null;
+  lines: AppDfaSourceSnippetLine[];
+}
+
+export interface AppDfaVulnFinding {
+  id: string;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO' | string;
+  title: string;
+  count?: number;
+  location?: string;
+  root_cause?: string;
+  proposed_fix?: string;
+  detail?: string;
+  function?: string;
+  vulnerability?: string;
+  confidence?: number | string;
+  flow?: string;
+  alarm?: string;
+  code?: string;
+  entry_point?: string[];
+  file?: string;
+  line?: number;
+  source?: Record<string, any>;
+  sink?: Record<string, any>;
+  dataflow_trace?: Array<Record<string, any>>;
+  source_snippet?: AppDfaSourceSnippet;
+}
+
 export interface AppDfaTaskResult {
   task_id: string;
   available: boolean;
@@ -4768,6 +4903,7 @@ export interface AppDfaTaskResult {
   result_json?: Record<string, any> | null;
   output_files: AppDfaResultFile[];
   dataflow_files: AppDfaResultFile[];
+  findings?: AppDfaVulnFinding[];
   summary: {
     function_count: number;
     round_count: number;
@@ -4775,6 +4911,8 @@ export interface AppDfaTaskResult {
     total_tokens: number;
     total_cost: number;
     effectiveness?: Record<string, any>;
+    total_findings?: number;
+    findings_by_severity?: Record<string, number>;
   };
 }
 
@@ -4832,6 +4970,9 @@ export interface AppDfaServiceConfig {
   max_trace_depth: number;
   deep_trace_enabled: boolean;
   callee_concurrency: number;
+  entry_screen_enabled?: boolean;
+  entry_screen_whitelist?: string[];
+  entry_screen_thinking_level?: string;
   workers: AppDfaRoleConfig;
   judges: AppDfaRoleConfig;
   output_dir: string;

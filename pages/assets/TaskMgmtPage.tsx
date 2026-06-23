@@ -14,6 +14,7 @@ import {
 import { ProjectTask } from '../../types/types';
 import { api } from '../../clients/api';
 import { StatusBadge } from '../../components/StatusBadge';
+import { DataTable, DataTableColumn, Modal } from '../../design-system';
 
 export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const assetApi = api.domains.assets;
@@ -211,52 +212,52 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
   }, [tasks]);
 
   return (
-    <div className="p-2.5 space-y-3 animate-in fade-in duration-500 h-full overflow-y-auto lg:p-3">
+    <div className="space-y-4 px-5 py-5 md:px-6 2xl:px-8 h-full overflow-y-auto">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
- <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">总任务</div>
-          <div className="mt-2 text-3xl font-black leading-none text-slate-900">{stats.total}</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">总任务</div>
+          <div className="mt-2 text-3xl font-bold leading-none text-theme-text-primary">{stats.total}</div>
         </div>
- <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">运行中</div>
-          <div className="mt-2 text-3xl font-black leading-none text-blue-600">{stats.running}</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">运行中</div>
+          <div className="mt-2 text-3xl font-bold leading-none text-blue-400">{stats.running}</div>
         </div>
- <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">成功</div>
-          <div className="mt-2 text-3xl font-black leading-none text-emerald-600">{stats.succeeded}</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">成功</div>
+          <div className="mt-2 text-3xl font-bold leading-none text-emerald-400">{stats.succeeded}</div>
         </div>
- <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">失败</div>
-          <div className="mt-2 text-3xl font-black leading-none text-rose-600">{stats.failed}</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">失败</div>
+          <div className="mt-2 text-3xl font-bold leading-none text-rose-400">{stats.failed}</div>
         </div>
- <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">已取消</div>
-          <div className="mt-2 text-3xl font-black leading-none text-slate-600">{stats.cancelled}</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">已取消</div>
+          <div className="mt-2 text-3xl font-bold leading-none text-theme-text-secondary">{stats.cancelled}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
- <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="text-sm font-black text-slate-800">任务列表</div>
+            <div className="text-sm font-semibold text-theme-text-primary">任务列表</div>
             <div className="flex flex-wrap items-center gap-1.5">
               <button
                 onClick={handleDeleteBatchClick}
                 disabled={selectedTaskIds.size === 0}
- className="rounded-lg border border-rose-100 bg-rose-50 px-2.5 py-2 text-xs font-black text-rose-600 disabled:opacity-50 disabled:cursor-not-allowed"
+ className="rounded-lg border border-rose-500/20 bg-rose-500/15 px-2.5 py-2 text-xs font-medium text-rose-400 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 批量删除（{selectedTaskIds.size}）
               </button>
               <button
                 onClick={handleDeleteAllClick}
                 disabled={filteredTasks.length === 0}
- className="rounded-lg border border-rose-200 bg-slate-50 px-2.5 py-2 text-xs font-black text-rose-600 disabled:opacity-50 disabled:cursor-not-allowed"
+ className="rounded-lg border border-rose-500/20 bg-theme-elevated px-2.5 py-2 text-xs font-medium text-rose-400 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 一键删除全部
               </button>
               <button
                 onClick={() => void loadTasks()}
- className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs font-black text-slate-700"
+ className="rounded-lg border border-theme-border bg-theme-surface px-2.5 py-2 text-xs font-medium text-theme-text-secondary"
               >
                 <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
               </button>
@@ -265,11 +266,11 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
 
           <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_200px]">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
               <input
                 type="text"
                 placeholder="搜索任务 ID、任务类型..."
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs font-semibold outline-none transition-all focus:border-blue-300"
+                className="w-full rounded-lg border border-theme-border bg-theme-surface py-2 pl-9 pr-3 text-xs font-semibold outline-none transition-all focus:border-blue-300"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -277,7 +278,7 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold outline-none"
+              className="form-select w-full text-xs"
             >
               <option value="all">全部状态</option>
               <option value="pending">Pending</option>
@@ -288,94 +289,104 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             </select>
           </div>
 
-          <div className="mt-3 overflow-hidden rounded-lg border border-slate-200">
-            <table className="w-full text-left">
-              <thead className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">
+          <div className="mt-3">
+            {(() => {
+              const columns: DataTableColumn<ProjectTask>[] = [
+                {
+                  key: 'checkbox',
+                  header: (
                     <input type="checkbox" checked={allPageSelected} onChange={(e) => togglePageSelection(e.target.checked)} />
-                  </th>
-                  <th className="px-4 py-3">任务标识 / ID</th>
-                  <th className="px-4 py-3">关联资源 ID</th>
-                  <th className="px-4 py-3">进度</th>
-                  <th className="px-4 py-3">创建日期</th>
-                  <th className="px-4 py-3">状态</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50 text-xs">
-                {!projectId ? (
-                  <tr>
-                    <td colSpan={6} className="py-16 text-center font-semibold text-slate-400">请先选择一个项目</td>
-                  </tr>
-                ) : loading ? (
-                  <tr>
-                    <td colSpan={6} className="py-16 text-center"><Loader2 className="mx-auto animate-spin text-blue-600" size={28} /></td>
-                  </tr>
-                ) : filteredTasks.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-16 text-center">
-                      <div className="mx-auto mb-3 w-fit rounded-full bg-slate-50 p-3 text-slate-300"><History size={20} /></div>
-                      <div className="font-semibold text-slate-400">当前筛选条件下没有任务</div>
-                    </td>
-                  </tr>
-                ) : (
-                  pagedTasks.map((task) => (
-                    <tr
-                      key={task.task_id}
-                      onClick={() => setSelectedTaskId(task.task_id)}
-                      className={`cursor-pointer transition-all hover:bg-slate-100 ${selectedTaskId === task.task_id ? 'bg-blue-50/60' : ''}`}
-                    >
-                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={selectedTaskIds.has(task.task_id)}
-                          onChange={(e) => toggleTaskSelection(task.task_id, e.target.checked)}
+                  ),
+                  render: (task) => (
+                    <span onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedTaskIds.has(task.task_id)}
+                        onChange={(e) => toggleTaskSelection(task.task_id, e.target.checked)}
+                      />
+                    </span>
+                  ),
+                },
+                {
+                  key: 'task_id',
+                  header: '任务标识 / ID',
+                  render: (task) => (
+                    <div className="flex items-center gap-3">
+                      <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
+                        task.status === 'succeeded' ? 'bg-green-500/15 text-green-400' :
+                        task.status === 'failed' ? 'bg-red-500/15 text-red-400' : 'bg-blue-500/15 text-blue-400'
+                      }`}>
+                        <Workflow size={14} />
+                      </div>
+                      <div>
+                        <div className="text-xs font-medium text-theme-text-secondary capitalize">{(task.task_type || 'Task').replace('_', ' ')}</div>
+                        <div className="text-[10px] font-mono text-theme-text-muted">{task.task_id}</div>
+                      </div>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'resource_id',
+                  header: '关联资源 ID',
+                  render: (task) => (
+                    <div className="flex items-center gap-2 font-semibold text-theme-text-secondary">
+                      <FileBox size={14} className="text-theme-text-faint" />
+                      <span>{task.resource_id}</span>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'progress',
+                  header: '进度',
+                  render: (task) => (
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-24 overflow-hidden rounded-full bg-theme-elevated">
+                        <div
+                          className={`h-full ${task.status === 'failed' ? 'bg-red-500' : 'bg-blue-600'}`}
+                          style={{ width: `${task.progress || 0}%` }}
                         />
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-                            task.status === 'succeeded' ? 'bg-green-50 text-green-600' :
-                            task.status === 'failed' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
-                          }`}>
-                            <Workflow size={14} />
-                          </div>
-                          <div>
-                            <div className="text-xs font-black text-slate-700 capitalize">{(task.task_type || 'Task').replace('_', ' ')}</div>
-                            <div className="text-[10px] font-mono text-slate-400">{task.task_id}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2 font-semibold text-slate-600">
-                          <FileBox size={14} className="text-slate-300" />
-                          <span>{task.resource_id}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-100">
-                            <div
-                              className={`h-full ${task.status === 'failed' ? 'bg-red-500' : 'bg-blue-600'}`}
-                              style={{ width: `${task.progress || 0}%` }}
-                            />
-                          </div>
-                          <span className="text-[11px] font-black text-slate-500">{task.progress || 0}%</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500">
-                          <Clock size={12} /> {task.created_at?.split('T')[0]}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3"><StatusBadge status={task.status} /></td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                      </div>
+                      <span className="text-[11px] font-medium text-theme-text-muted">{task.progress || 0}%</span>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'created_at',
+                  header: '创建日期',
+                  render: (task) => (
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-theme-text-muted">
+                      <Clock size={12} /> {task.created_at?.split('T')[0]}
+                    </div>
+                  ),
+                },
+                {
+                  key: 'status',
+                  header: '状态',
+                  render: (task) => <StatusBadge status={task.status} />,
+                },
+              ];
+              return (
+                <DataTable
+                  columns={columns}
+                  data={!projectId || loading || filteredTasks.length === 0 ? [] : pagedTasks}
+                  rowKey={(r) => String(r.task_id)}
+                  loading={loading}
+                  empty={
+                    !projectId ? (
+                      <span className="font-semibold text-theme-text-muted">请先选择一个项目</span>
+                    ) : (
+                      <div className="text-center">
+                        <div className="mx-auto mb-3 w-fit rounded-full bg-theme-elevated p-3 text-theme-text-faint"><History size={20} /></div>
+                        <div className="font-semibold text-theme-text-muted">当前筛选条件下没有任务</div>
+                      </div>
+                    )
+                  }
+                  onRowClick={(task) => setSelectedTaskId(task.task_id)}
+                />
+              );
+            })()}
           </div>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-slate-600">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-theme-text-secondary">
             <div>
               共 {filteredTasks.length} 条，当前第 {page} / {totalPages} 页
             </div>
@@ -383,7 +394,7 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               <select
                 value={pageSize}
                 onChange={(e) => setPageSize(Number(e.target.value))}
-                className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold"
+                className="form-select text-xs"
               >
                 <option value={10}>10 / 页</option>
                 <option value={20}>20 / 页</option>
@@ -392,14 +403,14 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               <button
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 disabled={page <= 1}
-                className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-md border border-theme-border bg-theme-surface px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 上一页
               </button>
               <button
                 onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={page >= totalPages}
-                className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-md border border-theme-border bg-theme-surface px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 下一页
               </button>
@@ -407,52 +418,52 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           </div>
         </div>
 
- <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
           {!selectedTask ? (
-            <div className="flex min-h-[360px] items-center justify-center text-center text-xs font-semibold text-slate-400">选择一个任务后查看详情与日志。</div>
+            <div className="flex min-h-[360px] items-center justify-center text-center text-xs font-semibold text-theme-text-muted">选择一个任务后查看详情与日志。</div>
           ) : (
             <div className="space-y-3">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">任务详情</div>
-                <div className="mt-1.5 text-sm font-black text-slate-900">{selectedTask.task_type}</div>
-                <div className="mt-1 font-mono text-[11px] text-slate-500">{selectedTask.task_id}</div>
+              <div className="rounded-lg bg-theme-elevated p-3">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">任务详情</div>
+                <div className="mt-1.5 text-sm font-semibold text-theme-text-primary">{selectedTask.task_type}</div>
+                <div className="mt-1 font-mono text-[11px] text-theme-text-muted">{selectedTask.task_id}</div>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
-                  <div><div className="text-slate-400">项目ID</div><div className="mt-1 font-black text-slate-900">{selectedTask.project_id}</div></div>
-                  <div><div className="text-slate-400">资源ID</div><div className="mt-1 font-black text-slate-900">{selectedTask.resource_id}</div></div>
-                  <div><div className="text-slate-400">进度</div><div className="mt-1 font-black text-slate-900">{selectedTask.progress || 0}%</div></div>
-                  <div><div className="text-slate-400">状态</div><div className="mt-1"><StatusBadge status={selectedTask.status} /></div></div>
-                  <div className="col-span-2"><div className="text-slate-400">消息</div><div className="mt-1 font-semibold text-slate-700">{selectedTask.message || selectedTask.error_message || '-'}</div></div>
+                  <div><div className="text-theme-text-muted">项目ID</div><div className="mt-1 font-medium text-theme-text-primary">{selectedTask.project_id}</div></div>
+                  <div><div className="text-theme-text-muted">资源ID</div><div className="mt-1 font-medium text-theme-text-primary">{selectedTask.resource_id}</div></div>
+                  <div><div className="text-theme-text-muted">进度</div><div className="mt-1 font-medium text-theme-text-primary">{selectedTask.progress || 0}%</div></div>
+                  <div><div className="text-theme-text-muted">状态</div><div className="mt-1"><StatusBadge status={selectedTask.status} /></div></div>
+                  <div className="col-span-2"><div className="text-theme-text-muted">消息</div><div className="mt-1 font-semibold text-theme-text-secondary">{selectedTask.message || selectedTask.error_message || '-'}</div></div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   <button
                     onClick={() => void loadTaskLogs(selectedTask.task_id)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11px] font-black text-slate-700"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-surface px-2.5 py-1.5 text-[11px] font-medium text-theme-text-secondary"
                   >
                     <Terminal size={13} /> 刷新日志
                   </button>
                   <button
                     onClick={() => handleDeleteClick(selectedTask.task_id)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-rose-100 bg-rose-50 px-2.5 py-1.5 text-[11px] font-black text-rose-600"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/20 bg-rose-500/15 px-2.5 py-1.5 text-[11px] font-medium text-rose-400"
                   >
                     <Trash2 size={13} /> 删除任务
                   </button>
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-950">
-                <div className="border-b border-slate-800 px-3 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">任务日志</div>
-                <div className="max-h-[46vh] overflow-y-auto p-3 font-mono text-[11px] text-slate-200 custom-scrollbar">
+              <div className="overflow-hidden rounded-lg border border-theme-border bg-theme-surface">
+                <div className="border-b border-theme-border px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">任务日志</div>
+                <div className="max-h-[46vh] overflow-y-auto p-3 font-mono text-[11px] text-theme-text-primary custom-scrollbar">
                   {detailLogLoading ? (
                     <div className="flex min-h-[150px] items-center justify-center gap-2 text-blue-300"><Loader2 size={16} className="animate-spin" />加载日志中...</div>
                   ) : detailLogs.length > 0 ? (
                     detailLogs.map((line, index) => (
                       <div key={`${selectedTask.task_id}:${index}`} className="flex gap-3 py-0.5">
-                        <span className="w-6 shrink-0 text-right text-slate-500">{index + 1}</span>
+                        <span className="w-6 shrink-0 text-right text-theme-text-muted">{index + 1}</span>
                         <span className="whitespace-pre-wrap break-words leading-relaxed">{line}</span>
                       </div>
                     ))
                   ) : (
-                    <div className="flex min-h-[150px] flex-col items-center justify-center gap-2 text-slate-500">
+                    <div className="flex min-h-[150px] flex-col items-center justify-center gap-2 text-theme-text-muted">
                       <Terminal size={22} />
                       <span>暂无日志输出</span>
                     </div>
@@ -464,48 +475,48 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
         </div>
       </div>
 
-      {deleteConfirm.show && (
-        <div className="fixed inset-0 z-[140] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
- <div className="bg-slate-50 w-full max-w-md rounded-[2rem] overflow-hidden animate-in zoom-in-95">
-            <div className="p-8 text-center">
-              <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <AlertTriangle size={36} />
-              </div>
-              <h3 className="text-xl font-black text-slate-800">终止异步任务？</h3>
-              <p className="text-slate-500 mt-3 font-medium leading-relaxed text-sm">
-                {deleteConfirm.mode === 'single' ? (
-                  <>
-                    您正准备移除或终止任务 <span className="text-red-600 font-black font-mono">{deleteConfirm.taskId}</span>。
-                  </>
-                ) : deleteConfirm.mode === 'batch' ? (
-                  <>您正准备批量删除 <span className="text-red-600 font-black">{deleteConfirm.taskIds.length}</span> 个任务。</>
-                ) : (
-                  <>您正准备一键删除当前筛选结果中的 <span className="text-red-600 font-black">{deleteConfirm.taskIds.length}</span> 个任务。</>
-                )}
-                <br />
-                如果任务正在运行中，系统会尝试中断关联 K8S Job，该操作不可逆。
-              </p>
-            </div>
-            <div className="px-8 pb-8 flex gap-3">
-              <button
-                onClick={() => setDeleteConfirm({ show: false, mode: 'single', taskId: null, taskIds: [] })}
-                disabled={isDeleting}
-                className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-black hover:bg-slate-200 transition-all disabled:opacity-50"
-              >
-                保留
-              </button>
-              <button
-                onClick={executeDeleteTask}
-                disabled={isDeleting}
-                className="flex-1 py-3 bg-red-600 text-white rounded-xl font-black hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isDeleting ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
-                确认销毁
-              </button>
-            </div>
+      <Modal
+        open={deleteConfirm.show}
+        onClose={() => setDeleteConfirm({ show: false, mode: 'single', taskId: null, taskIds: [] })}
+        className="max-w-md"
+      >
+        <div className="p-8 text-center">
+          <div className="w-16 h-16 bg-red-500/15 text-red-400 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle size={36} />
           </div>
+          <h3 className="text-xl font-semibold text-theme-text-primary">终止异步任务？</h3>
+          <p className="text-theme-text-muted mt-3 font-medium leading-relaxed text-sm">
+            {deleteConfirm.mode === 'single' ? (
+              <>
+                您正准备移除或终止任务 <span className="text-red-400 font-medium font-mono">{deleteConfirm.taskId}</span>。
+              </>
+            ) : deleteConfirm.mode === 'batch' ? (
+              <>您正准备批量删除 <span className="text-red-400 font-medium">{deleteConfirm.taskIds.length}</span> 个任务。</>
+            ) : (
+              <>您正准备一键删除当前筛选结果中的 <span className="text-red-400 font-medium">{deleteConfirm.taskIds.length}</span> 个任务。</>
+            )}
+            <br />
+            如果任务正在运行中，系统会尝试中断关联 K8S Job，该操作不可逆。
+          </p>
         </div>
-      )}
+        <div className="px-8 pb-8 flex gap-3">
+          <button
+            onClick={() => setDeleteConfirm({ show: false, mode: 'single', taskId: null, taskIds: [] })}
+            disabled={isDeleting}
+            className="flex-1 py-3 bg-theme-elevated text-theme-text-secondary rounded-xl font-medium hover:bg-theme-elevated transition-all disabled:opacity-50"
+          >
+            保留
+          </button>
+          <button
+            onClick={executeDeleteTask}
+            disabled={isDeleting}
+            className="flex-1 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {isDeleting ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
+            确认销毁
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 };

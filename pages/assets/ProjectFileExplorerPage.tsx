@@ -1691,9 +1691,9 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
   };
 
   const renderNodeIcon = (node: UnifiedExplorerNode, expanded: boolean) => {
-    if (node.nodeType === 'workspace') return <FolderTree size={14} className="text-slate-500" />;
-    if (node.nodeType === 'fileserver-root') return <HardDrive size={14} className="text-sky-600" />;
-    if (node.nodeType === 'pvc-root') return <Database size={14} className="text-emerald-600" />;
+    if (node.nodeType === 'workspace') return <FolderTree size={14} className="text-theme-text-muted" />;
+    if (node.nodeType === 'fileserver-root') return <HardDrive size={14} className="text-sky-400" />;
+    if (node.nodeType === 'pvc-root') return <Database size={14} className="text-emerald-400" />;
     if (node.nodeType === 'subproject') return <HardDrive size={14} className="text-sky-500" />;
     if (node.nodeType === 'pvc') return <Database size={14} className="text-emerald-500" />;
     if (node.nodeType === 'directory' || node.nodeType === 'pvc-directory') {
@@ -1705,7 +1705,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
     if (type.startsWith('video/')) return <Video size={14} className="text-violet-500" />;
     const extension = node.name.includes('.') ? node.name.split('.').pop()!.toLowerCase() : '';
     if (TEXT_EXTENSIONS.has(extension)) return <FileCode size={14} className="text-blue-500" />;
-    return <File size={14} className="text-slate-400" />;
+    return <File size={14} className="text-theme-text-muted" />;
   };
 
   const renderTree = (node: UnifiedExplorerNode, depth = 0): React.ReactNode => {
@@ -1718,7 +1718,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
         <div
           data-tree-node="true"
           className={`group flex items-center gap-1 rounded-md px-2 py-1 text-[12px] leading-5 cursor-pointer ${
-            active ? 'bg-sky-100 text-sky-900' : dragHoverNodeId === node.id ? 'bg-amber-100' : 'text-slate-700 hover:bg-slate-100'
+            active ? 'bg-sky-500/15 text-sky-300' : dragHoverNodeId === node.id ? 'bg-amber-500/15' : 'text-theme-text-secondary hover:bg-theme-elevated'
           }`}
           style={{ paddingLeft:`${depth * 14 + 8}px` }}
           draggable={node.nodeType !== 'workspace' && node.nodeType !== 'fileserver-root' && node.nodeType !== 'pvc-root' && node.nodeType !== 'pvc' && node.nodeType !== 'subproject'}
@@ -1756,7 +1756,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
         >
           <button
             type="button"
- className="flex h-4 w-4 items-center justify-center rounded hover:bg-slate-100"
+ className="flex h-4 w-4 items-center justify-center rounded hover:bg-theme-elevated"
             onClick={(event) => {
               event.stopPropagation();
               void toggleNode(node);
@@ -1768,7 +1768,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
           </button>
           {gatewayLoading ? <RefreshCw size={14} className="text-sky-500 animate-spin" /> : renderNodeIcon(node, expanded)}
           <span className="truncate flex-1">{node.name}</span>
-          {node.specialBadge && <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[9px] font-black text-sky-700">{node.specialBadge}</span>}
+          {node.specialBadge && <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-[9px] font-medium text-sky-400">{node.specialBadge}</span>}
         </div>
         {expanded && node.children.length > 0 && (
           <div>{node.children.map((child) => renderTree(child, depth + 1))}</div>
@@ -1780,39 +1780,39 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
   const renderPreview = () => {
     if (!previewFile) {
       return (
-        <div className="flex h-full items-center justify-center text-slate-400">
+        <div className="flex h-full items-center justify-center text-theme-text-muted">
           选择一个文件以预览内容
         </div>
       );
     }
     if (busyAction.startsWith('preview:')) {
-      return <div className="flex h-full items-center justify-center text-slate-500">正在加载预览...</div>;
+      return <div className="flex h-full items-center justify-center text-theme-text-muted">正在加载预览...</div>;
     }
     if (preview.mode === 'text') {
       const isMd = previewFile.filename.endsWith('.md') || previewFile.filename.endsWith('.markdown');
       if (isMd && preview.text) {
         return (
- <div className="h-full overflow-auto rounded-2xl bg-slate-50 p-6">
-            <div className="prose prose-sm max-w-none text-slate-800">
+ <div className="h-full overflow-auto rounded-2xl bg-theme-bg-app p-6">
+            <div className="prose prose-sm max-w-none text-theme-text-primary">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
                   p: ({ children }) => <p className="mb-2 last:mb-0 text-sm leading-relaxed">{children}</p>,
-                  a: ({ children, href }) => <a href={href} target="_blank" rel="noreferrer" className="text-blue-600 underline underline-offset-2">{children}</a>,
+                  a: ({ children, href }) => <a href={href} target="_blank" rel="noreferrer" className="text-blue-400 underline underline-offset-2">{children}</a>,
                   ul: ({ children }) => <ul className="mb-2 list-disc space-y-0.5 pl-4 last:mb-0 text-sm">{children}</ul>,
                   ol: ({ children }) => <ol className="mb-2 list-decimal space-y-0.5 pl-4 last:mb-0 text-sm">{children}</ol>,
                   li: ({ children }) => <li className="text-sm">{children}</li>,
-                  h1: ({ children }) => <h1 className="mb-3 text-xl font-black text-slate-900 border-b border-slate-200 pb-1">{children}</h1>,
-                  h2: ({ children }) => <h2 className="mb-2 text-base font-bold text-slate-800 mt-4">{children}</h2>,
-                  h3: ({ children }) => <h3 className="mb-1 text-sm font-bold text-slate-700 mt-3">{children}</h3>,
-                  blockquote: ({ children }) => <blockquote className="mb-2 border-l-4 border-cyan-300 bg-cyan-50 px-3 py-1.5 italic text-sm last:mb-0">{children}</blockquote>,
+                  h1: ({ children }) => <h1 className="mb-3 text-xl font-semibold text-theme-text-primary border-b border-theme-border pb-1">{children}</h1>,
+                  h2: ({ children }) => <h2 className="mb-2 text-base font-bold text-theme-text-primary mt-4">{children}</h2>,
+                  h3: ({ children }) => <h3 className="mb-1 text-sm font-bold text-theme-text-secondary mt-3">{children}</h3>,
+                  blockquote: ({ children }) => <blockquote className="mb-2 border-l-4 border-cyan-300 bg-cyan-500/15 px-3 py-1.5 italic text-sm last:mb-0">{children}</blockquote>,
                   table: ({ children }) => <div className="mb-2 overflow-x-auto last:mb-0"><table className="min-w-full border-collapse text-left text-sm">{children}</table></div>,
-                  thead: ({ children }) => <thead className="bg-slate-100">{children}</thead>,
-                  th: ({ children }) => <th className="border border-slate-300 px-3 py-1.5 font-bold text-slate-700">{children}</th>,
-                  td: ({ children }) => <td className="border border-slate-300 px-3 py-1.5 align-top text-sm">{children}</td>,
+                  thead: ({ children }) => <thead className="bg-theme-elevated">{children}</thead>,
+                  th: ({ children }) => <th className="border border-theme-border px-3 py-1.5 font-bold text-theme-text-secondary">{children}</th>,
+                  td: ({ children }) => <td className="border border-theme-border px-3 py-1.5 align-top text-sm">{children}</td>,
                   code: ({ children, className }) => className
-                    ? <code className="block overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[12px] text-slate-900">{children}</code>
-                    : <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[0.9em] text-slate-800">{children}</code>,
+                    ? <code className="block overflow-x-auto rounded-lg border border-theme-border bg-theme-surface px-3 py-2 font-mono text-[12px] text-theme-text-primary">{children}</code>
+                    : <code className="rounded bg-theme-elevated px-1 py-0.5 font-mono text-[0.9em] text-theme-text-primary">{children}</code>,
                   pre: ({ children }) => <pre className="mb-2 last:mb-0">{children}</pre>,
                 }}
               >
@@ -1822,13 +1822,13 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
           </div>
         );
       }
-      return <pre className="h-full overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-5 text-[12px] text-slate-900 whitespace-pre-wrap">{preview.text || ''}</pre>;
+      return <pre className="h-full overflow-auto rounded-2xl border border-theme-border bg-theme-surface p-5 text-[12px] text-theme-text-primary whitespace-pre-wrap">{preview.text || ''}</pre>;
     }
     if (preview.mode === 'image' && preview.url) {
  return <div className="flex h-full items-center justify-center"><img src={preview.url} alt={previewFile.filename} className="max-h-full max-w-full rounded-xl" /></div>;
     }
     if (preview.mode === 'pdf' && preview.url) {
- return <iframe src={preview.url} title={previewFile.filename} className="h-full w-full rounded-2xl border border-slate-200 bg-slate-50" />;
+ return <iframe src={preview.url} title={previewFile.filename} className="h-full w-full rounded-2xl border border-theme-border bg-theme-surface" />;
     }
     if (preview.mode === 'audio' && preview.url) {
       return <div className="flex h-full items-center justify-center"><audio controls src={preview.url} className="w-full max-w-xl" /></div>;
@@ -1839,24 +1839,24 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
     if (preview.mode === 'binary') {
       return (
         <div className="flex h-full min-h-0 flex-col gap-3">
-          <div className="text-xs font-semibold text-slate-500">
+          <div className="text-xs font-semibold text-theme-text-muted">
             已展示前 {preview.displayedBytes || 0} bytes
             {preview.truncated && typeof preview.size === 'number' ?`（总大小 ${preview.size} bytes）` : ''}
           </div>
-          <pre className="min-h-0 flex-1 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 text-[11px] leading-5 text-slate-900">
+          <pre className="min-h-0 flex-1 overflow-auto rounded-2xl border border-theme-border bg-theme-surface p-4 text-[11px] leading-5 text-theme-text-primary">
             {preview.view || ''}
           </pre>
         </div>
       );
     }
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-500">
-        <FileText size={36} className="text-slate-300" />
+      <div className="flex h-full flex-col items-center justify-center gap-3 text-theme-text-muted">
+        <FileText size={36} className="text-theme-text-faint" />
         <div className="text-sm font-bold">该文件类型暂不支持内嵌预览</div>
-        <div className="text-xs text-slate-400">文件类型：{preview.contentType || previewFile.contentType || 'unknown'}</div>
+        <div className="text-xs text-theme-text-muted">文件类型：{preview.contentType || previewFile.contentType || 'unknown'}</div>
         <button
           type="button"
-          className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white"
+          className="rounded-xl bg-brand-primary px-4 py-2 text-xs font-medium text-white"
           onClick={() => void handleDownload(previewFile)}
         >
           下载文件
@@ -1922,14 +1922,14 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
 
     return (
       <div
- className="fixed z-50 min-w-[180px] rounded-2xl border border-slate-200 bg-slate-50 p-2"
+ className="fixed z-50 min-w-[180px] rounded-2xl border border-theme-border bg-theme-surface p-2"
         style={{ left: contextMenu.x, top: contextMenu.y }}
       >
         {actions.map((action) => (
           <button
             key={action.label}
             type="button"
-            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-700 hover:bg-slate-100"
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated"
             onClick={() => {
               setContextMenu(null);
               action.onClick();
@@ -1944,7 +1944,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
   };
 
   return (
- <div className="h-full overflow-hidden bg-[#070d18] p-6">
+ <div className="h-full overflow-hidden bg-theme-bg-app p-6">
       <input
         ref={fileInputRef}
         type="file"
@@ -1959,52 +1959,52 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
       />
 
       <div className="flex h-full min-h-0 flex-col gap-4">
- <div className="rounded-[2rem] border border-slate-200 bg-slate-50 px-6 py-5 backdrop-blur">
+ <div className="rounded-[2rem] border border-theme-border bg-theme-surface px-6 py-5 backdrop-blur">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="mt-2 text-3xl font-black text-slate-900">项目文件资源管理</h2>
-              <p className="mt-1 text-sm text-slate-500">{projectName}</p>
-              <p className="mt-1 text-xs text-slate-400">文件夹上传仅支持 Chromium/WebKit 浏览器，支持递归子目录与空文件夹。</p>
+              <h2 className="mt-2 text-3xl font-semibold text-theme-text-primary">项目文件资源管理</h2>
+              <p className="mt-1 text-sm text-theme-text-muted">{projectName}</p>
+              <p className="mt-1 text-xs text-theme-text-muted">文件夹上传仅支持 Chromium/WebKit 浏览器，支持递归子目录与空文件夹。</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <Search size={14} className="text-slate-400" />
+              <div className="flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-surface px-3 py-2">
+                <Search size={14} className="text-theme-text-muted" />
                 <input
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="搜索当前目录"
-                  className="w-44 bg-transparent text-xs font-semibold text-slate-700 outline-none placeholder:text-slate-400"
+                  className="w-44 bg-transparent text-xs font-semibold text-theme-text-secondary outline-none placeholder:text-theme-text-muted"
                 />
                 {searchTerm && (
-                  <button type="button" onClick={() => setSearchTerm('')} className="text-slate-400 hover:text-slate-700">
+                  <button type="button" onClick={() => setSearchTerm('')} className="text-theme-text-muted hover:text-theme-text-secondary">
                     <X size={12} />
                   </button>
                 )}
               </div>
-              <button type="button" onClick={() => void refreshCurrentView()} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black text-slate-700">
+              <button type="button" onClick={() => void refreshCurrentView()} className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-2 text-xs font-medium text-theme-text-secondary">
                 <span className="inline-flex items-center gap-2"><RefreshCw size={14} /> 刷新</span>
               </button>
-              <button type="button" onClick={() => void handleCreateSubproject()} className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-black text-sky-700">
+              <button type="button" onClick={() => void handleCreateSubproject()} className="rounded-2xl border border-sky-500/20 bg-sky-500/15 px-4 py-2 text-xs font-medium text-sky-400">
                 <span className="inline-flex items-center gap-2"><HardDrive size={14} /> 新建子项目</span>
               </button>
-              <button type="button" onClick={() => void handleCreateDirectory()} className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-black text-amber-700">
+              <button type="button" onClick={() => void handleCreateDirectory()} className="rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-2 text-xs font-medium text-amber-400">
                 <span className="inline-flex items-center gap-2"><FolderPlus size={14} /> 新建文件夹</span>
               </button>
-              <button type="button" onClick={() => triggerUpload(selectedNode || null)} className="rounded-2xl bg-slate-900 px-4 py-2 text-xs font-black text-white">
+              <button type="button" onClick={() => triggerUpload(selectedNode || null)} className="rounded-2xl bg-brand-primary px-4 py-2 text-xs font-medium text-white">
                 <span className="inline-flex items-center gap-2"><Upload size={14} /> 上传文件</span>
               </button>
-              <button type="button" onClick={() => void triggerDirectoryUpload(selectedNode || null)} className="rounded-2xl bg-sky-600 px-4 py-2 text-xs font-black text-white">
+              <button type="button" onClick={() => void triggerDirectoryUpload(selectedNode || null)} className="rounded-2xl bg-sky-600 px-4 py-2 text-xs font-medium text-white">
                 <span className="inline-flex items-center gap-2"><FolderUp size={14} /> 上传文件夹</span>
               </button>
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-bold text-theme-text-muted">
             {(listing.breadcrumbs.length > 0 ? listing.breadcrumbs : [{ id:`workspace:${projectId}`, name: projectName, node: nodeMap[`workspace:${projectId}`] || null }]).map((item, index, array) => (
               <React.Fragment key={`${item.id}-${index}`}>
                 <button
                   type="button"
-                  className="rounded-lg px-2 py-1 hover:bg-slate-100"
+                  className="rounded-lg px-2 py-1 hover:bg-theme-elevated"
                   onClick={() => {
                     if (item.node) {
                       void openNode(item.node);
@@ -2016,7 +2016,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                 >
                   {item.name}
                 </button>
-                {index < array.length - 1 && <ChevronRight size={12} className="text-slate-300" />}
+                {index < array.length - 1 && <ChevronRight size={12} className="text-theme-text-faint" />}
               </React.Fragment>
             ))}
           </div>
@@ -2024,26 +2024,26 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
 
         <div className="grid min-h-0 flex-1 grid-cols-[320px_minmax(0,1fr)] gap-4">
           <div
- className="min-h-0 overflow-auto rounded-[2rem] border border-slate-200 bg-slate-50 p-3"
+ className="min-h-0 overflow-auto rounded-[2rem] border border-theme-border bg-theme-surface p-3"
             onContextMenu={(event) => {
               if ((event.target as HTMLElement).closest('[data-tree-node]')) return;
               event.preventDefault();
               setContextMenu({ x: event.clientX, y: event.clientY, node: null });
             }}
           >
-            <div className="mb-3 flex items-center gap-2 px-2 text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">
+            <div className="mb-3 flex items-center gap-2 px-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-theme-text-muted">
               <FolderTree size={14} />
               文件树
             </div>
             {loading ? (
-              <div className="px-3 py-6 text-sm text-slate-400">正在加载目录结构...</div>
+              <div className="px-3 py-6 text-sm text-theme-text-muted">正在加载目录结构...</div>
             ) : (
               <div data-tree-node>{renderTree(rootNode)}</div>
             )}
           </div>
 
           <div
- className="min-h-0 rounded-[2rem] border border-slate-200 bg-slate-50"
+ className="min-h-0 rounded-[2rem] border border-theme-border bg-theme-surface"
             onDragOver={(event) => {
               const target = resolveUploadTarget(selectedNode || null);
               if (target) event.preventDefault();
@@ -2071,28 +2071,28 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
             }}
           >
             <div className="flex h-full min-h-0 flex-col">
-              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+              <div className="flex items-center justify-between border-b border-theme-border px-5 py-4">
                 <div>
-                  <div className="text-sm font-black text-slate-900">{selectedNode?.name || '项目文件资源'}</div>
-                  <div className="mt-1 text-[11px] text-slate-400">{busyAction ?`执行中: ${busyAction}` : '双击目录进入，单击文件预览'}</div>
+                  <div className="text-sm font-semibold text-theme-text-primary">{selectedNode?.name || '项目文件资源'}</div>
+                  <div className="mt-1 text-[11px] text-theme-text-muted">{busyAction ?`执行中: ${busyAction}` : '双击目录进入，单击文件预览'}</div>
                 </div>
               </div>
 
               {selectedNode && (selectedNode.nodeType === 'file' || selectedNode.nodeType === 'pvc-file') ? (
                 <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_280px] gap-0">
                   <div className="min-h-0 p-4">{renderPreview()}</div>
-                  <div className="border-l border-slate-100 p-5 text-sm text-slate-600">
-                    <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">文件信息</div>
+                  <div className="border-l border-theme-border p-5 text-sm text-theme-text-secondary">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">文件信息</div>
                     <div className="mt-4 space-y-3">
-                      <div><div className="text-xs text-slate-400">文件名</div><div className="font-bold text-slate-900 break-all">{previewFile?.filename}</div></div>
-                      <div><div className="text-xs text-slate-400">内容类型</div><div className="font-semibold">{previewFile?.contentType || preview.contentType || 'unknown'}</div></div>
-                      <div><div className="text-xs text-slate-400">大小</div><div className="font-semibold">{previewFile?.size || 0} bytes</div></div>
-                      <div><div className="text-xs text-slate-400">更新时间</div><div className="font-semibold">{previewFile?.updatedAt || '--'}</div></div>
+                      <div><div className="text-xs text-theme-text-muted">文件名</div><div className="font-bold text-theme-text-primary break-all">{previewFile?.filename}</div></div>
+                      <div><div className="text-xs text-theme-text-muted">内容类型</div><div className="font-semibold">{previewFile?.contentType || preview.contentType || 'unknown'}</div></div>
+                      <div><div className="text-xs text-theme-text-muted">大小</div><div className="font-semibold">{previewFile?.size || 0} bytes</div></div>
+                      <div><div className="text-xs text-theme-text-muted">更新时间</div><div className="font-semibold">{previewFile?.updatedAt || '--'}</div></div>
                     </div>
                     {previewFile && (
                       <button
                         type="button"
-                        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white"
+                        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2 text-xs font-medium text-white"
                         onClick={() => void handleDownload(previewFile)}
                       >
                         <Download size={14} />
@@ -2103,12 +2103,12 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                 </div>
               ) : (
                 <div className="min-h-0 flex-1 overflow-auto p-4">
-                  <div className="mb-2 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                    <div className="text-xs font-semibold text-slate-600">已选中 {selectedListNodeIds.size} 项</div>
+                  <div className="mb-2 flex items-center justify-between rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+                    <div className="text-xs font-semibold text-theme-text-secondary">已选中 {selectedListNodeIds.size} 项</div>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-lg border border-theme-border bg-theme-surface px-2.5 py-1 text-xs font-semibold text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
                         onClick={() => setSelectedListNodeIds(new Set(filteredItems.map((item) => item.id)))}
                         disabled={filteredItems.length === 0}
                       >
@@ -2116,7 +2116,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                       </button>
                       <button
                         type="button"
-                        className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-lg border border-theme-border bg-theme-surface px-2.5 py-1 text-xs font-semibold text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
                         onClick={() => setSelectedListNodeIds(new Set())}
                         disabled={selectedListNodeIds.size === 0}
                       >
@@ -2142,7 +2142,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                       </button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-[minmax(0,1fr)_120px_190px] gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+                  <div className="grid grid-cols-[minmax(0,1fr)_120px_190px] gap-3 rounded-2xl bg-theme-bg-app px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-theme-text-muted">
                     <div>名称</div>
                     <div>大小</div>
                     <div>更新时间</div>
@@ -2152,7 +2152,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                       <div
                         key={item.id}
                         className={`grid cursor-pointer grid-cols-[minmax(0,1fr)_120px_190px] gap-3 rounded-2xl px-4 py-3 text-sm ${
-                          selectedNodeId === item.id ? 'bg-sky-50' : 'hover:bg-slate-100'
+                          selectedNodeId === item.id ? 'bg-sky-500/15' : 'hover:bg-theme-elevated'
                         } ${dragHoverNodeId === item.id ? 'ring-1 ring-amber-300' : ''}`}
                         draggable={item.nodeType !== 'pvc' && item.nodeType !== 'subproject'}
                         onDragStart={(event) => {
@@ -2204,19 +2204,19 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                             checked={selectedListNodeIds.has(item.id)}
                             onChange={(event) => toggleListNodeSelection(item.id, event.target.checked)}
                             onClick={(event) => event.stopPropagation()}
-                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                            className="h-4 w-4 rounded border-theme-border text-sky-400 focus:ring-sky-500"
                             aria-label={`选择 ${item.name}`}
                           />
                           {renderNodeIcon(item, expandedNodes.has(item.id))}
-                          <span className="truncate font-semibold text-slate-700">{item.name}</span>
-                          {item.specialBadge && <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[9px] font-black text-sky-700">{item.specialBadge}</span>}
+                          <span className="truncate font-semibold text-theme-text-secondary">{item.name}</span>
+                          {item.specialBadge && <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-[9px] font-medium text-sky-400">{item.specialBadge}</span>}
                         </div>
-                        <div className="text-xs text-slate-500">{item.nodeType === 'file' || item.nodeType === 'pvc-file' ?`${item.size || 0} bytes` : '--'}</div>
-                        <div className="truncate text-xs text-slate-500">{item.updatedAt || '--'}</div>
+                        <div className="text-xs text-theme-text-muted">{item.nodeType === 'file' || item.nodeType === 'pvc-file' ?`${item.size || 0} bytes` : '--'}</div>
+                        <div className="truncate text-xs text-theme-text-muted">{item.updatedAt || '--'}</div>
                       </div>
                     ))}
                     {filteredItems.length === 0 && (
-                      <div className="rounded-2xl border border-dashed border-slate-200 px-6 py-12 text-center text-sm text-slate-400">
+                      <div className="rounded-2xl border border-dashed border-theme-border px-6 py-12 text-center text-sm text-theme-text-muted">
                         当前目录没有匹配的文件或文件夹
                       </div>
                     )}

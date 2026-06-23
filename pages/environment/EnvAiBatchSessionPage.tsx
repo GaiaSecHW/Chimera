@@ -7,6 +7,7 @@ import { api } from '../../clients/api';
 import { AgentResponse, AgentTraceEvent, AiAgentItem, AiBatchRound, AiBatchSession, AiBatchSessionSummary, AiBatchStreamEvent, AiHelperService } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { EmptyState, buildHelperKey, prettyJson, useAiHelpers } from './ai-agent/shared';
+import { PageHeader } from '../../design-system';
 
 const BATCH_SESSION_MODE_KEY = 'chimera_ai_batch_session_mode';
 
@@ -25,11 +26,11 @@ const shortId = (text?: string, start = 10, end = 8) => {
 
 const statusTone = (status?: string) => {
   const text = String(status || '').toLowerCase();
-  if (text === 'success') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-  if (text === 'partial_success') return 'bg-amber-100 text-amber-700 border-amber-200';
-  if (text === 'failed') return 'bg-rose-100 text-rose-700 border-rose-200';
-  if (text === 'running') return 'bg-cyan-100 text-cyan-700 border-cyan-200';
-  return 'bg-slate-100 text-slate-700 border-slate-200';
+  if (text === 'success') return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20';
+  if (text === 'partial_success') return 'bg-amber-500/15 text-amber-400 border-amber-500/20';
+  if (text === 'failed') return 'bg-rose-500/15 text-rose-400 border-rose-500/20';
+  if (text === 'running') return 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20';
+  return 'bg-theme-elevated text-theme-text-secondary border-theme-border';
 };
 
 const statusIcon = (status?: string) => {
@@ -55,16 +56,16 @@ const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
       components={{
         p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
         a: ({ children, href }) => (
-          <a href={href} target="_blank" rel="noreferrer" className="font-semibold text-blue-600 underline underline-offset-2">
+          <a href={href} target="_blank" rel="noreferrer" className="font-semibold text-blue-400 underline underline-offset-2">
             {children}
           </a>
         ),
         ul: ({ children }) => <ul className="mb-2 list-disc space-y-1 pl-5 last:mb-0">{children}</ul>,
         ol: ({ children }) => <ol className="mb-2 list-decimal space-y-1 pl-5 last:mb-0">{children}</ol>,
-        blockquote: ({ children }) => <blockquote className="mb-2 border-l-4 border-slate-300 bg-slate-100 px-3 py-1.5 italic last:mb-0">{children}</blockquote>,
+        blockquote: ({ children }) => <blockquote className="mb-2 border-l-4 border-theme-border bg-theme-elevated px-3 py-1.5 italic last:mb-0">{children}</blockquote>,
         code: ({ children, className }) => (className
-          ? <code className="block overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-900">{children}</code>
-          : <code className="rounded bg-slate-200 px-1.5 py-0.5 font-mono text-[0.9em]">{children}</code>),
+          ? <code className="block overflow-x-auto rounded-xl border border-theme-border bg-theme-surface px-3 py-2 font-mono text-xs text-theme-text-primary">{children}</code>
+          : <code className="rounded bg-theme-elevated px-1.5 py-0.5 font-mono text-[0.9em]">{children}</code>),
         pre: ({ children }) => <pre className="mb-2 last:mb-0">{children}</pre>,
       }}
     >
@@ -157,7 +158,7 @@ const resolveRoundResultForHelper = (round: AiBatchRound, helper?: { agent_key?:
 
 export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const environmentApi = api.domains.environment;
-  const { notify, feedbackNodes } = useUiFeedback();
+  const { notify, confirm, feedbackNodes } = useUiFeedback();
   const { loading: helperLoading, helpers, reload: reloadHelpers } = useAiHelpers(projectId, notify);
 
   const [batches, setBatches] = useState<AiBatchSessionSummary[]>([]);
@@ -356,7 +357,8 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
 
   const deleteOneBatch = async (batchId: string) => {
     if (!batchId) return;
-    if (!window.confirm(`确认删除批量会话 ${shortId(batchId)} 吗？`)) return;
+    const ok = await confirm({ message: `确认删除批量会话 ${shortId(batchId)} 吗？`, danger: true });
+    if (!ok) return;
     setBusyAction('delete_single');
     try {
       await environmentApi.environment.deleteAiBatchSession(batchId);
@@ -380,7 +382,8 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
       notify('请先勾选要删除的批量会话', 'error');
       return;
     }
-    if (!window.confirm(`确认批量删除 ${selectedBatchIds.length} 个会话吗？`)) return;
+    const ok = await confirm({ message: `确认批量删除 ${selectedBatchIds.length} 个会话吗？`, danger: true });
+    if (!ok) return;
     setBusyAction('delete_batch');
     try {
       let success = 0;
@@ -462,41 +465,27 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
       <div className="space-y-6">
         {feedbackNodes}
 
- <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div>
-              <h1 className="text-3xl font-black tracking-tight text-slate-900">批量会话</h1>
-              <p className="mt-2 text-sm text-slate-500">先查看批量会话列表，再点击进入会话详情对话界面；支持创建与批量删除。</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => void loadBatches(false)}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
-              >
-                <RefreshCw size={16} />刷新会话
-              </button>
-              <button
-                onClick={openCreateDialog}
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
-              >
-                <Plus size={16} />创建批量会话
-              </button>
-            </div>
-          </div>
-        </section>
+        <PageHeader
+          title="批量会话"
+          description="先查看批量会话列表，再点击进入会话详情对话界面；支持创建与批量删除。"
+          actions={<div className="flex items-center gap-2">
+              <button onClick={() => void loadBatches(false)} className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary"><RefreshCw size={16} />刷新会话</button>
+              <button onClick={openCreateDialog} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"><Plus size={16} />创建批量会话</button>
+            </div>}
+        />
 
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-4">
           <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
             <input
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
-              className="min-w-[240px] flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              className="form-input min-w-[240px] flex-1"
               placeholder="搜索 batch_id / 状态 / 创建人 / 模式"
             />
             <button
               onClick={() => void deleteSelectedBatches()}
               disabled={selectedBatchIds.length === 0 || busyAction === 'delete_batch'}
-              className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 px-3 py-2 text-sm font-semibold text-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {busyAction === 'delete_batch' ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
               批量删除（{selectedBatchIds.length}）
@@ -504,11 +493,11 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
           </div>
 
           {batchLoading ? (
-            <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" />加载批量会话中...</div>
+            <div className="flex items-center gap-2 text-sm text-theme-text-muted"><Loader2 size={15} className="animate-spin" />加载批量会话中...</div>
           ) : filteredBatches.length === 0 ? (
             <EmptyState text="当前没有批量会话记录。" />
           ) : (
-            <div className="overflow-auto rounded-xl border border-slate-200">
+            <div className="overflow-auto rounded-xl border border-theme-border">
               <table className="min-w-full table-fixed text-sm">
                 <colgroup>
                   <col className="w-10" />
@@ -520,12 +509,12 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                   <col className="w-48" />
                   <col className="w-24" />
                 </colgroup>
-                <thead className="bg-slate-50 text-slate-500">
+                <thead className="bg-theme-elevated text-theme-text-muted">
                   <tr>
                     <th className="px-3 py-2 text-left">
                       <button
                         onClick={() => setSelectedBatchIds(allVisibleSelected ? selectedBatchIds.filter((id) => !filteredBatches.some((item) => item.batch_id === id)) : Array.from(new Set([...selectedBatchIds, ...filteredBatches.map((item) => item.batch_id)])))}
-                        className="inline-flex items-center text-slate-500 hover:text-slate-900"
+                        className="inline-flex items-center text-theme-text-muted hover:text-theme-text-primary"
                       >
                         {allVisibleSelected ? <CheckSquare size={16} /> : <Square size={16} />}
                       </button>
@@ -545,7 +534,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                     return (
                       <tr
                         key={item.batch_id}
-                        className={`border-t border-slate-100 hover:bg-slate-100 ${activeBatchId === item.batch_id ? 'bg-cyan-50' : ''}`}
+                        className={`border-t border-theme-border hover:bg-theme-elevated ${activeBatchId === item.batch_id ? 'bg-cyan-500/15' : ''}`}
                       >
                         <td className="px-3 py-2" onClick={(event) => event.stopPropagation()}>
                           <input
@@ -554,29 +543,29 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                             onChange={() => setSelectedBatchIds((prev) => prev.includes(item.batch_id) ? prev.filter((id) => id !== item.batch_id) : [...prev, item.batch_id])}
                           />
                         </td>
-                        <td className="px-3 py-2 font-semibold text-slate-900">
+                        <td className="px-3 py-2 font-semibold text-theme-text-primary">
                           <button
                             onClick={() => void refreshDetail(item.batch_id, false)}
-                            className="max-w-[190px] truncate font-semibold text-slate-900 hover:text-blue-600"
+                            className="max-w-[190px] truncate font-semibold text-theme-text-primary hover:text-blue-400"
                             title={item.batch_id}
                           >
                             {shortId(item.batch_id)}
                           </button>
                         </td>
-                        <td className="px-3 py-2 text-slate-600">{modeLabel(item.session_mode)}</td>
+                        <td className="px-3 py-2 text-theme-text-secondary">{modeLabel(item.session_mode)}</td>
                         <td className="px-3 py-2">
                           <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold ${statusTone(item.status)}`}>
                             {statusIcon(item.status)}
                             {item.status}
                           </span>
                         </td>
-                        <td className="px-3 py-2 text-slate-700">{item.helper_total}</td>
-                        <td className="px-3 py-2 text-slate-600">{item.success_count}/{item.helper_total}</td>
-                        <td className="px-3 py-2 text-slate-500 truncate" title={compactTime(item.updated_at || item.created_at)}>{compactTime(item.updated_at || item.created_at)}</td>
+                        <td className="px-3 py-2 text-theme-text-secondary">{item.helper_total}</td>
+                        <td className="px-3 py-2 text-theme-text-secondary">{item.success_count}/{item.helper_total}</td>
+                        <td className="px-3 py-2 text-theme-text-muted truncate" title={compactTime(item.updated_at || item.created_at)}>{compactTime(item.updated_at || item.created_at)}</td>
                         <td className="px-3 py-2 text-right" onClick={(event) => event.stopPropagation()}>
                           <button
                             onClick={() => void deleteOneBatch(item.batch_id)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-2 py-1 text-xs font-semibold text-rose-700"
+                            className="inline-flex items-center gap-1 rounded-lg border border-rose-500/20 px-2 py-1 text-xs font-semibold text-rose-400"
                             disabled={busyAction === 'delete_single'}
                           >
                             <Trash2 size={12} />删除
@@ -594,34 +583,34 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
 
       {createOpen ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/40 p-4">
- <div className="w-full max-w-5xl rounded-2xl border border-slate-200 bg-slate-50">
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+ <div className="w-full max-w-5xl rounded-2xl border border-theme-border bg-theme-surface">
+            <div className="flex items-center justify-between border-b border-theme-border px-5 py-4">
               <div>
-                <h3 className="text-lg font-black text-slate-900">创建批量会话</h3>
+                <h3 className="text-lg font-semibold text-theme-text-primary">创建批量会话</h3>
               </div>
-              <button onClick={() => setCreateOpen(false)} className="rounded-lg border border-slate-200 p-2 text-slate-500"><X size={16} /></button>
+              <button onClick={() => setCreateOpen(false)} className="rounded-lg border border-theme-border p-2 text-theme-text-muted"><X size={16} /></button>
             </div>
 
             <div className="grid grid-cols-1 gap-4 p-5 lg:grid-cols-[1.2fr_1fr]">
-              <section className="rounded-xl border border-slate-200 p-4">
-                <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">1. 选择节点（可多选）</div>
+              <section className="rounded-xl border border-theme-border p-4">
+                <div className="text-xs font-medium uppercase tracking-[0.18em] text-theme-text-muted">1. 选择节点（可多选）</div>
                 <input
                   value={createKeyword}
                   onChange={(event) => setCreateKeyword(event.target.value)}
                   placeholder="搜索节点 / helper"
-                  className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  className="form-input mt-3 w-full"
                 />
                 <div className="mt-3 max-h-[380px] space-y-2 overflow-auto pr-1">
-                  {helperLoading ? <div className="text-sm text-slate-500">加载 helper 中...</div> : null}
+                  {helperLoading ? <div className="text-sm text-theme-text-muted">加载 helper 中...</div> : null}
                   {filteredHelpers.map((helper) => {
                     const key = buildHelperKey(helper.agent_key, helper.service_name);
                     const checked = createSelectedHelpers.includes(key);
                     return (
-                      <label key={key} className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2 ${checked ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-slate-50'}`}>
+                      <label key={key} className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2 ${checked ? 'border-blue-500 bg-blue-500/15' : 'border-theme-border bg-theme-elevated'}`}>
                         <input type="checkbox" checked={checked} onChange={() => void toggleCreateHelper(helper)} className="mt-1" />
                         <div className="min-w-0">
-                          <div className="text-sm font-semibold text-slate-900">{helper.agent_hostname || helper.agent_key}</div>
-                          <div className="text-xs text-slate-500">{helper.service_name} · {helper.agent_key}</div>
+                          <div className="text-sm font-semibold text-theme-text-primary">{helper.agent_hostname || helper.agent_key}</div>
+                          <div className="text-xs text-theme-text-muted">{helper.service_name} · {helper.agent_key}</div>
                         </div>
                       </label>
                     );
@@ -629,14 +618,14 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                 </div>
               </section>
 
-              <section className="rounded-xl border border-slate-200 p-4">
-                <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">2. 选择统一 Agent</div>
-                <p className="mt-2 text-xs text-slate-500">所有已选节点共享同一个 Agent 类型，不允许节点间选择不同 Agent。</p>
+              <section className="rounded-xl border border-theme-border p-4">
+                <div className="text-xs font-medium uppercase tracking-[0.18em] text-theme-text-muted">2. 选择统一 Agent</div>
+                <p className="mt-2 text-xs text-theme-text-muted">所有已选节点共享同一个 Agent 类型，不允许节点间选择不同 Agent。</p>
                 <select
                   value={createSelectedAgentId}
                   onChange={(event) => setCreateSelectedAgentId(event.target.value)}
                   disabled={commonAgentOptions.length === 0}
-                  className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-100"
+                  className="form-select mt-3 w-full disabled:bg-theme-elevated"
                 >
                   {commonAgentOptions.length === 0 ? <option value="">无可用共享 Agent</option> : null}
                   {commonAgentOptions.map((agent) => (
@@ -644,8 +633,8 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                   ))}
                 </select>
 
-                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">会话模式</div>
+                <div className="mt-4 rounded-xl border border-theme-border bg-theme-surface p-3">
+                  <div className="text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">会话模式</div>
                   <div className="mt-2 flex flex-wrap gap-3 text-sm">
                     <label className="inline-flex items-center gap-2">
                       <input type="radio" name="create-batch-mode" checked={batchSessionMode === 'pipe'} onChange={() => setBatchSessionMode('pipe')} />
@@ -662,13 +651,13 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                   </div>
                 </div>
 
-                <div className="mt-4 text-xs text-slate-500">
+                <div className="mt-4 text-xs text-theme-text-muted">
                   已选节点：{createSelectedHelpers.length} 个
                   {createSelectedAgentId ?` · Agent: ${createSelectedAgentId}` : ''}
                 </div>
 
                 <div className="mt-4 flex items-center justify-end gap-2">
-                  <button onClick={() => void reloadHelpers(true)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">刷新节点</button>
+                  <button onClick={() => void reloadHelpers(true)} className="rounded-xl border border-theme-border px-3 py-2 text-sm font-semibold text-theme-text-secondary">刷新节点</button>
                   <button
                     onClick={() => void createBatchSession()}
                     disabled={busyAction === 'create_batch' || createSelectedHelpers.length === 0 || !createSelectedAgentId}
@@ -686,23 +675,23 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
 
       {detailOpen && batchDetail ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-3">
- <div className="flex h-[92vh] w-full max-w-7xl flex-col rounded-2xl border border-slate-200 bg-slate-50">
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+ <div className="flex h-[92vh] w-full max-w-7xl flex-col rounded-2xl border border-theme-border bg-theme-surface">
+            <div className="flex items-center justify-between border-b border-theme-border px-5 py-3">
               <div className="min-w-0">
-                <h3 className="truncate text-lg font-black text-slate-900">{batchDetail.batch_id}</h3>
-                <div className="mt-1 text-xs text-slate-500">状态：{batchDetail.status} · 目标：{batchDetail.items.length} · 模式：{modeLabel(batchDetail.session_mode)}</div>
+                <h3 className="truncate text-lg font-semibold text-theme-text-primary">{batchDetail.batch_id}</h3>
+                <div className="mt-1 text-xs text-theme-text-muted">状态：{batchDetail.status} · 目标：{batchDetail.items.length} · 模式：{modeLabel(batchDetail.session_mode)}</div>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => void refreshDetail(batchDetail.batch_id)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">
+                <button onClick={() => void refreshDetail(batchDetail.batch_id)} className="rounded-xl border border-theme-border px-3 py-2 text-sm font-semibold text-theme-text-secondary">
                   {busyAction === 'refresh_detail' ? <Loader2 size={14} className="animate-spin" /> : '刷新'}
                 </button>
-                <button onClick={() => setDetailOpen(false)} className="rounded-lg border border-slate-200 p-2 text-slate-500"><X size={16} /></button>
+                <button onClick={() => setDetailOpen(false)} className="rounded-lg border border-theme-border p-2 text-theme-text-muted"><X size={16} /></button>
               </div>
             </div>
 
             <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 p-4 xl:grid-cols-[340px_minmax(0,1fr)]">
-              <section className="min-h-0 overflow-auto rounded-xl border border-slate-200 p-3">
-                <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">目标 Agent</div>
+              <section className="min-h-0 overflow-auto rounded-xl border border-theme-border p-3">
+                <div className="text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">目标 Agent</div>
                 <div className="mt-3 space-y-2">
                   {batchDetail.items.map((item) => (
                     <button
@@ -710,26 +699,26 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                       onClick={() => setActiveHelperKey(helperItemKey(item))}
                       className={`w-full rounded-xl border p-3 text-left transition ${
                         helperItemKey(item) === helperItemKey(activeHelperItem)
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                          ? 'border-blue-500 bg-blue-500/15'
+                          : 'border-theme-border bg-theme-elevated hover:border-theme-border'
                       }`}
                     >
-                      <div className="text-sm font-semibold text-slate-900">{item.service_name}</div>
-                      <div className="mt-1 text-xs text-slate-500">{item.agent_key}</div>
-                      <div className="mt-2 text-xs text-slate-700">状态：{item.status}</div>
-                      <div className="mt-1 break-all text-xs text-slate-700">Session：{item.helper_session_id || '-'}</div>
-                      {item.last_error ? <div className="mt-1 text-xs text-rose-600 whitespace-pre-wrap">{item.last_error}</div> : null}
+                      <div className="text-sm font-semibold text-theme-text-primary">{item.service_name}</div>
+                      <div className="mt-1 text-xs text-theme-text-muted">{item.agent_key}</div>
+                      <div className="mt-2 text-xs text-theme-text-secondary">状态：{item.status}</div>
+                      <div className="mt-1 break-all text-xs text-theme-text-secondary">Session：{item.helper_session_id || '-'}</div>
+                      {item.last_error ? <div className="mt-1 text-xs text-rose-400 whitespace-pre-wrap">{item.last_error}</div> : null}
                     </button>
                   ))}
                 </div>
               </section>
 
-              <section className="min-h-0 overflow-auto rounded-xl border border-slate-200 p-4">
+              <section className="min-h-0 overflow-auto rounded-xl border border-theme-border p-4">
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   rows={3}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  className="form-textarea w-full"
                   placeholder="输入要发送给当前批量会话（所有目标 Agent）的用户消息"
                 />
                 <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
@@ -744,19 +733,19 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                     </label>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => void sendBatchMessage()} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+                    <button onClick={() => void sendBatchMessage()} className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2 text-sm font-semibold text-white">
                       {busyAction === 'send' ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}发送
                     </button>
-                    <button onClick={() => void deleteOneBatch(batchDetail.batch_id)} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700">
+                    <button onClick={() => void deleteOneBatch(batchDetail.batch_id)} className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 px-3 py-2 text-sm font-semibold text-rose-400">
                       <Trash2 size={14} />删除会话
                     </button>
                   </div>
                 </div>
 
                 {streamEvents.length > 0 ? (
-                  <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">流式进度</div>
-                    <div className="mt-2 max-h-28 space-y-1 overflow-auto pr-1 text-xs text-slate-700">
+                  <div className="mt-3 rounded-xl border border-theme-border bg-theme-surface p-3">
+                    <div className="text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">流式进度</div>
+                    <div className="mt-2 max-h-28 space-y-1 overflow-auto pr-1 text-xs text-theme-text-secondary">
                       {streamEvents
                         .filter((event) => (
                           event.type === 'start'
@@ -784,53 +773,53 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                   </div>
                 ) : null}
 
-                <div className="mt-4 rounded-xl border border-slate-200 p-3">
-                  <div className="text-sm font-bold text-slate-900">
+                <div className="mt-4 rounded-xl border border-theme-border p-3">
+                  <div className="text-sm font-semibold text-theme-text-primary">
                     会话记录（{activeHelperItem ?`${activeHelperItem.service_name} / ${activeHelperItem.agent_key}` : '未选择 Agent'}）
                   </div>
                   <div className="mt-3 space-y-3 max-h-[50vh] overflow-auto pr-1">
-                    {helperRounds.length === 0 ? <div className="text-sm text-slate-500">暂无多轮记录。</div> : helperRounds.map(({ round, result, outputs, reasoning, trace }) => (
-                      <div key={round.round_no} className="rounded-xl border border-slate-200 p-3">
-                        <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Round {round.round_no}</div>
-                        <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">User</div>
-                          <div className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{round.content}</div>
+                    {helperRounds.length === 0 ? <div className="text-sm text-theme-text-muted">暂无多轮记录。</div> : helperRounds.map(({ round, result, outputs, reasoning, trace }) => (
+                      <div key={round.round_no} className="rounded-xl border border-theme-border p-3">
+                        <div className="text-xs font-medium uppercase tracking-[0.18em] text-theme-text-muted">Round {round.round_no}</div>
+                        <div className="mt-2 rounded-xl border border-theme-border bg-theme-surface p-3">
+                          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-theme-text-muted">User</div>
+                          <div className="mt-1 whitespace-pre-wrap text-sm text-theme-text-primary">{round.content}</div>
                         </div>
-                        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Assistant</div>
+                        <div className="mt-3 rounded-xl border border-theme-border bg-theme-surface p-3">
+                          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-theme-text-muted">Assistant</div>
                           {outputs.length > 0 ? (
                             <div className="mt-2 space-y-3">
                               {outputs.map((part, index) => (
-                                <div key={`${round.round_no}-output-${index}`} className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">
+                                <div key={`${round.round_no}-output-${index}`} className="rounded-lg border border-theme-border bg-theme-elevated p-3 text-sm text-theme-text-primary">
                                   <MarkdownContent content={part} />
                                 </div>
                               ))}
                             </div>
                           ) : (
-                            <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                            <div className="mt-2 rounded-xl border border-amber-500/20 bg-amber-500/15 px-3 py-2 text-xs text-amber-400">
                               当前 Agent 在该轮未返回可解析输出。
                             </div>
                           )}
                         </div>
-                        <div className="mt-2 text-xs text-slate-500">
+                        <div className="mt-2 text-xs text-theme-text-muted">
                           执行状态：{result ? (result.success === true ? '成功' : result.success === false ? '失败' : '未知') : '未命中结果'}
                         </div>
                         {reasoning ? (
-                          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
-                            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">Reasoning</div>
+                          <div className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/15 p-3">
+                            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-400">Reasoning</div>
                             <div className="mt-2 whitespace-pre-wrap text-sm text-amber-950">{reasoning}</div>
                           </div>
                         ) : null}
                         {trace.length > 0 ? (
                           <details className="mt-3">
-                            <summary className="cursor-pointer text-xs font-semibold text-slate-600 hover:text-slate-900">查看 Trace（{trace.length}）</summary>
+                            <summary className="cursor-pointer text-xs font-semibold text-theme-text-secondary hover:text-theme-text-primary">查看 Trace（{trace.length}）</summary>
                             <div className="mt-2 space-y-2">
                               {trace.map((item, index) => (
-                                <div key={item.id ||`${item.category}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
-                                  <div className="font-semibold text-slate-900">{item.category}</div>
+                                <div key={item.id ||`${item.category}-${index}`} className="rounded-xl border border-theme-border bg-theme-surface p-3 text-xs text-theme-text-secondary">
+                                  <div className="font-semibold text-theme-text-primary">{item.category}</div>
                                   {item.message ? <div className="mt-1 whitespace-pre-wrap">{item.message}</div> : null}
                                   {item.payload !== undefined ? (
-                                    <pre className="mt-2 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-[11px] text-slate-900">{prettyJson(item.payload)}</pre>
+                                    <pre className="mt-2 overflow-auto rounded-lg border border-theme-border bg-theme-elevated p-3 text-[11px] text-theme-text-primary">{prettyJson(item.payload)}</pre>
                                   ) : null}
                                 </div>
                               ))}
@@ -838,17 +827,17 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                           </details>
                         ) : null}
                         <details className="mt-3">
-                          <summary className="cursor-pointer text-xs font-semibold text-slate-600 hover:text-slate-900">查看该 Agent 原始结果 JSON</summary>
-                          <pre className="mt-2 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-900">{prettyJson(result || {})}</pre>
+                          <summary className="cursor-pointer text-xs font-semibold text-theme-text-secondary hover:text-theme-text-primary">查看该 Agent 原始结果 JSON</summary>
+                          <pre className="mt-2 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-3 text-xs text-theme-text-primary">{prettyJson(result || {})}</pre>
                         </details>
                         <details className="mt-2">
-                          <summary className="cursor-pointer text-xs font-semibold text-slate-600 hover:text-slate-900">查看整轮原始 JSON</summary>
-                          <pre className="mt-2 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-900">{prettyJson(round.response)}</pre>
+                          <summary className="cursor-pointer text-xs font-semibold text-theme-text-secondary hover:text-theme-text-primary">查看整轮原始 JSON</summary>
+                          <pre className="mt-2 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-3 text-xs text-theme-text-primary">{prettyJson(round.response)}</pre>
                         </details>
                       </div>
                     ))}
                     {helperRounds.length > 0 && !activeHelperItem ? (
-                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                      <div className="rounded-xl border border-amber-500/20 bg-amber-500/15 px-3 py-2 text-xs text-amber-400">
                         请先在左侧选择一个 Agent 查看会话记录。
                       </div>
                     ) : null}

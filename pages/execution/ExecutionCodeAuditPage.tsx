@@ -42,6 +42,7 @@ import {
   Search
 } from 'lucide-react';
 import { api } from '../../clients/api';
+import { PageHeader } from '../../design-system';
 import { StatusBadge } from '../../components/StatusBadge';
 import { LlmProviderDetail, LlmProviderFileBinding, LlmProviderSummary, ProjectPVC, ProjectResource } from '../../types/types';
 import { ExecutionCodeAuditDetailPage } from './ExecutionCodeAuditDetailPage';
@@ -92,18 +93,18 @@ const PasswordDisplay: React.FC<{ password?: string; label: string }> = ({ passw
   if (!password) return null;
 
   return (
-    <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl group/pwd relative">
-      <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter border-r border-slate-200 pr-2 mr-1">
+    <div className="flex items-center gap-2 bg-theme-surface border border-theme-border px-3 py-1.5 rounded-xl group/pwd relative">
+      <span className="text-[9px] font-semibold text-theme-text-muted uppercase tracking-tighter border-r border-theme-border pr-2 mr-1">
         {label}
       </span>
-      <span className="text-[10px] font-mono font-black text-slate-600 tracking-wider">
+      <span className="text-[10px] font-mono font-semibold text-theme-text-secondary tracking-wider">
         {isVisible ? password : '••••••••'}
       </span>
-      <div className="flex items-center gap-1 border-l border-slate-200 ml-1 pl-1">
-        <button onClick={(e) => { e.stopPropagation(); setIsVisible(!isVisible); }} className="p-1 text-slate-400 hover:text-blue-600 transition-colors">
+      <div className="flex items-center gap-1 border-l border-theme-border ml-1 pl-1">
+        <button onClick={(e) => { e.stopPropagation(); setIsVisible(!isVisible); }} className="p-1 text-theme-text-muted hover:text-blue-400 transition-colors">
           {isVisible ? <EyeOff size={12} /> : <Eye size={12} />}
         </button>
-        <button onClick={handleCopy} className="p-1 text-slate-400 hover:text-blue-600 transition-colors">
+        <button onClick={handleCopy} className="p-1 text-theme-text-muted hover:text-blue-400 transition-colors">
           {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
         </button>
       </div>
@@ -842,62 +843,58 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
   }
 
   return (
-    <div className="h-full overflow-y-auto custom-scrollbar p-4 md:p-6 lg:p-8 pb-16 space-y-4 animate-in fade-in duration-300">
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+    <div className="space-y-4 px-5 py-5 md:px-6 2xl:px-8 h-full overflow-y-auto custom-scrollbar">
+ <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <Bot size={18} className="text-blue-600" />
-              <h2 className="text-xl font-black tracking-tight text-slate-900">代码审计控制台</h2>
-              <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-blue-600">VSCode AI</span>
-            </div>
-            <p className="mt-1 text-xs text-slate-500">Namespace: <span className="font-mono text-slate-700">{projectNamespace || '...'}</span></p>
-          </div>
+          <PageHeader
+            title={<div className="flex items-center gap-2"><Bot size={18} className="text-blue-400" /><span>代码审计控制台</span><span className="rounded-full border border-blue-500/20 bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-blue-400">VSCode AI</span></div>}
+            description={<>Namespace: <span className="font-mono text-theme-text-secondary">{projectNamespace || '...'}</span></>}
+          />
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">运行中</p>
-              <p className="text-lg font-black text-slate-900 leading-none mt-1">{stats.running}<span className="ml-1 text-xs text-slate-400">/ {stats.total}</span></p>
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">运行中</p>
+              <p className="text-lg font-semibold text-theme-text-primary leading-none mt-1">{stats.running}<span className="ml-1 text-xs text-theme-text-muted">/ {stats.total}</span></p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">已停止</p>
-              <p className="text-lg font-black text-slate-900 leading-none mt-1">{stats.stopped}</p>
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">已停止</p>
+              <p className="text-lg font-semibold text-theme-text-primary leading-none mt-1">{stats.stopped}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">已绑定LLM</p>
-              <p className="text-lg font-black text-slate-900 leading-none mt-1">{stats.bound}</p>
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">已绑定LLM</p>
+              <p className="text-lg font-semibold text-theme-text-primary leading-none mt-1">{stats.bound}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">未绑定LLM</p>
-              <p className="text-lg font-black text-slate-900 leading-none mt-1">{stats.unbound}</p>
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">未绑定LLM</p>
+              <p className="text-lg font-semibold text-theme-text-primary leading-none mt-1">{stats.unbound}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">任务中</p>
-              <p className="text-lg font-black text-slate-900 leading-none mt-1">{stats.activeTasks}</p>
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">任务中</p>
+              <p className="text-lg font-semibold text-theme-text-primary leading-none mt-1">{stats.activeTasks}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">任务失败</p>
-              <p className="text-lg font-black text-rose-600 leading-none mt-1">{stats.failedTasks}</p>
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">任务失败</p>
+              <p className="text-lg font-semibold text-rose-400 leading-none mt-1">{stats.failedTasks}</p>
             </div>
           </div>
           <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-              <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-500">
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+              <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">
                 <span>实例运行率</span>
                 <span>{stats.total > 0 ? Math.round((stats.running / stats.total) * 100) : 0}%</span>
               </div>
-              <div className="mt-2 h-2 rounded-full bg-slate-200">
+              <div className="mt-2 h-2 rounded-full bg-theme-elevated">
                 <div
                   className="h-2 rounded-full bg-emerald-500 transition-all"
                   style={{ width: `${stats.total > 0 ? Math.round((stats.running / stats.total) * 100) : 0}%` }}
                 />
               </div>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-              <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-500">
+            <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
+              <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">
                 <span>LLM绑定率</span>
                 <span>{stats.total > 0 ? Math.round((stats.bound / stats.total) * 100) : 0}%</span>
               </div>
-              <div className="mt-2 h-2 rounded-full bg-slate-200">
+              <div className="mt-2 h-2 rounded-full bg-theme-elevated">
                 <div
                   className="h-2 rounded-full bg-violet-500 transition-all"
                   style={{ width: `${stats.total > 0 ? Math.round((stats.bound / stats.total) * 100) : 0}%` }}
@@ -908,17 +905,17 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
         </div>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
             <input
               type="text"
               placeholder="搜索实例名称或描述..."
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-10 pr-3 text-sm outline-none transition-all focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-xl border border-theme-border bg-theme-surface py-2 pl-10 pr-3 text-sm outline-none transition-all focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
           <select
-            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="form-select text-xs"
             value={bindingFilter}
             onChange={(e) => setBindingFilter(e.target.value as BindingStatusFilter)}
           >
@@ -926,9 +923,9 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
             <option value="bound">绑定状态: 已绑定</option>
             <option value="unbound">绑定状态: 未绑定</option>
           </select>
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2 py-1">
+          <div className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-2 py-1">
             <select
-              className="min-w-[190px] bg-transparent px-2 py-1 text-xs font-bold text-slate-700 outline-none"
+              className="min-w-[190px] bg-transparent px-2 py-1 text-xs font-bold text-theme-text-secondary outline-none"
               value={providerFilterToAdd}
               onChange={(e) => setProviderFilterToAdd(e.target.value)}
             >
@@ -945,14 +942,14 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                 if (!providerFilterToAdd || providerFilterKeys.includes(providerFilterToAdd)) return;
                 setProviderFilterKeys([...providerFilterKeys, providerFilterToAdd]);
               }}
-              className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 hover:bg-slate-100"
+              className="rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
             >
               添加
             </button>
             <button
               type="button"
               onClick={() => setProviderFilterKeys([])}
-              className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 hover:bg-slate-100"
+              className="rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
             >
               清空
             </button>
@@ -960,17 +957,17 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsTaskModalOpen(true)}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-widest text-slate-600 transition hover:bg-slate-100"
+              className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary transition hover:bg-theme-elevated"
             >
               任务流水
             </button>
-            <button onClick={loadAll} className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-slate-500 transition hover:bg-slate-100">
+            <button onClick={loadAll} className="rounded-xl border border-theme-border bg-theme-surface p-2.5 text-theme-text-muted transition hover:bg-theme-elevated">
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             </button>
             <button
               onClick={() => setIsCreateModalOpen(true)}
               disabled={!projectId}
-              className="rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-black uppercase tracking-widest text-white transition hover:bg-blue-700 disabled:opacity-50"
+              className="btn-primary"
             >
               部署审计环境
             </button>
@@ -979,7 +976,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
         {providerFilterKeys.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {providerFilterKeys.map((key) => (
-              <span key={key} className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-black text-blue-700">
+              <span key={key} className="inline-flex items-center gap-1 rounded-full border border-blue-500/20 bg-blue-500/15 px-2 py-0.5 text-[10px] font-medium text-blue-400">
                 {providerMap.get(key)?.display_name || key}
                 <button type="button" onClick={() => setProviderFilterKeys(providerFilterKeys.filter((item) => item !== key))}>
                   <X size={10} />
@@ -992,14 +989,14 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
 
       <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
-            <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">实例列表</p>
-            <p className="text-[11px] font-bold text-slate-400">共 {filteredInstances.length} 个</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-muted">实例列表</p>
+            <p className="text-[11px] font-bold text-theme-text-muted">共 {filteredInstances.length} 个</p>
           </div>
           {filteredInstances.length > 0 ? (
- <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50">
+ <div className="overflow-x-auto rounded-2xl border border-theme-border bg-theme-surface">
               <table className="min-w-full text-left">
-                <thead className="bg-slate-50">
-                  <tr className="text-[11px] font-black uppercase tracking-widest text-slate-500">
+                <thead className="bg-theme-elevated">
+                  <tr className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-muted">
                     <th className="px-3 py-2.5">实例</th>
                     <th className="px-3 py-2.5">状态</th>
                     <th className="px-3 py-2.5">入口地址</th>
@@ -1017,17 +1014,17 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                     const itemProviderKeys = getInstanceProviderKeys(item);
                     const hasBinding = itemProviderKeys.length > 0;
                     return (
-                      <tr key={item.id} className="border-t border-slate-100 align-top hover:bg-slate-100/60">
+                      <tr key={item.id} className="border-t border-theme-border align-top hover:bg-theme-elevated">
                         <td className="px-3 py-3">
                           <button
                             type="button"
                             onClick={() => setSelectedInstanceName(item.name)}
-                            className="max-w-[260px] truncate text-sm font-black text-slate-800 hover:text-blue-700"
+                            className="max-w-[260px] truncate text-sm font-semibold text-theme-text-primary hover:text-blue-400"
                             title={item.name}
                           >
                             {item.name}
                           </button>
-                          <p className="mt-1 max-w-[320px] truncate text-[11px] text-slate-500">{item.description || '无描述'}</p>
+                          <p className="mt-1 max-w-[320px] truncate text-[11px] text-theme-text-muted">{item.description || '无描述'}</p>
                         </td>
                         <td className="px-3 py-3"><StatusBadge status={item.status} /></td>
                         <td className="px-3 py-3">
@@ -1036,16 +1033,16 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                               href={item.access_url}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-[11px] font-black text-blue-600 underline decoration-dotted underline-offset-2 hover:text-blue-700"
+                              className="text-[11px] font-semibold text-blue-400 underline decoration-dotted underline-offset-2 hover:text-blue-400"
                             >
                               入口地址
                             </a>
                           ) : (
-                            <span className="text-[11px] text-slate-400">-</span>
+                            <span className="text-[11px] text-theme-text-muted">-</span>
                           )}
                         </td>
                         <td className="px-3 py-3">
-                          <div className="max-w-[260px] truncate rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-600" title={item.image || '-'}>
+                          <div className="max-w-[260px] truncate rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 font-mono text-[11px] text-theme-text-secondary" title={item.image || '-'}>
                             {item.image || '-'}
                           </div>
                         </td>
@@ -1053,25 +1050,25 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                           <div className="max-w-[260px] space-y-1">
                             {(item.source_pvcs || []).length > 0 ? (
                               (item.source_pvcs || []).map((mount: any, idx: number) => (
-                                <div key={`${item.id}-src-${idx}`} className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-700">
+                                <div key={`${item.id}-src-${idx}`} className="rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 text-[11px] text-theme-text-secondary">
                                   {(() => {
                                     const rawName = String(mount.pvc_name || '').trim();
                                     const mappedName = pvcDisplayMap.get(rawName);
                                     return (
                                       <>
-                                        <span className="font-black">{mappedName || rawName || '-'}</span>
+                                        <span className="font-semibold">{mappedName || rawName || '-'}</span>
                                         {!mappedName && rawName && (
-                                          <span className="ml-1 rounded-md bg-amber-100 px-1 py-0.5 text-[9px] font-black text-amber-700">原始</span>
+                                          <span className="ml-1 rounded-md bg-amber-500/15 px-1 py-0.5 text-[9px] font-semibold text-amber-400">原始</span>
                                         )}
                                       </>
                                     );
                                   })()}
-                                  <span className="mx-1 text-slate-400">{'->'}</span>
+                                  <span className="mx-1 text-theme-text-muted">{'->'}</span>
                                   <span className="font-mono">{mount.mount_path || '-'}</span>
                                 </div>
                               ))
                             ) : (
-                              <span className="text-[11px] text-slate-400">-</span>
+                              <span className="text-[11px] text-theme-text-muted">-</span>
                             )}
                           </div>
                         </td>
@@ -1079,41 +1076,41 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                           <div className="max-w-[260px] space-y-1">
                             {(item.output_pvcs || []).length > 0 ? (
                               (item.output_pvcs || []).map((mount: any, idx: number) => (
-                                <div key={`${item.id}-out-${idx}`} className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-700">
+                                <div key={`${item.id}-out-${idx}`} className="rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 text-[11px] text-theme-text-secondary">
                                   {(() => {
                                     const rawName = String(mount.pvc_name || '').trim();
                                     const mappedName = pvcDisplayMap.get(rawName);
                                     return (
                                       <>
-                                        <span className="font-black">{mappedName || rawName || '-'}</span>
+                                        <span className="font-semibold">{mappedName || rawName || '-'}</span>
                                         {!mappedName && rawName && (
-                                          <span className="ml-1 rounded-md bg-amber-100 px-1 py-0.5 text-[9px] font-black text-amber-700">原始</span>
+                                          <span className="ml-1 rounded-md bg-amber-500/15 px-1 py-0.5 text-[9px] font-semibold text-amber-400">原始</span>
                                         )}
                                       </>
                                     );
                                   })()}
-                                  <span className="mx-1 text-slate-400">{'->'}</span>
+                                  <span className="mx-1 text-theme-text-muted">{'->'}</span>
                                   <span className="font-mono">{mount.mount_path || '-'}</span>
                                 </div>
                               ))
                             ) : (
-                              <span className="text-[11px] text-slate-400">-</span>
+                              <span className="text-[11px] text-theme-text-muted">-</span>
                             )}
                           </div>
                         </td>
                         <td className="px-3 py-3">
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${hasBinding ? 'bg-violet-50 text-violet-700' : 'bg-slate-100 text-slate-500'}`}>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest ${hasBinding ? 'bg-violet-500/15 text-violet-400' : 'bg-theme-elevated text-theme-text-muted'}`}>
                             {hasBinding ?`已绑定 ${itemProviderKeys.length}` : '未绑定'}
                           </span>
                           {hasBinding && (
                             <div className="mt-1 flex max-w-[220px] flex-wrap gap-1">
                               {itemProviderKeys.slice(0, 2).map((providerKey: string) => (
-                                <span key={providerKey} className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-black text-violet-700">
+                                <span key={providerKey} className="rounded-full border border-violet-500/20 bg-violet-500/15 px-2 py-0.5 text-[10px] font-medium text-violet-400">
                                   {providerMap.get(providerKey)?.display_name || providerKey}
                                 </span>
                               ))}
                               {itemProviderKeys.length > 2 && (
-                                <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">
+                                <span className="rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[10px] font-medium text-theme-text-muted">
                                   +{itemProviderKeys.length - 2}
                                 </span>
                               )}
@@ -1125,11 +1122,11 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                             <PasswordDisplay label="ACCESS" password={item.code_server_env?.PASSWORD} />
                             <PasswordDisplay label="SUDO" password={item.code_server_env?.SUDO_PASSWORD} />
                             {!item.code_server_env?.PASSWORD && !item.code_server_env?.SUDO_PASSWORD && (
-                              <span className="text-[11px] text-slate-400">-</span>
+                              <span className="text-[11px] text-theme-text-muted">-</span>
                             )}
                           </div>
                         </td>
-                        <td className="px-3 py-3 text-[11px] font-mono text-slate-500">{new Date(item.created_at).toLocaleString()}</td>
+                        <td className="px-3 py-3 text-[11px] font-mono text-theme-text-muted">{new Date(item.created_at).toLocaleString()}</td>
                         <td className="px-3 py-3">
                           <div className="flex justify-end gap-2">
                             {item.access_url && item.status === 'running' && (
@@ -1137,7 +1134,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                 href={item.access_url}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="rounded-lg bg-blue-600 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest text-white transition hover:bg-blue-700"
+                                className="rounded-lg bg-blue-600 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-white transition hover:bg-blue-700"
                               >
                                 打开
                               </a>
@@ -1145,14 +1142,14 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                             <button
                               type="button"
                               onClick={() => setRebuildConfirm({ show: true, name: item.name })}
-                              className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[10px] font-black tracking-widest text-amber-700 transition hover:bg-amber-100"
+                              className="rounded-lg border border-amber-500/20 bg-amber-500/15 px-2.5 py-1.5 text-[10px] font-semibold tracking-widest text-amber-400 transition hover:bg-amber-500/15"
                             >
                               重建实例
                             </button>
                             <button
                               type="button"
                               onClick={() => setDeleteConfirm({ show: true, names: [item.name] })}
-                              className="rounded-lg border border-red-200 bg-red-50 p-1.5 text-red-500 transition hover:bg-red-100"
+                              className="rounded-lg border border-red-500/20 bg-red-500/15 p-1.5 text-red-500 transition hover:bg-red-500/15"
                             >
                               <Trash2 size={14} />
                             </button>
@@ -1165,41 +1162,41 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
               </table>
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center">
-              <p className="text-sm font-black text-slate-500">未检索到审计实例</p>
-              <p className="mt-1 text-xs text-slate-400">点击右上角“部署审计环境”创建首个实例</p>
+            <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface p-10 text-center">
+              <p className="text-sm font-semibold text-theme-text-muted">未检索到审计实例</p>
+              <p className="mt-1 text-xs text-theme-text-muted">点击右上角“部署审计环境”创建首个实例</p>
             </div>
           )}
       </div>
 
       {isTaskModalOpen && (
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
- <div className="flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+ <div className="flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
+            <div className="flex items-center justify-between border-b border-theme-border px-4 py-3">
               <div>
-                <h4 className="text-sm font-black uppercase tracking-widest text-slate-700">任务流水</h4>
-                <p className="text-xs text-slate-500">共 {tasks.length} 条任务记录，已选 {selectedTaskIds.size} 条</p>
+                <h4 className="text-sm font-semibold uppercase tracking-widest text-theme-text-secondary">任务流水</h4>
+                <p className="text-xs text-theme-text-muted">共 {tasks.length} 条任务记录，已选 {selectedTaskIds.size} 条</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   disabled={selectedTaskIds.size === 0 || batchTaskDeleting}
                   onClick={handleBatchDeleteTasks}
-                  className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-2 text-[11px] font-black uppercase tracking-widest text-red-600 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-lg border border-red-500/20 bg-red-500/15 px-2.5 py-2 text-[11px] font-semibold uppercase tracking-widest text-red-400 hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {batchTaskDeleting ? '删除中...' :`批量删除(${selectedTaskIds.size})`}
                 </button>
                 <button
                   type="button"
                   onClick={() => loadTasksAndStatus()}
-                  className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-slate-500 hover:bg-slate-100"
+                  className="rounded-lg border border-theme-border bg-theme-elevated p-2 text-theme-text-muted hover:bg-theme-elevated"
                 >
                   <RefreshCw size={14} />
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsTaskModalOpen(false)}
-                  className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-slate-500 hover:bg-slate-100"
+                  className="rounded-lg border border-theme-border bg-theme-elevated p-2 text-theme-text-muted hover:bg-theme-elevated"
                 >
                   <X size={14} />
                 </button>
@@ -1208,8 +1205,8 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
             <div className="min-h-0 flex-1 overflow-auto">
               {tasks.length > 0 ? (
                 <table className="min-w-full text-left">
-                  <thead className="sticky top-0 bg-slate-50">
-                    <tr className="text-[11px] font-black uppercase tracking-widest text-slate-500">
+                  <thead className="sticky top-0 bg-theme-elevated">
+                    <tr className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-muted">
                       <th className="px-3 py-2">
                         <input
                           type="checkbox"
@@ -1234,7 +1231,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                       const selected = selectedTaskIds.has(taskId);
                       const isActive = activeTaskId === taskId;
                       return (
-                      <tr key={task.id} className={`border-t border-slate-100 text-xs text-slate-700 ${isActive ? 'bg-blue-50/40' : ''}`}>
+                      <tr key={task.id} className={`border-t border-theme-border text-xs text-theme-text-secondary ${isActive ? 'bg-blue-500/10' : ''}`}>
                         <td className="px-3 py-2.5">
                           <input type="checkbox" checked={selected} onChange={() => toggleTaskSelection(taskId)} />
                         </td>
@@ -1248,14 +1245,14 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                             <button
                               type="button"
                               onClick={() => handleOpenTaskDetail(task)}
-                              className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 hover:bg-slate-100"
+                              className="rounded-md border border-theme-border bg-theme-elevated px-2 py-1 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                             >
                               详情
                             </button>
                             <button
                               type="button"
                               onClick={() => deleteTaskAndRefresh(taskId)}
-                              className="rounded-md border border-red-200 bg-red-50 p-1.5 text-red-500 hover:bg-red-100"
+                              className="rounded-md border border-red-500/20 bg-red-500/15 p-1.5 text-red-500 hover:bg-red-500/15"
                             >
                               <Trash2 size={12} />
                             </button>
@@ -1266,19 +1263,19 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                   </tbody>
                 </table>
               ) : (
-                <div className="py-20 text-center text-[11px] font-black uppercase tracking-widest text-slate-400">暂无任务记录</div>
+                <div className="py-20 text-center text-[11px] font-semibold uppercase tracking-widest text-theme-text-muted">暂无任务记录</div>
               )}
             </div>
-            <div className="border-t border-slate-200 bg-slate-50/70 p-3">
+            <div className="border-t border-theme-border bg-theme-elevated p-3">
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-[11px] font-black uppercase tracking-widest text-slate-600">任务详情</p>
-                {activeTaskId && <p className="text-[11px] font-mono text-slate-500">{activeTaskId}</p>}
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary">任务详情</p>
+                {activeTaskId && <p className="text-[11px] font-mono text-theme-text-muted">{activeTaskId}</p>}
               </div>
-              <div className="max-h-56 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
-                {!activeTaskId && <p className="text-xs text-slate-400">点击任务行中的“详情”查看完整信息。</p>}
-                {activeTaskId && taskDetailLoadingId === activeTaskId && <p className="text-xs text-slate-500">详情加载中...</p>}
+              <div className="max-h-56 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-3">
+                {!activeTaskId && <p className="text-xs text-theme-text-muted">点击任务行中的“详情”查看完整信息。</p>}
+                {activeTaskId && taskDetailLoadingId === activeTaskId && <p className="text-xs text-theme-text-muted">详情加载中...</p>}
                 {activeTaskId && taskDetailLoadingId !== activeTaskId && (
-                  <pre className="whitespace-pre-wrap break-all text-[11px] text-slate-700">{JSON.stringify(activeTaskDetail, null, 2)}</pre>
+                  <pre className="whitespace-pre-wrap break-all text-[11px] text-theme-text-secondary">{JSON.stringify(activeTaskDetail, null, 2)}</pre>
                 )}
               </div>
             </div>
@@ -1289,22 +1286,22 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
       {/* Rebuild Confirmation Dialog */}
       {rebuildConfirm.show && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-950/70 backdrop-blur-md animate-in fade-in">
- <div className="bg-slate-50 w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-surface w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-10 text-center space-y-6">
-              <div className="w-20 h-20 bg-amber-50 text-amber-600 rounded-[2rem] flex items-center justify-center mx-auto shadow-inner">
+              <div className="w-20 h-20 bg-amber-500/15 text-amber-400 rounded-xl flex items-center justify-center mx-auto shadow-inner">
                 <RefreshCw size={40} className="animate-spin-slow" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight">确认重建环境？</h3>
-                <p className="text-slate-500 text-sm font-medium leading-relaxed italic">
-                  您正准备重新构建实例 <span className="font-bold text-slate-800 underline">"{rebuildConfirm.name}"</span>。
+                <h3 className="text-2xl font-bold text-theme-text-primary tracking-tight">确认重建环境？</h3>
+                <p className="text-theme-text-muted text-sm font-medium leading-relaxed italic">
+                  您正准备重新构建实例 <span className="font-bold text-theme-text-primary underline">"{rebuildConfirm.name}"</span>。
                   这会导致当前的编辑器会话中断。除挂载的 PVC 存储外，所有内部插件配置及临时文件都将被清空。
                 </p>
               </div>
             </div>
             <div className="px-10 pb-10 flex gap-4">
-              <button onClick={() => setRebuildConfirm({ show: false, name: null })} disabled={isActionLoading} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all">取消</button>
- <button onClick={executeRebuild} disabled={isActionLoading} className="flex-1 py-4 bg-amber-600 text-white rounded-2xl font-black hover:bg-amber-700 flex items-center justify-center gap-2 shadow-amber-500/20 active:scale-95 transition-all">
+              <button onClick={() => setRebuildConfirm({ show: false, name: null })} disabled={isActionLoading} className="flex-1 py-4 btn-secondary rounded-2xl font-medium transition-all">取消</button>
+ <button onClick={executeRebuild} disabled={isActionLoading} className="flex-1 py-4 bg-amber-600 text-white rounded-2xl font-medium hover:bg-amber-700 flex items-center justify-center gap-2 shadow-amber-500/20 active:scale-95 transition-all">
                 {isActionLoading ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />} 确认并重启
               </button>
             </div>
@@ -1315,22 +1312,22 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
       {/* Delete Confirmation Dialog */}
       {deleteConfirm.show && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-950/70 backdrop-blur-md animate-in fade-in">
- <div className="bg-slate-50 w-full max-w-md rounded-[3rem] overflow-hidden animate-in zoom-in-95">
+ <div className="bg-theme-surface w-full max-w-md rounded-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-10 text-center space-y-6">
-              <div className="w-20 h-20 bg-red-50 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto shadow-inner">
+              <div className="w-20 h-20 bg-red-500/15 text-red-400 rounded-xl flex items-center justify-center mx-auto shadow-inner">
                 <Trash2 size={40} />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight">永久销毁实例？</h3>
-                <p className="text-slate-500 text-sm font-medium leading-relaxed italic">
-                  您将移除以下实例：<br/><span className="font-black text-red-600">{deleteConfirm.names.join(', ')}</span><br/>
+                <h3 className="text-2xl font-bold text-theme-text-primary tracking-tight">永久销毁实例？</h3>
+                <p className="text-theme-text-muted text-sm font-medium leading-relaxed italic">
+                  您将移除以下实例：<br/><span className="font-semibold text-red-400">{deleteConfirm.names.join(', ')}</span><br/>
                   该操作将彻底从 K8S 集群中擦除 Deployment、Service 及 Ingress 入口。此过程<span className="font-bold underline">不可撤销</span>。
                 </p>
               </div>
             </div>
             <div className="px-10 pb-10 flex gap-4">
-              <button onClick={() => setDeleteConfirm({ show: false, names: [] })} disabled={isActionLoading} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all">保留实例</button>
- <button onClick={executeDelete} disabled={isActionLoading} className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-black hover:bg-red-700 flex items-center justify-center gap-2 shadow-red-500/20 active:scale-95 transition-all">
+              <button onClick={() => setDeleteConfirm({ show: false, names: [] })} disabled={isActionLoading} className="flex-1 py-4 btn-secondary rounded-2xl font-medium transition-all">保留实例</button>
+ <button onClick={executeDelete} disabled={isActionLoading} className="flex-1 py-4 btn-danger rounded-2xl font-medium flex items-center justify-center gap-2 shadow-red-500/20 active:scale-95 transition-all">
                 {isActionLoading ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />} 立即销毁
               </button>
             </div>
@@ -1341,23 +1338,23 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
       {/* Create Modal */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-950/75 p-3 md:p-6 backdrop-blur-sm animate-in fade-in">
- <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 animate-in zoom-in-95">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-4 py-3 md:px-5">
+ <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface animate-in zoom-in-95">
+            <div className="flex items-start justify-between gap-4 border-b border-theme-border px-4 py-3 md:px-5">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <Plus size={16} className="text-blue-600" />
-                  <h3 className="text-lg font-black tracking-tight text-slate-900">部署审计环境</h3>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-slate-600">Compact</span>
+                  <Plus size={16} className="text-blue-400" />
+                  <h3 className="text-lg font-semibold tracking-tight text-theme-text-primary">部署审计环境</h3>
+                  <span className="rounded-full bg-theme-elevated px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-theme-text-secondary">Compact</span>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">按需绑定 LLM Provider、PVC 和自定义环境变量。</p>
+                <p className="mt-1 text-xs text-theme-text-muted">按需绑定 LLM Provider、PVC 和自定义环境变量。</p>
               </div>
-              <button onClick={() => setIsCreateModalOpen(false)} className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
+              <button onClick={() => setIsCreateModalOpen(false)} className="rounded-lg p-2 text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-secondary">
                 <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleCreate} className="min-h-0 flex-1 overflow-y-auto p-4 md:p-5 custom-scrollbar">
-              <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2 md:grid-cols-4">
+              <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl border border-theme-border bg-theme-surface p-2 md:grid-cols-4">
                 {[
                   { key: 'base' as const, label: '基础配置' },
                   { key: 'mounts' as const, label: '挂载配置' },
@@ -1368,10 +1365,10 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                     key={tab.key}
                     type="button"
                     onClick={() => setActiveCreateTab(tab.key)}
-                    className={`rounded-lg px-3 py-2 text-[11px] font-black transition ${
+                    className={`rounded-lg px-3 py-2 text-[11px] font-semibold transition ${
                       activeCreateTab === tab.key
                         ? 'bg-blue-600 text-white'
-                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                        : 'bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'
                     }`}
                   >
                     {tab.label}
@@ -1381,25 +1378,25 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 {activeCreateTab === 'base' && (
                   <>
-                <section className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-600">基础信息</h4>
+                <section className="space-y-3 rounded-xl border border-theme-border bg-theme-surface p-3">
+                  <h4 className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary">基础信息</h4>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">实例名称 *</label>
+                      <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">实例名称 *</label>
                       <input
                         required
                         placeholder="auth-service-review"
-                        className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                        className="mt-1 w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-sm font-bold text-theme-text-primary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                         value={formData.name}
                         onChange={e => setFormData({ ...formData, name: e.target.value })}
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">访问密码</label>
+                      <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">访问密码</label>
                       <input
                         type="password"
                         placeholder="留空随机生成"
-                        className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                        className="mt-1 w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-sm font-bold text-theme-text-primary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                         value={formData.password}
                         onChange={e => {
                           setAutoGeneratedPassword('');
@@ -1409,34 +1406,34 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                     </div>
                   </div>
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">运行镜像</label>
+                    <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">运行镜像</label>
                     <input
                       placeholder={defaultImage ?`默认: ${defaultImage}` :"留空使用默认镜像"}
-                      className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-mono text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                      className="mt-1 w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-xs font-mono text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                       value={formData.image}
                       onChange={e => setFormData({ ...formData, image: e.target.value })}
                     />
-                    <p className="mt-1 text-[10px] text-slate-500">
-                      默认镜像：<span className="font-mono text-slate-700">{defaultImage || (deployDefaultsLoading ? '加载中...' : '未配置')}</span>
+                    <p className="mt-1 text-[10px] text-theme-text-muted">
+                      默认镜像：<span className="font-mono text-theme-text-secondary">{defaultImage || (deployDefaultsLoading ? '加载中...' : '未配置')}</span>
                     </p>
                   </div>
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">审计目标简述</label>
+                    <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">审计目标简述</label>
                     <textarea
                       placeholder="描述审计目标..."
                       rows={3}
-                      className="mt-1 w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                      className="mt-1 w-full resize-none rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-sm text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                       value={formData.description}
                       onChange={e => setFormData({ ...formData, description: e.target.value })}
                     />
                   </div>
                 </section>
 
-                <section className="min-w-0 space-y-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-600">LLM Provider</h4>
+                <section className="min-w-0 space-y-3 overflow-hidden rounded-xl border border-theme-border bg-theme-surface p-3">
+                  <h4 className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary">LLM Provider</h4>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
                     <select
-                      className="w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                      className="form-select w-full text-xs disabled:bg-theme-elevated"
                       value={providerToAdd}
                       onChange={(e) => setProviderToAdd(e.target.value)}
                       disabled={llmProvidersLoading}
@@ -1451,32 +1448,32 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                     <button
                       type="button"
                       onClick={handleAddProvider}
-                      className="inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] font-black text-blue-700 hover:bg-blue-100"
+                      className="inline-flex items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/15 px-3 py-2 text-[11px] font-semibold text-blue-400 hover:bg-blue-500/15"
                     >
                       + 添加
                     </button>
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, llm_provider_keys: [] })}
-                      className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-black text-slate-600 hover:bg-slate-100"
+                      className="inline-flex items-center justify-center rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-[11px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                     >
                       清空
                     </button>
                   </div>
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-[10px] text-theme-text-muted">
                     仅点击“添加”后的 Provider 才参与混合注入；切换下拉不会自动生效。
                   </p>
-                  {llmProvidersLoading && <p className="text-[10px] font-bold text-slate-500">正在加载 Provider...</p>}
+                  {llmProvidersLoading && <p className="text-[10px] font-bold text-theme-text-muted">正在加载 Provider...</p>}
                   {llmProvidersError && <p className="text-[10px] font-bold text-red-500">{llmProvidersError}</p>}
                   <div className="max-h-48 space-y-2 overflow-y-auto pr-1 custom-scrollbar">
                     {selectedProviderKeys.length === 0 ? (
-                      <p className="text-[10px] italic text-slate-400">当前未选择 Provider，部署时不会额外注入 LLM 环境变量或配置文件。</p>
+                      <p className="text-[10px] italic text-theme-text-muted">当前未选择 Provider，部署时不会额外注入 LLM 环境变量或配置文件。</p>
                     ) : (
                       selectedProviderKeys.map((providerKey, index) => (
-                        <div key={providerKey} className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                        <div key={providerKey} className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-xs font-black text-slate-700">{providerMap.get(providerKey)?.display_name || providerKey}</p>
-                            <p className="truncate text-[10px] text-slate-500">{providerKey} · {providerMap.get(providerKey)?.provider_type || '-'}</p>
+                            <p className="truncate text-xs font-semibold text-theme-text-secondary">{providerMap.get(providerKey)?.display_name || providerKey}</p>
+                            <p className="truncate text-[10px] text-theme-text-muted">{providerKey} · {providerMap.get(providerKey)?.provider_type || '-'}</p>
                           </div>
                           <div className="flex shrink-0 items-center gap-1">
                             <button
@@ -1489,7 +1486,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                 next.splice(index - 1, 0, item);
                                 setFormData({ ...formData, llm_provider_keys: next });
                               }}
-                              className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 disabled:opacity-40"
+                              className="rounded-md border border-theme-border bg-theme-elevated px-2 py-1 text-[10px] font-semibold text-theme-text-secondary disabled:opacity-40"
                             >
                               上移
                             </button>
@@ -1503,14 +1500,14 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                 next.splice(index + 1, 0, item);
                                 setFormData({ ...formData, llm_provider_keys: next });
                               }}
-                              className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 disabled:opacity-40"
+                              className="rounded-md border border-theme-border bg-theme-elevated px-2 py-1 text-[10px] font-semibold text-theme-text-secondary disabled:opacity-40"
                             >
                               下移
                             </button>
                             <button
                               type="button"
                               onClick={() => setFormData({ ...formData, llm_provider_keys: selectedProviderKeys.filter((key) => key !== providerKey) })}
-                              className="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-black text-red-600"
+                              className="rounded-md border border-red-500/20 bg-red-500/15 px-2 py-1 text-[10px] font-semibold text-red-400"
                             >
                               删除
                             </button>
@@ -1519,12 +1516,12 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                       ))
                     )}
                   </div>
-                  <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-2.5 space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Provider 单独预览（不混合）</p>
-                    {providerPreviewLoading && <p className="text-[10px] text-slate-500">加载 Provider 预览中...</p>}
+                  <div className="min-w-0 rounded-lg border border-theme-border bg-theme-elevated p-2.5 space-y-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">Provider 单独预览（不混合）</p>
+                    {providerPreviewLoading && <p className="text-[10px] text-theme-text-muted">加载 Provider 预览中...</p>}
                     {providerPreviewError && <p className="text-[10px] text-red-500">{providerPreviewError}</p>}
                     {!providerPreviewLoading && !providerPreviewError && selectedProviderKeys.length === 0 && (
-                      <p className="text-[10px] text-slate-400">暂无 Provider 预览内容</p>
+                      <p className="text-[10px] text-theme-text-muted">暂无 Provider 预览内容</p>
                     )}
                     {!providerPreviewLoading && !providerPreviewError && selectedProviderKeys.length > 0 && (
                       <div className="max-h-56 space-y-2 overflow-y-auto custom-scrollbar">
@@ -1537,48 +1534,48 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                             ? detail.file_bindings.filter((f) => f?.enabled && String(f.path || '').trim().startsWith('/'))
                             : [];
                           return (
-                            <div key={`preview-${providerKey}`} className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                              <p className="truncate text-[10px] font-black text-slate-700">
+                            <div key={`preview-${providerKey}`} className="rounded-lg border border-theme-border bg-theme-elevated p-2">
+                              <p className="truncate text-[10px] font-semibold text-theme-text-secondary">
                                 {providerMap.get(providerKey)?.display_name || providerKey} · {providerKey}
                               </p>
                               <div className="mt-2 space-y-1">
-                                <p className="text-[10px] font-black text-slate-500">环境变量</p>
+                                <p className="text-[10px] font-semibold text-theme-text-muted">环境变量</p>
                                 {envEntries.length === 0 ? (
-                                  <p className="text-[10px] text-slate-400">无环境变量</p>
+                                  <p className="text-[10px] text-theme-text-muted">无环境变量</p>
                                 ) : (
                                   <div className="max-h-24 space-y-1 overflow-y-auto custom-scrollbar">
                                     {envEntries.map(([key, value]) => (
-                                      <div key={`${providerKey}-env-${key}`} className="grid grid-cols-[minmax(0,120px)_1fr] gap-2 rounded bg-slate-50 px-2 py-1 text-[10px] font-mono">
-                                        <div className="truncate font-black text-slate-700">{key}</div>
-                                        <div className="truncate text-slate-500">{String(value ?? '')}</div>
+                                      <div key={`${providerKey}-env-${key}`} className="grid grid-cols-[minmax(0,120px)_1fr] gap-2 rounded bg-theme-elevated px-2 py-1 text-[10px] font-mono">
+                                        <div className="truncate font-semibold text-theme-text-secondary">{key}</div>
+                                        <div className="truncate text-theme-text-muted">{String(value ?? '')}</div>
                                       </div>
                                     ))}
                                   </div>
                                 )}
                               </div>
                               <div className="mt-2 space-y-1">
-                                <p className="text-[10px] font-black text-slate-500">文件注入</p>
+                                <p className="text-[10px] font-semibold text-theme-text-muted">文件注入</p>
                                 {fileItems.length === 0 ? (
-                                  <p className="text-[10px] text-slate-400">无文件注入</p>
+                                  <p className="text-[10px] text-theme-text-muted">无文件注入</p>
                                 ) : (
                                   <div className="max-h-24 space-y-1 overflow-y-auto custom-scrollbar">
                                     {fileItems.map((item) => {
                                       const fileKey =`${providerKey}::${item.path}`;
                                       const isOpen = llmPreviewFileKey === fileKey;
                                       return (
-                                        <div key={fileKey} className="rounded bg-slate-50 px-2 py-1 text-[10px] font-mono">
+                                        <div key={fileKey} className="rounded bg-theme-elevated px-2 py-1 text-[10px] font-mono">
                                           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-                                            <div className="truncate text-slate-700">{item.path}</div>
+                                            <div className="truncate text-theme-text-secondary">{item.path}</div>
                                             <button
                                               type="button"
                                               onClick={() => setLlmPreviewFileKey((prev) => (prev === fileKey ? '' : fileKey))}
-                                              className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-black text-slate-600 hover:bg-slate-100"
+                                              className="rounded border border-theme-border bg-theme-elevated px-1.5 py-0.5 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                                             >
                                               {isOpen ? '收起' : '预览'}
                                             </button>
                                           </div>
                                           {isOpen && (
-                                            <pre className="mt-1 max-h-32 overflow-auto rounded bg-slate-50 p-2 text-[10px] leading-relaxed text-slate-700 custom-scrollbar">
+                                            <pre className="mt-1 max-h-32 overflow-auto rounded bg-theme-elevated p-2 text-[10px] leading-relaxed text-theme-text-secondary custom-scrollbar">
                                               {String(item.content || '无内容')}
                                             </pre>
                                           )}
@@ -1594,11 +1591,11 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                       </div>
                     )}
                   </div>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                    <p className="text-[10px] text-slate-600">
-                      环境变量最终注入优先级：<span className="font-black">用户手工</span> &gt; <span className="font-black">LLM Provider</span> &gt; <span className="font-black">程序预制</span>
+                  <div className="rounded-lg border border-theme-border bg-theme-elevated p-2">
+                    <p className="text-[10px] text-theme-text-secondary">
+                      环境变量最终注入优先级：<span className="font-semibold">用户手工</span> &gt; <span className="font-semibold">LLM Provider</span> &gt; <span className="font-semibold">程序预制</span>
                     </p>
-                    <p className="mt-1 text-[10px] text-slate-500">
+                    <p className="mt-1 text-[10px] text-theme-text-muted">
                       已绑定 Provider: {selectedProviderKeys.length}，合并后环境变量: {providerMerged.mappedEnvKeys.length}，文件: {providerMerged.mappedFilePaths.length}
                     </p>
                   </div>
@@ -1608,13 +1605,13 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
 
                 {activeCreateTab === 'mounts' && (
                   <>
-                <section className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <section className="space-y-2 rounded-xl border border-theme-border bg-theme-surface p-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-600">源码挂载</h4>
+                    <h4 className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary">源码挂载</h4>
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, source_pvcs: [...formData.source_pvcs, { pvc_name: '', mount_path: '' }] })}
-                      className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:underline"
+                      className="text-[10px] font-semibold uppercase tracking-widest text-blue-400 hover:underline"
                     >
                       + 添加
                     </button>
@@ -1624,7 +1621,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                       <div key={idx} className="grid grid-cols-12 items-center gap-2">
                         <div className="col-span-7">
                           <select
-                            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-bold outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            className="form-select w-full text-xs"
                             value={item.pvc_name}
                             onChange={e => {
                               const n = [...formData.source_pvcs];
@@ -1643,7 +1640,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                         <div className="col-span-4">
                           <input
                             placeholder="/config/workspace"
-                            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-mono outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            className="w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-xs font-mono outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                             value={item.mount_path}
                             onChange={e => {
                               const n = [...formData.source_pvcs];
@@ -1656,24 +1653,24 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                           <button
                             type="button"
                             onClick={() => setFormData({ ...formData, source_pvcs: formData.source_pvcs.filter((_, i) => i !== idx) })}
-                            className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"
+                            className="rounded-md p-1.5 text-theme-text-muted hover:bg-red-500/15 hover:text-red-500"
                           >
                             <Trash2 size={14} />
                           </button>
                         </div>
                       </div>
                     ))}
-                    {formData.source_pvcs.length === 0 && <p className="text-[10px] italic text-slate-400">未配置源码挂载</p>}
+                    {formData.source_pvcs.length === 0 && <p className="text-[10px] italic text-theme-text-muted">未配置源码挂载</p>}
                   </div>
                 </section>
 
-                <section className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <section className="space-y-2 rounded-xl border border-theme-border bg-theme-surface p-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-600">输出挂载</h4>
+                    <h4 className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary">输出挂载</h4>
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, output_pvcs: [...formData.output_pvcs, { pvc_name: '', mount_path: '' }] })}
-                      className="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:underline"
+                      className="text-[10px] font-semibold uppercase tracking-widest text-indigo-400 hover:underline"
                     >
                       + 添加
                     </button>
@@ -1683,7 +1680,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                       <div key={idx} className="grid grid-cols-12 items-center gap-2">
                         <div className="col-span-7">
                           <select
-                            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-bold outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            className="form-select w-full text-xs"
                             value={item.pvc_name}
                             onChange={e => {
                               const n = [...formData.output_pvcs];
@@ -1702,7 +1699,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                         <div className="col-span-4">
                           <input
                             placeholder="/output"
-                            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-mono outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            className="w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-xs font-mono outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                             value={item.mount_path}
                             onChange={e => {
                               const n = [...formData.output_pvcs];
@@ -1715,14 +1712,14 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                           <button
                             type="button"
                             onClick={() => setFormData({ ...formData, output_pvcs: formData.output_pvcs.filter((_, i) => i !== idx) })}
-                            className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"
+                            className="rounded-md p-1.5 text-theme-text-muted hover:bg-red-500/15 hover:text-red-500"
                           >
                             <Trash2 size={14} />
                           </button>
                         </div>
                       </div>
                     ))}
-                    {formData.output_pvcs.length === 0 && <p className="text-[10px] italic text-slate-400">未配置输出存储</p>}
+                    {formData.output_pvcs.length === 0 && <p className="text-[10px] italic text-theme-text-muted">未配置输出存储</p>}
                   </div>
                 </section>
 
@@ -1730,15 +1727,15 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                 )}
 
                 {activeCreateTab === 'env' && (
-                <section className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 lg:col-span-2">
+                <section className="space-y-2 rounded-xl border border-theme-border bg-theme-surface p-3 lg:col-span-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-600">最终环境变量注入区</h4>
+                    <h4 className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary">最终环境变量注入区</h4>
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
                         onClick={() => setDeletedEnvKeys([])}
                         disabled={deletedEnvKeys.length === 0}
-                        className="text-[10px] font-black uppercase tracking-widest text-slate-600 hover:underline disabled:text-slate-300 disabled:no-underline"
+                        className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-secondary hover:underline disabled:text-theme-text-faint disabled:no-underline"
                       >
                         恢复删除项
                       </button>
@@ -1749,20 +1746,20 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                           setDeletedEnvKeys(effectiveEnv.keys);
                         }}
                         disabled={effectiveEnv.keys.length === 0}
-                        className="text-[10px] font-black uppercase tracking-widest text-red-600 hover:underline disabled:text-slate-300 disabled:no-underline"
+                        className="text-[10px] font-semibold uppercase tracking-widest text-red-400 hover:underline disabled:text-theme-text-faint disabled:no-underline"
                       >
                         一键清空
                       </button>
                       <button
                         type="button"
                         onClick={() => setFormData({ ...formData, custom_envs: [...formData.custom_envs, { key: '', value: '' }] })}
-                        className="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:underline"
+                        className="text-[10px] font-semibold uppercase tracking-widest text-indigo-400 hover:underline"
                       >
                         + 添加
                       </button>
                     </div>
                   </div>
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-[10px] text-theme-text-muted">
                     合并优先级：用户手工注入 &gt; LLM Provider 注入 &gt; 程序预制环境变量。
                   </p>
                   <div className="space-y-2">
@@ -1771,28 +1768,28 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                         key={key}
                         className={`grid grid-cols-12 items-center gap-2 rounded-lg border px-2 py-1.5 ${
                           effectiveEnv.overrideHintsByKey[key]
-                            ? 'border-amber-300 bg-amber-50'
-                            : 'border-slate-200 bg-slate-50'
+                            ? 'border-amber-300 bg-amber-500/15'
+                            : 'border-theme-border bg-theme-elevated'
                         }`}
                       >
                         <div className="col-span-3">
-                          <p className="truncate text-[11px] font-mono font-black text-slate-700">{key}</p>
+                          <p className="truncate text-[11px] font-mono font-semibold text-theme-text-secondary">{key}</p>
                         </div>
                         <div className="col-span-6">
                           <input
                             placeholder="value"
-                            className="w-full rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] font-mono outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            className="w-full rounded-md border border-theme-border bg-theme-elevated px-2 py-1.5 text-[11px] font-mono outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                             value={effectiveEnv.merged[key]}
                             onChange={(e) => handleEffectiveEnvValueChange(key, e.target.value)}
                           />
                         </div>
                         <div className="col-span-2 text-center">
-                          <span className={`inline-block max-w-full truncate rounded px-1.5 py-0.5 text-[9px] font-black ${
+                          <span className={`inline-block max-w-full truncate rounded px-1.5 py-0.5 text-[9px] font-semibold ${
                             effectiveEnv.sourceByKey[key] === 'manual'
-                              ? 'bg-amber-100 text-amber-700'
+                              ? 'bg-amber-500/15 text-amber-400'
                               : effectiveEnv.sourceByKey[key] === 'provider'
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-slate-100 text-slate-600'
+                                ? 'bg-blue-500/15 text-blue-400'
+                                : 'bg-theme-elevated text-theme-text-secondary'
                           }`}>
                             {effectiveEnv.sourceByKey[key] === 'manual'
                               ? '手工环境变量'
@@ -1805,27 +1802,27 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                           <button
                             type="button"
                             onClick={() => handleEffectiveEnvDelete(key)}
-                            className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"
+                            className="rounded-md p-1.5 text-theme-text-muted hover:bg-red-500/15 hover:text-red-500"
                           >
                             <Trash2 size={14} />
                           </button>
                         </div>
                         {effectiveEnv.overrideHintsByKey[key] && (
                           <div className="col-span-12">
-                            <p className="text-[10px] font-black text-amber-700">{effectiveEnv.overrideHintsByKey[key]}</p>
+                            <p className="text-[10px] font-semibold text-amber-400">{effectiveEnv.overrideHintsByKey[key]}</p>
                           </div>
                         )}
                       </div>
                     ))}
-                    {effectiveEnv.keys.length === 0 && <p className="text-[10px] italic text-slate-400">当前无环境变量注入项</p>}
+                    {effectiveEnv.keys.length === 0 && <p className="text-[10px] italic text-theme-text-muted">当前无环境变量注入项</p>}
                   </div>
                   <div className="space-y-2">
                     {formData.custom_envs.map((env, idx) => (
-                      <div key={`custom-${idx}`} className="grid grid-cols-12 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5">
+                      <div key={`custom-${idx}`} className="grid grid-cols-12 items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-2 py-1.5">
                         <div className="col-span-3">
                           <input
                             placeholder="ENV_KEY"
-                            className="w-full rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] font-mono font-black uppercase outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            className="w-full rounded-md border border-theme-border bg-theme-elevated px-2 py-1.5 text-[11px] font-mono font-semibold uppercase outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                             value={env.key}
                             onChange={e => {
                               const n = [...formData.custom_envs];
@@ -1837,7 +1834,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                         <div className="col-span-6">
                           <input
                             placeholder="value"
-                            className="w-full rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] font-mono outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            className="w-full rounded-md border border-theme-border bg-theme-elevated px-2 py-1.5 text-[11px] font-mono outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                             value={env.value}
                             onChange={e => {
                               const n = [...formData.custom_envs];
@@ -1847,7 +1844,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                           />
                         </div>
                         <div className="col-span-2 text-center">
-                          <span className="inline-block max-w-full truncate rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-black text-amber-700">
+                          <span className="inline-block max-w-full truncate rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-400">
                             手工环境变量
                           </span>
                         </div>
@@ -1855,28 +1852,28 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                           <button
                             type="button"
                             onClick={() => setFormData({ ...formData, custom_envs: formData.custom_envs.filter((_, i) => i !== idx) })}
-                            className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"
+                            className="rounded-md p-1.5 text-theme-text-muted hover:bg-red-500/15 hover:text-red-500"
                           >
                             <Trash2 size={14} />
                           </button>
                         </div>
                       </div>
                     ))}
-                    {formData.custom_envs.length === 0 && <p className="text-[10px] italic text-slate-400">未添加手工环境变量</p>}
+                    {formData.custom_envs.length === 0 && <p className="text-[10px] italic text-theme-text-muted">未添加手工环境变量</p>}
                   </div>
                 </section>
                 )}
 
                 {activeCreateTab === 'files' && (
-                <section className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 lg:col-span-2">
+                <section className="space-y-2 rounded-xl border border-theme-border bg-theme-surface p-3 lg:col-span-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-600">最终文件注入区</h4>
-                    <p className="text-[10px] text-slate-500">默认查看，点击“编辑”后可修改内容</p>
+                    <h4 className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary">最终文件注入区</h4>
+                    <p className="text-[10px] text-theme-text-muted">默认查看，点击“编辑”后可修改内容</p>
                   </div>
-                  {providerPreviewLoading && <p className="text-[10px] text-slate-500">加载 Provider 文件中...</p>}
+                  {providerPreviewLoading && <p className="text-[10px] text-theme-text-muted">加载 Provider 文件中...</p>}
                   {providerPreviewError && <p className="text-[10px] text-red-500">{providerPreviewError}</p>}
                   {!providerPreviewLoading && !providerPreviewError && providerMerged.mappedFilePaths.length === 0 && (
-                    <p className="text-[10px] italic text-slate-400">当前无文件注入项</p>
+                    <p className="text-[10px] italic text-theme-text-muted">当前无文件注入项</p>
                   )}
                   {!providerPreviewLoading && !providerPreviewError && providerMerged.mappedFilePaths.length > 0 && (
                     <div className="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
@@ -1884,32 +1881,32 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                         const isEditing = editingFilePaths.includes(item.path);
                         const displayContent = fileContentOverrides[item.path] !== undefined ? fileContentOverrides[item.path] : String(item.content || '');
                         return (
-                          <div key={item.path} className="rounded-lg border border-slate-200 bg-slate-50 p-2">
+                          <div key={item.path} className="rounded-lg border border-theme-border bg-theme-elevated p-2">
                             <div className="flex items-center justify-between gap-2">
                               <div className="min-w-0 flex-1">
                                 <input
-                                  className="w-full rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-mono font-black text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                                  className="w-full rounded border border-theme-border bg-theme-elevated px-2 py-1 text-[11px] font-mono font-semibold text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                                   value={filePathOverrides[item.path] !== undefined ? filePathOverrides[item.path] : item.path}
                                   onChange={(e) => setFilePathOverrides((prev) => ({ ...prev, [item.path]: e.target.value }))}
                                   placeholder="/abs/path/in/container"
                                 />
-                                <p className="text-[10px] text-slate-500">from {item.provider_key}</p>
+                                <p className="text-[10px] text-theme-text-muted">from {item.provider_key}</p>
                               </div>
                               <div className="flex shrink-0 items-center gap-1">
                                 <button
                                   type="button"
                                   onClick={() => setPreviewFilePath((prev) => (prev === item.path ? '' : item.path))}
-                                  className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 hover:bg-slate-100"
+                                  className="rounded border border-theme-border bg-theme-elevated px-2 py-1 text-[10px] font-semibold text-theme-text-secondary hover:bg-theme-elevated"
                                 >
                                   {previewFilePath === item.path ? '收起' : '预览'}
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => toggleFileEditing(item.path)}
-                                  className={`rounded border px-2 py-1 text-[10px] font-black ${
+                                  className={`rounded border px-2 py-1 text-[10px] font-semibold ${
                                     isEditing
-                                      ? 'border-amber-200 bg-amber-50 text-amber-700'
-                                      : 'border-blue-200 bg-blue-50 text-blue-700'
+                                      ? 'border-amber-500/20 bg-amber-500/15 text-amber-400'
+                                      : 'border-blue-500/20 bg-blue-500/15 text-blue-400'
                                   }`}
                                 >
                                   {isEditing ? '完成' : '编辑'}
@@ -1921,12 +1918,12 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                                 {isEditing ? (
                                   <textarea
                                     rows={8}
-                                    className="w-full rounded border border-slate-200 bg-slate-50 p-2 text-[10px] font-mono leading-relaxed text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                                    className="w-full rounded border border-theme-border bg-theme-elevated p-2 text-[10px] font-mono leading-relaxed text-theme-text-secondary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                                     value={displayContent}
                                     onChange={(e) => setFileContentOverrides((prev) => ({ ...prev, [item.path]: e.target.value }))}
                                   />
                                 ) : (
-                                  <pre className="max-h-48 overflow-auto rounded bg-slate-50 p-2 text-[10px] leading-relaxed text-slate-700 custom-scrollbar">{displayContent || '无内容'}</pre>
+                                  <pre className="max-h-48 overflow-auto rounded bg-theme-elevated p-2 text-[10px] leading-relaxed text-theme-text-secondary custom-scrollbar">{displayContent || '无内容'}</pre>
                                 )}
                               </div>
                             )}
@@ -1939,9 +1936,9 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                 )}
 
                 {activeCreateTab === 'mounts' && isAllMountEmpty && (
-                  <section className="rounded-xl border border-amber-300 bg-amber-50 p-3 lg:col-span-2">
-                    <p className="text-xs font-black text-amber-700">风险告警：当前为全空挂载</p>
-                    <p className="mt-1 text-[11px] text-amber-700">
+                  <section className="rounded-xl border border-amber-300 bg-amber-500/15 p-3 lg:col-span-2">
+                    <p className="text-xs font-semibold text-amber-400">风险告警：当前为全空挂载</p>
+                    <p className="mt-1 text-[11px] text-amber-400">
                       当前未配置源码挂载和输出挂载。此环境中的数据将仅存在于容器内，一旦环境删除将导致全部数据丢失。
                     </p>
                   </section>
@@ -1949,11 +1946,11 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
               </div>
             </form>
 
-            <div className="flex shrink-0 gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3 md:px-5">
+            <div className="flex shrink-0 gap-2 border-t border-theme-border bg-theme-surface px-4 py-3 md:px-5">
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-100"
+                className="flex-1 rounded-lg border border-theme-border bg-theme-elevated px-4 py-2.5 text-sm font-semibold text-theme-text-secondary transition hover:bg-theme-elevated"
               >
                 取消
               </button>
@@ -1961,7 +1958,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                 type="button"
                 onClick={handlePreviewPayload}
                 disabled={createLoading}
-                className="flex-1 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-black text-indigo-700 transition hover:bg-indigo-100 disabled:opacity-50"
+                className="flex-1 rounded-lg border border-indigo-500/20 bg-indigo-500/15 px-4 py-2.5 text-sm font-semibold text-indigo-400 transition hover:bg-indigo-500/15 disabled:opacity-50"
               >
                 <span className="inline-flex items-center gap-2">
                   <Eye size={16} />
@@ -1972,7 +1969,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                 type="button"
                 onClick={handleCreate}
                 disabled={createLoading}
-                className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-700 disabled:opacity-50"
+                className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
               >
                 <span className="inline-flex items-center gap-2">
                   {createLoading ? <Loader2 className="animate-spin" size={16} /> : <Terminal size={16} />}
@@ -1985,28 +1982,28 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
       )}
       {isPayloadPreviewOpen && (
         <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/75 p-3 md:p-6 backdrop-blur-sm animate-in fade-in">
- <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+ <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
+            <div className="flex items-center justify-between gap-3 border-b border-theme-border px-4 py-3">
               <div>
-                <h4 className="text-sm font-black tracking-wide text-slate-900">最终请求预览</h4>
-                <p className="text-[10px] text-slate-500">以下为当前表单将提交的请求体（JSON）</p>
+                <h4 className="text-sm font-semibold tracking-wide text-theme-text-primary">最终请求预览</h4>
+                <p className="text-[10px] text-theme-text-muted">以下为当前表单将提交的请求体（JSON）</p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsPayloadPreviewOpen(false)}
-                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                className="rounded-lg p-2 text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-secondary"
               >
                 <X size={16} />
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-auto bg-slate-50 p-3 custom-scrollbar">
-              <pre className="whitespace-pre-wrap break-words text-[11px] leading-relaxed text-slate-900">{payloadPreviewText || '{}'}</pre>
+            <div className="min-h-0 flex-1 overflow-auto bg-theme-surface p-3 custom-scrollbar">
+              <pre className="whitespace-pre-wrap break-words text-[11px] leading-relaxed text-theme-text-primary">{payloadPreviewText || '{}'}</pre>
             </div>
-            <div className="flex justify-end gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="flex justify-end gap-2 border-t border-theme-border bg-theme-surface px-4 py-3">
               <button
                 type="button"
                 onClick={() => setIsPayloadPreviewOpen(false)}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-100"
+                className="rounded-lg border border-theme-border bg-theme-elevated px-4 py-2 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"
               >
                 关闭
               </button>

@@ -27,29 +27,29 @@ interface Props {
 }
 
 const AGENT_STATUS: Record<string, { label: string; tone: string }> = {
-  PENDING: { label: '等待中', tone: 'bg-slate-100 text-slate-600 border-slate-200' },
-  WAITING: { label: '排队中', tone: 'bg-sky-50 text-sky-700 border-sky-200' },
-  RUNNING: { label: '执行中', tone: 'bg-blue-50 text-blue-700 border-blue-200' },
-  SUCCESS: { label: '成功', tone: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  FAILED: { label: '失败', tone: 'bg-rose-50 text-rose-700 border-rose-200' },
-  CANCELLED: { label: '已取消', tone: 'bg-slate-100 text-slate-500 border-slate-200' },
+  PENDING: { label: '等待中', tone: 'bg-theme-elevated text-theme-text-secondary border-theme-border' },
+  WAITING: { label: '排队中', tone: 'bg-sky-500/15 text-sky-400 border-sky-500/20' },
+  RUNNING: { label: '执行中', tone: 'bg-blue-500/15 text-blue-400 border-blue-500/20' },
+  SUCCESS: { label: '成功', tone: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
+  FAILED: { label: '失败', tone: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
+  CANCELLED: { label: '已取消', tone: 'bg-theme-elevated text-theme-text-muted border-theme-border' },
 };
 const TERMINAL_STATUSES = new Set(['SUCCESS', 'FAILED', 'CANCELLED']);
 
 const getStatusIcon = (status: string) => {
   switch (status) {
     case 'SUCCESS':
-      return <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
+      return <CheckCircle2 className="w-4 h-4 text-emerald-400" />;
     case 'FAILED':
-      return <XCircle className="w-4 h-4 text-rose-600" />;
+      return <XCircle className="w-4 h-4 text-rose-400" />;
     case 'RUNNING':
-      return <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />;
+      return <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />;
     case 'WAITING':
-      return <Clock className="w-4 h-4 text-sky-600" />;
+      return <Clock className="w-4 h-4 text-sky-400" />;
     case 'CANCELLED':
-      return <AlertCircle className="w-4 h-4 text-slate-500" />;
+      return <AlertCircle className="w-4 h-4 text-theme-text-muted" />;
     default:
-      return <Clock className="w-4 h-4 text-slate-400" />;
+      return <Clock className="w-4 h-4 text-theme-text-muted" />;
   }
 };
 
@@ -250,7 +250,7 @@ export const TaskRunningStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, 
                   {agent.agentName || agent.agentId}
                 </span>
                 {agent.agentType && (
-                  <span className="px-2 py-0.5 text-xs font-medium rounded-full border bg-slate-50 text-slate-600 border-slate-200">
+                  <span className="px-2 py-0.5 text-xs font-medium rounded-full border bg-theme-elevated text-theme-text-secondary border-theme-border">
                     {agent.agentType}
                   </span>
                 )}
@@ -259,7 +259,7 @@ export const TaskRunningStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, 
                 </span>
                 {isRunningOrWaiting && (
                   <button
-                    className="flex items-center gap-1 px-2 py-1 text-xs text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-rose-400 hover:bg-rose-500/15 rounded-md transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleStop(agent.id);
@@ -276,7 +276,7 @@ export const TaskRunningStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, 
                 )}
                 {isFailed && (
                   <button
-                    className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-blue-400 hover:bg-blue-500/15 rounded-md transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleRetry(agent.agentId);
@@ -307,7 +307,7 @@ export const TaskRunningStep: React.FC<Props> = ({ taskId, task, onTaskUpdated, 
                     </div>
                   )}
                   {agent.errorMessage && (
-                    <div className="text-xs text-rose-600 bg-rose-50 rounded-md px-3 py-2">
+                    <div className="text-xs text-rose-400 bg-rose-500/15 rounded-md px-3 py-2">
                       <span className="font-medium">错误:</span> {agent.errorMessage}
                     </div>
                   )}

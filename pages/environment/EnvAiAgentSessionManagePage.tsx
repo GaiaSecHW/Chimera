@@ -6,6 +6,7 @@ import { useUiFeedback } from '../../components/UiFeedback';
 import { AiAgentSession } from '../../types/types';
 import { ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionItem } from '../../types/types';
 import { EmptyState } from './ai-agent/shared';
+import { PageHeader } from '../../design-system';
 
 const GLOBAL_AUTO_SYNC_ENABLED_KEY = 'chimera_ai_global_session_auto_sync_enabled';
 const GLOBAL_AUTO_SYNC_INTERVAL_KEY = 'chimera_ai_global_session_auto_sync_interval_ms';
@@ -21,10 +22,10 @@ const compactTime = (value?: string | null) => {
 
 const statusBadge = (value?: string) => {
   const text = String(value || 'unknown').toLowerCase();
-  if (text === 'ready') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-  if (text === 'broken') return 'bg-rose-100 text-rose-700 border-rose-200';
-  if (text === 'closed') return 'bg-zinc-100 text-zinc-700 border-zinc-200';
-  return 'bg-slate-100 text-slate-700 border-slate-200';
+  if (text === 'ready') return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20';
+  if (text === 'broken') return 'bg-rose-500/15 text-rose-400 border-rose-500/20';
+  if (text === 'closed') return 'bg-theme-elevated text-theme-text-secondary border-theme-border';
+  return 'bg-theme-elevated text-theme-text-secondary border-theme-border';
 };
 
 const parseInvalidReason = (reason: string) => {
@@ -46,10 +47,10 @@ const sessionModeLabel = (mode?: string) => {
 };
 const sessionModeTone = (mode?: string) =>
   String(mode || '').toLowerCase() === 'pty'
-    ? 'bg-violet-100 text-violet-700 border-violet-200'
+    ? 'bg-violet-500/15 text-violet-400 border-violet-500/20'
     : String(mode || '').toLowerCase() === 'invoke'
-    ? 'bg-amber-100 text-amber-700 border-amber-200'
-    : 'bg-cyan-100 text-cyan-700 border-cyan-200';
+    ? 'bg-amber-500/15 text-amber-400 border-amber-500/20'
+    : 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20';
 
 const joinAgentDisplay = (item: Pick<ProjectAiAgentSessionItem, 'backend' | 'agent_ids'>) => {
   const ids = Array.isArray(item.agent_ids) ? item.agent_ids.filter(Boolean) : [];
@@ -63,7 +64,7 @@ const resolveBackendPid = (item: Pick<ProjectAiAgentSessionItem, 'backend_pid' |
 
 export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const environmentApi = api.domains.environment;
-  const { notify, feedbackNodes } = useUiFeedback();
+  const { notify, confirm, feedbackNodes } = useUiFeedback();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ProjectAiAgentSessionItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -340,7 +341,8 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
       notify('请先选择至少一个会话', 'error');
       return;
     }
-    if (!window.confirm(`确认终止选中的 ${targets.length} 个会话？该操作会直接删除会话。`)) return;
+    const ok = await confirm({ message: `确认终止选中的 ${targets.length} 个会话？该操作会直接删除会话。`, danger: true });
+    if (!ok) return;
     setBusyKey('batch-terminate');
     try {
       const result = await environmentApi.environment.batchTerminateAiAgentSessions(projectId, terminateTargets(targets));
@@ -407,15 +409,12 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
     <div className="px-6 pt-6 pb-8">
       <div className="space-y-4">
         {feedbackNodes}
- <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-900">会话管理</h1>
-              <p className="mt-1 text-sm text-slate-500">项目内所有 helper/agent 会话的全局视图，支持异常识别与批量终止。</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] text-slate-500">最后同步: {compactTime(lastSyncedAt)}</span>
-              <label className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-2 py-1 text-xs text-slate-600">
+        <PageHeader
+          title="会话管理"
+          description="项目内所有 helper/agent 会话的全局视图，支持异常识别与批量终止。"
+          actions={<div className="flex items-center gap-2">
+              <span className="text-[11px] text-theme-text-muted">最后同步: {compactTime(lastSyncedAt)}</span>
+              <label className="inline-flex items-center gap-1.5 rounded-xl border border-theme-border px-2 py-1 text-xs text-theme-text-secondary">
                 <input
                   type="checkbox"
                   checked={autoSyncEnabled}
@@ -426,43 +425,42 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
               <select
                 value={String(autoSyncIntervalMs)}
                 onChange={(event) => setAutoSyncIntervalMs(Number(event.target.value))}
-                className="rounded-xl border border-slate-200 px-2 py-1 text-xs text-slate-700"
+                className="form-select text-xs"
                 disabled={!autoSyncEnabled}
               >
                 <option value="5000">5s</option>
                 <option value="10000">10s</option>
                 <option value="15000">15s</option>
               </select>
-              <button onClick={() => void loadData(true, { silent: false })} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white">
+              <button onClick={() => void loadData(true, { silent: false })} className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3.5 py-2 text-sm font-semibold text-white">
                 <RefreshCw size={15} />
                 手动同步状态
               </button>
-            </div>
-          </div>
-        </section>
+            </div>}
+        />
 
         <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">总会话</div>
-            <div className="mt-1 text-2xl font-black text-slate-900">{stats.total_sessions}</div>
+ <div className="rounded-xl border border-theme-border bg-theme-surface p-3">
+            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">总会话</div>
+            <div className="mt-1 text-2xl font-bold text-theme-text-primary">{stats.total_sessions}</div>
           </div>
- <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">正常</div>
-            <div className="mt-1 text-2xl font-black text-emerald-800">{stats.normal_count}</div>
+ <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/15 p-3">
+            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-400">正常</div>
+            <div className="mt-1 text-2xl font-medium text-emerald-400">{stats.normal_count}</div>
           </div>
- <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">异常</div>
-            <div className="mt-1 text-2xl font-black text-amber-800">{stats.invalid_count}</div>
+ <div className="rounded-xl border border-amber-500/20 bg-amber-500/15 p-3">
+            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-amber-400">异常</div>
+            <div className="mt-1 text-2xl font-medium text-amber-400">{stats.invalid_count}</div>
           </div>
- <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-rose-700">Helper不可达</div>
-            <div className="mt-1 text-2xl font-black text-rose-800">{stats.helper_unreachable_count}</div>
+ <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 p-3">
+            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-rose-400">Helper不可达</div>
+            <div className="mt-1 text-2xl font-medium text-rose-400">{stats.helper_unreachable_count}</div>
           </div>
         </section>
 
         {helperUnreachable.length > 0 ? (
-          <section className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
-            <div className="mb-1 inline-flex items-center gap-2 font-black"><AlertTriangle size={14} />以下 helper 当前不可达</div>
+          <section className="rounded-xl border border-rose-500/20 bg-rose-500/15 p-3 text-sm text-rose-400">
+            <div className="mb-1 inline-flex items-center gap-2 font-semibold"><AlertTriangle size={14} />以下 helper 当前不可达</div>
             <div className="space-y-1">
               {helperUnreachable.map((item) => (
                 <div key={`${item.agent_key}::${item.service_name}`} className="truncate">
@@ -473,32 +471,32 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
           </section>
         ) : null}
 
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-4">
           <div className="grid grid-cols-1 gap-2 xl:grid-cols-7">
             <input
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder="关键词: session_id / agent_id / backend"
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm xl:col-span-2"
+              className="form-input xl:col-span-2"
             />
-            <select value={nodeFilterInput} onChange={(event) => setNodeFilterInput(event.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm">
+            <select value={nodeFilterInput} onChange={(event) => setNodeFilterInput(event.target.value)} className="form-select">
               <option value="">全部节点</option>
               {nodeOptionsResolved.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
-            <select value={serviceFilterInput} onChange={(event) => setServiceFilterInput(event.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm">
+            <select value={serviceFilterInput} onChange={(event) => setServiceFilterInput(event.target.value)} className="form-select">
               <option value="">全部 service</option>
               {serviceOptionsResolved.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
-            <select value={statusFilterInput} onChange={(event) => setStatusFilterInput(event.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm">
+            <select value={statusFilterInput} onChange={(event) => setStatusFilterInput(event.target.value)} className="form-select">
               <option value="">全部状态</option>
               {statusOptionsResolved.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
-            <select value={invalidFilterInput} onChange={(event) => setInvalidFilterInput(event.target.value as 'all' | 'invalid' | 'normal')} className="rounded-xl border border-slate-200 px-3 py-2 text-sm">
+            <select value={invalidFilterInput} onChange={(event) => setInvalidFilterInput(event.target.value as 'all' | 'invalid' | 'normal')} className="form-select">
               <option value="all">全部会话</option>
               <option value="invalid">仅异常</option>
               <option value="normal">仅正常</option>
             </select>
-            <select value={reasonFilterInput} onChange={(event) => setReasonFilterInput(event.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm">
+            <select value={reasonFilterInput} onChange={(event) => setReasonFilterInput(event.target.value)} className="form-select">
               <option value="">全部异常类型</option>
               {invalidReasonOptionsResolved.map((item) => <option key={item} value={item}>{parseInvalidReason(item)}</option>)}
             </select>
@@ -506,19 +504,19 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <button onClick={applyFilters} className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white">应用筛选</button>
-              <button onClick={resetFilters} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700">重置</button>
+              <button onClick={applyFilters} className="rounded-lg bg-theme-surface px-3 py-1.5 text-xs font-semibold text-white">应用筛选</button>
+              <button onClick={resetFilters} className="rounded-lg border border-theme-border px-3 py-1.5 text-xs font-semibold text-theme-text-secondary">重置</button>
             </div>
-            <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+            <label className="inline-flex items-center gap-2 text-sm text-theme-text-secondary">
               <input type="checkbox" checked={allPageSelected} onChange={(event) => toggleAllPage(event.target.checked)} />
               全选当前页
             </label>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">已选 {selectedKeys.length} 个</span>
+              <span className="text-xs text-theme-text-muted">已选 {selectedKeys.length} 个</span>
               <button
                 onClick={() => void terminateBatch(items.filter((item) => selectedKeys.includes(buildSessionKey(item))))}
                 disabled={selectedKeys.length === 0 || !!busyKey}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/20 bg-rose-500/15 px-3 py-1.5 text-xs font-semibold text-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {busyKey === 'batch-terminate' ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
                 批量终止会话
@@ -526,9 +524,9 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
             </div>
           </div>
 
-          <div className="mt-3 overflow-auto rounded-xl border border-slate-200">
+          <div className="mt-3 overflow-auto rounded-xl border border-theme-border">
             <table className="min-w-full text-xs">
-              <thead className="bg-slate-50 text-[11px] uppercase tracking-[0.08em] text-slate-500">
+              <thead className="bg-theme-elevated text-[11px] uppercase tracking-[0.08em] text-theme-text-muted">
                 <tr>
                   <th className="px-2 py-2 text-left">选择</th>
                   <th className="px-2 py-2 text-left">节点 / helper</th>
@@ -543,23 +541,23 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td className="px-3 py-8 text-center text-slate-500" colSpan={9}><span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" />加载中...</span></td></tr>
+                  <tr><td className="px-3 py-8 text-center text-theme-text-muted" colSpan={9}><span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" />加载中...</span></td></tr>
                 ) : items.length === 0 ? (
                   <tr><td colSpan={9} className="p-3"><EmptyState text="当前筛选条件下没有会话。" /></td></tr>
                 ) : items.map((item) => {
                   const rowKey = buildSessionKey(item);
                   return (
-                    <tr key={rowKey} className={item.is_invalid ? 'bg-amber-50/40' : 'bg-slate-50'}>
+                    <tr key={rowKey} className={item.is_invalid ? 'bg-amber-50/40' : 'bg-theme-elevated'}>
                       <td className="px-2 py-2.5 align-top"><input type="checkbox" checked={selectedKeys.includes(rowKey)} onChange={(event) => toggleSelected(item, event.target.checked)} /></td>
-                      <td className="px-2 py-2.5 align-top"><div className="font-semibold text-slate-800">{item.agent_hostname || item.agent_key}</div><div className="text-slate-500">{item.agent_key}</div></td>
+                      <td className="px-2 py-2.5 align-top"><div className="font-semibold text-theme-text-primary">{item.agent_hostname || item.agent_key}</div><div className="text-theme-text-muted">{item.agent_key}</div></td>
                       <td className="px-2 py-2.5 align-top">{item.service_name}</td>
                       <td className="px-2 py-2.5 align-top font-mono text-[11px]">{item.session_id}</td>
                       <td className="px-2 py-2.5 align-top">
-                        <div className="inline-flex max-w-[220px] items-center gap-1 truncate rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-800">
+                        <div className="inline-flex max-w-[220px] items-center gap-1 truncate rounded-full border border-cyan-500/20 bg-cyan-500/15 px-2 py-0.5 text-[10px] font-semibold text-cyan-400">
                           <SquareTerminal size={11} className="shrink-0" />
                           {item.backend || '-'}
                         </div>
-                        <div className="mt-1 text-slate-500">{joinAgentDisplay(item) || '-'}</div>
+                        <div className="mt-1 text-theme-text-muted">{joinAgentDisplay(item) || '-'}</div>
                       </td>
                       <td className="px-2 py-2.5 align-top">
                         <div className="flex flex-wrap items-center gap-1">
@@ -568,13 +566,13 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                         </div>
                       </td>
                       <td className="px-2 py-2.5 align-top">
-                        <span className="rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                        <span className="rounded-full border border-theme-border bg-theme-elevated px-1.5 py-0.5 text-[10px] font-semibold text-theme-text-secondary">
                           PID {resolveBackendPid(item) ?? '-'}
                         </span>
                       </td>
                       <td className="px-2 py-2.5 align-top">
-                        {!item.is_invalid ? <span className="text-emerald-700">正常</span> : (
-                          <div className="space-y-0.5 text-amber-800">
+                        {!item.is_invalid ? <span className="text-emerald-400">正常</span> : (
+                          <div className="space-y-0.5 text-amber-400">
                             {(item.invalid_reasons || []).map((reason) => <div key={reason}>{parseInvalidReason(reason)}</div>)}
                           </div>
                         )}
@@ -583,14 +581,14 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                         <button
                           onClick={() => void openSessionDetail(item)}
                           disabled={!!busyKey}
-                          className="mr-1 inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="mr-1 inline-flex items-center gap-1 rounded-lg border border-theme-border bg-theme-elevated px-2 py-1 text-[11px] font-semibold text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           详情
                         </button>
                         <button
                           onClick={() => void terminateSingle(item)}
                           disabled={!!busyKey}
-                          className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex items-center gap-1 rounded-lg border border-rose-500/20 bg-rose-500/15 px-2 py-1 text-[11px] font-semibold text-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <Trash2 size={11} />
                           终止
@@ -604,7 +602,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
           </div>
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="text-xs text-slate-500">共 {total} 条，当前第 {page}/{totalPages} 页</div>
+            <div className="text-xs text-theme-text-muted">共 {total} 条，当前第 {page}/{totalPages} 页</div>
             <div className="flex items-center gap-2">
               <select
                 value={String(perPage)}
@@ -612,15 +610,15 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                   setPerPage(Number(event.target.value));
                   setPage(1);
                 }}
-                className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                className="form-select text-xs"
               >
                 <option value="20">20 / 页</option>
                 <option value="50">50 / 页</option>
                 <option value="100">100 / 页</option>
                 <option value="200">200 / 页</option>
               </select>
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1 || loading} className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-50">上一页</button>
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages || loading} className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-50">下一页</button>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1 || loading} className="rounded-lg border border-theme-border px-2 py-1 text-xs disabled:opacity-50">上一页</button>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages || loading} className="rounded-lg border border-theme-border px-2 py-1 text-xs disabled:opacity-50">下一页</button>
             </div>
           </div>
         </section>
@@ -628,22 +626,22 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
 
       {showResultModal && lastBatchResult ? (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/35 p-4">
- <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-slate-50">
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+ <div className="w-full max-w-3xl rounded-2xl border border-theme-border bg-theme-surface">
+            <div className="flex items-center justify-between border-b border-theme-border px-5 py-3">
               <div>
-                <div className="text-sm font-black text-slate-900">批量终止结果</div>
-                <div className="text-xs text-slate-500">{lastBatchResult.success_count}/{lastBatchResult.total} 成功</div>
+                <div className="text-sm font-semibold text-theme-text-primary">批量终止结果</div>
+                <div className="text-xs text-theme-text-muted">{lastBatchResult.success_count}/{lastBatchResult.total} 成功</div>
               </div>
-              <button onClick={() => setShowResultModal(false)} className="rounded-lg p-1 text-slate-500 hover:bg-slate-100"><X size={16} /></button>
+              <button onClick={() => setShowResultModal(false)} className="rounded-lg p-1 text-theme-text-muted hover:bg-theme-elevated"><X size={16} /></button>
             </div>
             <div className="max-h-[60vh] overflow-auto p-5 text-xs">
               <div className="mb-3 grid grid-cols-3 gap-2">
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">总数: {lastBatchResult.total}</div>
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-800">成功: {lastBatchResult.success_count}</div>
-                <div className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-rose-800">失败: {lastBatchResult.failed_count}</div>
+                <div className="rounded-lg border border-theme-border bg-theme-elevated p-2">总数: {lastBatchResult.total}</div>
+                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/15 p-2 text-emerald-400">成功: {lastBatchResult.success_count}</div>
+                <div className="rounded-lg border border-rose-500/20 bg-rose-500/15 p-2 text-rose-400">失败: {lastBatchResult.failed_count}</div>
               </div>
               <div className="mb-3 flex items-center justify-between gap-2">
-                <label className="inline-flex items-center gap-2 text-slate-700">
+                <label className="inline-flex items-center gap-2 text-theme-text-secondary">
                   <input
                     type="checkbox"
                     checked={resultOnlyFailed}
@@ -653,7 +651,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                 </label>
                 <button
                   onClick={() => void copyFailedItems()}
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                  className="rounded-lg border border-theme-border px-3 py-1.5 text-xs font-semibold text-theme-text-secondary"
                 >
                   复制失败清单
                 </button>
@@ -662,9 +660,9 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                 {(lastBatchResult.results || [])
                   .filter((item) => (resultOnlyFailed ? !item.success : true))
                   .map((item) => (
-                  <div key={`${item.agent_key}::${item.service_name}::${item.session_id}`} className={`rounded-lg border px-3 py-2 ${item.success ? 'border-emerald-200 bg-emerald-50/50' : 'border-rose-200 bg-rose-50/50'}`}>
+                  <div key={`${item.agent_key}::${item.service_name}::${item.session_id}`} className={`rounded-lg border px-3 py-2 ${item.success ? 'border-emerald-500/20 bg-emerald-500/10' : 'border-rose-500/20 bg-rose-500/10'}`}>
                     <div className="font-mono text-[11px]">{item.agent_key}/{item.service_name}/{item.session_id}</div>
-                    <div className={item.success ? 'text-emerald-700' : 'text-rose-700'}>
+                    <div className={item.success ? 'text-emerald-400' : 'text-rose-400'}>
                       {item.success ? '终止成功' :`终止失败: ${item.error || 'unknown error'}`}
                     </div>
                   </div>
@@ -677,62 +675,62 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
 
       {detailTarget ? (
         <div className="fixed inset-0 z-[305] flex items-center justify-center bg-slate-950/40 p-4">
- <div className="w-full max-w-4xl rounded-2xl border border-slate-200 bg-slate-50">
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+ <div className="w-full max-w-4xl rounded-2xl border border-theme-border bg-theme-surface">
+            <div className="flex items-center justify-between border-b border-theme-border px-5 py-3">
               <div>
-                <div className="text-sm font-black text-slate-900">会话详情</div>
-                <div className="text-xs text-slate-500">{detailTarget.agent_key}/{detailTarget.service_name}/{detailTarget.session_id}</div>
+                <div className="text-sm font-semibold text-theme-text-primary">会话详情</div>
+                <div className="text-xs text-theme-text-muted">{detailTarget.agent_key}/{detailTarget.service_name}/{detailTarget.session_id}</div>
               </div>
               <button
                 onClick={() => {
                   setDetailTarget(null);
                   setDetailSession(null);
                 }}
-                className="rounded-lg p-1 text-slate-500 hover:bg-slate-100"
+                className="rounded-lg p-1 text-theme-text-muted hover:bg-theme-elevated"
               >
                 <X size={16} />
               </button>
             </div>
             <div className="max-h-[70vh] space-y-3 overflow-auto p-5">
               {detailLoading ? (
-                <div className="text-sm text-slate-500"><span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" />加载中...</span></div>
+                <div className="text-sm text-theme-text-muted"><span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" />加载中...</span></div>
               ) : !detailSession ? (
-                <div className="text-sm text-slate-500">暂无详情数据。</div>
+                <div className="text-sm text-theme-text-muted">暂无详情数据。</div>
               ) : (
                 <>
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">状态: {detailSession.status || '-'}</div>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">模式: {detailSession.session_mode || '-'}</div>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">backend_pid: {detailSession.backend_pid ?? detailSession.pty_pid ?? '-'}</div>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">agent_ids: {(detailSession.agent_ids || []).join(', ') || '-'}</div>
+                    <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">状态: {detailSession.status || '-'}</div>
+                    <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">模式: {detailSession.session_mode || '-'}</div>
+                    <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">backend_pid: {detailSession.backend_pid ?? detailSession.pty_pid ?? '-'}</div>
+                    <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">agent_ids: {(detailSession.agent_ids || []).join(', ') || '-'}</div>
                   </div>
                   {detailSession.last_error ? (
-                    <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">last_error: {detailSession.last_error}</div>
+                    <div className="rounded-lg border border-rose-500/20 bg-rose-500/15 px-3 py-2 text-xs text-rose-400">last_error: {detailSession.last_error}</div>
                   ) : null}
-                  <div className="rounded-lg border border-slate-200 p-3">
-                    <div className="mb-2 text-xs font-black uppercase tracking-[0.08em] text-slate-500">Vendor 诊断</div>
+                  <div className="rounded-lg border border-theme-border p-3">
+                    <div className="mb-2 text-xs font-medium uppercase tracking-[0.08em] text-theme-text-muted">Vendor 诊断</div>
                     <div className="grid grid-cols-1 gap-2 text-xs md:grid-cols-2">
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">vendor_session_id: {detailSession.vendor_session_id || '-'}</div>
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">vendor_session_kind: {detailSession.vendor_session_kind || '-'}</div>
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">vendor_resume_mode: {detailSession.vendor_resume_mode || '-'}</div>
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">vendor_last_mode: {detailSession.vendor_last_mode || '-'}</div>
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">vendor_session_initialized: {String(detailSession.vendor_session_initialized ?? '-')}</div>
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">claude_workdir: {detailSession.claude_workdir || '-'}</div>
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 md:col-span-2">claude_session_id: {detailSession.claude_session_id || '-'}</div>
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 md:col-span-2">vendor_last_cmd: {detailSession.vendor_last_cmd || '-'}</div>
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 md:col-span-2">vendor_last_error: {detailSession.vendor_last_error || '-'}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">vendor_session_id: {detailSession.vendor_session_id || '-'}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">vendor_session_kind: {detailSession.vendor_session_kind || '-'}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">vendor_resume_mode: {detailSession.vendor_resume_mode || '-'}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">vendor_last_mode: {detailSession.vendor_last_mode || '-'}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">vendor_session_initialized: {String(detailSession.vendor_session_initialized ?? '-')}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">claude_workdir: {detailSession.claude_workdir || '-'}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 md:col-span-2">claude_session_id: {detailSession.claude_session_id || '-'}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 md:col-span-2">vendor_last_cmd: {detailSession.vendor_last_cmd || '-'}</div>
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 md:col-span-2">vendor_last_error: {detailSession.vendor_last_error || '-'}</div>
                     </div>
                   </div>
-                  <div className="rounded-lg border border-slate-200 p-3">
-                    <div className="mb-2 text-xs font-black uppercase tracking-[0.08em] text-slate-500">消息记录</div>
+                  <div className="rounded-lg border border-theme-border p-3">
+                    <div className="mb-2 text-xs font-medium uppercase tracking-[0.08em] text-theme-text-muted">消息记录</div>
                     <div className="space-y-2">
                       {(detailSession.messages || []).length === 0 ? (
-                        <div className="text-xs text-slate-500">暂无消息。</div>
+                        <div className="text-xs text-theme-text-muted">暂无消息。</div>
                       ) : (
                         (detailSession.messages || []).map((msg, idx) => (
-                          <div key={`${msg.role}-${idx}`} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
-                            <div className="mb-1 font-semibold text-slate-700">{msg.role || 'assistant'}</div>
-                            <div className="whitespace-pre-wrap text-slate-800">{String(msg.content || '')}</div>
+                          <div key={`${msg.role}-${idx}`} className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs">
+                            <div className="mb-1 font-semibold text-theme-text-secondary">{msg.role || 'assistant'}</div>
+                            <div className="whitespace-pre-wrap text-theme-text-primary">{String(msg.content || '')}</div>
                           </div>
                         ))
                       )}

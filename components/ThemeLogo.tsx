@@ -36,7 +36,7 @@ export const ThemeLogo: React.FC<ThemeLogoProps> = ({
 }) => {
   const { theme, themeDefinition } = useTheme();
   const sizing = SIZE_MAP[size];
-  const wordmarkClass = forceDarkWordmark || theme === 'chimera'
+  const wordmarkClass = forceDarkWordmark
     ? 'text-theme-text-primary'
     : 'text-theme-text-inverse';
 
@@ -54,17 +54,17 @@ export const ThemeLogo: React.FC<ThemeLogoProps> = ({
       {showWordmark ? (
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">
-            <span className={`block ${sizing.title} font-black ${wordmarkClass} tracking-[0.02em]`}>
+            <span className={`block ${sizing.title} font-semibold ${wordmarkClass} tracking-[0.02em]`}>
               Chimera
             </span>
             {buildVersion ? (
-              <span className="text-[10px] font-black text-theme-text-faint uppercase tracking-[0.2em]">
+              <span className="text-[10px] font-semibold text-theme-text-faint uppercase tracking-[0.2em]">
                 {buildVersion}
               </span>
             ) : null}
           </div>
           {showBadge ? (
-            <span className={`inline-flex mt-1 px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.25em] truncate theme-brand-chip`}>
+            <span className={`inline-flex mt-1 px-2 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.25em] truncate theme-brand-chip`}>
               {themeDefinition.badgeText}
             </span>
           ) : null}

@@ -86,11 +86,11 @@ const SOURCE_LABEL: Record<SourceKind, string> = {
 };
 
 const DEFAULT_BUTTON_CLASS =
-  'inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/20 bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-50';
 
 const DEFAULT_DATAFLOW_VULN_RUNS_ROOT = '/app/secflow-app-dataflow-vuln-scan';
 const DEFAULT_DATAFLOW_VULN_MODEL = 'local_minimax/MiniMax/MiniMax-M2.5';
-const FORM_INPUT_CLASS = 'w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:border-emerald-500';
+const FORM_INPUT_CLASS = 'w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2.5 text-sm font-semibold text-theme-text-primary outline-none focus:border-emerald-500';
 const REVIEW_PROFILE_OPTIONS = [
   { value: 'fast', label: '快速筛选' },
   { value: 'balanced', label: '平衡挖掘' },
@@ -868,7 +868,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                   来源：{SOURCE_LABEL[sourceKind]} · 新任务按手动任务创建，不记录父任务来源。
                 </p>
               </div>
-              <button type="button" onClick={() => setOpen(false)} style={{ borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px', backgroundColor: 'transparent', color: LK.muted, cursor: 'pointer' }}>
+              <button type="button" onClick={() => setOpen(false)} className="btn-icon">
                 <X size={18} />
               </button>
             </header>
@@ -1099,43 +1099,43 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                                 key={item}
                                 type="button"
                                 onClick={() => setMode(item)}
-                                className={`rounded-xl border px-3 py-2 text-xs font-black ${mode === item ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+                                className={`rounded-xl border px-3 py-2 text-xs font-medium ${mode === item ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'}`}
                               >
                                 {item === 'binary' ? '二进制任务模式' : '源码任务模式'}
                               </button>
                             ))}
                           </div>
                         ) : modeOptions.length === 1 ? (
-                          <div className="mt-4 inline-flex rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-600">
+                          <div className="mt-4 inline-flex rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-medium text-theme-text-secondary">
                             {modeOptions[0] === 'binary' ? '二进制任务模式' : '源码任务模式'}
                           </div>
                         ) : null}
                       </div>
 
-                      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                        <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
+                      <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
+                        <div className="flex items-center justify-between gap-3 border-b border-theme-border bg-theme-elevated px-4 py-3">
                           <div>
-                            <div className="text-sm font-black text-slate-900">候选输入</div>
-                            <div className="mt-1 text-xs text-slate-500">可选 {selectableCandidates.length} / 总计 {candidates.length}</div>
+                            <div className="text-sm font-semibold text-theme-text-primary">候选输入</div>
+                            <div className="mt-1 text-xs text-theme-text-muted">可选 {selectableCandidates.length} / 总计 {candidates.length}</div>
                           </div>
-                          <button type="button" onClick={toggleAll} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100">
+                          <button type="button" onClick={toggleAll} className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated">
                             {selectedCandidates.length === selectableCandidates.length ? '取消全选' : '全选'}
                           </button>
                         </div>
                         {loading ? (
-                          <div className="flex items-center justify-center gap-2 px-4 py-12 text-sm font-semibold text-slate-500">
+                          <div className="flex items-center justify-center gap-2 px-4 py-12 text-sm font-semibold text-theme-text-muted">
                             <Loader2 size={16} className="animate-spin" />
                             加载结果中...
                           </div>
                         ) : candidates.length === 0 ? (
-                          <div className="px-4 py-12 text-center text-sm text-slate-500">没有可用于创建下游任务的结果。</div>
+                          <div className="px-4 py-12 text-center text-sm text-theme-text-muted">没有可用于创建下游任务的结果。</div>
                         ) : (
-                          <div className="max-h-[360px] divide-y divide-slate-100 overflow-auto">
+                          <div className="max-h-[360px] divide-y divide-theme-border overflow-auto">
                             {candidates.map((candidate) => {
                               const checked = selectedKeys.has(candidate.key);
                               const disabled = Boolean(candidate.disabledReason);
                               return (
-                                <label key={candidate.key} className={`flex items-start gap-3 px-4 py-3 ${disabled ? 'bg-slate-50 text-slate-400' : 'hover:bg-slate-100'}`}>
+                                <label key={candidate.key} className={`flex items-start gap-3 px-4 py-3 ${disabled ? 'bg-theme-surface text-theme-text-muted' : 'hover:bg-theme-elevated'}`}>
                                   <input
                                     type="checkbox"
                                     disabled={disabled}
@@ -1149,9 +1149,9 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                                     className="mt-1"
                                   />
                                   <div className="min-w-0 flex-1">
-                                    <div className="break-all text-sm font-black text-slate-800">{candidate.label}</div>
-                                    {candidate.description ? <div className="mt-1 break-all text-xs text-slate-500">{candidate.description}</div> : null}
-                                    {candidate.disabledReason ? <div className="mt-1 text-xs font-semibold text-amber-600">{candidate.disabledReason}</div> : null}
+                                    <div className="break-all text-sm font-semibold text-theme-text-primary">{candidate.label}</div>
+                                    {candidate.description ? <div className="mt-1 break-all text-xs text-theme-text-muted">{candidate.description}</div> : null}
+                                    {candidate.disabledReason ? <div className="mt-1 text-xs font-semibold text-amber-400">{candidate.disabledReason}</div> : null}
                                   </div>
                                 </label>
                               );
@@ -1164,78 +1164,78 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                 </div>
 
                 <aside className="space-y-4">
-                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-                    <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">目标阶段</div>
-                    <div className="mt-2 text-xl font-black text-slate-900">{TARGET_LABEL[targetStage]}</div>
-                    <div className="mt-2 text-xs leading-5 text-slate-600">
+                  <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/15 p-4">
+                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-400">目标阶段</div>
+                    <div className="mt-2 text-xl font-semibold text-theme-text-primary">{TARGET_LABEL[targetStage]}</div>
+                    <div className="mt-2 text-xs leading-5 text-theme-text-secondary">
                       将创建 {isVulnDownstream ? 1 : selectedCandidates.length} 个手动下游任务。
                     </div>
                   </div>
                   {isVulnDownstream && vulnCreateState ? (
-                    <div className="rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
-                      <div className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">当前默认填充值</div>
-                      <div className="mt-3 space-y-3 text-xs text-slate-700">
+                    <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4">
+                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-400">当前默认填充值</div>
+                      <div className="mt-3 space-y-3 text-xs text-theme-text-secondary">
                         <div>
-                          <div className="font-black text-slate-500">Runs 根目录</div>
+                          <div className="font-medium text-theme-text-muted">Runs 根目录</div>
                           <div className="mt-1 break-all font-mono">{vulnCreateState.workspacePath || '-'}</div>
                         </div>
                         <div>
-                          <div className="font-black text-slate-500">数据流目录</div>
+                          <div className="font-medium text-theme-text-muted">数据流目录</div>
                           <div className="mt-1 break-all font-mono">{vulnCreateState.dataFlowPath || '-'}</div>
                         </div>
                         <div>
-                          <div className="font-black text-slate-500">代码目录</div>
+                          <div className="font-medium text-theme-text-muted">代码目录</div>
                           <div className="mt-1 break-all font-mono">{vulnCreateState.sourcePath || '-'}</div>
                         </div>
                         <div>
-                          <div className="font-black text-slate-500">模型</div>
+                          <div className="font-medium text-theme-text-muted">模型</div>
                           <div className="mt-1 break-all font-mono">{vulnCreateState.model || DEFAULT_DATAFLOW_VULN_MODEL}</div>
                         </div>
                       </div>
                     </div>
                   ) : dataflowVulnPreview ? (
-                    <div className="rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
-                      <div className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">漏洞挖掘默认参数</div>
-                      <div className="mt-3 space-y-3 text-xs text-slate-700">
+                    <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4">
+                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-400">漏洞挖掘默认参数</div>
+                      <div className="mt-3 space-y-3 text-xs text-theme-text-secondary">
                         <div>
-                          <div className="font-black text-slate-500">Runs 根目录</div>
+                          <div className="font-medium text-theme-text-muted">Runs 根目录</div>
                           <div className="mt-1 break-all font-mono">{String(dataflowVulnPreview.runsRoot || DEFAULT_DATAFLOW_VULN_RUNS_ROOT)}</div>
                         </div>
                         <div>
-                          <div className="font-black text-slate-500">数据流目录</div>
+                          <div className="font-medium text-theme-text-muted">数据流目录</div>
                           <div className="mt-1 break-all font-mono">{String(dataflowVulnPreview.dataFlowDir || '-')}</div>
                         </div>
                         <div>
-                          <div className="font-black text-slate-500">代码目录</div>
+                          <div className="font-medium text-theme-text-muted">代码目录</div>
                           <div className="mt-1 break-all font-mono">{String(dataflowVulnPreview.sourceDir || '-')}</div>
                         </div>
                         <div>
-                          <div className="font-black text-slate-500">模型</div>
+                          <div className="font-medium text-theme-text-muted">模型</div>
                           <div className="mt-1 break-all font-mono">{DEFAULT_DATAFLOW_VULN_MODEL}</div>
                         </div>
                       </div>
                     </div>
                   ) : null}
                   {message ? (
-                    <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${message.includes('失败') ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+                    <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${message.includes('失败') ? 'border-rose-500/20 bg-rose-500/15 text-rose-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary'}`}>
                       {message}
                     </div>
                   ) : null}
                   {created.length > 0 ? (
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <div className="mb-3 text-sm font-black text-slate-900">已创建任务</div>
+                    <div className="rounded-2xl border border-theme-border bg-theme-elevated p-4">
+                      <div className="mb-3 text-sm font-semibold text-theme-text-primary">已创建任务</div>
                       <div className="space-y-2">
                         {created.map((item) => (
                           <button
                             key={item.id}
                             type="button"
                             onClick={() => navigateTo(item.targetStage, item.id, navigate)}
-                            className="flex w-full items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs hover:bg-slate-50"
+                            className="flex w-full items-start gap-2 rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-left text-xs hover:bg-theme-elevated"
                           >
-                            <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-emerald-600" />
+                            <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-emerald-400" />
                             <span className="min-w-0">
-                              <span className="block truncate font-black text-slate-800">{item.label}</span>
-                              <span className="block font-mono text-slate-500">{item.id}</span>
+                              <span className="block truncate font-medium text-theme-text-primary">{item.label}</span>
+                              <span className="block font-mono text-theme-text-muted">{item.id}</span>
                             </span>
                           </button>
                         ))}
@@ -1243,27 +1243,27 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                     </div>
                   ) : null}
                   {result ? (
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <button type="button" onClick={() => setShowRaw((value) => !value)} className="flex w-full items-center justify-between text-left text-xs font-black text-slate-600">
+                    <div className="rounded-2xl border border-theme-border bg-theme-elevated p-4">
+                      <button type="button" onClick={() => setShowRaw((value) => !value)} className="flex w-full items-center justify-between text-left text-xs font-medium text-theme-text-secondary">
                         结果原始摘要
                         {showRaw ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                       </button>
-                      {showRaw ? <pre className="mt-3 max-h-52 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-3 text-[10px] text-slate-900">{JSON.stringify(result, null, 2)}</pre> : null}
+                      {showRaw ? <pre className="mt-3 max-h-52 overflow-auto rounded-xl border border-theme-border bg-theme-elevated p-3 text-[10px] text-theme-text-primary">{JSON.stringify(result, null, 2)}</pre> : null}
                     </div>
                   ) : null}
                 </aside>
               </div>
             </div>
 
-            <footer className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
-              <button type="button" onClick={() => setOpen(false)} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100">
+            <footer className="flex flex-wrap items-center justify-end gap-3 border-t border-theme-border bg-theme-elevated px-6 py-4">
+              <button type="button" onClick={() => setOpen(false)} className="btn-secondary">
                 关闭
               </button>
               <button
                 type="button"
                 onClick={() => void createTasks()}
                 disabled={submitting || loading || (isVulnDownstream ? !vulnCreateState : selectedCandidates.length === 0)}
-                className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-600 px-4 py-2 text-sm font-black text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn-primary"
               >
                 {submitting ? <Loader2 size={15} className="animate-spin" /> : <PlayCircle size={15} />}
                 创建下游任务

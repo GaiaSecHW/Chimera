@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Save, Send, AlertTriangle, CheckCircle2, XCircle, FileText } from 'lucide-react';
+import { PageHeader } from '../../design-system';
 
 interface ReviewJudgmentDetailPageProps {
   projectId: string;
@@ -65,35 +66,11 @@ export const ReviewJudgmentDetailPage: React.FC<ReviewJudgmentDetailPageProps> =
       className="h-full flex flex-col"
       style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}
     >
-      <div
-        className="shrink-0 px-6 py-4 flex items-center gap-4"
-        style={{ borderBottom:`1px solid ${LK.borderSoft}` }}
-      >
-        <button
-          onClick={handleBack}
-          className="p-2 rounded-lg transition-colors"
-          style={{ color: LK.muted }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = LK.surfaceRaised;
-            e.currentTarget.style.color = LK.ink;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = LK.muted;
-          }}
-          title="返回评审列表"
-        >
-          <ArrowLeft size={18} />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-lg font-semibold" style={{ color: LK.ink }}>
-            评审研判详情
-          </h1>
-          <p className="text-xs mt-0.5" style={{ color: LK.muted }}>
-            对漏洞案例进行详细评审并给出结论
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        title="评审研判详情"
+        description="对漏洞案例进行详细评审并给出结论"
+        back={{ label: '返回评审列表', onClick: handleBack }}
+        actions={<>
           <button
             onClick={handleSave}
             className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-colors"
@@ -120,8 +97,8 @@ export const ReviewJudgmentDetailPage: React.FC<ReviewJudgmentDetailPageProps> =
             <Send size={14} />
             提交评审
           </button>
-        </div>
-      </div>
+        </>}
+      />
 
       <div className="flex-1 overflow-auto p-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -15,6 +15,7 @@ import {
   AppSaTaskItem,
   AppSaTaskListItem,
   AppSaTaskResult,
+  AppSaTaskStageEvents,
   AppSaTaskTimeline,
   SystemAnalysisModelsConfig,
   SystemAnalysisPromptTemplate,
@@ -114,10 +115,13 @@ export const appSystemAnalyseApi = {
     getJsonWithDedupe(`${BASE}/workers/cluster-capacity`, { headers: getHeaders() }),
 
   getTask: async (taskId: string): Promise<AppSaTaskDetail> =>
-    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),
+    getJsonWithDedupe(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() }),
 
   getTimeline: async (taskId: string): Promise<AppSaTaskTimeline> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline`, { headers: getHeaders() })),
+
+  getTaskStageEvents: async (taskId: string): Promise<AppSaTaskStageEvents> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/stage-events`, { headers: getHeaders() })),
 
   clearTimeline: async (taskId: string): Promise<AppSaTaskActionResponse> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline`, {
