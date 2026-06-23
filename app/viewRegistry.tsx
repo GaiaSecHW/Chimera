@@ -162,6 +162,7 @@ export interface ViewRegistryContext {
   activeTaskCenterTimelineTaskId: string;
   activeTaskCenterTimelineBackView?: string;
   activeTaskVulnListTaskId: string;
+  activeVulnIntakeTaskFilter: string;
   activeTaskReportTaskId: string;
   selectedStaticPkgIds: Set<string>;
   setCurrentView: (view: string) => void;
@@ -860,7 +861,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'vuln-overview':
       return <VulnOverviewPage projectId={ctx.selectedProjectId} />;
     case 'vuln-intake':
-      return <VulnIntakePage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
+      return <VulnIntakePage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} initialTaskFilter={ctx.activeVulnIntakeTaskFilter} />;
     case 'vuln-analysis':
       return <VulnAnalysisPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
     case 'vuln-analysis-detail':

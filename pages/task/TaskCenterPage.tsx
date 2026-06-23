@@ -489,14 +489,13 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务名</th>
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务状态</th>
-              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>下游任务 ID</th>
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>更新时间</th>
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
             </tr>
           </thead>
           <tbody>
-            {loading ? <tr><td className="px-4 py-10 text-center" colSpan={7} style={{ color: LK.muted }}><span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />加载中...</span></td></tr> : null}
-            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-10 text-center" colSpan={7} style={{ color: LK.muted }}>暂无任务</td></tr> : null}
+            {loading ? <tr><td className="px-4 py-10 text-center" colSpan={6} style={{ color: LK.muted }}><span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />加载中...</span></td></tr> : null}
+            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-10 text-center" colSpan={6} style={{ color: LK.muted }}>暂无任务</td></tr> : null}
             {filteredTasks.map((task) => (
               <tr
                 key={task.id}
@@ -529,9 +528,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                   <div className="font-semibold" style={{ color: LK.inkSoft }}>{getDisplayStatus(task)}</div>
                   <div className="text-xs" style={{ color: LK.muted }}>{task.dispatch_status} / {task.business_status}</div>
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap" style={{ fontFamily: MONO, fontSize: '12px', color: LK.body }}>
-                  {task.downstream_task_id || '—'}
-                </td>
                 <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: LK.muted }}>
                   {formatDateTime(task.updated_at)}
                 </td>
@@ -550,7 +546,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                       <button
                         onClick={() => {
                           window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
-                            detail: { view: 'task-vuln-list', taskVulnListTaskId: task.id },
+                            detail: { view: 'vuln-intake', vulnIntakeTaskFilter: task.id },
                           }));
                         }}
                         className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"

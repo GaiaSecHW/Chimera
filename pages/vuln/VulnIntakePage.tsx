@@ -44,6 +44,7 @@ const assetApi = api.domains.assets;
 interface VulnPageProps {
   projectId: string;
   onNavigateToView?: (view: string) => void;
+  initialTaskFilter?: string;
 }
 
 type PublicKind = 'cli' | 'plugin' | 'skill' | 'openapi';
@@ -545,7 +546,7 @@ const DetailSectionCard: React.FC<{
   </PageSection>
 );
 
-export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateToView }) => {
+export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateToView, initialTaskFilter }) => {
   const [rootTab, setRootTab] = useState<IntakeRootTab>('cases');
   const buildVersion = useServiceBuildVersion(vulnApi.vuln.getHealth);
   const { confirm, feedbackNodes } = useUiFeedback();
@@ -574,7 +575,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [severityFilter, setSeverityFilter] = useState('all');
   const [cvssBandFilter, setCvssBandFilter] = useState('all');
   const [reporterTypeFilter, setReporterTypeFilter] = useState('all');
-  const [taskFilter, setTaskFilter] = useState<string[]>([]);
+  const [taskFilter, setTaskFilter] = useState<string[]>(() => (initialTaskFilter ? [initialTaskFilter] : []));
   const [taskOptions, setTaskOptions] = useState<Array<{ id: string; name?: string }>>([]);
   const [taskFilterOpen, setTaskFilterOpen] = useState(false);
   const [finalResultFilter, setFinalResultFilter] = useState('all');

@@ -104,6 +104,7 @@ const AppShell: React.FC = () => {
   const [activeTaskCenterTimelineTaskId, setActiveTaskCenterTimelineTaskId] = useState<string>('');
   const [activeTaskCenterTimelineBackView, setActiveTaskCenterTimelineBackView] = useState<string>('task-list');
   const [activeTaskVulnListTaskId, setActiveTaskVulnListTaskId] = useState<string>('');
+  const [activeVulnIntakeTaskFilter, setActiveVulnIntakeTaskFilter] = useState<string>('');
   const [activeTaskReportTaskId, setActiveTaskReportTaskId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -340,6 +341,10 @@ const AppShell: React.FC = () => {
       const taskVulnListTaskId = String(detail?.taskVulnListTaskId || '').trim();
       if (taskVulnListTaskId) {
         setActiveTaskVulnListTaskId(taskVulnListTaskId);
+      }
+      const vulnIntakeTaskFilter = String(detail?.vulnIntakeTaskFilter || '').trim();
+      if (vulnIntakeTaskFilter) {
+        setActiveVulnIntakeTaskFilter(vulnIntakeTaskFilter);
       }
       const taskReportTaskId = String(detail?.taskReportTaskId || '').trim();
       if (taskReportTaskId) {
@@ -745,6 +750,7 @@ const AppShell: React.FC = () => {
                     activeBinaryModuleSecurityTaskId,
                     activeTaskCenterTimelineTaskId,
                     activeTaskVulnListTaskId,
+                    activeVulnIntakeTaskFilter,
                     activeTaskReportTaskId,
                     activeRedlineTaskId,
                     selectedStaticPkgIds,
