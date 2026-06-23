@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../../design-system';
-import { ArrowLeft, ChevronLeft, ChevronRight, FileText, Loader2, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, Loader2, RefreshCw } from 'lucide-react';
 import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
