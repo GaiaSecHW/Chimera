@@ -2665,6 +2665,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       </div>
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-theme-text-secondary">{toUserVulnStatusText(item)}</div>
+                        {item.confirm_engine_name && !(item.current_stage === 'finished' || item.finished_reason) ? (
+                          <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
+                            已派发: {item.confirm_engine_name}
+                          </div>
+                        ) : null}
                       </div>
                       <div className="min-w-0">
                         {(item.current_stage === 'finished' || item.finished_reason) ? (
