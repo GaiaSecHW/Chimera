@@ -258,31 +258,30 @@ function extractChain(desc?: string): string[] {
 // ── Call graph (xyflow) ──────────────────────────────────────────────────────
 interface FnNodeData extends Record<string, unknown> { label: string; vuln: boolean; audited: boolean; selected: boolean; order: number }
 function FnNode({ data }: NodeProps<Node<FnNodeData>>) {
+  // Light bg + dark text for clear contrast (was dark bg / bright text).
   const tone = data.vuln
-    ? 'border-rose-500 bg-rose-500/15 text-rose-400'
+    ? 'border-rose-400 bg-rose-50 text-rose-700'
     : data.audited
-      ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
-      : 'border-theme-border bg-theme-elevated text-theme-text-secondary';
+      ? 'border-emerald-400 bg-emerald-50 text-emerald-800'
+      : 'border-slate-300 bg-white text-slate-700';
   const ring = data.selected ? 'ring-2 ring-slate-900 ring-offset-1' : '';
   return (
-    <div className={`rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-sm ${tone} ${ring}`} style={{ fontFamily: MONO }}>
-      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border !border-theme-border !bg-slate-400" />
-      <span className="mr-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-900/10 text-[9px] font-bold">{data.order + 1}</span>
+    <div className={`rounded-lg border px-3 py-2 text-[13px] font-semibold shadow-sm ${tone} ${ring}`} style={{ fontFamily: MONO }}>
+      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border !border-slate-400 !bg-slate-400" />
+      <span className="mr-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-900/10 text-[9px] font-bold text-slate-700">{data.order + 1}</span>
       {data.label}
-      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border !border-theme-border !bg-slate-400" />
+      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border !border-slate-400 !bg-slate-400" />
     </div>
   );
 }
 const fnNodeTypes = { fn: FnNode };
 
 interface CallEdge { from: string; to: string; kind: 'call' | 'flow' }
-/** Build the call graph. Real callee/caller edges (kind 'call') are the backbone;
- *  the review-order sequence supplies 'flow' edges so the propagation is always
- *  connected even when explicit callee edges are sparse. */
-function buildCallEdges(walk: WalkFn[], session: CfgCparserSession | null, nameIdx: Map<string, string>): { edges: CallEdge[]; realCount: number } {
+/** Build the call graph. Real callee edges from the manager (walkFns[fid].callees)
+ *  are authoritative. Review-order 'flow' edges are added ONLY to connect nodes
+ *  the real graph left isolated, so the canvas isn't a cloud of dots. */
+function buildCallEdges(walk: WalkFn[], walkFns: Record<string, CfgWalkFunction>): { edges: CallEdge[]; realCount: number } {
   const known = new Set(walk.map((w) => w.fid));
-  const name2fid = new Map<string, string>();
-  nameIdx.forEach((name, fid) => { if (!name2fid.has(name)) name2fid.set(name, fid); });
   const seen = new Set<string>();
   const edges: CallEdge[] = [];
   const push = (from: string, to: string, kind: 'call' | 'flow') => {
@@ -292,23 +291,19 @@ function buildCallEdges(walk: WalkFn[], session: CfgCparserSession | null, nameI
     seen.add(k); edges.push({ from, to, kind });
   };
   let realCount = 0;
-  // 1) explicit callee/caller edges (real call relations)
-  for (const q of session?.codemap_queries || []) {
-    if (q.command === 'getcallee') for (const c of q.result?.callees || []) { const to = c?.id || c?.function_id; if (to && known.has(to)) { push(q.function_id, to, 'call'); realCount++; } }
-    if (q.command === 'getcaller') for (const c of q.result?.callers || []) { const from = c?.id || c?.function_id; if (from && known.has(from)) { push(from, q.function_id, 'call'); realCount++; } }
-  }
-  // 2) chain edges parsed from audit desc (resolve names → fid)
+  // 1) real callee edges (manager-resolved, complete & correct)
   for (const w of walk) {
-    const chain = extractChain(w.audit?.desc).concat(extractChain(w.taint?.desc));
-    for (let i = 0; i < chain.length - 1; i++) {
-      const a = name2fid.get(chain[i]); const b = name2fid.get(chain[i + 1]);
-      if (a && b && known.has(a) && known.has(b)) push(a, b, 'call');
+    const callees = walkFns[w.fid]?.callees || [];
+    for (const c of callees) {
+      if (c?.id && known.has(c.id)) { push(w.fid, c.id, 'call'); realCount++; }
     }
   }
-  // 3) review-order flow edges so the graph is always connected (entry → … by sequence)
-  for (let i = 0; i < walk.length - 1; i++) {
-    const a = walk[i].fid; const b = walk[i + 1].fid;
-    if (!seen.has(`${a}>${b}`) && !seen.has(`${b}>${a}`)) push(a, b, 'flow');
+  // 2) connect any node with no real call edge to the previous reviewed fn, so
+  //    isolated nodes don't float. Marked 'flow' (dashed) — clearly not a call.
+  const connected = new Set<string>();
+  edges.forEach((e) => { connected.add(e.from); connected.add(e.to); });
+  for (let i = 1; i < walk.length; i++) {
+    if (!connected.has(walk[i].fid)) push(walk[i - 1].fid, walk[i].fid, 'flow');
   }
   return { edges, realCount };
 }
@@ -486,6 +481,7 @@ function FindingCard({ finding, index }: { finding: AppDfaVulnFinding; index: nu
 // ══════════════════════════════════════════════════════════════════════════════
 export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskId: string; onBack: () => void }> = ({ projectId, taskId, onBack }) => {
   const appApi = api.domains.execution.cfgGuidedExplore;
+  const pipelineApi = api.domains.execution.cfgPipeline;
   const { notify, feedbackNodes } = useUiFeedback();
 
   const [detail, setDetail] = useState<AppDfaTaskDetail | null>(null);
@@ -495,6 +491,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
   const [session, setSession] = useState<CfgCparserSession | null>(null);
   const [sessionMissing, setSessionMissing] = useState(false);
   const [walkFns, setWalkFns] = useState<Record<string, CfgWalkFunction>>({});
+  const [siblings, setSiblings] = useState<{ task_id: string; function_name: string; status: string; finding_count: number }[] | null>(null);
   const [navView, setNavView] = useState<'order' | 'graph'>('order');
   const [result, setResult] = useState<AppDfaTaskResult | null>(null);
   const [resultLoading, setResultLoading] = useState(false);
@@ -539,6 +536,13 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
       setWalkFns(map);
     } catch { /* best-effort: names/code unavailable */ }
   };
+  const loadSiblings = async (pipelineId?: string | null) => {
+    if (!pipelineId) { setSiblings(null); return; }
+    try {
+      const f = await pipelineApi.getFindings(pipelineId);
+      setSiblings(f.children || []);
+    } catch { setSiblings(null); }
+  };
   const loadResult = async () => {
     if (resultLoading) return;
     setResultLoading(true);
@@ -564,6 +568,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
   };
 
   useEffect(() => { void loadDetail(); void loadTrace(); void loadSession(); void loadWalkFns(); }, [taskId]);
+  useEffect(() => { void loadSiblings(detail?.parent_task_id); }, [detail?.parent_task_id]);
   useEffect(() => { const t = setInterval(() => setClockNow(Math.floor(Date.now() / 1000)), 1000); return () => clearInterval(t); }, []);
   useEffect(() => {
     if (activeTab === 'result' && !result && !resultLoading) void loadResult();
@@ -582,7 +587,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
     return idx;
   }, [session, walkFns]);
   const walk = useMemo(() => mergeWalk(session, nameIdx, walkFns), [session, nameIdx, walkFns]);
-  const { edges: callEdges, realCount } = useMemo(() => buildCallEdges(walk, session, nameIdx), [walk, session, nameIdx]);
+  const { edges: callEdges, realCount } = useMemo(() => buildCallEdges(walk, walkFns), [walk, walkFns]);
   const selectedFn = useMemo(() => walk.find((w) => w.fid === selectedFid) || walk[0] || null, [walk, selectedFid]);
   const queriesForSelected = useMemo(
     () => (session?.codemap_queries || []).filter((q) => q.function_id === (selectedFn?.fid)),
@@ -638,6 +643,66 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
     ['task-config', '任务配置', <FileText size={14} key="i" />],
   ];
 
+  // Selected-function detail pane, reused by both walk layouts (order / graph).
+  const walkDetailPane = !selectedFn ? (
+    <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated px-4 py-16 text-center text-sm text-theme-text-muted">点击函数或图节点,查看污点传播、模型推理与源码</div>
+  ) : (
+    <div className="space-y-4">
+      <SectionCard title={`#${selectedFn.order + 1} · ${selectedFn.name}`} icon={<Crosshair size={16} />} action={<FnBadge audit={selectedFn.audit} />}>
+        {(neighbors.callers.length > 0 || neighbors.callees.length > 0) ? (
+          <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-xs">
+            {neighbors.callers.length ? (
+              <>
+                {neighbors.callers.map((c) => (
+                  <button key={c.fid} onClick={() => setSelectedFid(c.fid)} className="rounded-md bg-theme-surface px-2 py-0.5 font-mono text-theme-text-secondary ring-1 ring-theme-border hover:ring-slate-400">{c.name}</button>
+                ))}
+                <span className="text-slate-400">▸</span>
+              </>
+            ) : null}
+            <span className={`rounded-md px-2 py-0.5 font-mono font-bold ${isVulnResult(selectedFn.audit?.result) ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>{selectedFn.name}</span>
+            {neighbors.callees.length ? (
+              <>
+                <span className="text-slate-400">▸</span>
+                {neighbors.callees.map((c) => (
+                  <button key={c.fid} onClick={() => setSelectedFid(c.fid)} className="rounded-md bg-theme-surface px-2 py-0.5 font-mono text-theme-text-secondary ring-1 ring-theme-border hover:ring-slate-400">{c.name}</button>
+                ))}
+              </>
+            ) : null}
+          </div>
+        ) : null}
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          {selectedFn.meta?.signature ? <div className="sm:col-span-2"><InfoRow label="签名" value={<span className="font-mono text-[13px] text-theme-text-primary">{selectedFn.meta.signature}</span>} /></div> : null}
+          <InfoRow label="位置" value={selectedFn.meta?.file_path ? <span className="font-mono text-[13px]">{selectedFn.meta.file_path}:{selectedFn.meta.start_line}-{selectedFn.meta.end_line}</span> : '—'} />
+          <InfoRow label="污点参数" value={selectedFn.taint?.tainted_params_in?.length ? <span className="font-mono text-[13px] text-rose-600">{selectedFn.taint.tainted_params_in.join(', ')}</span> : '—'} />
+          {selectedFn.audit?.vuln_line ? <InfoRow label="漏洞行" value={<span className="font-mono text-[13px] text-rose-600">{selectedFn.audit.vuln_line}</span>} /> : null}
+          {selectedFn.audit?.confidence != null ? <InfoRow label="置信度" value={selectedFn.audit.confidence} /> : null}
+        </div>
+      </SectionCard>
+      <SectionCard title="函数源码" icon={<FileText size={16} />}>
+        {selectedFn.meta ? <FunctionCodeBlock meta={selectedFn.meta} focusLine={selectedFn.audit?.vuln_line} />
+          : <div className="text-sm text-theme-text-muted">源码解析中…</div>}
+      </SectionCard>
+      {selectedFn.taint?.desc ? (
+        <SectionCard title="污点传播 (是什么 / 为什么 / 怎么样)" icon={<Network size={16} />}><ThreeElementDesc text={selectedFn.taint.desc} /></SectionCard>
+      ) : null}
+      {selectedFn.audit?.desc ? (
+        <SectionCard title="模型审计推理 (think)" icon={<Search size={16} />}><ThreeElementDesc text={selectedFn.audit.desc} /></SectionCard>
+      ) : null}
+      <SectionCard title={`该函数的工具调用 (${queriesForSelected.length})`} icon={<Terminal size={16} />}>
+        {queriesForSelected.length === 0 ? <div className="text-sm text-theme-text-muted">无</div> : (
+          <div className="space-y-2">{queriesForSelected.map((q, i) => <ToolCallRow key={i} q={q} nameIdx={nameIdx} />)}</div>
+        )}
+      </SectionCard>
+    </div>
+  );
+
+  const walkToggle = (
+    <div className="inline-flex items-center gap-1 rounded-xl border border-theme-border bg-theme-surface p-1">
+      <button onClick={() => setNavView('order')} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${navView === 'order' ? 'bg-slate-900 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}><Workflow size={13} />审查顺序 {walk.length}</button>
+      <button onClick={() => setNavView('graph')} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${navView === 'graph' ? 'bg-slate-900 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}><Network size={13} />调用图</button>
+    </div>
+  );
+
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
       {feedbackNodes}
@@ -691,6 +756,38 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
       ) : activeTab === 'overview' ? (
         <section className="space-y-4">
           <TaskOriginCard origin={detail} />
+          {detail.parent_task_id ? (
+            <SectionCard title="任务 / 子任务" icon={<GitBranch size={15} />} action={siblings ? <span className="text-xs text-theme-text-muted">{siblings.length} 个子任务</span> : null}>
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+                <span className="rounded-md bg-theme-elevated px-2 py-1 font-semibold text-theme-text-secondary">挖掘任务</span>
+                <span className="font-mono text-theme-text-muted">{detail.parent_task_id}</span>
+                <span className="text-slate-400">▸</span>
+                <span className="rounded-md bg-slate-900 px-2 py-1 font-mono font-bold text-white">{detail.parent_stage_item_key || entryName}</span>
+                <span className="text-theme-text-muted">(本子任务)</span>
+              </div>
+              {!siblings ? <div className="text-sm text-theme-text-muted">加载子任务…</div> : siblings.length === 0 ? <div className="text-sm text-theme-text-muted">无同级子任务</div> : (
+                <div className="max-h-72 overflow-auto rounded-xl border border-theme-border">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-theme-elevated text-[11px] font-semibold uppercase tracking-[0.1em] text-theme-text-muted">
+                      <tr><th className="px-3 py-2">入口函数</th><th className="px-3 py-2">状态</th><th className="px-3 py-2 text-right">漏洞</th></tr>
+                    </thead>
+                    <tbody>
+                      {siblings.map((c) => {
+                        const isSelf = c.task_id === detail.task_id;
+                        return (
+                          <tr key={c.task_id} onClick={() => !isSelf && window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'cfg-guided-explore-detail', cfgGuidedExploreTaskId: c.task_id } }))} className={`border-t border-theme-border ${isSelf ? 'bg-slate-100' : 'cursor-pointer hover:bg-theme-elevated'}`}>
+                            <td className="px-3 py-1.5 font-mono text-theme-text-primary">{c.function_name}{isSelf ? <span className="ml-1.5 rounded bg-slate-900 px-1 py-0.5 text-[9px] text-white">本任务</span> : null}</td>
+                            <td className="px-3 py-1.5">{c.status}</td>
+                            <td className="px-3 py-1.5 text-right">{c.finding_count > 0 ? <span className="font-bold text-rose-600">{c.finding_count}</span> : c.finding_count}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </SectionCard>
+          ) : null}
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
             <SectionCard title="审计里程碑" icon={<ListTree size={15} />}>
               <MilestoneTimeline session={trace} />
@@ -735,19 +832,43 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
           <button onClick={() => { setSessionDrawer(true); }} className="inline-flex items-center gap-2 text-xs font-semibold text-theme-text-muted hover:text-slate-800"><FileText size={13} />查看智能体会话文件</button>
         </section>
       ) : activeTab === 'walk' ? (
-        <section>
+        <section className="space-y-4">
           {walk.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated p-12 text-center text-sm text-slate-400">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div>
-          ) : (
-            <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
-              {/* Left: navigation — toggle between review order list and the call graph */}
-              <aside className="flex max-h-[calc(100vh-13rem)] flex-col rounded-2xl border border-theme-border bg-theme-surface">
-                <div className="flex items-center gap-1 border-b border-theme-border p-2">
-                  <button onClick={() => setNavView('order')} className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${navView === 'order' ? 'bg-slate-900 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}><Workflow size={13} />审查顺序 {walk.length}</button>
-                  <button onClick={() => setNavView('graph')} className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${navView === 'graph' ? 'bg-slate-900 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}><Network size={13} />调用图</button>
+            <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated p-12 text-center text-sm text-theme-text-muted">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div>
+          ) : navView === 'graph' ? (
+            <>
+              {/* Graph mode: full-width tall graph + detail below */}
+              <div className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
+                <div className="flex flex-wrap items-center gap-3 border-b border-theme-border px-3 py-2">
+                  {walkToggle}
+                  <span className="inline-flex items-center gap-1 text-[11px] text-theme-text-muted"><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-400 bg-emerald-50" />安全</span>
+                  <span className="inline-flex items-center gap-1 text-[11px] text-theme-text-muted"><span className="inline-block h-2.5 w-2.5 rounded border border-rose-400 bg-rose-50" />漏洞</span>
+                  <span className="inline-flex items-center gap-1.5 text-[11px] text-theme-text-muted"><span className="inline-block h-0.5 w-5 bg-slate-500" />调用 {callEdges.filter((e) => e.kind === 'call').length}</span>
+                  <span className="inline-flex items-center gap-1.5 text-[11px] text-theme-text-muted"><span className="inline-block h-0.5 w-5 border-t border-dashed border-slate-400" />审查顺序 {callEdges.filter((e) => e.kind === 'flow').length}</span>
                 </div>
-                {navView === 'order' ? (
-                  <ol className="relative flex-1 space-y-0 overflow-auto p-3">
+                <div className="h-[600px] bg-slate-50">
+                  <ReactFlow
+                    nodes={graph.nodes}
+                    edges={graph.flowEdges}
+                    nodeTypes={fnNodeTypes}
+                    onNodeClick={(_, node) => setSelectedFid(node.id)}
+                    fitView nodesDraggable nodesConnectable={false} elementsSelectable panOnDrag zoomOnScroll
+                    proOptions={{ hideAttribution: true }}
+                  >
+                    <Background color="#e2e8f0" gap={18} />
+                    <Controls showInteractive={false} />
+                  </ReactFlow>
+                </div>
+              </div>
+              {walkDetailPane}
+            </>
+          ) : (
+            <>
+              {/* Order mode: review-sequence list (left) + detail (right) */}
+              <div>{walkToggle}</div>
+              <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
+                <aside className="max-h-[calc(100vh-13rem)] overflow-auto rounded-2xl border border-theme-border bg-theme-surface p-3">
+                  <ol className="relative space-y-0">
                     {walk.map((w, i) => {
                       const sel = selectedFn?.fid === w.fid;
                       const vuln = isVulnResult(w.audit?.result);
@@ -760,7 +881,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                           </div>
                           <button onClick={() => setSelectedFid(w.fid)} className={`mb-2 flex-1 rounded-xl border px-3 py-2.5 text-left transition ${sel ? 'border-slate-400 bg-slate-100 ring-1 ring-slate-300' : 'border-theme-border bg-theme-surface hover:bg-theme-elevated'}`}>
                             <div className="flex items-center justify-between gap-2">
-                              <span className="truncate font-mono text-sm font-semibold text-slate-900">{w.name}</span>
+                              <span className="truncate font-mono text-sm font-semibold text-theme-text-primary">{w.name}</span>
                               {vuln ? <Bug size={14} className="text-rose-500" /> : w.audit ? <ShieldCheck size={14} className="text-emerald-500" /> : null}
                             </div>
                             <div className="mt-1 truncate text-xs text-theme-text-muted">污点 {w.taint?.tainted_params_in?.length ? w.taint.tainted_params_in.join(', ') : '—'}{w.ts ? ` · ${w.ts.slice(11, 19)}` : ''}</div>
@@ -769,86 +890,10 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                       );
                     })}
                   </ol>
-                ) : (
-                  <div className="flex flex-1 flex-col">
-                    <div className="flex items-center gap-3 px-3 py-2 text-[11px] text-theme-text-muted">
-                      <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-300 bg-emerald-50" />安全</span>
-                      <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-rose-400 bg-rose-50" />漏洞</span>
-                      <span className="ml-auto">{callEdges.filter((e) => e.kind === 'call').length} 调用边</span>
-                    </div>
-                    <div className="min-h-[420px] flex-1 border-t border-theme-border bg-theme-elevated">
-                      <ReactFlow
-                        nodes={graph.nodes}
-                        edges={graph.flowEdges}
-                        nodeTypes={fnNodeTypes}
-                        onNodeClick={(_, node) => setSelectedFid(node.id)}
-                        fitView nodesDraggable nodesConnectable={false} elementsSelectable panOnDrag zoomOnScroll
-                        proOptions={{ hideAttribution: true }}
-                      >
-                        <Background color="#e2e8f0" gap={18} />
-                        <Controls showInteractive={false} />
-                      </ReactFlow>
-                    </div>
-                  </div>
-                )}
-              </aside>
-
-              {/* Right: detail for selected fn — inline relation strip ties the graph in */}
-              <div className="space-y-4">
-                {!selectedFn ? <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated px-4 py-16 text-center text-sm text-theme-text-muted">点击左侧函数或图节点,查看污点传播、模型推理与源码</div> : (
-                  <>
-                    <SectionCard title={`#${selectedFn.order + 1} · ${selectedFn.name}`} icon={<Crosshair size={16} />} action={<FnBadge audit={selectedFn.audit} />}>
-                      {/* inline call relation: callers → current → callees */}
-                      {(neighbors.callers.length > 0 || neighbors.callees.length > 0) ? (
-                        <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-xs">
-                          {neighbors.callers.length ? (
-                            <>
-                              {neighbors.callers.map((c) => (
-                                <button key={c.fid} onClick={() => setSelectedFid(c.fid)} className="rounded-md bg-theme-surface px-2 py-0.5 font-mono text-theme-text-secondary ring-1 ring-theme-border hover:ring-slate-400">{c.name}</button>
-                              ))}
-                              <span className="text-slate-300">▸</span>
-                            </>
-                          ) : null}
-                          <span className={`rounded-md px-2 py-0.5 font-mono font-bold ${isVulnResult(selectedFn.audit?.result) ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>{selectedFn.name}</span>
-                          {neighbors.callees.length ? (
-                            <>
-                              <span className="text-slate-300">▸</span>
-                              {neighbors.callees.map((c) => (
-                                <button key={c.fid} onClick={() => setSelectedFid(c.fid)} className="rounded-md bg-theme-surface px-2 py-0.5 font-mono text-theme-text-secondary ring-1 ring-theme-border hover:ring-slate-400">{c.name}</button>
-                              ))}
-                            </>
-                          ) : null}
-                        </div>
-                      ) : null}
-                      <div className="grid gap-2.5 sm:grid-cols-2">
-                        {selectedFn.meta?.signature ? <div className="sm:col-span-2"><InfoRow label="签名" value={<span className="font-mono text-[13px] text-slate-800">{selectedFn.meta.signature}</span>} /></div> : null}
-                        <InfoRow label="位置" value={selectedFn.meta?.file_path ? <span className="font-mono text-[13px]">{selectedFn.meta.file_path}:{selectedFn.meta.start_line}-{selectedFn.meta.end_line}</span> : '—'} />
-                        <InfoRow label="污点参数" value={selectedFn.taint?.tainted_params_in?.length ? <span className="font-mono text-[13px] text-rose-600">{selectedFn.taint.tainted_params_in.join(', ')}</span> : '—'} />
-                        {selectedFn.audit?.vuln_line ? <InfoRow label="漏洞行" value={<span className="font-mono text-[13px] text-rose-600">{selectedFn.audit.vuln_line}</span>} /> : null}
-                        {selectedFn.audit?.confidence != null ? <InfoRow label="置信度" value={selectedFn.audit.confidence} /> : null}
-                      </div>
-                    </SectionCard>
-                    <SectionCard title="函数源码" icon={<FileText size={16} />}>
-                      {selectedFn.meta ? <FunctionCodeBlock meta={selectedFn.meta} focusLine={selectedFn.audit?.vuln_line} />
-                        : <div className="text-sm text-theme-text-muted">源码解析中…(需后端 walk-functions 接口)</div>}
-                    </SectionCard>
-                    {selectedFn.taint?.desc ? (
-                      <SectionCard title="污点传播 (是什么 / 为什么 / 怎么样)" icon={<Network size={16} />}><ThreeElementDesc text={selectedFn.taint.desc} /></SectionCard>
-                    ) : null}
-                    {selectedFn.audit?.desc ? (
-                      <SectionCard title="模型审计推理 (think)" icon={<Search size={16} />}><ThreeElementDesc text={selectedFn.audit.desc} /></SectionCard>
-                    ) : null}
-                    <SectionCard title={`该函数的工具调用 (${queriesForSelected.length})`} icon={<Terminal size={16} />}>
-                      {queriesForSelected.length === 0 ? <div className="text-sm text-theme-text-muted">无</div> : (
-                        <div className="space-y-2">
-                          {queriesForSelected.map((q, i) => <ToolCallRow key={i} q={q} nameIdx={nameIdx} />)}
-                        </div>
-                      )}
-                    </SectionCard>
-                  </>
-                )}
+                </aside>
+                {walkDetailPane}
               </div>
-            </div>
+            </>
           )}
         </section>
       ) : activeTab === 'tools' ? (
