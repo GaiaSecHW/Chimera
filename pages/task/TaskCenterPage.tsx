@@ -261,32 +261,11 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   };
 
   const openTask = (task: ScheduleCenterUserTask) => {
-    if (task.task_type === 'sechps_tool') return;
-    const meta = TASK_TYPES.find((item) => item.value === task.task_type);
-    if (!meta || !meta.downstreamView) return;
-    const taskIdentifier = task.downstream_task_id || task.id;
     saveTaskCenterReturnContext();
-    if (meta.downstreamView === 'task-redline-detail') {
-      window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
-        detail: {
-          view: 'task-redline-detail',
-          redlineTaskId: taskIdentifier,
-        },
-      }));
-      return;
-    }
     window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
       detail: {
-        view: meta.downstreamView,
-        [meta.downstreamView === 'binary-security-detail'
-          ? 'binarySecurityTaskId'
-          : meta.downstreamView === 'source-security-detail'
-            ? 'sourceSecurityTaskId'
-            : meta.downstreamView === 'binary-module-security-detail'
-              ? 'binaryModuleSecurityTaskId'
-              : meta.downstreamView === 'app-security-scan-detail'
-                ? 'appScanTaskId'
-                : 'redlineTaskId']: taskIdentifier,
+        view: 'task-report-view',
+        taskReportTaskId: task.id,
       },
     }));
   };
@@ -557,17 +536,15 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    {task.task_type !== 'sechps_tool' && isAdmin ? (
-                      <button
-                        onClick={() => openTask(task)}
-                        className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
-                        style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; e.currentTarget.style.borderColor = LK.primary; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
-                      >
-                        查看任务 <ArrowRight size={12} />
-                      </button>
-                    ) : null}
+                    <button
+                      onClick={() => openTask(task)}
+                      className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+                      style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; e.currentTarget.style.borderColor = LK.primary; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
+                    >
+                      查看报告 <ArrowRight size={12} />
+                    </button>
                     {task.task_type !== 'sechps_tool' ? (
                       <button
                         onClick={() => {

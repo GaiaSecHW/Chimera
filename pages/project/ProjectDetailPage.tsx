@@ -219,10 +219,12 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
 
   /* ── Task actions ── */
   const openTask = (task: any) => {
-    const view = TASK_DOWNSTREAM_VIEW[task.task_type];
-    if (!view) return;
-    const idKey = TASK_ID_KEY[view] || 'taskId';
-    window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view, [idKey]: task.downstream_task_id || task.id } }));
+    window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
+      detail: {
+        view: 'task-report-view',
+        taskReportTaskId: task.id,
+      },
+    }));
   };
 
   const openTaskVulns = (task: any) => {
@@ -459,11 +461,9 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        {task.task_type !== 'sechps_tool' && TASK_DOWNSTREAM_VIEW[task.task_type] && (
-                          <button className={actionBtnClass} style={actionBtnStyle} onClick={() => openTask(task)}>
-                            查看任务 <ArrowRight size={12} />
-                          </button>
-                        )}
+                        <button className={actionBtnClass} style={actionBtnStyle} onClick={() => openTask(task)}>
+                          查看报告 <ArrowRight size={12} />
+                        </button>
                         {task.task_type !== 'sechps_tool' && (
                           <button className={actionBtnClass} style={actionBtnStyle} onClick={() => openTaskVulns(task)}>
                             查看漏洞 ({taskVulnCounts[task.id] === undefined ? '…' : taskVulnCounts[task.id]})
