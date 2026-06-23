@@ -47,6 +47,8 @@ import { CfgDbVulnToolPage } from '../pages/execution/CfgDbVulnToolPage';
 import { CfgDbVulnDetailPage } from '../pages/execution/CfgDbVulnDetailPage';
 import { VulnVerifyTaskPage } from '../pages/execution/VulnVerifyTaskPage';
 import { VulnVerifyV2TaskPage } from '../pages/execution/VulnVerifyV2TaskPage';
+import { FramaCVerifyPage } from '../pages/execution/FramaCVerifyPage';
+import { FramaCAdminPage } from '../pages/execution/FramaCAdminPage';
 import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage';
 import { EntryAnalysisTaskDetailPage } from '../pages/execution/EntryAnalysisTaskDetailPage';
 import { EntryAnalysisConfigPage } from '../pages/execution/EntryAnalysisConfigPage';
@@ -472,6 +474,10 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <VulnVerifyTaskPage projectId={ctx.selectedProjectId} />;
     case 'pentest-vuln-verify-v2':
       return <VulnVerifyV2TaskPage projectId={ctx.selectedProjectId} />;
+    case 'pentest-frama-c':
+      return <FramaCVerifyPage projectId={ctx.selectedProjectId} />;
+    case 'frama-c-admin':
+      return <FramaCAdminPage />;
     case 'workflow-instances':
       return (
         <WorkflowInstancePage
