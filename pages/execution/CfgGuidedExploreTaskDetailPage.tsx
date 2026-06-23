@@ -823,10 +823,12 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
             <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated p-12 text-center text-sm text-theme-text-muted">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div>
           ) : (
             <div className="grid gap-4 xl:grid-cols-[440px_minmax(0,1fr)]">
-              {/* Left: ONE fused graph — review order (top→bottom) + call edges */}
-              <aside className="flex max-h-[calc(100vh-11rem)] min-h-[600px] flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-theme-border px-3 py-2 text-[11px] text-theme-text-muted">
-                  <span className="inline-flex items-center gap-1.5 font-semibold text-theme-text-secondary"><Workflow size={13} />审查顺序 / 调用图 · {walk.length}</span>
+              {/* Left: ONE fused graph — review order (top→bottom) + call edges.
+                  Light "canvas card" (white frame + header) so the light flow
+                  area reads as an intentional canvas against the dark app. */}
+              <aside className="flex max-h-[calc(100vh-11rem)] min-h-[600px] flex-col overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-200 bg-slate-100 px-3 py-2 text-[11px] text-slate-500">
+                  <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700"><Workflow size={13} />审查顺序 / 调用图 · {walk.length}</span>
                   <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-400 bg-emerald-50" />安全</span>
                   <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-amber-400 bg-amber-50" />漏洞</span>
                   <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-slate-500" />调用 {callEdges.filter((e) => e.kind === 'call').length}</span>
