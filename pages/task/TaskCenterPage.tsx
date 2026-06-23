@@ -378,9 +378,27 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         description="统一展示当前项目下的所有测试任务，追踪分发、执行与同步状态"
         actions={
           <div className="flex items-center gap-2">
-            <button onClick={openDeleteQueue} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><Shield size={15} />删除队列</button>
-            <button onClick={() => void loadData()} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><RefreshCw size={15} />刷新</button>
-            <button onClick={openCreateDialog} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}><Plus size={15} />创建任务</button>
+            <button
+              type="button"
+              onClick={openDeleteQueue}
+              className="btn btn-secondary"
+            >
+              <Shield size={16} /> 删除队列
+            </button>
+            <button
+              type="button"
+              onClick={() => void loadData()}
+              className="btn btn-secondary"
+            >
+              <RefreshCw size={16} /> 刷新
+            </button>
+            <button
+              type="button"
+              onClick={openCreateDialog}
+              className="btn btn-primary"
+            >
+              <Plus size={16} /> 创建任务
+            </button>
           </div>
         }
       />

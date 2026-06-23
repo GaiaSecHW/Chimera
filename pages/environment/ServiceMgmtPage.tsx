@@ -1104,11 +1104,38 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
       <PageHeader
         title="集群服务发现"
         description="服务批量启停删与实例筛选管理"
-        actions={<div className="flex gap-4">
-            <button onClick={() => void forceSyncAndReloadServices()} disabled={!projectId || syncRefreshing} className="px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 text-xs font-medium flex items-center gap-2" title="调用后端服务发现同步，再回填页面">{syncRefreshing ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}强制发现</button>
-            <button onClick={() => void loadAllServices({ showFullLoading: false })} disabled={!projectId || refreshing} className="p-4 bg-theme-elevated border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all active:scale-95 disabled:opacity-50" title="仅重新拉取当前服务快照">{refreshing ? <Loader2 size={20} className="animate-spin" /> : <RefreshCw size={20} />}</button>
-            <button onClick={() => void openDeployModal()} disabled={!projectId} className="bg-theme-surface text-white px-8 py-4 rounded-lg font-semibold flex items-center gap-2 disabled:opacity-60"><Plus size={18} /> 部署新服务</button>
-          </div>}
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void forceSyncAndReloadServices()}
+              disabled={!projectId || syncRefreshing}
+              className="btn btn-primary"
+              title="调用后端服务发现同步，再回填页面"
+            >
+              {syncRefreshing ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+              强制发现
+            </button>
+            <button
+              type="button"
+              onClick={() => void loadAllServices({ showFullLoading: false })}
+              disabled={!projectId || refreshing}
+              className="btn-icon"
+              title="仅重新拉取当前服务快照"
+              aria-label="刷新"
+            >
+              {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+            </button>
+            <button
+              type="button"
+              onClick={() => void openDeployModal()}
+              disabled={!projectId}
+              className="btn btn-primary"
+            >
+              <Plus size={16} /> 部署新服务
+            </button>
+          </div>
+        }
       />
 
       {!projectId && (

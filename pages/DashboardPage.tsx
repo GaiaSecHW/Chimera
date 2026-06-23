@@ -428,7 +428,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         <PageHeader
           title={<div className="flex flex-col gap-1"><span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}><BarChart3 size={13} /> 平台结果看板</span><span>Chimera 平台结果看板</span></div>}
           description="汇总各模块的结果性数据：交付范围、节点状态、工作流执行、服务健康、资源占用与 AI 网关调用。"
-          actions={<button type="button" onClick={() => setCurrentView('aigw-dashboard')} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = LK.primaryDeep)} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = LK.primary)}>AI 网关详情 <ArrowUpRight size={13} /></button>}
+          actions={
+          <button
+            type="button"
+            onClick={() => setCurrentView('aigw-dashboard')}
+            className="btn btn-primary"
+          >
+            AI 网关详情 <ArrowUpRight size={16} />
+          </button>
+        }
         />
 
         <section className="grid grid-cols-4 gap-3">

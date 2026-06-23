@@ -532,22 +532,19 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         actions={
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={handleRefresh}
-              className="rounded-lg p-2.5 transition-colors"
-              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
+              className="btn-icon"
               title="刷新列表"
+              aria-label="刷新列表"
             >
               <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
             </button>
             <button
+              type="button"
               onClick={openCreateModal}
               disabled={!userPermissions || selectableDepartments.length === 0}
-              className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-              style={{ backgroundColor: LK.primary, color: '#ffffff' }}
-              onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-              onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
+              className="btn btn-primary"
             >
               <Plus size={16} /> 初始化项目
             </button>

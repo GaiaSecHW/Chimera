@@ -1069,16 +1069,15 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
           </span>
         )}
         description={pageDescription}
-        actions={<button
-          onClick={refreshAll}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold transition-colors"
-          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
-        >
-          <RefreshCw size={16} />
-          刷新工作台
-        </button>}
+        actions={
+          <button
+            type="button"
+            onClick={refreshAll}
+            className="btn btn-secondary"
+          >
+            <RefreshCw size={16} /> 刷新工作台
+          </button>
+        }
       />
 
       {error && (

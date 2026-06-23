@@ -212,22 +212,33 @@ export const DeployScriptPage: React.FC = () => {
         title="部署脚本管理"
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={fetchItems} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated">
+            <button
+              type="button"
+              onClick={fetchItems}
+              className="btn btn-secondary"
+              disabled={loading}
+            >
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> 刷新
             </button>
             <button
+              type="button"
               onClick={() => { setNewName(''); setIsCreateFileOpen(true); }}
-              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated"
+              className="btn btn-secondary"
             >
               <FilePlus size={16} /> 新建文件
             </button>
             <button
+              type="button"
               onClick={() => { setNewName(''); setIsMkdirOpen(true); }}
-              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated"
+              className="btn btn-secondary"
             >
               <FolderPlus size={16} /> 新建目录
             </button>
-            <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-sm font-semibold text-white hover:bg-theme-elevated">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="btn btn-primary"
+            >
               <Upload size={16} /> 上传文件
             </button>
             <input type="file" multiple hidden ref={fileInputRef} onChange={handleUpload} />
