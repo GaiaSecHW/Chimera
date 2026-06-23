@@ -268,11 +268,11 @@ function FnNode({ data }: NodeProps<Node<FnNodeData>>) {
       : { border: '#334155', text: 'text-slate-800', bg: '#ffffff', badge: 'rgba(15,23,42,0.1)' };
   const ring = data.selected ? 'ring-2 ring-slate-900 ring-offset-1' : '';
   return (
-    <div className={`min-w-[150px] rounded-lg border-2 px-3 py-2 text-[13px] font-semibold shadow-sm ${tone.text} ${ring}`} style={{ fontFamily: MONO, backgroundColor: tone.bg, borderColor: tone.border }}>
-      <Handle type="target" position={Position.Top} className="!h-2 !w-2 !border !border-slate-500 !bg-slate-500" />
+    <div className={`w-[230px] rounded-lg border-2 px-3 py-1.5 text-[13px] font-semibold shadow-sm ${tone.text} ${ring}`} style={{ fontFamily: MONO, backgroundColor: tone.bg, borderColor: tone.border }}>
+      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border !border-slate-500 !bg-slate-500" />
       <span className="mr-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-slate-800" style={{ backgroundColor: tone.badge }}>{data.order + 1}</span>
-      {data.label}
-      <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !border !border-slate-500 !bg-slate-500" />
+      <span className="truncate align-middle">{data.label}</span>
+      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border !border-slate-500 !bg-slate-500" />
     </div>
   );
 }
@@ -343,12 +343,13 @@ function buildCallEdges(walk: WalkFn[], walkFns: Record<string, CfgWalkFunction>
 }
 
 function layoutGraph(walk: WalkFn[], edges: CallEdge[], selectedFid: string | null): { nodes: Node<FnNodeData>[]; flowEdges: Edge[] } {
-  // Forest layout: each tree drawn top→down from its root using real 'call'
-  // edges; disconnected trees are stacked vertically (one band each) in review
-  // order. Siblings spread horizontally; a parent centers over its children.
-  const ROW_H = 96;   // vertical gap per depth level
-  const COL_W = 184;  // horizontal gap per leaf column
-  const GAP_ROWS = 1; // blank rows between stacked trees
+  // Indented tree (file-explorer style): one function per row, children indented
+  // to the right under their parent, DFS pre-order so a parent sits directly
+  // above its subtree. Compact horizontally so it reads as a clear hierarchy in
+  // a narrow column instead of a wide tree that fitView crushes into a smear.
+  const ROW_H = 58;    // vertical gap per row
+  const INDENT = 30;   // horizontal indent per depth level
+  const GAP_ROWS = 0.6; // blank space between stacked trees
 
   const order = new Map(walk.map((w) => [w.fid, w.order]));
   const children = new Map<string, string[]>();
@@ -362,44 +363,31 @@ function layoutGraph(walk: WalkFn[], edges: CallEdge[], selectedFid: string | nu
   for (const arr of children.values()) arr.sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0));
   const roots = walk.filter((w) => (indeg.get(w.fid) || 0) === 0).map((w) => w.fid);
 
-  const pos = new Map<string, { col: number; row: number }>();
+  const pos = new Map<string, { depth: number; row: number }>();
   const visited = new Set<string>();
-  let baseRow = 0;
-  const placeTree = (rootId: string) => {
-    let leaf = 0; let maxDepth = 0;
-    const place = (id: string, depth: number): number | null => {
-      if (visited.has(id)) return null;
-      visited.add(id);
-      maxDepth = Math.max(maxDepth, depth);
-      const kids = (children.get(id) || []).filter((k) => !visited.has(k));
-      let col: number;
-      if (!kids.length) { col = leaf++; }
-      else {
-        const xs = kids.map((k) => place(k, depth + 1)).filter((v): v is number => v !== null);
-        col = xs.length ? (xs[0] + xs[xs.length - 1]) / 2 : leaf++;
-      }
-      pos.set(id, { col, row: baseRow + depth });
-      return col;
-    };
-    place(rootId, 0);
-    baseRow += maxDepth + 1 + GAP_ROWS;
+  let row = 0;
+  const walkTree = (id: string, depth: number) => {
+    if (visited.has(id)) return;
+    visited.add(id);
+    pos.set(id, { depth, row: row++ });
+    for (const k of children.get(id) || []) walkTree(k, depth + 1);
   };
-  roots.forEach(placeTree);
-  // orphans left by cycles: stack each on its own row
-  walk.forEach((w) => { if (!pos.has(w.fid)) { pos.set(w.fid, { col: 0, row: baseRow }); baseRow += 1; } });
+  roots.forEach((r) => { walkTree(r, 0); row += GAP_ROWS; });
+  // orphans left by cycles: append each on its own row
+  walk.forEach((w) => { if (!pos.has(w.fid)) { pos.set(w.fid, { depth: 0, row: row++ }); } });
 
   const nodes: Node<FnNodeData>[] = walk.map((w) => {
     const p = pos.get(w.fid)!;
     return {
       id: w.fid, type: 'fn',
-      position: { x: p.col * COL_W, y: p.row * ROW_H },
+      position: { x: p.depth * INDENT, y: p.row * ROW_H },
       data: { label: w.name, vuln: isVulnResult(w.audit?.result), audited: Boolean(w.audit), selected: selectedFid === w.fid, order: w.order },
     };
   });
   const flowEdges: Edge[] = edges.map((e, i) => ({
     id: `e${i}_${e.from}_${e.to}`, source: e.from, target: e.to,
-    type: 'smoothstep', pathOptions: { borderRadius: 12 },
-    markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: e.kind === 'call' ? '#475569' : '#94a3b8' },
+    type: 'smoothstep', pathOptions: { borderRadius: 8 },
+    markerEnd: { type: MarkerType.ArrowClosed, width: 13, height: 13, color: e.kind === 'call' ? '#475569' : '#94a3b8' },
     style: e.kind === 'call' ? { stroke: '#475569', strokeWidth: 1.5 } : { stroke: '#94a3b8', strokeDasharray: '4 4' },
     animated: false,
   }));
@@ -893,7 +881,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
           {walk.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated p-12 text-center text-sm text-theme-text-muted">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div>
           ) : (
-            <div className="grid gap-4 xl:grid-cols-[440px_minmax(0,1fr)]">
+            <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
               {/* Left: ONE fused graph. NOTE: the app globally remaps Tailwind
                   bg-white/bg-slate-50 → dark theme vars (styles.css), so we set
                   light surfaces via inline style to escape that hijack. */}
