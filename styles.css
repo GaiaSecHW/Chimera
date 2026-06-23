@@ -127,7 +127,7 @@
     border-color: var(--border-default);
   }
 
-  body {
+  /*body {
     --bg-app: #070d18;
     --bg-surface: #111a2b;
     --bg-elevated: #18233a;
@@ -176,7 +176,7 @@
     --xterm-cursor: #6366f1;
     --shell-muted-bg: rgba(17, 26, 43, 0.92);
     --shell-muted-hover-bg: #18233a;
-  }
+  }*/
 
   * {
     border-color: var(--border-default);
