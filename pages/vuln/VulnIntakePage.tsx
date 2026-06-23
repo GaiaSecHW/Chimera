@@ -698,6 +698,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const autoVerifySyncGuardRef = useRef<string>('');
   const [selectedSuspicionIds, setSelectedSuspicionIds] = useState<string[]>([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [batchSyncingAutoVerify, setBatchSyncingAutoVerify] = useState(false);
   const [rowDeletingId, setRowDeletingId] = useState<string | null>(null);
   const [confirmingCase, setConfirmingCase] = useState<any | null>(null);
   const [manualConfirmResult, setManualConfirmResult] = useState<'vulnerable' | 'not_vulnerable'>('vulnerable');
@@ -1673,6 +1674,64 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       setError(err?.message || '批量删除漏洞失败');
     } finally {
       setBulkDeleting(false);
+    }
+  };
+
+  const handleBatchSyncSelectedVerifyStatus = async () => {
+    const uniqueCaseIds = Array.from(new Set(selectedSuspicionIds.filter(Boolean)));
+    if (!projectId || uniqueCaseIds.length === 0) return;
+    if (uniqueCaseIds.length > 100) {
+      setError('批量同步一次最多支持 100 条漏洞，请减少选择后重试。');
+      return;
+    }
+
+    setBatchSyncingAutoVerify(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    const batchFallback = async (caseIds: string[]) => {
+      let synced = 0;
+      let skipped = 0;
+      let failed = 0;
+
+      for (const caseId of caseIds) {
+        try {
+          const response = await vulnApi.vuln.syncAutoVerifyTask(caseId, {});
+          if (response?.validation_result || response?.task_status || response?.case_status) {
+            synced += 1;
+          } else {
+            skipped += 1;
+          }
+        } catch {
+          failed += 1;
+        }
+      }
+
+      return { total: caseIds.length, processed: caseIds.length, synced, skipped, failed };
+    };
+
+    try {
+      let response: any;
+      try {
+        response = await vulnApi.vuln.syncAutoVerifyTasksBatch({
+          project_id: projectId,
+          case_ids: uniqueCaseIds,
+          max_concurrency: 3,
+        });
+      } catch {
+        response = await batchFallback(uniqueCaseIds);
+      }
+
+      await Promise.all([loadOverview(), loadSuspicions(currentPage)]);
+      if (selectedSuspicionId && uniqueCaseIds.includes(selectedSuspicionId)) {
+        await loadSuspicionDetail(selectedSuspicionId);
+      }
+
+      setSuccessMessage(`批量同步完成：成功 ${Number(response?.synced || 0)}，跳过 ${Number(response?.skipped || 0)}，失败 ${Number(response?.failed || 0)}。`);
+    } catch (err: any) {
+      setError(err?.message || '批量同步验证状态失败');
+    } finally {
+      setBatchSyncingAutoVerify(false);
     }
   };
 
@@ -2722,6 +2781,17 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     已选择 {selectedSuspicionIds.length} 条漏洞
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleBatchSyncSelectedVerifyStatus}
+                      disabled={batchSyncingAutoVerify || selectedSuspicionIds.length === 0}
+                      className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-700 transition-colors disabled:opacity-50"
+                      onMouseEnter={(e) => { if (!batchSyncingAutoVerify) e.currentTarget.style.backgroundColor = '#fffbeb'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ''; }}
+                    >
+                      <RefreshCw size={14} className={batchSyncingAutoVerify ? 'animate-spin' : ''} />
+                      {batchSyncingAutoVerify ? '同步中...' : `批量同步验证状态 (${selectedSuspicionIds.length})`}
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleCreateDownloadJob(selectedSuspicionIds, 'batch')}
