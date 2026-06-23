@@ -529,30 +529,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       <PageHeader
         title="项目概览"
         description="统一展示用户权限范围内的所有项目"
-        actions={
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleRefresh}
-              className="rounded-lg p-2.5 transition-colors"
-              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
-              title="刷新列表"
-            >
-              <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
-            </button>
-            <button
-              onClick={openCreateModal}
-              disabled={!userPermissions || selectableDepartments.length === 0}
-              className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-              style={{ backgroundColor: LK.primary, color: '#ffffff' }}
-              onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-              onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
-            >
-              <Plus size={16} /> 初始化项目
-            </button>
-          </div>
-        }
       />
 
       {/* Batch selection bar */}
@@ -633,22 +609,44 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         </div>
       )}
 
-      {/* Search bar */}
-      <div className="relative flex items-center">
-        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
-        <input
-          type="text"
-          placeholder="搜索项目名称、负责人、归属部门、产品路径、版本号..."
-          className="form-input w-full pl-10 pr-10"
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
-        />
+      {/* Action bar: 初始化项目 -> 搜索框 -> 刷新 */}
+      <div className="flex items-center gap-2">
         <button
-          onClick={toggleSelectAll}
-          className="absolute right-3 text-theme-text-muted transition-colors hover:text-theme-primary"
-          title={isAllSelected ? '取消全选可管理项目' : '全选可管理项目'}
+          onClick={openCreateModal}
+          disabled={!userPermissions || selectableDepartments.length === 0}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+          style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+          onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+          onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
         >
-          {isAllSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+          <Plus size={16} /> 初始化项目
+        </button>
+        <div className="relative flex flex-1 items-center">
+          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
+          <input
+            type="text"
+            placeholder="搜索项目名称、负责人、归属部门、产品路径、版本号..."
+            className="form-input w-full pl-10 pr-10"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+          />
+          <button
+            onClick={toggleSelectAll}
+            className="absolute right-3 text-theme-text-muted transition-colors hover:text-theme-primary"
+            title={isAllSelected ? '取消全选可管理项目' : '全选可管理项目'}
+          >
+            {isAllSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+          </button>
+        </div>
+        <button
+          onClick={handleRefresh}
+          className="shrink-0 rounded-lg p-2.5 transition-colors"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
+          title="刷新列表"
+        >
+          <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
         </button>
       </div>
 
@@ -667,7 +665,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                   <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>归属部门</th>
                   <th className="whitespace-nowrap min-w-[110px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>项目成员</th>
                   <th className="whitespace-nowrap min-w-[200px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>产品版本</th>
-                  <th className="whitespace-nowrap min-w-[90px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>状态</th>
                   <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>创建时间</th>
                   <th className="whitespace-nowrap w-24 px-3 py-2.5 text-right font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
                 </tr>
@@ -730,10 +727,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                         <div className="text-sm font-medium" style={{ color: LK.inkSoft }}>
                           {project.product_version || project.product_version_name || '未归属版本'}
                         </div>
-                      </td>
-                      {/* 状态 */}
-                      <td className="whitespace-nowrap px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
-                        <StatusBadge status={project.status || 'active'} />
                       </td>
                       {/* 创建时间 */}
                       <td className="whitespace-nowrap px-3 py-3 text-xs" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.muted }}>
