@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Loader2, Network, RefreshCw, ShieldCheck, Wrench } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ExternalLink, Loader2, Network, RefreshCw, RotateCw, ShieldCheck, Wrench } from 'lucide-react';
 import { api } from '../clients/api';
 import {
   IN_PROGRESS_STATUSES,
@@ -11,15 +11,30 @@ import type {
 } from '../clients/codemapManager';
 
 // 详情对话框里的「知识图谱」框:把静态分析 / 入口分析 / 调用链修复的进展与信息
-// 集中到一处,从上到下三块,仿「基础信息」的栅格 + 徽章排版。数据走 manager:
-//  - 静态分析 / 修复进度 / 入口数:复用调用方已有的 task status(props.status)。
-//  - 入口识别分桶:本组件自拉 GET /uploads/{id}/audit/sources(直连 DozerDB,不起 serve)。
+// 集中到一处,从上到下三块,仿「基础信息」的栅格 + 徽章排版。数据全走 manager:
+//  - task 状态(静态分析 / 入口阶段 / 修复进度):本组件自拉 getTaskStatus,props
+//    传入的 status 仅作首屏种子(父组件缓存对重跑攻击入口不刷新,见下)。
+//  - 入口识别分桶:自拉 GET /uploads/{id}/audit/sources(直连 DozerDB,不起 serve)。
 // 失败态智能文案:attack_status=failed 但已识别 N 个入口(用户手动重跑过)时,
 // 显示「已识别 N(上次自动识别报错,当前为最新结果)」而非冷冰冰的「失败」。
 
 interface KnowledgeGraphPanelProps {
   uploadId: string;
   status: CodemapTaskStatus | null;
+  usable?: boolean;
+  // 打开知识图谱(起/复用 per-project serve,新标签页打开)。状态由父组件持有。
+  onOpenServe?: () => void;
+  openServeLoading?: boolean;
+  openServeError?: string | null;
+  // 从行内 chip 搬来的恢复动作:重新构建(静态失败)/ 更正代码目录(0 函数)/
+  // 重试派发(triggerBuild 失败)。展示时机由 panel 按 effective 状态判断。
+  onRebuild?: () => void;
+  rebuilding?: boolean;
+  onCorrect?: () => void;
+  correcting?: boolean;
+  onRetryDispatch?: () => void;
+  retrying?: boolean;
+  dispatchError?: string;
 }
 
 const pillBase =
@@ -45,16 +60,51 @@ const Pill: React.FC<{ tone: string; children: React.ReactNode; title?: string }
 export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
   uploadId,
   status,
+  usable,
+  onOpenServe,
+  openServeLoading,
+  openServeError,
+  onRebuild,
+  rebuilding,
+  onCorrect,
+  correcting,
+  onRetryDispatch,
+  retrying,
+  dispatchError,
 }) => {
   const [audit, setAudit] = useState<CodemapAuditSources | null>(null);
   const [auditError, setAuditError] = useState<string | null>(null);
   const [reidentifying, setReidentifying] = useState(false);
   const [rerepairing, setRerepairing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  // 本地乐观态:点重跑后立刻把对应子阶段标成进行中,直到下一次 task 轮询覆盖。
+  // 本组件自拉的 fresh task(权威源)。父组件传入的 status 仅作首屏种子——它来自
+  // TestInputPage 的轮询缓存,而重跑攻击入口只改 attack_status 不动顶层 status,
+  // 那个轮询门槛(IN_PROGRESS_STATUSES.has(status))不会触发,父缓存会一直陈旧。
+  // 因此每次打开 panel 都自己 getTaskStatus 取真实状态,关闭重开也不丢。
+  const [task, setTask] = useState<CodemapTaskStatus | null>(status);
+  // 点重跑后的乐观态(后台线程异步,manager 可能还没翻 running)。一旦自拉的 task
+  // 确认进入对应进行中态就清掉,改以真实 task 为准。
   const [localStatus, setLocalStatus] = useState<CodemapTaskStatus | null>(null);
 
-  const effective = localStatus ?? status;
+  const effective = localStatus ?? task ?? status;
+
+  const loadTask = useCallback(async () => {
+    try {
+      const t = await api.codemapManager.getTaskStatus(buildCodemapTaskId(uploadId));
+      setTask(t);
+      // 后台已进入对应进行中态(攻击面 running / repair building_repair)→ 乐观态
+      // 使命完成,撤掉,后续完全以真实 task 为准(含 running→ok/failed 的终态)。
+      if (t.status === 'building_repair' || t.attack?.status === 'running') {
+        setLocalStatus(null);
+      }
+      return t;
+    } catch (error) {
+      if ((error as any)?.status === 404) {
+        setTask(null);
+      }
+      return null;
+    }
+  }, [uploadId]);
 
   const loadAudit = useCallback(async () => {
     try {
@@ -71,28 +121,25 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
     }
   }, [uploadId]);
 
-  // 打开时拉一次;task 处于进行中状态则跟随 3s 轮询刷新规模与分桶。
+  // 打开时各拉一次真实状态(不靠父组件的陈旧 prop)。
   useEffect(() => {
+    void loadTask();
     void loadAudit();
-  }, [loadAudit]);
+  }, [loadTask, loadAudit]);
 
-  const inProgress = effective ? IN_PROGRESS_STATUSES.has(effective.status) : false;
+  // 进行中判定:顶层 status 在进行态,或攻击面子阶段 running(reidentify 不移动
+  // 顶层 status,必须单独把它纳入,否则重跑攻击面期间不会轮询)。
+  const inProgress = !!effective && (
+    IN_PROGRESS_STATUSES.has(effective.status) || effective.attack?.status === 'running'
+  );
   useEffect(() => {
     if (!inProgress) return undefined;
     const timer = window.setInterval(() => {
+      void loadTask();
       void loadAudit();
     }, 3000);
     return () => window.clearInterval(timer);
-  }, [inProgress, loadAudit]);
-
-  // status prop 变化(外层轮询拿到新 task)时,清掉乐观态以外层为准。
-  const prevStatusRef = useRef(status);
-  useEffect(() => {
-    if (prevStatusRef.current !== status) {
-      prevStatusRef.current = status;
-      setLocalStatus(null);
-    }
-  }, [status]);
+  }, [inProgress, loadTask, loadAudit]);
 
   const handleReidentify = async () => {
     if (reidentifying) return;
@@ -100,12 +147,13 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
     setActionError(null);
     try {
       await api.codemapManager.reidentify(uploadId);
-      // 乐观:攻击面阶段标 running,跟随轮询。
+      // 乐观:攻击面阶段标 running,跟随轮询;随后 loadTask 拿到真实 running 即接管。
       setLocalStatus((cur) => {
-        const base = cur ?? status;
+        const base = cur ?? task ?? status;
         if (!base) return base ?? null;
         return { ...base, attack: { status: 'running', entries: base.attack?.entries ?? 0 } };
       });
+      void loadTask();
     } catch (error) {
       setActionError((error as any)?.message || '触发重跑攻击入口分析失败');
     } finally {
@@ -119,12 +167,13 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
     setActionError(null);
     try {
       await api.codemapManager.rerepair(uploadId);
-      // 乐观:整体状态标 building_repair,跟随轮询。
+      // 乐观:整体状态标 building_repair,跟随轮询;随后 loadTask 接管。
       setLocalStatus((cur) => {
-        const base = cur ?? status;
+        const base = cur ?? task ?? status;
         if (!base) return base ?? null;
         return { ...base, status: 'building_repair' };
       });
+      void loadTask();
     } catch (error) {
       setActionError((error as any)?.message || '触发重跑 repair 失败');
     } finally {
@@ -139,8 +188,26 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
           <Network size={16} /> 知识图谱
         </div>
         <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-elevated px-4 py-6 text-center text-sm text-theme-text-muted">
-          知识图谱任务尚未派发。
+          {dispatchError
+            ? '知识图谱构建派发失败。'
+            : usable === false
+              ? '上传尚未完成(未达可分析状态),完成后将自动派发知识图谱构建。'
+              : '知识图谱任务尚未派发(稍候将自动触发)。'}
         </div>
+        {dispatchError && onRetryDispatch ? (
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-theme-border pt-4">
+            <button
+              type="button"
+              onClick={() => onRetryDispatch()}
+              disabled={retrying}
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {retrying ? <Loader2 size={14} className="animate-spin" /> : <RotateCw size={14} />}
+              {retrying ? '重试中…' : '重试派发'}
+            </button>
+            <span className="text-xs font-semibold text-rose-400" title={dispatchError}>{dispatchError}</span>
+          </div>
+        ) : null}
       </section>
     );
   }
@@ -174,6 +241,11 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
 
   // 重跑按钮在任一构建阶段进行中时禁用(后端也会 409 兜底)。
   const busy = IN_PROGRESS_STATUSES.has(s);
+  // 恢复动作展示时机(从行内 chip 搬来):静态失败→重新构建;completed 但 0 函数
+  // (silent-success 失败模式)→更正代码目录。
+  const showRebuild = s === 'failed' && !hasRepairProgress && !!onRebuild;
+  const showCorrect = s === 'completed' && !hasRepairProgress && !!onCorrect;
+  const hasDbName = !!effective.db_name;
 
   return (
     <section className="rounded-xl border border-theme-border bg-theme-surface p-5">
@@ -276,8 +348,20 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
         </div>
       </div>
 
-      {/* 重跑按钮:两个独立动作 */}
+      {/* 操作区:打开知识图谱(主) + 两个独立重跑 + 恢复动作(重新构建/更正) */}
       <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-theme-border pt-4">
+        {onOpenServe ? (
+          <button
+            type="button"
+            onClick={() => onOpenServe()}
+            disabled={!hasDbName || openServeLoading}
+            title={!hasDbName ? '任务排队中,db_name 未分配' : '在新标签页打开 codemap_lite 知识图谱'}
+            className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:border-theme-border disabled:bg-theme-elevated disabled:text-theme-text-muted"
+          >
+            {openServeLoading ? <Loader2 size={14} className="animate-spin" /> : <ExternalLink size={14} />}
+            {openServeLoading ? '启动中…' : '打开知识图谱'}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={() => { void handleReidentify(); }}
@@ -298,10 +382,34 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
           {rerepairing ? <Loader2 size={14} className="animate-spin" /> : <Wrench size={14} />}
           {rerepairing ? '触发中…' : '重跑 repair'}
         </button>
+        {showRebuild ? (
+          <button
+            type="button"
+            onClick={() => onRebuild?.()}
+            disabled={rebuilding}
+            title="静态分析失败,删除旧任务后用当前代码目录重新构建"
+            className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {rebuilding ? <Loader2 size={14} className="animate-spin" /> : <RotateCw size={14} />}
+            {rebuilding ? '重派中…' : '重新构建'}
+          </button>
+        ) : null}
+        {showCorrect ? (
+          <button
+            type="button"
+            onClick={() => onCorrect?.()}
+            disabled={correcting}
+            title="图谱为空(0 函数),清掉旧空图后用正确代码目录重建"
+            className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-400 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {correcting ? <Loader2 size={14} className="animate-spin" /> : <RotateCw size={14} />}
+            {correcting ? '更正中…' : '更正代码目录'}
+          </button>
+        ) : null}
         <button
           type="button"
-          onClick={() => { void loadAudit(); }}
-          title="刷新入口识别信息"
+          onClick={() => { void loadAudit(); void loadTask(); }}
+          title="刷新知识图谱状态与入口识别信息"
           className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary transition hover:bg-theme-elevated"
         >
           <RefreshCw size={14} />
@@ -309,6 +417,9 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
         </button>
         {actionError ? (
           <span className="text-xs font-semibold text-rose-400">{actionError}</span>
+        ) : null}
+        {openServeError ? (
+          <span className="text-xs font-semibold text-rose-400">{openServeError}</span>
         ) : null}
         {auditError ? (
           <span className="text-xs font-semibold text-amber-400">{auditError}</span>

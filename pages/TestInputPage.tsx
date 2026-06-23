@@ -8,7 +8,6 @@ import {
   FileText,
   HardDrive,
   Loader2,
-  Network,
   Package,
   Plus,
   RefreshCw,
@@ -22,7 +21,6 @@ import { api } from '../clients/api';
 import { PageHeader } from '../design-system';
 import {
   IN_PROGRESS_STATUSES,
-  STATUS_LABELS_SHORT,
   USABLE_UPLOAD_STATUSES,
   buildCodemapTaskId,
   buildManagerTargetDir,
@@ -34,6 +32,7 @@ import { formatUploadBytes, getLatestBatchSummary, getUploadModeLabel, getUpload
 import { CreateTaskDialog } from './task/CreateTaskDialog';
 import { TestInputUploader, TestInputUploaderHandle } from '../components/TestInputUploader';
 import { KnowledgeGraphPanel } from '../components/KnowledgeGraphPanel';
+import { CodemapMetroProgress } from '../components/CodemapMetroProgress';
 
 type InputType = 'document' | 'code' | 'software' | 'other';
 
@@ -89,171 +88,6 @@ const formatSpeed = (value?: number | null) => {
 const normalizeType = (value: string): InputType => {
   if (value === 'document' || value === 'code' || value === 'software' || value === 'other') return value;
   return 'other';
-};
-
-// codemap_lite 进度 chip。仅 input_type === 'code' 的行会调用本组件。
-// 文案分档对应 manager FSM:queued/accepted/building_analyze 灰色,building_repair
-// 可带百分比(progress 仅在 repair 阶段非 null,见 manager/app.py:189-193),
-// completed 绿色,failed 红色 + hover tooltip(title 属性)。
-const truncateError = (msg: string | null | undefined): string => {
-  if (!msg) return '构建失败';
-  return msg.length > 300 ? `${msg.slice(0, 300)}…` : msg;
-};
-
-const CodemapProgressChip: React.FC<{
-  status: CodemapTaskStatus | null;
-  onRebuild?: () => void;
-  rebuilding?: boolean;
-  onCorrect?: () => void;
-  correcting?: boolean;
-  usable?: boolean;
-  dispatchError?: string;
-  onRetryDispatch?: () => void;
-  retrying?: boolean;
-}> = ({ status, onRebuild, rebuilding, onCorrect, correcting, usable, dispatchError, onRetryDispatch, retrying }) => {
-  // status===null:任务尚未派发。三种子态:
-  //  ① triggerBuild 失败过(dispatchError)→ 红色「派发失败 · 重试」+ 手动重试按钮。
-  //  ② 上传还没到 USABLE 终态(!usable)→ 灰色「等上传完成」,本就不该派,不给重试。
-  //  ③ 已 USABLE、无错误 → 灰色「待派发」(瞬时态,派发 effect 马上会触发)。
-  if (!status) {
-    const pillBase = 'inline-flex items-center rounded-xl border px-3 py-2 text-xs font-medium';
-    if (dispatchError) {
-      return (
-        <span className="inline-flex items-center gap-2">
-          <span title={dispatchError} className={`${pillBase} border-rose-500/20 bg-rose-500/15 text-rose-400`}>
-            知识图谱 · 派发失败
-          </span>
-          {onRetryDispatch ? (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onRetryDispatch(); }}
-              disabled={retrying}
-              className="rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {retrying ? '重试中…' : '重试'}
-            </button>
-          ) : null}
-        </span>
-      );
-    }
-    const label = usable === false ? '知识图谱 · 等上传完成' : '知识图谱 · 待派发';
-    return (
-      <span title={usable === false ? '上传尚未完成(未达可分析状态),完成后将自动派发' : undefined}
-        className={`${pillBase} border-theme-border bg-theme-elevated text-theme-text-muted`}>
-        {label}
-      </span>
-    );
-  }
-  const s = status.status;
-  const progress = status.progress;
-  // 与同行「详情/打开目录」按钮统一外形:rounded-xl + px-3 py-2 + text-xs +
-  // font-semibold;配色走主题暗色语义色(StatusBadge 同款 -500/15 底 / -500/20 边)。
-  const pillBase = 'inline-flex items-center rounded-xl border px-3 py-2 text-xs font-medium';
-  const toneSuccess = 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400';
-  const toneProgress = 'border-sky-500/20 bg-sky-500/15 text-sky-400';
-  const toneWarn = 'border-amber-500/20 bg-amber-500/15 text-amber-400';
-  const toneFail = 'border-rose-500/20 bg-rose-500/15 text-rose-400';
-  const toneNeutral = 'border-theme-border bg-theme-elevated text-theme-text-muted';
-  // 进入过 repair 阶段就有 progress.sources(building_repair/completed/failed 都算)。
-  // 显示"静态分析成功 · 调用链修复 X/Y"——静态分析必然已经成功了才会到这里。
-  const hasRepairProgress = progress && progress.total > 0;
-  // 终态失败可重派的提示按钮。仅在 status 终态 failed 时显示;部分成功(repair
-  // 失败但有进度)和构建中不显示——前者图已经有数据,后者还没结果。
-  const showRebuild = s === 'failed' && !hasRepairProgress && !!onRebuild;
-  const rebuildButton = showRebuild ? (
-    <button
-      type="button"
-      onClick={(e) => { e.stopPropagation(); onRebuild?.(); }}
-      disabled={rebuilding}
-      className="rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      {rebuilding ? '重派中…' : '重新构建'}
-    </button>
-  ) : null;
-  // 「图谱为空」更正按钮:status=completed 但 progress.total===0(silent-success
-  // 失败模式 — analyze 扫了空目录/错路径,exit 0 但 0 函数,任务标 completed。
-  // failed 走 rebuildButton,这里只覆盖 completed+空进度。
-  const showCorrect = s === 'completed' && !hasRepairProgress && !!onCorrect;
-  const correctButton = showCorrect ? (
-    <button
-      type="button"
-      onClick={(e) => { e.stopPropagation(); onCorrect?.(); }}
-      disabled={correcting}
-      className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-400 hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      {correcting ? '更正中…' : '更正代码目录'}
-    </button>
-  ) : null;
-  // 攻击入口识别(基础版)非阻塞:即便失败主构建仍继续 repair。失败时给一个
-  // 小字附注,在后续 building_repair/completed 的 chip 旁提示「入口分析失败」,
-  // 不影响主流程展示。attack?.status==='failed' 才出现。
-  const attackFailedNote = status.attack?.status === 'failed' ? (
-    <span className="text-[11px] font-semibold text-amber-400/80" title="攻击入口识别阶段失败,不影响调用链修复">
-      入口分析失败
-    </span>
-  ) : null;
-  if (hasRepairProgress) {
-    const total = progress.total;
-    const completed = progress.completed;
-    if (s === 'completed') {
-      return (
-        <span className="inline-flex items-center gap-2">
-          <span className={`${pillBase} ${toneSuccess}`}>
-            静态分析成功 · 调用链修复 {completed}/{total}
-          </span>
-          {attackFailedNote}
-        </span>
-      );
-    }
-    // building_repair / failed(部分成功)都用"修复中"语义,色调按状态区分。
-    const allDone = completed === total;
-    const tone = s === 'failed' ? toneWarn : toneProgress;
-    const label = s === 'building_repair' ? '调用链修复中' : (allDone ? '调用链修复完成' : '调用链修复');
-    return (
-      <span className="inline-flex items-center gap-2">
-        <span
-          title={s === 'failed' ? `${truncateError(status.error)} (${completed}/${total} 源点已修复)` : undefined}
-          className={`${pillBase} ${tone}`}
-        >
-          静态分析成功 · {label} {completed}/{total}
-        </span>
-        {attackFailedNote}
-      </span>
-    );
-  }
-  // 攻击入口识别阶段(在 analyze 与 repair 之间)。实时展示已识别入口数。
-  if (s === 'building_attack_surface') {
-    const entries = status.attack?.entries ?? 0;
-    return (
-      <span className={`${pillBase} ${toneProgress}`}>
-        攻击入口识别中{entries > 0 ? ` · 已识别 ${entries} 入口` : ''}
-      </span>
-    );
-  }
-  // 没有 repair progress 才回到原始状态文案。
-  if (s === 'failed') {
-    return (
-      <span className="inline-flex items-center gap-2">
-        <span title={truncateError(status.error)} className={`${pillBase} ${toneFail}`}>
-          静态分析失败
-        </span>
-        {rebuildButton}
-      </span>
-    );
-  }
-  if (s === 'completed') {
-    // completed 但无 repair progress = silent-success 0 函数失败模式
-    // (target_dir 错位、analyze 扫空目录但 exit 0)。语义就是异常,展示
-    // 红色,后台自动触发一次更正(封顶 1 次)兜底,用户无需手动点。
-    return (
-      <span className="inline-flex items-center gap-2">
-        <span className={`${pillBase} ${toneFail}`}>异常 · 0 函数</span>
-        {correctButton}
-      </span>
-    );
-  }
-  const label = STATUS_LABELS_SHORT[s] || s;
-  return <span className={`${pillBase} ${toneNeutral}`}>{label}</span>;
 };
 
 const emptyStats = (projectId: string, inputType: InputType): ProjectInputUploadStats => ({
@@ -1013,16 +847,8 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                           <td className="px-4 py-4">
                             <div className="flex items-center justify-end gap-2" onClick={(event) => event.stopPropagation()}>
                               {inputType === 'code' ? (
-                                <CodemapProgressChip
+                                <CodemapMetroProgress
                                   status={codemapStatusByUpload[record.upload_id] ?? null}
-                                  onRebuild={() => { void handleCodemapRebuild(record.upload_id); }}
-                                  rebuilding={codemapRebuildingIds.includes(record.upload_id)}
-                                  onCorrect={() => { void handleCodemapCorrect(record.upload_id); }}
-                                  correcting={codemapCorrectingIds.includes(record.upload_id)}
-                                  usable={USABLE_UPLOAD_STATUSES.has(record.status)}
-                                  dispatchError={codemapDispatchErrorByUpload[record.upload_id]}
-                                  onRetryDispatch={() => { void handleCodemapRetryDispatch(record.upload_id); }}
-                                  retrying={codemapRebuildingIds.includes(record.upload_id)}
                                 />
                               ) : null}
                               <button onClick={() => { void openUploadDetailDialog(record); }} className="rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated">
@@ -1174,46 +1000,8 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                     {latestBatch ? <span className="rounded-full bg-theme-elevated px-3 py-1 font-semibold text-theme-text-secondary">最新批次：{latestBatch.status}</span> : null}
                     <span className="rounded-full bg-theme-elevated px-3 py-1 font-semibold text-theme-text-secondary">类型：{INPUT_TYPE_META[normalizeType(record.input_type)].label}</span>
                   </div>
-                  {/* 仅 code 类型记录:点击启动 codemap_lite serve 并跳转。该上传
-                      记录有自己的图;db_name 由 manager 在 task accepted 时生成;
-                      queued 阶段还没,按钮置灰。 */}
-                  {normalizeType(record.input_type) === 'code' ? (() => {
-                    const uploadStatus = codemapStatusByUpload[uploadId] ?? null;
-                    return (
-                    <div className="mt-3 flex items-center gap-3">
-                      <button
-                        type="button"
-                        disabled={!uploadStatus?.db_name || openServeLoading}
-                        onClick={() => { void handleOpenServe(uploadId); }}
-                        title={!uploadStatus
-                          ? '知识图谱任务尚未派发'
-                          : !uploadStatus.db_name
-                            ? '任务排队中,db_name 未分配'
-                            : '在新标签页打开 codemap_lite 知识图谱'}
-                        className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:border-theme-border disabled:bg-theme-elevated disabled:text-theme-text-muted"
-                      >
-                        {openServeLoading
-                          ? <Loader2 size={14} className="animate-spin" />
-                          : <Network size={14} />}
-                        {openServeLoading ? '启动中…' : '打开知识图谱'}
-                      </button>
-                      {/* 任务尚未派发时,灰按钮旁复用同一 chip 区分「等上传完成 /
-                          待派发 / 派发失败·重试」,与行内 chip 一致。 */}
-                      {!uploadStatus ? (
-                        <CodemapProgressChip
-                          status={null}
-                          usable={USABLE_UPLOAD_STATUSES.has(record.status)}
-                          dispatchError={codemapDispatchErrorByUpload[uploadId]}
-                          onRetryDispatch={() => { void handleCodemapRetryDispatch(uploadId); }}
-                          retrying={codemapRebuildingIds.includes(uploadId)}
-                        />
-                      ) : null}
-                      {openServeError ? (
-                        <span className="text-xs font-semibold text-rose-600">{openServeError}</span>
-                      ) : null}
-                    </div>
-                    );
-                  })() : null}
+                  {/* 「打开知识图谱」及重建/更正/重试派发等操作已下沉到下方
+                      KnowledgeGraphPanel 框内,详情头部不再重复展示。 */}
                 </div>
                 <button
                   type="button"
@@ -1270,6 +1058,17 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                     <KnowledgeGraphPanel
                       uploadId={uploadId}
                       status={codemapStatusByUpload[uploadId] ?? null}
+                      usable={USABLE_UPLOAD_STATUSES.has(record.status)}
+                      onOpenServe={() => { void handleOpenServe(uploadId); }}
+                      openServeLoading={openServeLoading}
+                      openServeError={openServeError}
+                      onRebuild={() => { void handleCodemapRebuild(uploadId); }}
+                      rebuilding={codemapRebuildingIds.includes(uploadId)}
+                      onCorrect={() => { void handleCodemapCorrect(uploadId); }}
+                      correcting={codemapCorrectingIds.includes(uploadId)}
+                      onRetryDispatch={() => { void handleCodemapRetryDispatch(uploadId); }}
+                      retrying={codemapRebuildingIds.includes(uploadId)}
+                      dispatchError={codemapDispatchErrorByUpload[uploadId]}
                     />
                   ) : null}
 
