@@ -1658,7 +1658,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   };
 
   const handleCreateTaskDownloadJob = async () => {
-    if (!projectId || taskFilter.length === 0) return;
+    if (!projectId) return;
     setCreatingDownload(true);
     setError(null);
     setSuccessMessage(null);
@@ -1683,7 +1683,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         return effective === finalResultFilter;
       };
       const ids: string[] = [];
-      for (const taskId of taskFilter) {
+      const taskIds = taskFilter.length > 0 ? taskFilter : [undefined];
+      for (const taskId of taskIds) {
         const first = await vulnApi.vuln.listCases({ ...baseParams, source_task_id: taskId, page: 1, page_size: 500 });
         ids.push(...(first.items || []).filter(matchesFinalResult).map((item: any) => item.id).filter(Boolean));
         const pages = Math.ceil(Number(first.total || 0) / 500);
@@ -1694,13 +1695,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       }
       const reportIds = Array.from(new Set(ids));
       if (reportIds.length === 0) {
-        setError('当前任务筛选下没有可导出的漏洞。');
+        setError('当前筛选下没有可导出的漏洞。');
         return;
       }
       await vulnApi.vuln.createDownloadJob({ project_id: projectId, report_ids: reportIds });
       setRootTab('download-center');
       await loadDownloadCenter();
-      setSuccessMessage(`已创建 ${reportIds.length} 条漏洞的任务批量导出，请到下载中心查看。`);
+      setSuccessMessage(`已创建 ${reportIds.length} 条漏洞的导出任务，请到下载中心查看。`);
     } catch (err: any) {
       setError(err?.message || '创建任务批量导出失败');
     } finally {
@@ -2596,12 +2597,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 <button
                   type="button"
                   onClick={handleCreateTaskDownloadJob}
-                  disabled={creatingDownload || taskFilter.length === 0}
+                  disabled={creatingDownload}
                   className="btn btn-secondary btn-sm"
-                  title={taskFilter.length === 0 ? '请先在全部任务下拉菜单中选择一个或多个任务' : undefined}
+                  title="按当前筛选条件导出全部漏洞"
                 >
                   <Download size={12} />
-                  {creatingDownload ? '创建中...' : '导出所选任务'}
+                  {creatingDownload ? '创建中...' : '导出数据'}
                 </button>
               </div>
             </div>
