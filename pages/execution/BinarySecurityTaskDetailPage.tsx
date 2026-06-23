@@ -673,9 +673,35 @@ const normalizeDownstreamDetailError = (error: any) => {
   return error?.message || '加载下游任务详情失败';
 };
 
-const fmt = (value?: string | null) => (value ? new Date(value).toLocaleString() : '-');
+const BINARY_SECURITY_TIMEZONE = 'Asia/Shanghai';
 
-const fmtTime = (value?: string | null) => (value ? new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-');
+const normalizeBinarySecurityTime = (value?: string | null) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/[zZ]|[+-]\d{2}:\d{2}$/.test(raw)) return raw;
+  return `${raw}+08:00`;
+};
+
+const formatBinarySecurityDate = (value?: string | null, mode: 'datetime' | 'time' = 'datetime') => {
+  const normalized = normalizeBinarySecurityTime(value);
+  if (!normalized) return '-';
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) return value || '-';
+  return new Intl.DateTimeFormat('zh-CN', {
+    timeZone: BINARY_SECURITY_TIMEZONE,
+    year: mode === 'datetime' ? 'numeric' : undefined,
+    month: mode === 'datetime' ? '2-digit' : undefined,
+    day: mode === 'datetime' ? '2-digit' : undefined,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(parsed);
+};
+
+const fmt = (value?: string | null) => formatBinarySecurityDate(value, 'datetime');
+
+const fmtTime = (value?: string | null) => formatBinarySecurityDate(value, 'time');
 const safeInt = (value: unknown, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? Math.trunc(parsed) : fallback;
