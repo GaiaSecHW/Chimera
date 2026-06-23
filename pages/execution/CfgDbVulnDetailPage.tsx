@@ -323,7 +323,7 @@ export const CfgDbVulnDetailPage: React.FC<{ projectId: string; taskId: string; 
               ))}
             </div>
             {s2View === 'graph' ? (
-              <div className="border rounded-lg overflow-hidden bg-slate-50" style={{ height: Math.min(620, Math.max(260, childRows.length * 70 + 40)) }}>
+              <div className="border rounded-lg overflow-hidden bg-theme-elevated" style={{ height: Math.min(620, Math.max(260, childRows.length * 70 + 40)) }}>
                 <ReactFlow
                   nodes={dispatchGraph.nodes}
                   edges={dispatchGraph.edges}

@@ -727,7 +727,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                       <section
                         key={worker.worker_id}
                         className={`overflow-hidden rounded-xl border ${
-                          worker.healthy ? 'border-theme-border bg-theme-surface' : 'border-rose-500/20 bg-rose-50/70'
+                          worker.healthy ? 'border-theme-border bg-theme-surface' : 'border-rose-500/20 bg-rose-500/10'
                         }`}
                       >
                         <button

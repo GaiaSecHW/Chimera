@@ -135,7 +135,7 @@ function SectionCard({ title, icon, action, children }: { title: string; icon?: 
 // ── Overview: milestone timeline ─────────────────────────────────────────────
 function MilestoneTimeline({ session }: { session?: CfgAgentSession | null }) {
   const steps = session?.steps || [];
-  if (!steps.length) return <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">暂无审计里程碑(任务启动后生成)</div>;
+  if (!steps.length) return <div className="rounded-xl border border-dashed border-slate-300 bg-theme-elevated px-4 py-10 text-center text-sm text-slate-400">暂无审计里程碑(任务启动后生成)</div>;
   return (
     <ol className="relative space-y-0">
       {steps.map((s, i) => {
@@ -220,7 +220,7 @@ function mergeWalk(session?: CfgCparserSession | null, nameIdx?: Map<string, str
 }
 
 function FnBadge({ audit }: { audit?: CfgAuditResult }) {
-  if (!audit) return <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-500">未判定</span>;
+  if (!audit) return <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-theme-elevated px-2 py-0.5 text-[10px] font-bold text-slate-500">未判定</span>;
   if (isVulnResult(audit.result)) return <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700"><Bug size={10} />{audit.result}</span>;
   return <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700"><ShieldCheck size={10} />{audit.result}</span>;
 }
@@ -398,7 +398,7 @@ function ToolCallRow({ q, nameIdx, index }: { q: CfgCodemapQuery; nameIdx: Map<s
         {hasDetail ? <span className="shrink-0 text-slate-400">{open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}</span> : null}
       </button>
       {open && hasDetail ? (
-        <div className="border-t border-slate-100 bg-slate-50/60 px-3 py-2">
+        <div className="border-t border-slate-100 bg-theme-elevated px-3 py-2">
           <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">{kindLabel}</div>
           <div className="space-y-1">
             {items.map((c: any, i: number) => (
@@ -663,7 +663,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
       </div>
 
       {/* ── Tabs ── */}
-      <div className="flex flex-wrap gap-1.5 rounded-2xl border border-slate-200 bg-slate-50 p-1">
+      <div className="flex flex-wrap gap-1.5 rounded-2xl border border-slate-200 bg-theme-elevated p-1">
         {TABS.map(([id, label, icon]) => (
           <button key={id} onClick={() => setActiveTab(id)} className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition ${activeTab === id ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>{icon}{label}</button>
         ))}
@@ -722,7 +722,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
       ) : activeTab === 'walk' ? (
         <section className="space-y-4">
           {walk.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center text-sm text-slate-400">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div>
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-theme-elevated p-12 text-center text-sm text-slate-400">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div>
           ) : (
             <>
               {/* Collapsible call graph */}
@@ -736,7 +736,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                     <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-rose-400 bg-rose-50" />漏洞</span>
                   </span>
                 </summary>
-                <div className="h-[380px] border-t border-slate-100 bg-slate-50">
+                <div className="h-[380px] border-t border-slate-100 bg-theme-elevated">
                   <ReactFlow
                     nodes={graph.nodes}
                     edges={graph.flowEdges}
@@ -779,7 +779,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                   </ol>
                 </aside>
                 <div className="space-y-4">
-                  {!selectedFn ? <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-16 text-center text-sm text-slate-400">点击左侧函数或图节点,查看污点传播、模型推理与源码</div> : (
+                  {!selectedFn ? <div className="rounded-2xl border border-dashed border-slate-300 bg-theme-elevated px-4 py-16 text-center text-sm text-slate-400">点击左侧函数或图节点,查看污点传播、模型推理与源码</div> : (
                     <>
                       <SectionCard title={`#${selectedFn.order + 1} · ${selectedFn.name}`} icon={<Crosshair size={16} />} action={<FnBadge audit={selectedFn.audit} />}>
                         <div className="grid gap-2.5 sm:grid-cols-2">
@@ -833,7 +833,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
         </section>
       ) : activeTab === 'result' ? (
         <section className="space-y-4">
-          {resultLoading ? <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">加载结果中...</div> : !result ? <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm text-slate-400">尚无结果。</div> : (
+          {resultLoading ? <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">加载结果中...</div> : !result ? <div className="rounded-2xl border border-dashed border-slate-300 bg-theme-elevated p-10 text-center text-sm text-slate-400">尚无结果。</div> : (
             <>
               <div className="flex flex-wrap items-center gap-2">
                 {SEVERITY_ORDER.map((sev) => {
@@ -859,7 +859,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                   </section>
                 )
               ) : resultView === 'report' ? (
-                result.result_markdown ? <article className="prose prose-slate max-w-none rounded-2xl border border-slate-200 bg-white p-6"><ReactMarkdown remarkPlugins={[remarkGfm]}>{result.result_markdown}</ReactMarkdown></article> : <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm text-slate-400">无报告内容</div>
+                result.result_markdown ? <article className="prose prose-slate max-w-none rounded-2xl border border-slate-200 bg-white p-6"><ReactMarkdown remarkPlugins={[remarkGfm]}>{result.result_markdown}</ReactMarkdown></article> : <div className="rounded-2xl border border-dashed border-slate-300 bg-theme-elevated p-10 text-center text-sm text-slate-400">无报告内容</div>
               ) : (
                 <pre className="overflow-auto rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-800">{JSON.stringify(result.result_json || {}, null, 2)}</pre>
               )}
