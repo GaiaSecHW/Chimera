@@ -164,12 +164,20 @@ export const TaskReportViewPage: React.FC<Props> = ({ projectId, taskId, onBack 
       const text = await blob.text();
       setMarkdown(text);
     } catch (err: any) {
-      const msg = err?.message || '加载报告失败';
-      if (msg.includes('404') || msg.includes('not found') || msg.includes('Not Found')) {
+      const status = err?.status as number | undefined;
+      const code = err?.code as string | undefined;
+      // 目录/文件不存在(404 NOT_FOUND)、路径非目录/目录不支持预览(400 VALIDATION_ERROR)
+      // 均视为报告尚未生成，展示"暂无报告"而非错误信息
+      if (
+        status === 404 ||
+        status === 400 ||
+        code === 'NOT_FOUND' ||
+        code === 'VALIDATION_ERROR'
+      ) {
         setMarkdown('');
         setError('');
       } else {
-        setError(msg);
+        setError(err?.message || '加载报告失败');
       }
     } finally {
       setLoading(false);
