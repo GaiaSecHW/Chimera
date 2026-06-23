@@ -366,7 +366,6 @@ const STAGE_TEXT: Record<string, string> = {
   validation: '研判中',
   finished: '已结束',
 };
-const STAGE_LABELS = STAGE_TEXT;
 
 const STATUS_TEXT: Record<string, string> = {
   pending: '已接收',
@@ -678,9 +677,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [taskFilter, setTaskFilter] = useState<string[]>([]);
-  const [taskOptions, setTaskOptions] = useState<any[]>([]);
-  const [taskFilterOpen, setTaskFilterOpen] = useState(false);
   const [showSdkDialog, setShowSdkDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [catalog, setCatalog] = useState<any | null>(null);
@@ -3064,6 +3060,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       ))}
                     </select>
                   </label>
+                </div>
                 </div>
               </div>
             </div>
