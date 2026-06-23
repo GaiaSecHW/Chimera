@@ -189,7 +189,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   /* --- derived --- */
   const isKgSourceTask = taskType === 'kg_source_vuln_scan_e2e';
   const selectionMode = useMemo(() => INPUT_MODES[taskType] || 'file', [taskType]);
-  const isKgSourceTask = taskType === 'kg_source_vuln_scan_e2e';
   const selectedAgentApp = useMemo(() => agentApps.find((item) => item.id === selectedAgentAppId) || null, [agentApps, selectedAgentAppId]);
   const selectableInputs = useMemo(
     () => (isKgSourceTask ? inputs.filter((item) => String(item.input_type || '').trim().toLowerCase() === 'code') : inputs),
