@@ -6347,11 +6347,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               </select>
               <select value={syncEventOperationFilter} onChange={(event) => setSyncEventOperationFilter(event.target.value)} className="form-select">
                 <option value="all">全部操作</option>
-                {['downstream_sync', 'downstream_poll', 'readless_reconcile', 'archive_apply', 'reducer_apply', 'binding_recovery', 'transport_error', 'rate_limited'].map((value) => <option key={value} value={value}>{value}</option>)}
+                {['downstream_create', 'downstream_sync', 'downstream_poll', 'readless_reconcile', 'archive_apply', 'reducer_apply', 'binding_recovery', 'retry_control', 'transport_error', 'rate_limited'].map((value) => <option key={value} value={value}>{value}</option>)}
               </select>
               <select value={syncEventTypeFilter} onChange={(event) => setSyncEventTypeFilter(event.target.value)} className="form-select">
                 <option value="all">全部事件</option>
-                {['requested', 'observed', 'applied', 'skipped', 'binding_mismatch', 'ignored', 'transport_error', 'rate_limited', 'retry_scheduled', 'failed'].map((value) => <option key={value} value={value}>{value}</option>)}
+                {['requested', 'observed', 'applied', 'skipped', 'binding_mismatch', 'binding_recovered', 'ignored', 'adopted', 'recreated', 'transport_error', 'rate_limited', 'retry_scheduled', 'failed'].map((value) => <option key={value} value={value}>{value}</option>)}
               </select>
               <input value={syncEventSearch} onChange={(event) => setSyncEventSearch(event.target.value)} placeholder="搜索 item/downstream task" className="form-input" />
               <select value={syncEventStatusFilter} onChange={(event) => setSyncEventStatusFilter(event.target.value)} className="form-select">
@@ -6378,7 +6378,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               {syncEventsLoading ? (
                 <div className="rounded-2xl border border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">正在加载同步记录...</div>
               ) : syncEventItems.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">暂无同步记录</div>
+                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">当前任务尚未产生任何子任务同步审计记录</div>
               ) : (
                 <div className="overflow-hidden rounded-2xl border border-theme-border">
                   <div className="overflow-x-auto">
