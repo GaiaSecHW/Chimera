@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Lock, LogOut, RotateCw } from 'lucide-react';
+import { ChevronDown, Lock, LogOut, Moon, RotateCw, Sun } from 'lucide-react';
 import {
   TopLevelNavKey,
   TopLevelNavItem,
@@ -68,6 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
   handleLogout,
 }) => {
   const userAccess = getUserAccess(user);
+  const { theme, setTheme } = useTheme();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const projectDropdownRef = useRef<HTMLDivElement>(null);
@@ -219,6 +220,14 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button onClick={() => fetchProjects(true)} className="p-3 text-theme-text-faint hover:text-brand-primary transition-all shrink-0">
             <RotateCw size={20} className={isRefreshing ? 'animate-spin' : ''} />
+          </button>
+
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="p-3 text-theme-text-faint hover:text-brand-primary transition-all shrink-0"
+            aria-label={theme === 'dark' ? '切换浅色主题' : '切换深色主题'}
+          >
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </button>
 
           <div className="relative shrink-0" ref={userMenuRef}>
