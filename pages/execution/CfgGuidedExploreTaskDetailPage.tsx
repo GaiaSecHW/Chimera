@@ -330,32 +330,72 @@ function buildCallEdges(walk: WalkFn[], walkFns: Record<string, CfgWalkFunction>
     seen.add(k); edges.push({ from, to, kind });
   };
   let realCount = 0;
-  // 1) real callee edges (manager-resolved, complete & correct)
+  // real callee edges only (manager-resolved). Disconnected trees are conveyed
+  // by vertical band stacking in layoutGraph — NO synthetic connectors, so no
+  // line crosses an unrelated subtree.
   for (const w of walk) {
     const callees = walkFns[w.fid]?.callees || [];
     for (const c of callees) {
       if (c?.id && known.has(c.id)) { push(w.fid, c.id, 'call'); realCount++; }
     }
   }
-  // 2) connect any node with no real call edge to the previous reviewed fn, so
-  //    isolated nodes don't float. Marked 'flow' (dashed) — clearly not a call.
-  const connected = new Set<string>();
-  edges.forEach((e) => { connected.add(e.from); connected.add(e.to); });
-  for (let i = 1; i < walk.length; i++) {
-    if (!connected.has(walk[i].fid)) push(walk[i - 1].fid, walk[i].fid, 'flow');
-  }
   return { edges, realCount };
 }
 
 function layoutGraph(walk: WalkFn[], edges: CallEdge[], selectedFid: string | null): { nodes: Node<FnNodeData>[]; flowEdges: Edge[] } {
-  // Strict single vertical column, ordered top→bottom by review order. No
-  // horizontal scatter — every node shares x so the sequence reads cleanly.
-  const ROW_H = 76;
-  const nodes: Node<FnNodeData>[] = walk.map((w) => ({
-    id: w.fid, type: 'fn',
-    position: { x: 0, y: w.order * ROW_H },
-    data: { label: w.name, vuln: isVulnResult(w.audit?.result), audited: Boolean(w.audit), selected: selectedFid === w.fid, order: w.order },
-  }));
+  // Forest layout: each tree drawn top→down from its root using real 'call'
+  // edges; disconnected trees are stacked vertically (one band each) in review
+  // order. Siblings spread horizontally; a parent centers over its children.
+  const ROW_H = 96;   // vertical gap per depth level
+  const COL_W = 184;  // horizontal gap per leaf column
+  const GAP_ROWS = 1; // blank rows between stacked trees
+
+  const order = new Map(walk.map((w) => [w.fid, w.order]));
+  const children = new Map<string, string[]>();
+  const indeg = new Map<string, number>();
+  walk.forEach((w) => { children.set(w.fid, []); indeg.set(w.fid, 0); });
+  for (const e of edges) {
+    if (e.kind !== 'call' || !children.has(e.from) || !children.has(e.to)) continue;
+    children.get(e.from)!.push(e.to);
+    indeg.set(e.to, (indeg.get(e.to) || 0) + 1);
+  }
+  for (const arr of children.values()) arr.sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0));
+  const roots = walk.filter((w) => (indeg.get(w.fid) || 0) === 0).map((w) => w.fid);
+
+  const pos = new Map<string, { col: number; row: number }>();
+  const visited = new Set<string>();
+  let baseRow = 0;
+  const placeTree = (rootId: string) => {
+    let leaf = 0; let maxDepth = 0;
+    const place = (id: string, depth: number): number | null => {
+      if (visited.has(id)) return null;
+      visited.add(id);
+      maxDepth = Math.max(maxDepth, depth);
+      const kids = (children.get(id) || []).filter((k) => !visited.has(k));
+      let col: number;
+      if (!kids.length) { col = leaf++; }
+      else {
+        const xs = kids.map((k) => place(k, depth + 1)).filter((v): v is number => v !== null);
+        col = xs.length ? (xs[0] + xs[xs.length - 1]) / 2 : leaf++;
+      }
+      pos.set(id, { col, row: baseRow + depth });
+      return col;
+    };
+    place(rootId, 0);
+    baseRow += maxDepth + 1 + GAP_ROWS;
+  };
+  roots.forEach(placeTree);
+  // orphans left by cycles: stack each on its own row
+  walk.forEach((w) => { if (!pos.has(w.fid)) { pos.set(w.fid, { col: 0, row: baseRow }); baseRow += 1; } });
+
+  const nodes: Node<FnNodeData>[] = walk.map((w) => {
+    const p = pos.get(w.fid)!;
+    return {
+      id: w.fid, type: 'fn',
+      position: { x: p.col * COL_W, y: p.row * ROW_H },
+      data: { label: w.name, vuln: isVulnResult(w.audit?.result), audited: Boolean(w.audit), selected: selectedFid === w.fid, order: w.order },
+    };
+  });
   const flowEdges: Edge[] = edges.map((e, i) => ({
     id: `e${i}_${e.from}_${e.to}`, source: e.from, target: e.to,
     type: 'smoothstep', pathOptions: { borderRadius: 12 },
@@ -613,6 +653,11 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
     [session, selectedFn],
   );
   const graph = useMemo(() => layoutGraph(walk, callEdges, null), [walk, callEdges]);
+  // Count disconnected trees (roots = walked fns with no incoming call edge).
+  const treeCount = useMemo(() => {
+    const hasParent = new Set(callEdges.filter((e) => e.kind === 'call').map((e) => e.to));
+    return walk.filter((w) => !hasParent.has(w.fid)).length;
+  }, [walk, callEdges]);
   // Local call neighborhood of the selected fn (callers → fn → callees), for
   // the inline relation strip in the detail pane.
   const neighbors = useMemo(() => {
@@ -858,7 +903,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                   <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-500" style={{ backgroundColor: '#ecfdf5' }} />安全</span>
                   <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-amber-500" style={{ backgroundColor: '#fffbeb' }} />漏洞</span>
                   <span className="inline-flex items-center gap-1.5 text-slate-600"><span className="inline-block h-0.5 w-4 bg-slate-500" />调用 {callEdges.filter((e) => e.kind === 'call').length}</span>
-                  <span className="inline-flex items-center gap-1.5 text-slate-600"><span className="inline-block h-0.5 w-4 border-t border-dashed border-slate-500" />顺序 {callEdges.filter((e) => e.kind === 'flow').length}</span>
+                  {treeCount > 1 ? <span className="inline-flex items-center gap-1 text-slate-600" title="审计图中存在多个互不相连的调用树:入口函数的静态调用图未覆盖到的函数(如经回调/间接调用到达)会形成独立的树">{treeCount} 棵树</span> : null}
                 </div>
                 <div className="flex-1" style={{ backgroundColor: '#f8fafc', ['--xy-background-color' as any]: '#f8fafc' }}>
                   <WalkGraph layout={graph} selectedFid={selectedFn?.fid || null} onSelect={setSelectedFid} />
