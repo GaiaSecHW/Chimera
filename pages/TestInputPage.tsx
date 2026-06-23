@@ -33,6 +33,7 @@ import type { ProjectInputOverview, ProjectInputUploadDetail, ProjectInputUpload
 import { formatUploadBytes, getLatestBatchSummary, getUploadModeLabel, getUploadRecordDisplayName, isAllowedArchiveFileName } from './assets/baseResourcePageModel';
 import { CreateTaskDialog } from './task/CreateTaskDialog';
 import { TestInputUploader, TestInputUploaderHandle } from '../components/TestInputUploader';
+import { KnowledgeGraphPanel } from '../components/KnowledgeGraphPanel';
 
 type InputType = 'document' | 'code' | 'software' | 'other';
 
@@ -1262,6 +1263,15 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                       </div>
                     </div>
                   </section>
+
+                  {/* 仅 code 上传:知识图谱框,集中展示静态分析/入口分析/调用链修复
+                      进展 + 两个独立重跑按钮。数据走 manager(不起 serve)。 */}
+                  {normalizeType(record.input_type) === 'code' ? (
+                    <KnowledgeGraphPanel
+                      uploadId={uploadId}
+                      status={codemapStatusByUpload[uploadId] ?? null}
+                    />
+                  ) : null}
 
                   <section className="rounded-xl border border-theme-border bg-theme-surface p-5">
                     <div className="text-sm font-semibold text-theme-text-primary">批次历史</div>

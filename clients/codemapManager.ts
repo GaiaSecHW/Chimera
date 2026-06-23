@@ -47,6 +47,25 @@ export interface CodemapServeResponse {
   status: string;
 }
 
+// GET /uploads/{id}/audit/sources 的返回(直连 DozerDB,不起 serve)。入口识别
+// 的状态分桶 + 规模,供详情「知识图谱」框展示。graph_status:图生命周期
+// (building/active/superseded/failed)。analysis:入口识别分桶(NOT repair):
+// identified 已判为入口 / pending 有 SP 未判 / confirmed|rejected 人工裁决。
+// total:当前 kind/module 过滤下的源点条数(默认全量)。
+export interface CodemapAuditSources {
+  db_name: string;
+  graph_status: string;
+  analysis: {
+    total: number;
+    identified: number;
+    pending: number;
+    confirmed: number;
+    rejected: number;
+  };
+  total: number;
+}
+
+
 export const codemapManagerApi = {
   // POST /tasks — 提交构建(按 task_id 幂等)。target_dir 是 manager 可见的
   // 文件系统路径(与 fileserver 共享卷),来自 fileserver 的 resolve.target_path。
@@ -119,6 +138,38 @@ export const codemapManagerApi = {
     const response = await fetch(
       `${MANAGER_BASE}/projects/by-upload/${encodeURIComponent(uploadId)}/purge`,
       { method: 'DELETE', headers: getHeaders() },
+    );
+    await handleResponse(response);
+  },
+
+  // GET /uploads/{id}/audit/sources — 入口识别状态分桶 + 规模(manager 直连
+  // DozerDB,不起 serve)。详情「知识图谱」框的入口分析块取这里。轮询场景带
+  // no-dedupe 绕过 base.ts 的 GET 去重缓存。
+  getAuditSources: async (uploadId: string): Promise<CodemapAuditSources> => {
+    const response = await fetch(
+      `${MANAGER_BASE}/uploads/${encodeURIComponent(uploadId)}/audit/sources`,
+      { headers: { ...getHeaders(), 'x-chimera-no-request-dedupe': '1' } },
+    );
+    return handleResponse(response);
+  },
+
+  // POST /uploads/{id}/reidentify — 只重跑攻击入口识别(不动 repair),回写
+  // attack_status(running→ok/failed)。也是「手动 /sources/run 后 manager 状态
+  // 停在 failed」的恢复出口。building 中后端返回 409。
+  reidentify: async (uploadId: string): Promise<void> => {
+    const response = await fetch(
+      `${MANAGER_BASE}/uploads/${encodeURIComponent(uploadId)}/reidentify`,
+      { method: 'POST', headers: getHeaders() },
+    );
+    await handleResponse(response);
+  },
+
+  // POST /uploads/{id}/rerepair — 只重跑 repair(跳过 analyze;已修 gap 跳过,
+  // 不浪费 token),与攻击面重跑互相独立。building 中后端返回 409。
+  rerepair: async (uploadId: string): Promise<void> => {
+    const response = await fetch(
+      `${MANAGER_BASE}/uploads/${encodeURIComponent(uploadId)}/rerepair`,
+      { method: 'POST', headers: getHeaders() },
     );
     await handleResponse(response);
   },
