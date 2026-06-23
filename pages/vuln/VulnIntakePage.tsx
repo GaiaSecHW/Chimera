@@ -2584,7 +2584,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           />
           {rootTab === 'download-center' ? renderDownloadCenter() : (
           <>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+          <div className="grid gap-3 grid-cols-4">
             <StatisticCard label="漏洞总数" value={stats.total} />
             <StatisticCard label="漏洞" value={stats.confirmed} tone="danger" />
             <StatisticCard label="不是漏洞" value={stats.ruledOut} tone="success" />
@@ -2592,7 +2592,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           </div>
 
           <div className="table-container">
-            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-theme-border-subtle">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-theme-border-subtle">
               <div className="relative max-w-[420px] flex-1">
                 <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" />
                 <input
@@ -2608,13 +2608,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     type="button"
                     onClick={() => setTaskFilterOpen((open) => !open)}
                     className="form-select flex items-center justify-between gap-2 text-left"
-                    style={{ width: '220px' }}
+                    style={{ width: '180px' }}
                   >
                     <span className="truncate">{selectedTaskFilterLabel}</span>
                     <ChevronDown size={14} />
                   </button>
                   {taskFilterOpen && (
-                    <div className="absolute right-0 top-full z-50 mt-2 max-h-72 w-72 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
+                    <div className="absolute left-0 top-full z-50 mt-2 max-h-72 w-72 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
                       <label className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
                         <input
                           type="checkbox"
@@ -2646,13 +2646,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     type="button"
                     onClick={() => setFinalResultFilterOpen((open) => !open)}
                     className="form-select flex items-center justify-between gap-2 text-left"
-                    style={{ width: '160px' }}
+                    style={{ width: '140px' }}
                   >
                     <span className="truncate">{selectedFinalResultLabel}</span>
                     <ChevronDown size={14} />
                   </button>
                   {finalResultFilterOpen ? (
-                    <div className="absolute right-0 top-full z-50 mt-2 max-h-72 w-56 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
+                    <div className="absolute left-0 top-full z-50 mt-2 max-h-72 w-56 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
                       <label className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
                         <input
                           type="checkbox"
@@ -2679,17 +2679,17 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     </div>
                   ) : null}
                 </div>
-                <button
-                  type="button"
-                  onClick={handleCreateTaskDownloadJob}
-                  disabled={creatingDownload}
-                  className="btn btn-secondary btn-sm"
-                  title="按当前筛选条件导出全部漏洞"
-                >
-                  <Download size={12} />
-                  {creatingDownload ? '创建中...' : '导出数据'}
-                </button>
               </div>
+              <button
+                type="button"
+                onClick={handleCreateTaskDownloadJob}
+                disabled={creatingDownload}
+                className="btn btn-secondary btn-sm ml-auto"
+                title="按当前筛选条件导出全部漏洞"
+              >
+                <Download size={12} />
+                {creatingDownload ? '创建中...' : '导出数据'}
+              </button>
             </div>
 
             <div className="space-y-4 px-5 py-4 xl:px-6">
