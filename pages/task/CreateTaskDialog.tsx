@@ -48,7 +48,7 @@ const TASK_TYPES: readonly TaskTypeOption[] = [
   { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail', modes: ['dragon-tail', 'ram-horn'], disabled: true },
   { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'cfg_db_vuln', label: 'CFG-挖掘工具', downstreamView: 'cfg-db-vuln-detail', modes: ['dragon-tail', 'ram-horn'] },
-  { value: 'kg_source_vuln_scan_e2e', label: '知识图谱-漏洞挖掘', downstreamView: 'kg-source-security-detail', modes: ['dragon-tail', 'ram-horn'], disabled: true },
+  { value: 'kg_source_vuln_scan_e2e', label: '知识图谱-漏洞挖掘', downstreamView: 'kg-source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail', modes: ['dragon-tail', 'ram-horn'], disabled: true },
   { value: 'ai4app_fast', label: 'AI4APP 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
   { value: 'ai4web_fast', label: 'AI4WEB 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
@@ -189,7 +189,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   /* --- derived --- */
   const selectionMode = useMemo(() => INPUT_MODES[taskType] || 'file', [taskType]);
   const selectedAgentApp = useMemo(() => agentApps.find((item) => item.id === selectedAgentAppId) || null, [agentApps, selectedAgentAppId]);
-  const selectableInputs = useMemo(() => inputs, [inputs]);
+  const selectableInputs = useMemo(
+    () => (isKgSourceTask ? inputs.filter((item) => String(item.input_type || '').trim().toLowerCase() === 'code') : inputs),
+    [inputs, isKgSourceTask],
+  );
   const selectedInput = useMemo(() => selectableInputs.find((item) => item.upload_id === selectedInputId) || null, [selectableInputs, selectedInputId]);
   const rootBrowse = browseCache[''] || null;
   const isDirectorySelectionValid = directorySelectionTouched && selectedRelativePath !== null;
@@ -451,6 +454,11 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
       if (isKgSourceTask && inputSource !== 'existing') {
         setError('知识图谱-漏洞挖掘只能选择已有测试对象');
+        setSaving(false);
+        return;
+      }
+      if (isKgSourceTask && (!selectedInput || String(selectedInput.input_type || '').trim().toLowerCase() !== 'code')) {
+        setError('知识图谱-漏洞挖掘仅支持选择类型为源码的上传记录');
         setSaving(false);
         return;
       }
@@ -878,7 +886,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                         className="rounded-lg px-4 py-3 text-sm"
                         style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
                       >
-                        没有可用输入，请先到
+                        {isKgSourceTask ? '当前没有可用的源码类型上传记录，请先到' : '没有可用输入，请先到'}
                         <button
                           type="button"
                           onClick={() => {
