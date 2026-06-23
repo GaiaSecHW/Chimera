@@ -187,6 +187,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [uploading, setUploading] = useState(false);
 
   /* --- derived --- */
+  const isKgSourceTask = taskType === 'kg_source_vuln_scan_e2e';
   const selectionMode = useMemo(() => INPUT_MODES[taskType] || 'file', [taskType]);
   const selectedAgentApp = useMemo(() => agentApps.find((item) => item.id === selectedAgentAppId) || null, [agentApps, selectedAgentAppId]);
   const selectableInputs = useMemo(
@@ -198,7 +199,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const isDirectorySelectionValid = directorySelectionTouched && selectedRelativePath !== null;
   const taskTypeMeta = useMemo(() => TASK_TYPES.find((item) => item.value === taskType) || TASK_TYPES[0], [taskType]);
   const taskTypeDisabled = Boolean(taskTypeMeta?.disabled);
-  const isKgSourceTask = taskType === 'kg_source_vuln_scan_e2e';
   const availableTaskTypes = useMemo(
     () => TASK_TYPES.filter((item) => item.modes.includes(mode as TaskMode)),
     [mode],
