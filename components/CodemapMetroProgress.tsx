@@ -37,16 +37,23 @@ function deriveStages(status: CodemapTaskStatus | null): StageState[] {
 
   let st2: StageState;
   if (st1 !== 'done') st2 = 'pending';
-  else if (s === 'building_attack_surface' || attack === 'running') st2 = 'active';
+  // attack.status 是入口分析的权威信号(重跑入口分析只动 attack.status,不动顶层
+  // status),优先信任它——与详情页 KnowledgeGraphPanel 同口径,两处统一。仅当还没有
+  // attack 结果时才回退到 building_attack_surface 顶层 status,避免顶层 status 滞留在
+  // building_attack_surface(重跑后没人推回)时在已完成的入口分析上仍转圈。
   else if (attack === 'ok') st2 = 'done';
   else if (attack === 'failed') st2 = 'failed';
+  else if (s === 'building_attack_surface' || attack === 'running') st2 = 'active';
   else st2 = 'pending';
 
   let st3: StageState;
   if (st1 !== 'done') st3 = 'pending';
-  else if (s === 'building_repair') st3 = 'active';
   else if (s === 'completed' && hasRepair) st3 = 'done';
   else if (s === 'failed' && hasRepair) st3 = 'failed';
+  else if (s === 'building_repair') st3 = 'active';
+  // 顶层 status 滞留在 repair 之前(同上一类陈旧 status)但 repair 已产出进度:计数是
+  // 真实的,按 done/failed 显示而非未开始。
+  else if (hasRepair) st3 = s === 'failed' ? 'failed' : 'done';
   else st3 = 'pending';
 
   return [st1, st2, st3];

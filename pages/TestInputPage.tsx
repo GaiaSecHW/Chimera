@@ -257,7 +257,9 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   // 3s 轮询:对每条处于进行中状态的上传各拉一次状态;全部到终态即停。
   useEffect(() => {
     const inProgress = Object.entries(codemapStatusByUpload)
-      .filter(([, s]) => s && IN_PROGRESS_STATUSES.has(s.status))
+      // 顶层 FSM 进行中,或攻击面子阶段 running(重跑入口分析不动顶层 status,必须
+      // 单独纳入,否则重跑期间地铁条不刷新——与详情页 KnowledgeGraphPanel 同口径)。
+      .filter(([, s]) => s && (IN_PROGRESS_STATUSES.has(s.status) || s.attack?.status === 'running'))
       .map(([uid]) => uid);
     if (inProgress.length === 0) return undefined;
     const timer = window.setInterval(async () => {

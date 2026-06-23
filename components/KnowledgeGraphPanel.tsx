@@ -184,7 +184,7 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
       if (base) {
         const next = { ...base, status: 'building_repair' };
         setLocalStatus(next);
-        onStatusChange?.(next);   // 立即同步父缓存 → 地铁条转圈 + 父轮询启动
+        onStatusChangeRef.current?.(next);   // 立即同步父缓存 → 地铁条转圈 + 父轮询启动
       }
       void loadTask();
     } catch (error) {
