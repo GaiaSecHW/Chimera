@@ -696,13 +696,6 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
     </div>
   );
 
-  const walkToggle = (
-    <div className="inline-flex items-center gap-1 rounded-xl border border-theme-border bg-theme-surface p-1">
-      <button onClick={() => setNavView('order')} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${navView === 'order' ? 'bg-slate-900 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}><Workflow size={13} />审查顺序 {walk.length}</button>
-      <button onClick={() => setNavView('graph')} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${navView === 'graph' ? 'bg-slate-900 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}><Network size={13} />调用图</button>
-    </div>
-  );
-
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
       {feedbackNodes}
@@ -832,43 +825,19 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
           <button onClick={() => { setSessionDrawer(true); }} className="inline-flex items-center gap-2 text-xs font-semibold text-theme-text-muted hover:text-slate-800"><FileText size={13} />查看智能体会话文件</button>
         </section>
       ) : activeTab === 'walk' ? (
-        <section className="space-y-4">
+        <section>
           {walk.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated p-12 text-center text-sm text-theme-text-muted">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div>
-          ) : navView === 'graph' ? (
-            <>
-              {/* Graph mode: full-width tall graph + detail below */}
-              <div className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-                <div className="flex flex-wrap items-center gap-3 border-b border-theme-border px-3 py-2">
-                  {walkToggle}
-                  <span className="inline-flex items-center gap-1 text-[11px] text-theme-text-muted"><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-400 bg-emerald-50" />安全</span>
-                  <span className="inline-flex items-center gap-1 text-[11px] text-theme-text-muted"><span className="inline-block h-2.5 w-2.5 rounded border border-rose-400 bg-rose-50" />漏洞</span>
-                  <span className="inline-flex items-center gap-1.5 text-[11px] text-theme-text-muted"><span className="inline-block h-0.5 w-5 bg-slate-500" />调用 {callEdges.filter((e) => e.kind === 'call').length}</span>
-                  <span className="inline-flex items-center gap-1.5 text-[11px] text-theme-text-muted"><span className="inline-block h-0.5 w-5 border-t border-dashed border-slate-400" />审查顺序 {callEdges.filter((e) => e.kind === 'flow').length}</span>
-                </div>
-                <div className="h-[600px] bg-slate-50">
-                  <ReactFlow
-                    nodes={graph.nodes}
-                    edges={graph.flowEdges}
-                    nodeTypes={fnNodeTypes}
-                    onNodeClick={(_, node) => setSelectedFid(node.id)}
-                    fitView nodesDraggable nodesConnectable={false} elementsSelectable panOnDrag zoomOnScroll
-                    proOptions={{ hideAttribution: true }}
-                  >
-                    <Background color="#e2e8f0" gap={18} />
-                    <Controls showInteractive={false} />
-                  </ReactFlow>
-                </div>
-              </div>
-              {walkDetailPane}
-            </>
           ) : (
-            <>
-              {/* Order mode: review-sequence list (left) + detail (right) */}
-              <div>{walkToggle}</div>
-              <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
-                <aside className="max-h-[calc(100vh-13rem)] overflow-auto rounded-2xl border border-theme-border bg-theme-surface p-3">
-                  <ol className="relative space-y-0">
+            <div className="grid gap-4 xl:grid-cols-[420px_minmax(0,1fr)]">
+              {/* Left: navigation — review order list OR call graph (both select a fn) */}
+              <aside className="flex max-h-[calc(100vh-12rem)] min-h-[560px] flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
+                <div className="flex items-center gap-1 border-b border-theme-border p-2">
+                  <button onClick={() => setNavView('order')} className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${navView === 'order' ? 'bg-slate-900 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}><Workflow size={13} />审查顺序 {walk.length}</button>
+                  <button onClick={() => setNavView('graph')} className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${navView === 'graph' ? 'bg-slate-900 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}><Network size={13} />调用图</button>
+                </div>
+                {navView === 'order' ? (
+                  <ol className="relative flex-1 space-y-0 overflow-auto p-3">
                     {walk.map((w, i) => {
                       const sel = selectedFn?.fid === w.fid;
                       const vuln = isVulnResult(w.audit?.result);
@@ -890,10 +859,33 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                       );
                     })}
                   </ol>
-                </aside>
-                {walkDetailPane}
-              </div>
-            </>
+                ) : (
+                  <div className="flex flex-1 flex-col">
+                    <div className="flex flex-wrap items-center gap-2 px-3 py-1.5 text-[11px] text-theme-text-muted">
+                      <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-400 bg-emerald-50" />安全</span>
+                      <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-rose-400 bg-rose-50" />漏洞</span>
+                      <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-slate-500" />调用 {callEdges.filter((e) => e.kind === 'call').length}</span>
+                      <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 border-t border-dashed border-slate-400" />顺序 {callEdges.filter((e) => e.kind === 'flow').length}</span>
+                    </div>
+                    <div className="flex-1 border-t border-theme-border bg-slate-50">
+                      <ReactFlow
+                        nodes={graph.nodes}
+                        edges={graph.flowEdges}
+                        nodeTypes={fnNodeTypes}
+                        onNodeClick={(_, node) => setSelectedFid(node.id)}
+                        fitView nodesDraggable nodesConnectable={false} elementsSelectable panOnDrag zoomOnScroll
+                        proOptions={{ hideAttribution: true }}
+                      >
+                        <Background color="#e2e8f0" gap={18} />
+                        <Controls showInteractive={false} />
+                      </ReactFlow>
+                    </div>
+                  </div>
+                )}
+              </aside>
+              {/* Right: detail — source code / model think / tool use */}
+              {walkDetailPane}
+            </div>
           )}
         </section>
       ) : activeTab === 'tools' ? (
