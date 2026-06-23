@@ -104,6 +104,7 @@ const AppShell: React.FC = () => {
   const [activeTaskCenterTimelineTaskId, setActiveTaskCenterTimelineTaskId] = useState<string>('');
   const [activeTaskCenterTimelineBackView, setActiveTaskCenterTimelineBackView] = useState<string>('task-list');
   const [activeTaskVulnListTaskId, setActiveTaskVulnListTaskId] = useState<string>('');
+  const [activeTaskReportTaskId, setActiveTaskReportTaskId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -270,6 +271,7 @@ const AppShell: React.FC = () => {
         taskCenterTimelineTaskId?: string;
         taskCenterTimelineBackView?: string;
         taskVulnListTaskId?: string;
+        taskReportTaskId?: string;
         path?: string;
       }>).detail;
       const nextView = String(detail?.view || '').trim();
@@ -338,6 +340,10 @@ const AppShell: React.FC = () => {
       const taskVulnListTaskId = String(detail?.taskVulnListTaskId || '').trim();
       if (taskVulnListTaskId) {
         setActiveTaskVulnListTaskId(taskVulnListTaskId);
+      }
+      const taskReportTaskId = String(detail?.taskReportTaskId || '').trim();
+      if (taskReportTaskId) {
+        setActiveTaskReportTaskId(taskReportTaskId);
       }
       const appScanTaskId = String(detail?.appScanTaskId || '').trim();
       if (appScanTaskId) {
@@ -738,6 +744,7 @@ const AppShell: React.FC = () => {
                     activeBinaryModuleSecurityTaskId,
                     activeTaskCenterTimelineTaskId,
                     activeTaskVulnListTaskId,
+                    activeTaskReportTaskId,
                     activeRedlineTaskId,
                     selectedStaticPkgIds,
                     setCurrentView: navigateToView,
@@ -767,6 +774,7 @@ const AppShell: React.FC = () => {
                     setActiveTaskCenterTimelineTaskId: (id) => setActiveTaskCenterTimelineTaskId(id),
                     activeTaskCenterTimelineBackView,
                     setActiveTaskVulnListTaskId: (id) => setActiveTaskVulnListTaskId(id),
+                    setActiveTaskReportTaskId: (id) => setActiveTaskReportTaskId(id),
                     setSelectedStaticPkgIds: (ids) => setSelectedStaticPkgIds(ids),
                     fetchProjects,
                     fetchAdminStats,
