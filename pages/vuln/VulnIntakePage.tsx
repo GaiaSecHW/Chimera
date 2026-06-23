@@ -352,28 +352,30 @@ const getLatestAutoVerifyTaskRef = (detail: any, timeline: any[], fallbackProjec
 };
 
 const STAGE_TEXT: Record<string, string> = {
-  receive: '接收',
-  triage: '研判',
-  validation: '研判',
+  receive: '已接收',
+  triage: '研判中',
+  validation: '研判中',
   finished: '已结束',
 };
 
 const STATUS_TEXT: Record<string, string> = {
-  intake_created: '接收',
-  files_collecting: '接收',
-  ready_for_triage: '接收',
-  waiting: '接收',
-  ai_assessing: '研判',
-  manual_assessing: '研判',
-  awaiting_manual_gate: '研判',
-  queued: '研判',
-  poc_generating: '研判',
-  exp_generating: '研判',
-  reproducing: '研判',
-  evidence_collecting: '研判',
-  triage_completed: '已结束',
-  validation_completed: '已结束',
+  pending: '已接收',
+  assessing: '研判中',
   finished: '已结束',
+  intake_created: '已接收',
+  files_collecting: '已接收',
+  ready_for_triage: '已接收',
+  waiting: '已接收',
+  ai_assessing: '研判中',
+  manual_assessing: '研判中',
+  awaiting_manual_gate: '研判中',
+  queued: '研判中',
+  poc_generating: '研判中',
+  exp_generating: '研判中',
+  reproducing: '研判中',
+  evidence_collecting: '研判中',
+  triage_completed: '研判中',
+  validation_completed: '研判中',
 };
 
 const DECISION_TEXT: Record<string, string> = {
@@ -393,8 +395,7 @@ const CONCLUSION_TEXT: Record<string, string> = {
 
 const toUserVulnStatusText = (itemOrStage?: any, status?: string) => {
   if (itemOrStage && typeof itemOrStage === 'object') {
-    const conclusion = itemOrStage.finished_reason || itemOrStage.final_result || itemOrStage.validation_result || itemOrStage.result_summary?.validation_result;
-    if (conclusion && conclusion !== 'analyzing') return '已结束';
+    if (itemOrStage.current_stage === 'finished' || itemOrStage.finished_reason) return '已结束';
     status = itemOrStage.current_status;
     itemOrStage = itemOrStage.current_stage;
   }
@@ -755,8 +756,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       };
       const matchesFinalResult = (item: any) => {
         if (finalResultFilter === 'all') return true;
-        const effective = String(item.finished_reason || item.validation_result || '').trim();
-        if (finalResultFilter === 'analyzing') return effective === '';
+        const isTerminal = item.current_stage === 'finished' || !!item.finished_reason;
+        if (finalResultFilter === 'analyzing') return !isTerminal;
+        const effective = isTerminal ? String(item.finished_reason || item.validation_result || '').trim() : '';
         if (finalResultFilter === 'not_vulnerable') return effective === 'not_vulnerable' || effective === 'non_vulnerable';
         if (finalResultFilter === 'inconclusive') return effective === 'inconclusive' || effective === 'manual_terminated';
         return effective === finalResultFilter;
@@ -1672,8 +1674,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       };
       const matchesFinalResult = (item: any) => {
         if (finalResultFilter === 'all') return true;
-        const effective = String(item.finished_reason || item.validation_result || '').trim();
-        if (finalResultFilter === 'analyzing') return effective === '';
+        const isTerminal = item.current_stage === 'finished' || !!item.finished_reason;
+        if (finalResultFilter === 'analyzing') return !isTerminal;
+        const effective = isTerminal ? String(item.finished_reason || item.validation_result || '').trim() : '';
         if (finalResultFilter === 'not_vulnerable') return effective === 'not_vulnerable' || effective === 'non_vulnerable';
         if (finalResultFilter === 'inconclusive') return effective === 'inconclusive' || effective === 'manual_terminated';
         return effective === finalResultFilter;
@@ -2105,9 +2108,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       <div className="rounded-xl p-4 bg-theme-elevated">
                         <div className="text-xs font-semibold text-theme-text-muted-soft">当前结论</div>
                         <div className="mt-1 text-sm font-semibold text-theme-text-primary">
-                          {toConclusionText(displaySummary?.validation_result || selectedDetail.validation_result || selectedDetail.finished_reason) || resultSummary?.summary || toDecisionText(selectedDetail.decision_status)}
+                          {(selectedDetail.current_stage === 'finished' || selectedDetail.finished_reason)
+                            ? (toConclusionText(selectedDetail.finished_reason || selectedDetail.validation_result) || '—')
+                            : '—'}
                         </div>
-                        {(selectedDetail.finished_reason || selectedDetail.validation_result) ? (
+                        {(selectedDetail.current_stage === 'finished' || selectedDetail.finished_reason) ? (
                           <div className="mt-1 text-[11px] font-medium text-theme-text-muted">
                             来源: {selectedDetail.finished_reason ? '人工判定' : `${conclusionReason.engineName || '引擎'}判定`}
                           </div>
@@ -2662,16 +2667,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         <div className="text-sm font-semibold text-theme-text-secondary">{toUserVulnStatusText(item)}</div>
                       </div>
                       <div className="min-w-0">
-                        {(item.finished_reason || item.validation_result || item.decision_status) ? (
+                        {(item.current_stage === 'finished' || item.finished_reason) ? (
                           <>
                             <div className="text-sm font-semibold text-theme-text-secondary">
-                              {toConclusionText(item.finished_reason || item.validation_result || item.decision_status)}
+                              {toConclusionText(item.finished_reason || item.validation_result)}
                             </div>
-                            {(item.finished_reason || item.validation_result) ? (
-                              <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
-                                来源: {item.finished_reason ? '人工判定' : `${item.confirm_engine_name || '引擎'}判定`}
-                              </div>
-                            ) : null}
+                            <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
+                              来源: {item.finished_reason ? '人工判定' : `${item.confirm_engine_name || '引擎'}判定`}
+                            </div>
                           </>
                         ) : (
                           <span className="text-sm text-theme-text-faint">—</span>
