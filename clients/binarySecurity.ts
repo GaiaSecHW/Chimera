@@ -281,6 +281,7 @@ export interface BinarySecurityTask {
     stage_name: string;
     sequence_no: number;
     status: string;
+    status_label?: string | null;
     retry_count: number;
     retry_supported: boolean;
     retry_reason?: string | null;
@@ -300,6 +301,10 @@ export interface BinarySecurityTask {
     started_at?: string | null;
     finished_at?: string | null;
     last_error?: string | null;
+    authoritative_items_missing?: boolean;
+    authoritative_rebuild_required?: boolean;
+    authoritative_rebuild_reason?: string | null;
+    historical_child_count?: number;
     abnormal_reason?: BinarySecurityAbnormalReason | null;
   }>;
   task_retry_supported: boolean;
