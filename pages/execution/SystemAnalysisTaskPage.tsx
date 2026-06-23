@@ -708,13 +708,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {[
                 { label: '总槽位', value: clusterCapacitySummary.total_capacity, bg: 'bg-theme-surface', text: 'text-theme-text-primary', border: 'border-theme-border' },
-                { label: '占用槽位', value: clusterCapacitySummary.busy_slots, bg: 'bg-cyan-50/70', text: 'text-cyan-400', border: 'border-cyan-500/20' },
-                { label: '空闲槽位', value: clusterCapacitySummary.available_slots, bg: 'bg-emerald-50/70', text: 'text-emerald-400', border: 'border-emerald-500/20' },
-                { label: '排队任务', value: clusterCapacitySummary.queued_jobs, bg: 'bg-amber-50/80', text: 'text-amber-400', border: 'border-amber-500/20' },
+                { label: '占用槽位', value: clusterCapacitySummary.busy_slots, bg: 'bg-cyan-500/10', text: 'text-cyan-400', border: 'border-cyan-500/20' },
+                { label: '空闲槽位', value: clusterCapacitySummary.available_slots, bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+                { label: '排队任务', value: clusterCapacitySummary.queued_jobs, bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
                 { label: 'Worker', value: clusterCapacitySummary.worker_count, bg: 'bg-theme-surface', text: 'text-theme-text-primary', border: 'border-theme-border' },
-                { label: 'Healthy', value: clusterCapacitySummary.healthy_workers, bg: 'bg-emerald-50/70', text: 'text-emerald-400', border: 'border-emerald-500/20' },
-                { label: 'Stale', value: clusterCapacitySummary.stale_workers, bg: 'bg-rose-50/70', text: 'text-rose-400', border: 'border-rose-500/20' },
-                { label: 'Live Pod', value: clusterCapacityDetail ? slotLivePodCount : '-', bg: 'bg-sky-50/70', text: 'text-sky-400', border: 'border-sky-500/20' },
+                { label: 'Healthy', value: clusterCapacitySummary.healthy_workers, bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+                { label: 'Stale', value: clusterCapacitySummary.stale_workers, bg: 'bg-rose-500/10', text: 'text-rose-400', border: 'border-rose-500/20' },
+                { label: 'Live Pod', value: clusterCapacityDetail ? slotLivePodCount : '-', bg: 'bg-sky-500/10', text: 'text-sky-400', border: 'border-sky-500/20' },
               ].map((item) => (
                 <div key={item.label} className={`rounded-xl border ${item.border} ${item.bg} px-4 py-4`}>
                   <div className={`text-2xl font-bold leading-none ${item.text}`}>{item.value}</div>
@@ -780,7 +780,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                     return (
                       <section
                         key={worker.worker_id}
-                        className={`overflow-hidden rounded-xl border ${worker.healthy ? 'border-theme-border bg-theme-surface' : 'border-rose-500/20 bg-rose-50/70'}`}
+                        className={`overflow-hidden rounded-xl border ${worker.healthy ? 'border-theme-border bg-theme-surface' : 'border-rose-500/20 bg-rose-500/10'}`}
                       >
                         <div className="px-5 py-4">
                           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -820,7 +820,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                           ) : activeJobs.length > 0 ? (
                             <div className="mt-4 space-y-3">
                               {activeJobs.slice(0, 2).map((job) => (
-                                <div key={`${worker.worker_id}:${job.task_id}`} className={`rounded-2xl border px-4 py-4 ${job.mapped ? 'border-theme-border bg-slate-50/70' : 'border-amber-500/20 bg-amber-50/80'}`}>
+                                <div key={`${worker.worker_id}:${job.task_id}`} className={`rounded-2xl border px-4 py-4 ${job.mapped ? 'border-theme-border bg-theme-elevated' : 'border-amber-500/20 bg-amber-500/10'}`}>
                                   <div className="flex flex-wrap items-start justify-between gap-3">
                                     <div className="min-w-0 flex-1">
                                       <div className="flex flex-wrap items-center gap-2">
@@ -1083,7 +1083,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               {pagedTasks.map((t) => (
                 <tr
                   key={t.task_id}
-                  className={`${executionTableRowClassName} ${selectedTaskIds.has(t.task_id) ? 'bg-cyan-50/60' : ''}`.trim()}
+                  className={`${executionTableRowClassName} ${selectedTaskIds.has(t.task_id) ? 'bg-cyan-500/10' : ''}`.trim()}
                 >
                   <ExecutionTableTd>
                     <input
@@ -1299,7 +1299,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                     return (
                       <section
                         key={worker.worker_id}
-                        className={`overflow-hidden rounded-xl border ${worker.healthy ? 'border-theme-border bg-theme-surface' : 'border-rose-500/20 bg-rose-50/70'}`}
+                        className={`overflow-hidden rounded-xl border ${worker.healthy ? 'border-theme-border bg-theme-surface' : 'border-rose-500/20 bg-rose-500/10'}`}
                       >
                         <button
                           type="button"
@@ -1351,7 +1351,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                             ) : (
                               <div className="space-y-3">
                                 {activeJobs.map((job) => (
-                                  <div key={`${worker.worker_id}:${job.task_id}`} className={`rounded-2xl border px-4 py-4 ${job.mapped ? 'border-theme-border bg-slate-50/70' : 'border-amber-500/20 bg-amber-50/80'}`}>
+                                  <div key={`${worker.worker_id}:${job.task_id}`} className={`rounded-2xl border px-4 py-4 ${job.mapped ? 'border-theme-border bg-theme-elevated' : 'border-amber-500/20 bg-amber-500/10'}`}>
                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                       <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">

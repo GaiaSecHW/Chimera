@@ -82,7 +82,7 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/15 p-4 text-amber-400 text-sm font-semibold">请先选择项目</div>
       ) : (
         <div className="rounded-xl border border-theme-border bg-theme-surface overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-theme-border px-4 py-3 bg-slate-50/70">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-theme-border px-4 py-3 bg-theme-elevated">
             <div className="text-xs font-semibold text-theme-text-muted">
               共 <span className="font-semibold text-theme-text-secondary">{total}</span> 条，当前第 <span className="font-semibold text-theme-text-secondary">{page}</span> / {totalPages} 页
             </div>

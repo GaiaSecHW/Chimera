@@ -159,7 +159,7 @@ export const MachineTokenPage: React.FC = () => {
             <div className="flex items-center gap-3 self-start xl:self-auto">
               <button
                 onClick={() => void fetchTokens()}
- className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-50/15"
+ className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3 text-sm font-medium text-white transition hover:bg-theme-surface"
               >
                 <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                 刷新

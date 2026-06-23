@@ -932,7 +932,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                           key={svc.id}
                           type="button"
                           onClick={() => setSelectedNodeService(svc)}
-                          className={`w-full text-left px-8 py-5 transition-all ${isSelected ? 'bg-blue-50/70' : 'hover:bg-slate-100/80'}`}
+                          className={`w-full text-left px-8 py-5 transition-all ${isSelected ? 'bg-blue-500/10' : 'hover:bg-theme-elevated'}`}
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0 flex-1 space-y-2">

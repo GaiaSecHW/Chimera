@@ -1038,7 +1038,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                           </td>
                         </tr>
                         {isExpanded ? (
-                          <tr className="bg-slate-50/70">
+                          <tr className="bg-theme-elevated">
                             <td colSpan={6} className="px-6 py-5">
                               <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
                                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

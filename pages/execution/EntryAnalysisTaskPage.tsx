@@ -1151,7 +1151,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                       worker.active_tasks.length > 0 ? (
                         <div className="mt-4 space-y-2">
                           {worker.active_tasks.map((task) => (
-                            <div key={`${worker.worker_id}:${task.task_id}`} className={`rounded-2xl border px-4 py-4 text-xs ${worker.healthy ? 'border-theme-border bg-slate-50/70' : 'border-amber-500/20 bg-amber-50/80'}`}>
+                            <div key={`${worker.worker_id}:${task.task_id}`} className={`rounded-2xl border px-4 py-4 text-xs ${worker.healthy ? 'border-theme-border bg-theme-elevated' : 'border-amber-500/20 bg-amber-500/10'}`}>
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div className="min-w-0 flex-1">
                                   <div className="flex flex-wrap items-center gap-2">
@@ -1548,7 +1548,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               </div>
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {pagedSlotWorkers.map((worker) => (
-                  <div key={worker.worker_id} className={`rounded-2xl border px-4 py-4 ${worker.healthy ? 'border-theme-border bg-slate-50/70' : worker.worker_role_state === 'retired' ? 'border-amber-500/20 bg-amber-50/70' : 'border-rose-500/20 bg-rose-50/70'}`}>
+                  <div key={worker.worker_id} className={`rounded-2xl border px-4 py-4 ${worker.healthy ? 'border-theme-border bg-theme-elevated' : worker.worker_role_state === 'retired' ? 'border-amber-500/20 bg-amber-500/10' : 'border-rose-500/20 bg-rose-500/10'}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold text-theme-text-primary">{worker.pod_name}</div>

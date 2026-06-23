@@ -885,7 +885,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             ) : syncHistory.map(item => (
               <div
                 key={item.sync_id}
-                className="w-full border border-theme-border rounded-xl px-2.5 py-2 hover:border-blue-500/20 hover:bg-blue-50/30 transition-all"
+                className="w-full border border-theme-border rounded-xl px-2.5 py-2 hover:border-blue-500/20 hover:bg-blue-500/10 transition-all"
               >
                 <div className="flex items-center gap-2">
                   <button

@@ -2124,7 +2124,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                       const artifactFull = detail.output_path ?`${detail.output_path}/${detail.task_id}/${step.artifactSubpath}` : null;
                       const artifactFsPath = artifactFull ? extractFsRelPath(artifactFull, projectId) : null;
                       return (
-                        <div key={step.key} className="rounded-xl border border-theme-border bg-slate-50/70 px-4 py-3">
+                        <div key={step.key} className="rounded-xl border border-theme-border bg-theme-elevated px-4 py-3">
                           <div className="flex items-start gap-3">
                             <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold ${
                               st === 'completed' ? 'border-emerald-500 bg-emerald-500/15 text-emerald-400'
@@ -2461,7 +2461,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                   </td>
                                 </tr>
                                 {expanded ? (
-                                  <tr className="bg-slate-50/60">
+                                  <tr className="bg-theme-elevated">
                                     <td colSpan={9} className="px-3 py-3">
                                       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                                         {timelinePayloadRows(payload).slice(0, 12).map((row) => (
@@ -3305,7 +3305,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             value={evaluationModuleFilter}
                             onChange={(event) => setEvaluationModuleFilter(event.target.value)}
                             placeholder="搜索模块"
-                            className="form-input w-44 py-2 pl-8 pr-3 text-xs"
+                            className="form-input w-full"
                           />
                         </div>
                         <select

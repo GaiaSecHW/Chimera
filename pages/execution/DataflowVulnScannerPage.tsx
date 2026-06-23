@@ -1872,7 +1872,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                             ) : (
                               <div className="space-y-3">
                                 {activeJobs.map((job) => (
-                                  <div key={`${worker.worker_id}:${job.execution_id}:${job.worker_job_id}`} className={`rounded-2xl border px-4 py-4 ${job.mapped ? 'border-theme-border bg-slate-50/70' : 'border-amber-500/20 bg-amber-50/80'}`}>
+                                  <div key={`${worker.worker_id}:${job.execution_id}:${job.worker_job_id}`} className={`rounded-2xl border px-4 py-4 ${job.mapped ? 'border-theme-border bg-theme-elevated' : 'border-amber-500/20 bg-amber-500/10'}`}>
                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                       <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
@@ -2783,7 +2783,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
       {feedbackNodes}
       <div className={embedded ? 'space-y-6' : 'mx-auto max-w-[1800px] space-y-4'}>
         {embedded ? (
- <section className="rounded-[2rem] border border-theme-border bg-slate-50/70 p-6">
+ <section className="rounded-[2rem] border border-theme-border bg-theme-elevated p-6">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">

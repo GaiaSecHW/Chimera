@@ -238,7 +238,7 @@ export const DeployScriptPage: React.FC = () => {
       {/* Main Browser Window */}
  <div className="flex-1 min-h-0 bg-theme-surface overflow-hidden rounded-xl border border-theme-border flex flex-col relative">
         {/* Browser Navbar */}
-        <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5 flex items-center justify-between shrink-0">
+        <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5 flex items-center justify-between shrink-0">
            <div className="flex items-center gap-4 flex-1 min-w-0">
               <button
                 onClick={goBack}

@@ -1811,7 +1811,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
           </div>
 
           <div className="p-5 space-y-4">
-            <div className="flex flex-wrap items-center gap-2 border border-theme-border bg-slate-50/70 rounded-xl p-2">
+            <div className="flex flex-wrap items-center gap-2 border border-theme-border bg-theme-elevated rounded-xl p-2">
               <button
                 onClick={() => setDeployModalTab('scope')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-medium ${deployModalTab === 'scope' ? 'bg-theme-elevated text-blue-400 border border-blue-500/20' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}

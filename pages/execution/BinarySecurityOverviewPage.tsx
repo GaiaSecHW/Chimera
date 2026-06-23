@@ -916,7 +916,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         </div>
       )}
 
- <section className="rounded-xl border border-theme-border bg-slate-50/70 p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-elevated p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <ShieldAlert size={18} className="text-rose-400" />

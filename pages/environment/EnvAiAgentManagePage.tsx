@@ -1926,7 +1926,7 @@ className="form-input min-w-0 flex-1 font-mono"
                       <input
                         value={entry.key}
                         onChange={(e) => setEnvEntries((prev) => prev.map((item) => (item.id === entry.id ? { ...item, key: e.target.value } : item)))}
-                        className="form-input w-56 shrink-0 font-mono"
+                        className="form-input w-full shrink-0 font-mono"
                         placeholder="KEY"
                       />
                       <span className="shrink-0 text-theme-text-muted">=</span>

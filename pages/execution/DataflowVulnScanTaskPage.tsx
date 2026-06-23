@@ -1862,7 +1862,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                                     key={`${worker.worker_id}:${job.task_id}`}
                                     className={`rounded-2xl border px-4 py-4 ${
                                       job.mapped
-                                        ? 'border-theme-border bg-slate-50/70'
+                                        ? 'border-theme-border bg-theme-elevated'
                                         : 'border-amber-500/20 bg-amber-50/80'
                                     }`}
                                   >

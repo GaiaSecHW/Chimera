@@ -227,7 +227,7 @@ export const RedlineOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="搜索任务名称..."
-            className="form-input w-64 pl-9 pr-3"
+            className="form-input w-full pl-9 pr-3"
           />
         </div>
       </div>

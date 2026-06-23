@@ -1172,7 +1172,7 @@ className="form-select ml-2 text-xs"
                                 </td>
                               </tr>
                               {expanded ? (
-                                <tr className="bg-slate-50/60">
+                                <tr className="bg-theme-elevated">
                                   <td colSpan={9} className="px-3 py-3">
                                     <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                                       {timelinePayloadRows(payload).slice(0, 12).map((row) => (

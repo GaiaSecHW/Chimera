@@ -391,7 +391,7 @@ const AgentTreeTable: React.FC<{
 }> = ({ rows, childCountByParent, expandedKeys, onToggleExpand, onOpenDetail, onOpenArchitecture }) => (
   <div className="overflow-x-auto bg-theme-surface">
     <table className="min-w-full text-left text-sm">
-      <thead className="border-b border-theme-border bg-slate-50/70 text-xs font-semibold text-theme-text-muted">
+      <thead className="border-b border-theme-border bg-theme-elevated text-xs font-semibold text-theme-text-muted">
         <tr>
           <th className="px-5 py-3">Agent</th>
           <th className="px-4 py-3">状态</th>
@@ -416,7 +416,7 @@ const AgentTreeTable: React.FC<{
           const indent = Math.min(row.depth, 6) * 24;
 
           return (
-            <tr key={agentKey || getAgentName(agent)} className="transition hover:bg-slate-50/80">
+            <tr key={agentKey || getAgentName(agent)} className="transition hover:bg-theme-elevated">
               <td className="py-3.5 pr-5" style={{ paddingLeft: `${20 + indent}px` }}>
                 <div className="relative flex min-w-[280px] items-start gap-2.5">
                   {row.depth > 0 ? <span className="absolute -left-3 top-3 h-px w-2 bg-slate-300" /> : null}
@@ -718,7 +718,7 @@ const RouteTableWithSearch: React.FC<{
                 <td colSpan={4} className="px-3 py-8 text-center text-theme-text-muted">暂无数据</td>
               </tr>
             ) : filteredRoutes.map((route, index) => (
-              <tr key={route.id || `${title}-${index}`} className="odd:bg-theme-surface even:bg-slate-50/60">
+              <tr key={route.id || `${title}-${index}`} className="odd:bg-theme-surface even:bg-theme-elevated">
                 <td className="truncate px-3 py-2 font-semibold text-cyan-400">{getRouteMethod(route)}</td>
                 <td className="truncate px-3 py-2 font-mono text-theme-text-secondary" title={getRoutePath(route)}>{getRoutePath(route)}</td>
                 <td className="truncate px-3 py-2 font-mono text-theme-text-secondary" title={getRouteHandler(route)}>{getRouteHandler(route) || '-'}</td>

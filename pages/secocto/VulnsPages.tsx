@@ -318,7 +318,7 @@ export const SecOctoVulnsListPage: React.FC<VulnsListProps> = ({ onNavigateDetai
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="搜索 CWE…"
-            className="form-input w-56 pl-9 pr-3"
+            className="form-input w-full pl-9 pr-3"
           />
         </div>
       </div>
@@ -1074,7 +1074,7 @@ export const SecOctoVulnDetailPage: React.FC<VulnDetailProps> = ({ findingId, on
               value={cvssInput}
               onChange={(e) => setCvssInput(e.target.value)}
               placeholder="0.0 ~ 10.0"
-              className="form-input w-32 text-xs"
+              className="form-input w-full text-xs"
             />
           </FormRow>
           <FormRow label="影响">

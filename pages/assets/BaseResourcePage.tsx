@@ -374,7 +374,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
 
  <div className="bg-theme-surface border border-theme-border rounded-xl overflow-hidden min-h-[400px]">
           <table className="w-full text-left">
-            <thead className="bg-slate-100/50 border-b border-theme-border font-semibold text-[10px] text-theme-text-muted uppercase tracking-widest">
+            <thead className="bg-theme-elevated border-b border-theme-border font-semibold text-[10px] text-theme-text-muted uppercase tracking-widest">
               <tr>
                 <th className="px-6 py-5 w-12 text-center">
                   <button onClick={toggleSelectAll} className="p-2 hover:bg-theme-elevated rounded-lg transition-colors">
@@ -393,7 +393,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                 <th className="px-8 py-5 text-right">操作</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-theme-border">
               {loading ? (
                 <tr>
                   <td colSpan={7} className="py-32 text-center">
@@ -410,7 +410,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                 filteredRecords.map((record) => (
                   <tr
                     key={record.upload_id}
-                    className={`hover:bg-theme-elevated transition-all group cursor-pointer ${selectedIds.has(record.upload_id) ? 'bg-blue-50/30' : ''}`}
+                    className={`hover:bg-theme-elevated transition-all group cursor-pointer ${selectedIds.has(record.upload_id) ? 'bg-blue-500/10' : ''}`}
                     onClick={(e) => toggleSelect(record.upload_id, e)}
                   >
                     <td className="px-6 py-6 text-center">
@@ -582,7 +582,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
                 className={`border-4 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer group ${
- isDragging ? 'border-blue-600 bg-blue-50/50 scale-[0.98]' : 'border-theme-border hover:border-blue-300 hover:bg-theme-elevated'
+ isDragging ? 'border-blue-600 bg-blue-500/10 scale-[0.98]' : 'border-theme-border hover:border-blue-300 hover:bg-theme-elevated'
                 }`}
               >
                 <input

@@ -4142,7 +4142,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                             key={worker.worker_id}
                             onClick={() => setSelectedDfaWorkerFilter((current) => current === worker.worker_id ? '' : worker.worker_id)}
                             className={`rounded-2xl border px-4 py-4 ${
-                              worker.healthy ? 'border-theme-border bg-slate-50/70' : 'border-rose-500/20 bg-rose-50/80'
+                              worker.healthy ? 'border-theme-border bg-theme-elevated' : 'border-rose-500/20 bg-rose-500/10'
                             } ${selectedDfaWorkerFilter === worker.worker_id ? 'ring-2 ring-cyan-300 ring-offset-1' : 'cursor-pointer hover:border-cyan-500/20'}`}
                           >
                             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
@@ -4364,7 +4364,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                             key={worker.worker_id}
                             onClick={() => setSelectedEntryWorkerFilter((current) => current === worker.worker_id ? '' : worker.worker_id)}
                             className={`rounded-2xl border px-4 py-4 ${
-                              worker.healthy ? 'border-theme-border bg-slate-50/70' : 'border-rose-500/20 bg-rose-50/80'
+                              worker.healthy ? 'border-theme-border bg-theme-elevated' : 'border-rose-500/20 bg-rose-500/10'
                             } ${selectedEntryWorkerFilter === worker.worker_id ? 'ring-2 ring-indigo-300 ring-offset-1' : 'cursor-pointer hover:border-indigo-500/20'}`}
                           >
                             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
@@ -4813,7 +4813,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                             key={worker.worker_id}
                             onClick={() => setSelectedSystemWorkerFilter((current) => current === worker.worker_id ? '' : worker.worker_id)}
                             className={`rounded-2xl border px-4 py-4 ${
-                              worker.healthy ? 'border-theme-border bg-slate-50/70' : 'border-rose-500/20 bg-rose-50/80'
+                              worker.healthy ? 'border-theme-border bg-theme-elevated' : 'border-rose-500/20 bg-rose-500/10'
                             } ${selectedSystemWorkerFilter === worker.worker_id ? 'ring-2 ring-sky-300 ring-offset-1' : 'cursor-pointer hover:border-sky-500/20'}`}
                           >
                             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
@@ -5784,7 +5784,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               ) : filteredDfaPods.length ? (
                 filteredDfaPods.map((pod) => {
                   return (
- <section key={pod.pod_name} className={`rounded-[1.8rem] border ${pod.healthy ? 'border-theme-border bg-theme-elevated' : 'border-rose-500/20 bg-rose-50/40'}`}>
+ <section key={pod.pod_name} className={`rounded-[1.8rem] border ${pod.healthy ? 'border-theme-border bg-theme-elevated' : 'border-rose-500/20 bg-rose-500/10'}`}>
                       <button
                         type="button"
                         onClick={() => openAgentPodDialog(activeServiceKey, pod.pod_name)}
@@ -5947,7 +5947,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       </div>
                     ) : null}
 
-                    <section className="rounded-[1.8rem] border border-theme-border bg-slate-50/60 p-5">
+                    <section className="rounded-[1.8rem] border border-theme-border bg-theme-elevated p-5">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>关联任务</div>
@@ -6017,7 +6017,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       </div>
                     </section>
 
-                    <section className="rounded-[1.8rem] border border-theme-border bg-slate-50/60 p-5">
+                    <section className="rounded-[1.8rem] border border-theme-border bg-theme-elevated p-5">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>智能体进程</div>

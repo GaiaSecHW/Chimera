@@ -485,7 +485,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
           <div className="p-10 text-center text-sm font-semibold text-theme-text-muted">未找到 batch 中间结果、评审快照或 Agent 会话记录。</div>
         ) : (
           <div className="grid min-h-[680px] grid-cols-1 xl:grid-cols-[430px_minmax(0,1fr)]">
-            <aside className="border-b border-theme-border bg-slate-50/80 xl:border-b-0 xl:border-r">
+            <aside className="border-b border-theme-border bg-theme-elevated xl:border-b-0 xl:border-r">
               <div className="border-b border-theme-border px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-theme-text-muted">中间产物</div>
               <div className="max-h-[680px] overflow-auto p-3">
                 {groupedFiles.map((group) => (
@@ -501,7 +501,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
                               const active = selectedPath === file.path;
                               const metaLine = [agent, role].filter(Boolean).join(' · ');
                               return (
-                                <button key={file.path} type="button" onClick={() => setSelectedPath(file.path)} className={`group relative mb-1 flex w-full cursor-pointer items-start gap-2 border-l-4 px-3 py-2.5 text-left transition-colors duration-150 ease-out ${active ? 'border-l-violet-500 bg-violet-500/15 text-slate-950' : 'border-l-transparent bg-slate-50/35 hover:border-l-violet-300 hover:bg-theme-elevated'}`}>
+                                <button key={file.path} type="button" onClick={() => setSelectedPath(file.path)} className={`group relative mb-1 flex w-full cursor-pointer items-start gap-2 border-l-4 px-3 py-2.5 text-left transition-colors duration-150 ease-out ${active ? 'border-l-violet-500 bg-violet-500/15 text-theme-text-primary' : 'border-l-transparent bg-theme-elevated hover:border-l-violet-300 hover:bg-theme-surface'}`}>
  <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center border transition-colors duration-150 ease-out ${active ? 'border-violet-500/20 bg-theme-elevated text-violet-400' : 'border-theme-border bg-theme-elevated text-theme-text-muted group-hover:border-violet-500/20 group-hover:text-violet-400'}`}>
                                     {languageFromPath(file.name) === 'plaintext' ? <FileText size={15} /> : <Code2 size={15} />}
                                   </div>

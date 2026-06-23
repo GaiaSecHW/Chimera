@@ -857,7 +857,7 @@ placeholder="输入用户名筛选"
             <div className="p-6 pt-6 overflow-y-auto space-y-4">
               {importStage === 'upload' && (
                 <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-8">
-                  <div className="rounded-xl border border-theme-border bg-slate-50/70 p-6 space-y-4">
+                  <div className="rounded-xl border border-theme-border bg-theme-elevated p-6 space-y-4">
                     <div className="space-y-2">
                       <h4 className="text-xl font-semibold text-theme-text-primary">1. 准备成员导入文件</h4>
                       <p className="text-sm text-theme-text-muted font-medium">模板只要求填写已有账号的用户名。普通管理员仅允许导入`member`。</p>

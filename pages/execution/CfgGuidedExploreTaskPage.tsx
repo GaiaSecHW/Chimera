@@ -1862,7 +1862,7 @@ export const CfgGuidedExploreTaskPage: React.FC<{ projectId: string; onOpenTask?
                                     key={`${worker.worker_id}:${job.task_id}`}
                                     className={`rounded-2xl border px-4 py-4 ${
                                       job.mapped
-                                        ? 'border-slate-200 bg-slate-50/70'
+                                        ? 'border-theme-border bg-theme-elevated'
                                         : 'border-amber-200 bg-amber-50/80'
                                     }`}
                                   >

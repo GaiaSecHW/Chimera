@@ -502,7 +502,7 @@ function EventDetailBlock({ detail }: { detail: Record<string, any> | null }) {
   const rows = eventDetailRows(detail);
   if (rows.length === 0) return null;
   return (
-    <div className="mt-3 rounded-2xl border border-theme-border bg-slate-50/80 px-3 py-3">
+    <div className="mt-3 rounded-2xl border border-theme-border bg-theme-elevated px-3 py-3">
       <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">
         <Info size={12} />
         事件细节
@@ -772,7 +772,7 @@ function RoundDetailModal({
                       className={`rounded-xl border px-3 py-2 text-xs font-bold transition ${active ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated'}`}
                     >
                       {tab.label}
-                      <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] ${active ? 'bg-slate-50/15 text-slate-100' : 'bg-theme-elevated text-theme-text-muted'}`}>
+                      <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] ${active ? 'bg-theme-elevated text-theme-text-primary' : 'bg-theme-elevated text-theme-text-muted'}`}>
                         {tab.hint}
                       </span>
                     </button>
@@ -916,7 +916,7 @@ function TaskRow({
   return (
     <tr
       className={`${executionTableInteractiveRowClassName} ${
-        active ? 'bg-blue-50/60' : selected ? 'bg-slate-50/90' : ''
+        active ? 'bg-blue-500/10' : selected ? 'bg-theme-elevated' : ''
       }`.trim()}
       onClick={() => onOpenDetail(task.id)}
     >
@@ -2417,7 +2417,7 @@ function TaskDetailPanel({
                               value={roundKeywordFilter}
                               onChange={(event) => setRoundKeywordFilter(event.target.value)}
                               placeholder="搜索技能/摘要"
-                              className="form-input w-44 py-2 pl-8 pr-3 text-xs"
+                              className="form-input w-full"
                             />
                           </div>
                           <select
@@ -2718,7 +2718,7 @@ function TaskDetailPanel({
                                 </td>
                               </tr>
                               {expanded && detailRows.length > 0 ? (
-                                <tr className="bg-slate-50/80">
+                                <tr className="bg-theme-elevated">
                                   <td className="px-3 py-3" />
                                   <td colSpan={7} className="px-3 py-3">
                                     <EventDetailBlock detail={event.detail} />

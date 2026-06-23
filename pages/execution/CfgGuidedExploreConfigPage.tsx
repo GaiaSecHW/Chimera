@@ -363,7 +363,7 @@ export const CfgGuidedExploreConfigPage: React.FC<{ projectId: string; embedded?
           )}
         </section>
       ) : (
- <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6">
+ <section className="rounded-[2rem] border border-theme-border bg-theme-elevated p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex flex-wrap items-center gap-2">

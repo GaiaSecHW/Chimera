@@ -2373,7 +2373,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
         </section>
       ) : null}
       {riskPreset ? (
-        <section className="rounded-xl border border-amber-500/20 bg-amber-50/80 px-5 py-4 shadow-sm">
+        <section className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-5 py-4 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-400">Risk Focus</div>
@@ -2396,7 +2396,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
         </section>
       ) : null}
       {recommendationReasons.length ? (
-        <section className="rounded-xl border border-sky-500/20 bg-sky-50/80 px-5 py-4 shadow-sm">
+        <section className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-5 py-4 shadow-sm">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-400">Why This Task</div>
           <div className="mt-2 text-sm font-bold text-sky-300">当前任务被推荐到这里的主要依据</div>
           <div className="mt-3 space-y-2">
@@ -2469,32 +2469,32 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                   {/* API_Filter 详细统计（来自 funcProgress 准确数据） */}
                   {lnAFDone > 0 && (
                     <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      <div className="rounded-lg border border-orange-500/20 bg-orange-50/60 px-3 py-2 text-center">
+                      <div className="rounded-lg border border-orange-500/20 bg-orange-500/10 px-3 py-2 text-center">
                         <div className="text-xs font-semibold text-orange-400">AF 共执行</div>
                         <div className="mt-0.5 text-[11px] text-orange-400">共 {lnAFDone} 个函数</div>
                         <div className="text-[10px] text-emerald-400">通过: {lnAFPass}</div>
                         <div className="text-[10px] font-bold text-orange-400">过滤: {lnAFReject} ({lnAFRate})</div>
                       </div>
-                      <div className="rounded-lg border border-theme-border bg-slate-50/60 px-3 py-2 text-center">
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-center">
                         <div className="text-xs font-semibold text-theme-text-secondary">预筛过滤</div>
                         <div className="mt-0.5 text-[11px] text-theme-text-secondary">{lnPrefilter} 个</div>
                         <div className="text-[10px] text-theme-text-muted">0ms · 无 LLM</div>
                         <div className="text-[10px] font-bold text-theme-text-muted">立即过滤</div>
                       </div>
-                      <div className="rounded-lg border border-blue-500/20 bg-blue-50/60 px-3 py-2 text-center">
+                      <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-center">
                         <div className="text-xs font-semibold text-blue-400">LLM 判断</div>
                         <div className="mt-0.5 text-[11px] text-blue-400">{lnLLMJudge} 个</div>
                         <div className="text-[10px] text-theme-text-muted">{lnLLMAvgMs > 0 ? `平均 ${Math.round(lnLLMAvgMs/1000)}s` : ''}</div>
                         <div className="text-[10px] font-bold text-blue-400">通过 {lnLLMJudge - lnLLMReject} / 拒绝 {lnLLMReject}</div>
                       </div>
                       {lnR3TokIn > 0 ? (
-                        <div className="rounded-lg border border-teal-500/20 bg-teal-50/60 px-3 py-2 text-center">
+                        <div className="rounded-lg border border-teal-500/20 bg-teal-500/10 px-3 py-2 text-center">
                           <div className="text-xs font-semibold text-teal-400">R3 Agent Token</div>
                           <div className="mt-0.5 text-[11px] text-teal-400">输入 {fmtK2(lnR3TokIn)}</div>
                           <div className="text-[10px] text-teal-500">输出 {fmtK2(lnR3TokOut)}</div>
                         </div>
                       ) : (
-                        <div className="rounded-lg border border-emerald-500/20 bg-emerald-50/60 px-3 py-2 text-center">
+                        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-center">
                           <div className="text-xs font-semibold text-emerald-400">R3 减少</div>
                           <div className="mt-0.5 text-[11px] text-emerald-400">{lnAFDone > 0 ? Math.round(100*lnAFReject/lnAFDone) : 0}% Agent 调用节省</div>
                           <div className="text-[10px] text-emerald-500">{lnAFReject}/{lnAFDone} 不进 R3</div>
@@ -2538,7 +2538,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                 <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
                   {([
                     { label: '总文件数',   value: totalFiles || '-', border: 'border-theme-border', bg: 'bg-theme-elevated',     text: 'text-theme-text-primary' },
-                    { label: '总函数数',   value: totalFuncs || '-',  border: 'border-theme-border', bg: 'bg-slate-50/80',   text: 'text-theme-text-secondary' },
+                    { label: '总函数数',   value: totalFuncs || '-',  border: 'border-theme-border', bg: 'bg-theme-elevated',   text: 'text-theme-text-secondary' },
                     { label: 'R1完成文件', value: r1Done || '-',    border: 'border-sky-500/20',   bg: 'bg-sky-500/15',       text: 'text-sky-400' },
                     { label: 'R2完成函数', value: r2Funcs || '-',    border: 'border-indigo-500/20',bg: 'bg-indigo-500/15',    text: 'text-indigo-400' },
                     { label: `AF预筛(${afRate})`, value: afDone ? `${afPass}通过` : '-', border: 'border-orange-500/20', bg: 'bg-orange-500/15', text: 'text-orange-400' },
@@ -2554,17 +2554,17 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                 </div>
                 {afDone > 0 && (
                   <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <div className="rounded-lg border border-orange-500/20 bg-orange-50/60 px-3 py-2 text-center">
+                    <div className="rounded-lg border border-orange-500/20 bg-orange-500/10 px-3 py-2 text-center">
                       <div className="text-xs font-semibold text-orange-400">API_Filter</div>
                       <div className="mt-0.5 text-[11px] text-orange-400">执行 {afDone} · 通过 {afPass}</div>
                       <div className="text-[10px] font-bold text-orange-400">过滤 {afReject} ({afRate})</div>
                     </div>
-                    <div className="rounded-lg border border-theme-border bg-slate-50/60 px-3 py-2 text-center">
+                    <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-center">
                       <div className="text-xs font-semibold text-theme-text-secondary">预筛过滤</div>
                       <div className="mt-0.5 text-[11px] text-theme-text-secondary">{afPrefilterReject} 个</div>
                       <div className="text-[10px] text-theme-text-muted">0ms · 不调用 LLM</div>
                     </div>
-                    <div className="rounded-lg border border-blue-500/20 bg-blue-50/60 px-3 py-2 text-center">
+                    <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-center">
                       <div className="text-xs font-semibold text-blue-400">Direct API</div>
                       <div className="mt-0.5 text-[11px] text-blue-400">{afLLM} 次</div>
                       <div className="text-[10px] text-blue-500">与 Agent 共用排队槽位</div>
@@ -2580,7 +2580,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                 {(r2TokIn > 0 || r3TokIn > 0) && (
                   <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {r2TokIn > 0 && (
-                      <div className="rounded-lg border border-indigo-500/20 bg-indigo-50/60 px-3 py-2 text-center">
+                      <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-3 py-2 text-center">
                         <div className="text-xs font-semibold text-indigo-400">R2 Token</div>
                         <div className="mt-0.5 text-[11px] text-indigo-400">输入 {fmtK(r2TokIn)} | 输出 {fmtK(r2TokOut)}</div>
                         {r2DurSec > 0 && <div className="text-[10px] text-theme-text-muted">{fmtSec(r2DurSec)}</div>}
@@ -2752,7 +2752,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {funcPageSlice.map((f) => (
-                      <tr key={f.func_hash} className={`transition ${f.is_entry ? 'bg-emerald-50/40 hover:bg-emerald-500/15' : 'hover:bg-theme-elevated'}`}>
+                      <tr key={f.func_hash} className={`transition ${f.is_entry ? 'bg-emerald-500/15 hover:bg-emerald-500/15' : 'hover:bg-theme-elevated'}`}>
                         <td className="px-4 py-2 font-mono">
                           {f.is_entry ? (
                             <button
@@ -3064,7 +3064,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                                   </td>
                                 </tr>
                                 {expanded ? (
-                                  <tr className="bg-slate-50/60">
+                                  <tr className="bg-theme-elevated">
                                     <td colSpan={9} className="px-3 py-3">
                                       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                                         {timelinePayloadRows(payload).slice(0, 12).map((row) => (

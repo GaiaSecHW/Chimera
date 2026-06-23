@@ -578,7 +578,7 @@ export const JobTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                   />
                </div>
 
-               <div className="space-y-3 rounded-xl border border-theme-border bg-slate-50/70 p-5">
+               <div className="space-y-3 rounded-xl border border-theme-border bg-theme-elevated p-5">
                   <div className="flex items-center gap-2">
                     <Hash size={15} className="text-amber-500" />
                     <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">模板 TAG</label>

@@ -337,7 +337,7 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
           )}
         </section>
       ) : (
- <section className="rounded-xl border border-theme-border bg-slate-50/70 p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-elevated p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex flex-wrap items-center gap-2">

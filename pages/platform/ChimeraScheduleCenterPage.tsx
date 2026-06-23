@@ -1158,7 +1158,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
 
  <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
 
-              <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
+              <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.5fr_repeat(4,minmax(0,0.9fr))] 2xl:grid-cols-[1.7fr_repeat(4,minmax(0,0.85fr))_auto] xl:items-end">
                   <div className="block">
                     <div className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
@@ -1554,7 +1554,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                 </table>
               </div>
 
-              <div className="border-t border-theme-border bg-slate-50/70 px-4 py-3 md:px-5">
+              <div className="border-t border-theme-border bg-theme-elevated px-4 py-3 md:px-5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="text-sm font-semibold text-theme-text-muted">
                     第 {page} / {totalPages} 页，共 {formatCount(total)} 条
@@ -1609,7 +1609,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
 
 
  <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-              <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
+              <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
                 <div className="mb-4">
                   <h2 className="text-lg font-semibold text-theme-text-primary">调度日志</h2>
                   <p className="mt-1 text-sm font-medium text-theme-text-muted">查看任务级调度、同步、删除与状态刷新事件。</p>
@@ -1708,7 +1708,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                 </table>
               </div>
 
-              <div className="border-t border-theme-border bg-slate-50/70 px-4 py-3 md:px-5">
+              <div className="border-t border-theme-border bg-theme-elevated px-4 py-3 md:px-5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="text-sm font-semibold text-theme-text-muted">第 {taskEventPage} 页，共 {Math.max(1, Math.ceil(taskEventTotal / taskEventPageSize))} 页，共 {formatCount(taskEventTotal)} 条</div>
                   <div className="flex items-center gap-3">
@@ -1728,7 +1728,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
               </div>
 
               {selectedTaskEvent ? (
-                <div className="border-t border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
+                <div className="border-t border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
                   <div className="flex items-center justify-between">
                     <div className="text-sm font-semibold text-theme-text-primary">事件详情：{selectedTaskEvent.event_type}</div>
                     <button onClick={() => setSelectedTaskEvent(null)} className="rounded-lg p-1 text-theme-text-muted hover:bg-theme-elevated"><X size={16} /></button>
@@ -1784,7 +1784,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
             </section>
 
  <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-              <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
+              <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
                 <h2 className="text-lg font-semibold text-theme-text-primary">调度队列预览</h2>
                 <p className="mt-1 text-sm font-medium text-theme-text-muted">查看调度执行、删除维护和用户任务同步队列的当前积压与等待时长。</p>
               </div>
@@ -1797,7 +1797,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                 <div className="space-y-4 px-4 py-4 md:px-5">
                   {(queuePreview?.groups || []).map((group: ScheduleRuntimeQueuePreviewGroup) => (
                     <section key={group.group_key} className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-                      <div className="border-b border-theme-border bg-slate-50/70 px-4 py-3">
+                      <div className="border-b border-theme-border bg-theme-elevated px-4 py-3">
                         <div className="text-xs font-bold uppercase tracking-[0.16em] text-theme-text-muted">{group.group_key}</div>
                         <h3 className="mt-1 text-base font-semibold text-theme-text-primary">{group.group_name}</h3>
                       </div>
@@ -1890,7 +1890,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
             </section>
 
  <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-              <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
+              <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
                 <h2 className="text-lg font-semibold text-theme-text-primary">{legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].title}</h2>
                 <p className="mt-1 text-sm font-medium leading-6 text-theme-text-muted">
                   {legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].summary}

@@ -2067,7 +2067,7 @@ const TaskSessionViewer: React.FC<{
   }
 
   return (
- <div className="rounded-xl border border-theme-border bg-slate-50/70">
+ <div className="rounded-xl border border-theme-border bg-theme-elevated">
       <div className="border-b border-theme-border px-6 py-5">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-xl font-semibold tracking-tight text-theme-text-primary">{sessionMeta.display_name}</h2>
@@ -4097,7 +4097,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="服务状态" value={baseDataLoading ? 'Loading' : readyState?.ready ? 'Ready' : readyState?.status || 'Unknown'} sub={capabilities?.service || 'chimera-app-ipc-audit'} />
         <MetricCard label="工作区" value={baseDataLoading ? '加载中' : selectedWorkspace?.display_name || '-'} sub={baseDataLoading ? '等待工作区' : selectedWorkspace?.workspace_id || '未选择'} />
-        <div className="rounded-lg border border-theme-border bg-slate-50/90 px-4 py-3">
+        <div className="rounded-lg border border-theme-border bg-theme-elevated px-4 py-3">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">并发上限</div>
           <div className="mt-2 flex items-center gap-2">
             <input
@@ -4180,7 +4180,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
               <MetricCard label="活跃任务" value={activeTaskCount} />
             </div>
 
-            <div className="mt-4 rounded-2xl border border-theme-border bg-slate-50/80 px-4 py-3">
+            <div className="mt-4 rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3">
               <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                 <label className="inline-flex items-center gap-2 text-sm font-bold text-theme-text-secondary">
                   <input
@@ -4317,7 +4317,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   return (
                     <div
                       key={item.task_id}
- className={`rounded-lg border transition ${checked ? 'border-sky-300 bg-sky-500/15 ' : active ? 'border-sky-300 bg-sky-50/70 ' : 'border-theme-border bg-theme-elevated hover:border-theme-border hover:bg-theme-elevated'}`}
+ className={`rounded-lg border transition ${checked ? 'border-sky-300 bg-sky-500/15 ' : active ? 'border-sky-300 bg-sky-500/10 ' : 'border-theme-border bg-theme-elevated hover:border-theme-border hover:bg-theme-elevated'}`}
                     >
                       <div className="flex items-start gap-3 px-4 py-4">
                         <input
@@ -4537,7 +4537,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                 </div>
 
                 {isCompletedTaskStatus(selectedTask.status) ? (
-                  <div className="mt-5 rounded-2xl border border-theme-border bg-slate-50/70 p-4">
+                  <div className="mt-5 rounded-2xl border border-theme-border bg-theme-elevated p-4">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Audited Result</div>
@@ -4572,7 +4572,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   </div>
                 ) : null}
 
-                <div className="mt-6 rounded-2xl border border-theme-border bg-slate-50/70 p-4">
+                <div className="mt-6 rounded-2xl border border-theme-border bg-theme-elevated p-4">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Report Outputs</div>
@@ -4643,7 +4643,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                 </div>
 
                 {selectedTask.pipeline_mode === 'custom_graph' ? (
-                  <div className="mt-6 rounded-2xl border border-theme-border bg-slate-50/70 p-4">
+                  <div className="mt-6 rounded-2xl border border-theme-border bg-theme-elevated p-4">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">AgentFlow Graph</div>
@@ -4792,7 +4792,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   ) : currentStageNames.map((stageName) => {
                     const stageRun = currentAttempt?.stage_runs.find((item) => item.stage_name === stageName) || null;
                     return (
-                      <div key={stageName} className="rounded-2xl border border-theme-border bg-slate-50/70 p-4">
+                      <div key={stageName} className="rounded-2xl border border-theme-border bg-theme-elevated p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className="text-sm font-semibold text-theme-text-primary">{formatStageLabel(stageName)}</div>
@@ -4819,7 +4819,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   })}
                 </div>
 
-                <div className="mt-6 rounded-xl border border-theme-border bg-slate-50/70 p-4">
+                <div className="mt-6 rounded-xl border border-theme-border bg-theme-elevated p-4">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                       <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Session Explorer</div>
@@ -4951,7 +4951,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                 </div>
 
                 <div className="mt-6 grid gap-6 2xl:grid-cols-[minmax(0,1fr)_360px]">
-                  <div className="rounded-xl border border-theme-border bg-slate-50/70 p-4">
+                  <div className="rounded-xl border border-theme-border bg-theme-elevated p-4">
                     <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-primary">
                       <Clock3 size={16} />
                       事件流
@@ -4999,7 +4999,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-theme-border bg-slate-50/70 p-4">
+                  <div className="rounded-xl border border-theme-border bg-theme-elevated p-4">
                     <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-primary">
                       <Bot size={16} />
                       产物列表
@@ -5105,7 +5105,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     </select>
                   </label>
 
-                  <div className="rounded-lg border border-theme-border bg-slate-50/80 p-4">
+                  <div className="rounded-lg border border-theme-border bg-theme-elevated p-4">
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-[0.18em] text-theme-text-muted">项目路径列表</div>
@@ -5293,7 +5293,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   </label>
                   <div className="text-xs font-medium text-theme-text-muted">{modelHintForExecutor(executorMode, providerFallbackModel || null)}</div>
 
-                  <div className="rounded-lg border border-theme-border bg-slate-50/80 p-4">
+                  <div className="rounded-lg border border-theme-border bg-theme-elevated p-4">
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <button
                         type="button"
@@ -5327,7 +5327,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
 
                   {customGraphExpanded ? (
                     <>
-                  <div ref={graphDefinitionCardRef} className="rounded-lg border border-sky-500/20 bg-sky-50/80 p-4">
+                  <div ref={graphDefinitionCardRef} className="rounded-lg border border-sky-500/20 bg-sky-500/10 p-4">
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-400">图定义 / AgentFlow Graph</div>
@@ -5447,7 +5447,7 @@ className="form-input w-full"
                     )}
                   </div>
 
-                      <div className="rounded-lg border border-theme-border bg-slate-50/80 p-4">
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated p-4">
                         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                           <div>
                             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Template Storage</div>
@@ -5521,7 +5521,7 @@ className="form-input w-full"
                         </div>
                       </div>
 
-                      <div className="rounded-lg border border-theme-border bg-slate-50/80 p-4">
+                      <div className="rounded-lg border border-theme-border bg-theme-elevated p-4">
                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                           <div>
                             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Report Outputs</div>
@@ -5613,7 +5613,7 @@ className="form-input w-full"
                     </>
                   ) : null}
 
-                  <div className="rounded-lg border border-theme-border bg-slate-50/80 p-4">
+                  <div className="rounded-lg border border-theme-border bg-theme-elevated p-4">
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-[0.18em] text-theme-text-muted">LLM Provider</div>
@@ -5716,7 +5716,7 @@ className="form-input w-full"
                 </div>
 
                 <div className="space-y-4">
-                  <div className="rounded-lg border border-theme-border bg-slate-50/80 p-4">
+                  <div className="rounded-lg border border-theme-border bg-theme-elevated p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Create Summary</div>
@@ -5811,7 +5811,7 @@ className="form-input w-full"
               </div>
             </div>
 
-            <div className="shrink-0 border-t border-theme-border bg-slate-50/90 px-5 py-4">
+            <div className="shrink-0 border-t border-theme-border bg-theme-elevated px-5 py-4">
               <div className="flex items-center justify-end gap-3">
               <button
                 type="button"

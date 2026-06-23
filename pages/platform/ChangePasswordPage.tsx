@@ -217,7 +217,7 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({ user }) 
               </div>
             ) : null}
 
-            <div className="rounded-xl border border-theme-border bg-slate-50/80 p-5">
+            <div className="rounded-xl border border-theme-border bg-theme-elevated p-5">
               <p className="text-sm font-semibold text-theme-text-primary">安全规则检查</p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {rules.map((rule) => (

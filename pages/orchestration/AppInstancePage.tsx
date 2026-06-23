@@ -683,7 +683,7 @@ export const AppInstancePage: React.FC<{
                   ) : templates.length === 0 ? (
                     <div className="py-12 text-center text-theme-text-muted">暂无可用模板</div>
                   ) : filteredTemplates.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-theme-border bg-slate-50/80 px-6 py-14 text-center">
+                    <div className="rounded-xl border border-dashed border-theme-border bg-theme-elevated px-6 py-14 text-center">
  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-theme-surface text-theme-text-faint">
                         <Search size={22} />
                       </div>

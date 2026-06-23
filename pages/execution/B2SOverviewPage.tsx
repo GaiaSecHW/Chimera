@@ -568,7 +568,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         </div>
       )}
 
- <section className="rounded-xl border border-theme-border bg-slate-50/70 p-5">
+ <section className="rounded-xl border border-theme-border bg-theme-elevated p-5">
         <B2SStatsHeader stats={stats} title="当前项目逆向统计" />
       </section>
 
@@ -790,7 +790,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                                     key={`${worker.worker_id}:${job.pi_job_id}`}
                                     className={`rounded-2xl border px-4 py-4 ${
                                       job.mapped
-                                        ? 'border-theme-border bg-slate-50/70'
+                                        ? 'border-theme-border bg-theme-elevated'
                                         : 'border-amber-500/20 bg-amber-50/80'
                                     }`}
                                   >

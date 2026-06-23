@@ -194,7 +194,7 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {filteredFiles.map((file, idx) => (
-                    <tr key={idx} className="hover:bg-blue-50/20 transition-all group">
+                    <tr key={idx} className="hover:bg-blue-500/10 transition-all group">
                       <td className="px-8 py-5">
                         <div className="flex items-center gap-4">
                           <FileText size={18} className="text-theme-text-faint group-hover:text-blue-500 transition-colors shrink-0" />
