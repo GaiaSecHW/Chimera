@@ -53,9 +53,33 @@
     --xterm-cursor: #6366f1;
     --shell-muted-bg: rgba(17, 26, 43, 0.92);
     --shell-muted-hover-bg: #18233a;
+    --bg-glass: rgba(17, 26, 43, 0.84);
+    --gold: #ffd700;
+    --silver: #c0c0c0;
+    --bronze: #cd7f32;
   }
 
   :root[data-theme='chimera'] {
+    --bg-glass: rgba(17, 26, 43, 0.84);
+    --gold: #ffd700;
+    --silver: #c0c0c0;
+    --bronze: #cd7f32;
+  }
+
+  /* Radius tokens for UI components */
+  :root {
+    --r-sm: 6px;
+    --r-md: 8px;
+    --r-lg: 12px;
+    --r-xl: 16px;
+    --pill: 999px;
+  }
+
+  * {
+    border-color: var(--border-default);
+  }
+
+  body {
     --bg-app: #070d18;
     --bg-surface: #111a2b;
     --bg-elevated: #18233a;

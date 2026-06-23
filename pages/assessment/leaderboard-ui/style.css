@@ -73,10 +73,10 @@
   gap: 4px;
 }
 .lb-toolbar select {
-  background: var(--bg-app);
-  color: var(--text-primary);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
   border: 1px solid var(--border-default);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
   padding: 7px 10px;
   min-width: 130px;
   font-size: 13px;
@@ -162,7 +162,7 @@
 }
 .lb-view-switch-button.is-active {
   background: var(--brand-primary);
-  color: #fff;
+  color: #ffffff;
 }
 
 /* ---------- Buttons ---------- */
@@ -170,7 +170,7 @@
   background: var(--bg-elevated);
   color: var(--text-secondary);
   border: 1px solid var(--border-default);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
   padding: 8px 16px;
   cursor: pointer;
   font-size: 13px;
@@ -183,18 +183,18 @@
   color: var(--brand-primary-hover);
 }
 .lb-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 .lb-btn-primary {
   background: var(--brand-primary);
   border-color: var(--brand-primary);
-  color: #fff;
+  color: #ffffff;
 }
 .lb-btn-primary:hover:not(:disabled) {
   background: var(--brand-primary-hover);
   border-color: var(--brand-primary-hover);
-  color: #fff;
+  color: #ffffff;
 }
 
 /* ---------- Board / table ---------- */
@@ -215,12 +215,12 @@
 .lb-modal {
   position: fixed;
   inset: 0;
-  background: rgba(3, 7, 18, 0.66);
+  background: rgba(5, 10, 20, 0.72);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 50;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(6px);
 }
 .lb-modal-card {
   width: min(640px, 92vw);
@@ -448,15 +448,15 @@
 .dg-popover-input span { width: 28px; color: var(--text-muted); }
 .dg-popover-input input {
   flex: 1 1 auto; min-width: 0; padding: 4px 6px;
-  border: 1px solid var(--border-default); border-radius: 3px;
-  background: var(--bg-surface); color: var(--text-primary);
+  border: 1px solid var(--border-default); border-radius: var(--r-sm);
+  background: var(--bg-elevated); color: var(--text-secondary);
 }
 .dg-popover-footer { display: flex; justify-content: flex-end; gap: 4px; padding-top: 6px; }
 .dg-popover-button {
   padding: 4px 10px; border: 1px solid var(--border-default); background: transparent;
   border-radius: 3px; font-size: 13px; cursor: pointer; color: var(--text-secondary);
 }
-.dg-popover-button.is-primary { background: var(--brand-primary); color: #fff; border-color: var(--brand-primary); }
+.dg-popover-button.is-primary { background: var(--brand-primary); color: #ffffff; border-color: var(--brand-primary); }
 
 /* skill cell: ALL / Pn badges + Pn popover */
 .skill-cell { display: inline-flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; max-width: 100%; }
@@ -468,8 +468,8 @@
   border: 1px solid transparent;
 }
 .skill-mode-badge.is-all { background: var(--brand-soft); color: var(--brand-primary); }
-.skill-mode-badge.is-partial { background: rgba(213, 161, 58, 0.18); color: var(--warning); cursor: pointer; position: relative; }
-.skill-mode-badge.is-partial:hover { background: rgba(213, 161, 58, 0.28); }
+.skill-mode-badge.is-partial { background: var(--warning-soft); color: var(--warning); cursor: pointer; position: relative; border: 1px solid var(--warning-border); }
+.skill-mode-badge.is-partial:hover { background: color-mix(in srgb, var(--warning-soft) 80%, var(--warning)); }
 
 .skill-popover {
   position: absolute; z-index: 60; background: var(--bg-elevated);
