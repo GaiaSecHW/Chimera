@@ -822,6 +822,44 @@ export interface BinarySecurityTimeline {
   }>;
 }
 
+export interface BinarySecuritySyncEvent {
+  id: string;
+  stage_name?: string | null;
+  item_id?: string | null;
+  item_key?: string | null;
+  item_name?: string | null;
+  downstream_service?: string | null;
+  downstream_task_id?: string | null;
+  operation?: string | null;
+  event_type: string;
+  sync_status?: string | null;
+  outcome?: string | null;
+  state_applied?: boolean | null;
+  error_type?: string | null;
+  error_message?: string | null;
+  http_status?: number | null;
+  payload: Record<string, any>;
+  recorder_instance_id?: string | null;
+  recorder_hostname?: string | null;
+  recorder_pod_name?: string | null;
+  recorder_node_name?: string | null;
+  recorder_role?: string | null;
+  origin_instance_id?: string | null;
+  origin_hostname?: string | null;
+  origin_pod_name?: string | null;
+  origin_node_name?: string | null;
+  origin_role?: string | null;
+  created_at: string;
+}
+
+export interface BinarySecuritySyncEventPage {
+  task_id: string;
+  total: number;
+  page: number;
+  page_size: number;
+  items: BinarySecuritySyncEvent[];
+}
+
 export interface BinarySecurityReducerEventRecordSummary {
   pending_count: number;
   processing_count: number;
@@ -1118,6 +1156,47 @@ export const binarySecurityApi = {
   getTimeline: async (projectId: string, taskId: string, page = 1, pageSize = 200): Promise<BinarySecurityTimeline> => {
     const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/timeline?${params.toString()}`, {
+      headers: getHeaders(),
+      cache: 'no-store',
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskSyncEvents: async (
+    projectId: string,
+    taskId: string,
+    params?: {
+      stage_name?: string;
+      downstream_service?: string;
+      operation?: string;
+      event_type?: string;
+      sync_status?: string;
+      outcome?: string;
+      has_error?: boolean;
+      state_applied?: boolean;
+      search?: string;
+      page?: number;
+      page_size?: number;
+      sort_by?: 'created_at' | 'stage_name' | 'item_key' | 'downstream_service';
+      sort_order?: 'asc' | 'desc';
+    },
+  ): Promise<BinarySecuritySyncEventPage> => {
+    const query = new URLSearchParams();
+    if (params?.stage_name) query.set('stage_name', params.stage_name);
+    if (params?.downstream_service) query.set('downstream_service', params.downstream_service);
+    if (params?.operation) query.set('operation', params.operation);
+    if (params?.event_type) query.set('event_type', params.event_type);
+    if (params?.sync_status) query.set('sync_status', params.sync_status);
+    if (params?.outcome) query.set('outcome', params.outcome);
+    if (params?.has_error !== undefined) query.set('has_error', String(params.has_error));
+    if (params?.state_applied !== undefined) query.set('state_applied', String(params.state_applied));
+    if (params?.search) query.set('search', params.search);
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.page_size) query.set('page_size', String(params.page_size));
+    if (params?.sort_by) query.set('sort_by', params.sort_by);
+    if (params?.sort_order) query.set('sort_order', params.sort_order);
+    const suffix = query.size > 0 ? `?${query.toString()}` : '';
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/sync-events${suffix}`, {
       headers: getHeaders(),
       cache: 'no-store',
     });

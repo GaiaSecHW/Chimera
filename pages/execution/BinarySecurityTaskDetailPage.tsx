@@ -19,6 +19,8 @@ import {
   BinarySecurityOverviewResponse,
   BinarySecurityRuntimeHealthGroup,
   BinarySecurityRuntimeHealthLoopSnapshot,
+  BinarySecuritySyncEvent,
+  BinarySecuritySyncEventPage,
   BinarySecurityRuntimeHealthUnit,
   BinarySecurityStageItemPage,
   BinarySecurityTaskDetail,
@@ -725,7 +727,7 @@ type DownstreamTaskState = {
   downstreamTaskId?: string;
 };
 
-type DetailTab = 'overview' | 'strategy' | 'modules' | 'timeline' | 'api_keys' | 'orchestration' | 'runtime_health';
+type DetailTab = 'overview' | 'strategy' | 'modules' | 'timeline' | 'sync_records' | 'api_keys' | 'orchestration' | 'runtime_health';
 type StageNodeKind = 'business' | 'archive';
 type ArchiveJob = BinarySecurityTaskDetail['archive_jobs'][number];
 type BlockingActionKind = '' | 'retry' | 'retry_failed_items';
@@ -2128,9 +2130,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [timeline, setTimeline] = useState<any[]>([]);
   const [timelineTotal, setTimelineTotal] = useState(0);
   const [timelineHasMore, setTimelineHasMore] = useState(false);
+  const [syncEvents, setSyncEvents] = useState<BinarySecuritySyncEvent[]>([]);
+  const [syncEventsTotal, setSyncEventsTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [detailRefreshing, setDetailRefreshing] = useState(false);
   const [timelineLoading, setTimelineLoading] = useState(false);
+  const [syncEventsLoading, setSyncEventsLoading] = useState(false);
   const [timelineClearing, setTimelineClearing] = useState(false);
   const [overviewNodes, setOverviewNodes] = useState<BinarySecurityOverviewNode[]>([]);
   const [overviewLoading, setOverviewLoading] = useState(false);
@@ -2164,8 +2169,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [stageItemTimeSort, setStageItemTimeSort] = useState<StageItemTimeSort>(null);
   const [actionLoading, setActionLoading] = useState<string>('');
   const [expandedEventKey, setExpandedEventKey] = useState<string | null>(null);
+  const [expandedSyncEventId, setExpandedSyncEventId] = useState<string | null>(null);
   const [timelinePage, setTimelinePage] = useState(1);
   const [timelinePageSize, setTimelinePageSize] = useState(200);
+  const [syncEventsPage, setSyncEventsPage] = useState(1);
+  const [syncEventsPageSize, setSyncEventsPageSize] = useState(100);
+  const [syncEventStageFilter, setSyncEventStageFilter] = useState('all');
+  const [syncEventServiceFilter, setSyncEventServiceFilter] = useState('all');
+  const [syncEventOperationFilter, setSyncEventOperationFilter] = useState('all');
+  const [syncEventTypeFilter, setSyncEventTypeFilter] = useState('all');
+  const [syncEventStatusFilter, setSyncEventStatusFilter] = useState('all');
+  const [syncEventOutcomeFilter, setSyncEventOutcomeFilter] = useState('all');
+  const [syncEventHasErrorFilter, setSyncEventHasErrorFilter] = useState<'all' | 'true' | 'false'>('all');
+  const [syncEventStateAppliedFilter, setSyncEventStateAppliedFilter] = useState<'all' | 'true' | 'false'>('all');
+  const [syncEventSearch, setSyncEventSearch] = useState('');
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
   const [expandedStageItemId, setExpandedStageItemId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -2455,6 +2472,33 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }
   };
 
+  const loadSyncEvents = async (page = syncEventsPage, pageSize = syncEventsPageSize) => {
+    if (!projectId || !taskId) return;
+    setSyncEventsLoading(true);
+    setError(null);
+    try {
+      const payload: BinarySecuritySyncEventPage = await executionApi.binarySecurity.getTaskSyncEvents(projectId, taskId, {
+        stage_name: syncEventStageFilter !== 'all' ? syncEventStageFilter : undefined,
+        downstream_service: syncEventServiceFilter !== 'all' ? syncEventServiceFilter : undefined,
+        operation: syncEventOperationFilter !== 'all' ? syncEventOperationFilter : undefined,
+        event_type: syncEventTypeFilter !== 'all' ? syncEventTypeFilter : undefined,
+        sync_status: syncEventStatusFilter !== 'all' ? syncEventStatusFilter : undefined,
+        outcome: syncEventOutcomeFilter !== 'all' ? syncEventOutcomeFilter : undefined,
+        has_error: syncEventHasErrorFilter === 'all' ? undefined : syncEventHasErrorFilter === 'true',
+        state_applied: syncEventStateAppliedFilter === 'all' ? undefined : syncEventStateAppliedFilter === 'true',
+        search: syncEventSearch.trim() || undefined,
+        page,
+        page_size: pageSize,
+      });
+      setSyncEvents(payload.items || []);
+      setSyncEventsTotal(Number(payload.total || 0));
+    } catch (e: any) {
+      setError(e?.message || '加载同步记录失败');
+    } finally {
+      setSyncEventsLoading(false);
+    }
+  };
+
   const loadStageItemsPage = async () => {
     if (activeTab !== 'overview' || selectedNodeKind !== 'business' || !detail || !projectId || !taskId || !selectedStage) return;
     const requestKey =`${projectId}:${taskId}:${selectedStage}:${stageItemsCurrentPage}:${stageItemsPerPage}:${stageStatusFilter}:${stageDownstreamStatusFilter}:${stageSyncStatusFilter}:${stageItemTimeSort?.key || ''}:${stageItemTimeSort?.direction || ''}`;
@@ -2716,6 +2760,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         setTimelineHasMore(false);
         setExpandedEventKey(null);
       }
+      if (activeTab === 'sync_records') {
+        setSyncEvents([]);
+        setSyncEventsTotal(0);
+        setExpandedSyncEventId(null);
+      }
       if (activeTab === 'orchestration') {
         setOrchestrationObservability(null);
         setOrchestrationLoaded(false);
@@ -2729,6 +2778,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       }
       if (activeTab === 'modules' && refreshedTask) await loadModuleSelection();
       if (activeTab === 'timeline') await loadTimeline(timelinePage, timelinePageSize);
+      if (activeTab === 'sync_records') await loadSyncEvents(syncEventsPage, syncEventsPageSize);
       if (activeTab === 'orchestration') await loadOrchestrationObservability();
     } finally {
       setDetailRefreshing(false);
@@ -3497,6 +3547,27 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const pagedTimelineItems = timelineItems;
   const timelineRangeStart = timelineTotal === 0 ? 0 : (normalizedTimelinePage - 1) * Math.max(1, timelinePageSize) + 1;
   const timelineRangeEnd = timelineTotal === 0 ? 0 : timelineRangeStart + Math.max(0, pagedTimelineItems.length) - 1;
+  const syncEventItems = useMemo(() => {
+    return syncEvents.map((event, index) => ({
+      ...event,
+      _key: event.id || `${event.event_type || 'sync'}-${event.created_at || index}-${index}`,
+      _index: (Math.max(1, syncEventsPage) - 1) * Math.max(1, syncEventsPageSize) + index + 1,
+      _stageLabel: STAGE_LABELS[event.stage_name || ''] || event.stage_name || '-',
+      _itemLabel: event.item_name || event.item_key || event.item_id || '-',
+      _downstreamLabel: event.downstream_service ? `${event.downstream_service}:${event.downstream_task_id || '-'}` : (event.downstream_task_id || '-'),
+      _recorderLabel: event.recorder_pod_name || event.recorder_hostname || '-',
+      _recorderRole: event.recorder_role || '-',
+      _errorLabel: event.error_type || (event.error_message ? 'error' : '-'),
+      _stateAppliedLabel: event.state_applied == null ? '-' : (event.state_applied ? '已写回' : '仅观测'),
+    }));
+  }, [syncEvents, syncEventsPage, syncEventsPageSize]);
+  const syncEventsTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(Math.max(0, syncEventsTotal) / Math.max(1, syncEventsPageSize))),
+    [syncEventsTotal, syncEventsPageSize],
+  );
+  const normalizedSyncEventsPage = Math.min(Math.max(1, syncEventsPage), syncEventsTotalPages);
+  const syncEventsRangeStart = syncEventsTotal === 0 ? 0 : (normalizedSyncEventsPage - 1) * Math.max(1, syncEventsPageSize) + 1;
+  const syncEventsRangeEnd = syncEventsTotal === 0 ? 0 : syncEventsRangeStart + Math.max(0, syncEventItems.length) - 1;
 
   useEffect(() => {
     setTimelinePage(1);
@@ -3505,6 +3576,27 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     setTimelineTotal(0);
     setTimelineHasMore(false);
   }, [timelinePageSize, taskId]);
+
+  useEffect(() => {
+    setSyncEventsPage(1);
+    setExpandedSyncEventId(null);
+    setSyncEvents([]);
+    setSyncEventsTotal(0);
+  }, [syncEventsPageSize, taskId]);
+
+  useEffect(() => {
+    setSyncEventsPage(1);
+  }, [
+    syncEventStageFilter,
+    syncEventServiceFilter,
+    syncEventOperationFilter,
+    syncEventTypeFilter,
+    syncEventStatusFilter,
+    syncEventOutcomeFilter,
+    syncEventHasErrorFilter,
+    syncEventStateAppliedFilter,
+    syncEventSearch,
+  ]);
 
   useEffect(() => {
     setExpandedStageItemId(null);
@@ -3545,6 +3637,27 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       void loadTimeline(timelinePage, timelinePageSize);
     }
   }, [activeTab, projectId, taskId, timelinePage, timelinePageSize, timelineTotalPages]);
+
+  useEffect(() => {
+    if (activeTab === 'sync_records' && projectId && taskId) {
+      void loadSyncEvents(syncEventsPage, syncEventsPageSize);
+    }
+  }, [
+    activeTab,
+    projectId,
+    taskId,
+    syncEventsPage,
+    syncEventsPageSize,
+    syncEventStageFilter,
+    syncEventServiceFilter,
+    syncEventOperationFilter,
+    syncEventTypeFilter,
+    syncEventStatusFilter,
+    syncEventOutcomeFilter,
+    syncEventHasErrorFilter,
+    syncEventStateAppliedFilter,
+    syncEventSearch,
+  ]);
 
   const executeBlockingTaskAction = async (action: Exclude<BlockingActionKind, ''>) => {
     if (!projectId || !taskId) return;
@@ -3905,6 +4018,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     { key: 'orchestration', label: '编排观测', hint: 'Reducer、事件队列、锁与归档健康' },
     { key: 'runtime_health', label: '线程与协程健康', hint: '任务 scoped 运行单元健康' },
     { key: 'timeline', label: '事件时间线', hint: '编排事件记录' },
+    { key: 'sync_records', label: '同步记录', hint: '下游同步事件' },
     { key: 'api_keys', label: 'API 密钥', hint: '任务级密钥与阶段 work key' },
   ];
   const modalAction = blockingAction || pendingBlockingAction;
@@ -6161,6 +6275,154 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
               ) : null}
             </div>
+          </section>
+          ) : activeTab === 'sync_records' ? (
+ <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold text-theme-text-primary">同步记录</h2>
+                <p className="mt-1 text-sm text-theme-text-muted">独立于任务时间线的下游同步事件流</p>
+              </div>
+              <div className="flex flex-wrap items-start gap-2">
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-3 py-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">总记录数</div>
+                  <div className="mt-1 text-lg font-semibold text-theme-text-primary">{syncEventsTotal}</div>
+                </div>
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-3 py-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">分页</div>
+                  <div className="mt-1 text-sm font-bold text-theme-text-secondary">{syncEventsRangeStart}-{syncEventsRangeEnd} / {syncEventsTotal}</div>
+                </div>
+                <label className="rounded-2xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-bold text-theme-text-muted">
+                  <span className="mr-2 uppercase tracking-[0.16em] text-theme-text-muted">每页</span>
+                  <select value={syncEventsPageSize} onChange={(event) => setSyncEventsPageSize(Math.max(10, Number(event.target.value) || 100))} className="form-select">
+                    {[50, 100, 200, 500].map((size) => <option key={size} value={size}>{size}</option>)}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => void loadSyncEvents(syncEventsPage, syncEventsPageSize)}
+                  disabled={syncEventsLoading}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {syncEventsLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+                  刷新同步记录
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-5">
+              <select value={syncEventStageFilter} onChange={(event) => setSyncEventStageFilter(event.target.value)} className="form-select">
+                <option value="all">全部阶段</option>
+                {stageSequence.map((stage) => <option key={stage} value={stage}>{STAGE_LABELS[stage] || stage}</option>)}
+              </select>
+              <select value={syncEventServiceFilter} onChange={(event) => setSyncEventServiceFilter(event.target.value)} className="form-select">
+                <option value="all">全部下游服务</option>
+                {['firmware_unpack', 'system_analyse', 'binary_to_source', 'entry_analyse', 'dataflow_vuln_scan'].map((service) => <option key={service} value={service}>{service}</option>)}
+              </select>
+              <select value={syncEventOperationFilter} onChange={(event) => setSyncEventOperationFilter(event.target.value)} className="form-select">
+                <option value="all">全部操作</option>
+                {['downstream_sync', 'downstream_poll', 'readless_reconcile', 'archive_apply', 'reducer_apply', 'binding_recovery', 'transport_error', 'rate_limited'].map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+              <select value={syncEventTypeFilter} onChange={(event) => setSyncEventTypeFilter(event.target.value)} className="form-select">
+                <option value="all">全部事件</option>
+                {['requested', 'observed', 'applied', 'skipped', 'binding_mismatch', 'ignored', 'transport_error', 'rate_limited', 'retry_scheduled', 'failed'].map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+              <input value={syncEventSearch} onChange={(event) => setSyncEventSearch(event.target.value)} placeholder="搜索 item/downstream task" className="form-input" />
+              <select value={syncEventStatusFilter} onChange={(event) => setSyncEventStatusFilter(event.target.value)} className="form-select">
+                <option value="all">全部同步状态</option>
+                {['requested', 'observed', 'synced', 'skipped', 'binding_mismatch', 'transport_error', 'rate_limited'].map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+              <select value={syncEventOutcomeFilter} onChange={(event) => setSyncEventOutcomeFilter(event.target.value)} className="form-select">
+                <option value="all">全部结果</option>
+                {['requested', 'success', 'error', 'binding_mismatch', 'missing_downstream_binding'].map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+              <select value={syncEventHasErrorFilter} onChange={(event) => setSyncEventHasErrorFilter(event.target.value as 'all' | 'true' | 'false')} className="form-select">
+                <option value="all">全部错误状态</option>
+                <option value="true">仅错误</option>
+                <option value="false">仅无错误</option>
+              </select>
+              <select value={syncEventStateAppliedFilter} onChange={(event) => setSyncEventStateAppliedFilter(event.target.value as 'all' | 'true' | 'false')} className="form-select">
+                <option value="all">全部写回状态</option>
+                <option value="true">仅已写回</option>
+                <option value="false">仅观测</option>
+              </select>
+            </div>
+
+            <div className="mt-4">
+              {syncEventsLoading ? (
+                <div className="rounded-2xl border border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">正在加载同步记录...</div>
+              ) : syncEventItems.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">暂无同步记录</div>
+              ) : (
+                <div className="overflow-hidden rounded-2xl border border-theme-border">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-[1320px] w-full divide-y divide-theme-border text-left text-xs">
+                      <thead className="bg-theme-elevated text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
+                        <tr>
+                          <th className="w-14 px-3 py-2">#</th>
+                          <th className="w-44 px-3 py-2">时间</th>
+                          <th className="w-28 px-3 py-2">阶段</th>
+                          <th className="w-44 px-3 py-2">条目</th>
+                          <th className="w-52 px-3 py-2">下游</th>
+                          <th className="w-36 px-3 py-2">操作</th>
+                          <th className="w-28 px-3 py-2">事件</th>
+                          <th className="w-28 px-3 py-2">同步状态</th>
+                          <th className="w-28 px-3 py-2">结果</th>
+                          <th className="w-28 px-3 py-2">状态写回</th>
+                          <th className="w-44 px-3 py-2">错误</th>
+                          <th className="w-44 px-3 py-2">记录者</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-theme-border bg-theme-elevated">
+                        {syncEventItems.map((event) => {
+                          const expanded = expandedSyncEventId === event.id;
+                          return (
+                            <React.Fragment key={event._key}>
+                              <tr className="align-top hover:bg-theme-elevated">
+                                <td className="px-3 py-2 font-mono text-[11px] font-bold text-theme-text-muted">#{event._index}</td>
+                                <td className="px-3 py-2 font-mono text-[11px] text-theme-text-secondary">{fmt(event.created_at)}</td>
+                                <td className="px-3 py-2 text-theme-text-secondary">{event._stageLabel}</td>
+                                <td className="px-3 py-2"><div className="font-semibold text-theme-text-primary">{event._itemLabel}</div><div className="mt-1 font-mono text-[11px] text-theme-text-muted">{event.item_id || '-'}</div></td>
+                                <td className="px-3 py-2 font-mono text-[11px] text-theme-text-secondary">{event._downstreamLabel}</td>
+                                <td className="px-3 py-2 text-theme-text-secondary">{event.operation || '-'}</td>
+                                <td className="px-3 py-2 text-theme-text-secondary">{event.event_type}</td>
+                                <td className="px-3 py-2 text-theme-text-secondary">{event.sync_status || '-'}</td>
+                                <td className="px-3 py-2 text-theme-text-secondary">{event.outcome || '-'}</td>
+                                <td className="px-3 py-2 text-theme-text-secondary">{event._stateAppliedLabel}</td>
+                                <td className="px-3 py-2"><div className="text-theme-text-primary">{event._errorLabel}</div>{event.http_status != null ? <div className="mt-1 font-mono text-[11px] text-theme-text-muted">HTTP {event.http_status}</div> : null}</td>
+                                <td className="px-3 py-2"><div className="text-theme-text-primary">{event._recorderLabel}</div><div className="mt-1 text-[11px] text-theme-text-muted">{event._recorderRole}</div></td>
+                              </tr>
+                              <tr>
+                                <td colSpan={12} className="px-3 pb-3 pt-0">
+                                  <button type="button" onClick={() => setExpandedSyncEventId((current) => current === event.id ? null : event.id)} className="text-xs font-semibold text-sky-400 hover:text-sky-300">
+                                    {expanded ? '收起 payload' : '展开 payload'}
+                                  </button>
+                                  {expanded ? (
+                                    <pre className="mt-2 overflow-x-auto rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-[11px] text-theme-text-secondary">
+                                      {JSON.stringify(event.payload || {}, null, 2)}
+                                    </pre>
+                                  ) : null}
+                                </td>
+                              </tr>
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {syncEventsTotal > 0 ? (
+              <div className="mt-4 flex items-center justify-between gap-3 text-sm text-theme-text-secondary">
+                <div>第 {normalizedSyncEventsPage} / {syncEventsTotalPages} 页</div>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setSyncEventsPage((current) => Math.max(1, current - 1))} disabled={normalizedSyncEventsPage <= 1} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold disabled:opacity-50">上一页</button>
+                  <button type="button" onClick={() => setSyncEventsPage((current) => Math.min(syncEventsTotalPages, current + 1))} disabled={normalizedSyncEventsPage >= syncEventsTotalPages} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold disabled:opacity-50">下一页</button>
+                </div>
+              </div>
+            ) : null}
           </section>
           ) : null}
 
