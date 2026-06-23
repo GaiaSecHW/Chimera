@@ -3,6 +3,8 @@ export type PendingVerifyCase = {
   global_vuln_id?: string | null;
   title?: string | null;
   severity?: string | null;
+  validation_result?: string | null;
+  confirm_validation_result?: string | null;
   subject?: Record<string, any> | null;
   metadata?: Record<string, any> | null;
   current_stage: string;
@@ -46,4 +48,3 @@ export function resolveBatchCreateCodeRoot(
   }
   return resolveCaseCodeRoot(item);
 }
-

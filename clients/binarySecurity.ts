@@ -257,6 +257,7 @@ export interface BinarySecurityTask {
   tail_takeover_required?: boolean;
   tail_takeover_reason?: string | null;
   created_by?: string | null;
+  schedule_user_task_id?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
   started_at?: string | null;
@@ -439,6 +440,7 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
   output_root: string;
   workspace_root: string;
   fileserver_subproject_name?: string | null;
+  schedule_user_task_id?: string | null;
   task_key_source?: string | null;
   root_task_key_id?: string | null;
   root_task_key_name?: string | null;

@@ -4739,6 +4739,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       <div className="mt-1 font-semibold text-theme-text-primary">{taskTypeLabel(taskType)}</div>
                     </div>
                     <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm">
+                      <div className="text-xs font-bold text-theme-text-muted">来源调度任务 ID</div>
+                      <div className="mt-1 break-all font-mono font-semibold text-theme-text-primary">{detail.schedule_user_task_id || '-'}</div>
+                    </div>
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm">
                       <div className="text-xs font-bold text-theme-text-muted">执行代次</div>
                       <div className="mt-1 font-semibold text-theme-text-primary">第 {detail.execution_epoch} 轮</div>
                     </div>

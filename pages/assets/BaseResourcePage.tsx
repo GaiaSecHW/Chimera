@@ -220,6 +220,14 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
         input_type: type,
         upload_ids: deleteConfirm.ids,
       });
+      // 同步删 codemap 图库:仅 code 资源有图。对每个真正删成功的 upload best-effort
+      // 调 purgeByUpload(allSettled,单个失败不影响其余与主流程;清道夫兜底删库)。
+      if (type === 'code') {
+        const purged = result.deleted_ids?.length ? result.deleted_ids : deleteConfirm.ids;
+        await Promise.allSettled(
+          purged.map((uploadId) => api.codemapManager.purgeByUpload(uploadId)),
+        );
+      }
       if (result.failed_items?.length) {
         const summary = result.failed_items.map((item) =>`${item.upload_id}: ${item.message}`).join('；');
         setDeleteConfirm((prev) => ({ ...prev, error: summary }));

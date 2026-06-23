@@ -775,6 +775,21 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
         input_type: deleteTarget.input_type,
         upload_ids: [deleteTarget.upload_id],
       });
+      // 同步删 codemap 图库:仅 code 上传有图。best-effort —— manager 不可用
+      // 也不阻断源码删除(后台清道夫会兜底删库)。
+      if (normalizeType(deleteTarget.input_type) === 'code') {
+        try {
+          await api.codemapManager.purgeByUpload(deleteTarget.upload_id);
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.warn('[codemap] purgeByUpload failed', error);
+        }
+      }
+      setCodemapStatusByUpload((current) => {
+        const next = { ...current };
+        delete next[deleteTarget.upload_id];
+        return next;
+      });
       setExpandedUploadIds((current) => current.filter((item) => item !== deleteTarget.upload_id));
       setUploadDetailCache((current) => {
         const next = { ...current };

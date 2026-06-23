@@ -18,54 +18,106 @@ import {
 
 const BASE = `${API_BASE}/api/app/cfg-guided-explore`;
 
-export interface DataflowVulnTraceTreeNode {
-  run_id: string;
-  function_name: string;
-  source_file: string;
-  line_hint: string;
-  depth: number;
-  status: string;
-  taint_inputs: Array<{
-    symbol: string;
-    kind: string;
-    line?: string;
-    description?: string;
-  }>;
-  taint_summary: Array<{
-    from_symbol: string;
-    to_symbol: string;
-    line: string;
-    operation: string;
-    evidence: string;
-    termination_reason?: string;
-  }>;
-  child_count: number;
-  followup_status: string;
-  followup_reason?: string;
-  findings_count: number;
-  termination_reasons: string[];
-  children: DataflowVulnTraceTreeNode[];
-  /** Pruned branch marker */
-  pruned?: boolean;
-  /** Reason this branch was pruned (skipped/merged/cycle/depth_limit) */
-  prune_reason?: string;
-  /** Taint constraints inferred at callsite (for pruned branches) */
-  taint_constraints?: Array<{
-    kind: string;
-    target_symbol: string;
-    target_arg_index: number;
-    evidence: string;
-    confidence: string;
-  }>;
+// ── Agent execution trace (parsed from worker main_*.log) ────────────────────
+export interface CfgAgentTraceStep {
+  ts: string;
+  label: string;
+  detail: string;
 }
 
-export interface DataflowVulnGraphResponse {
+export interface CfgAgentTraceEntryCandidate {
+  func_id?: string;
+  name?: string;
+  signature?: string;
+  file?: string;
+  start_line?: number;
+  end_line?: number;
+}
+
+export interface CfgAgentSession {
+  log_file?: string;
+  model?: string | null;
+  started_at?: string | null;
+  ended_at?: string | null;
+  llm_duration_sec?: number | null;
+  vuln_count?: number | null;
+  entry_candidates: CfgAgentTraceEntryCandidate[];
+  steps: CfgAgentTraceStep[];
+}
+
+export interface CfgAgentTraceResponse {
   task_id: string;
   available: boolean;
-  run_root: string;
-  summary: Record<string, number>;
-  trace_tree?: DataflowVulnTraceTreeNode | null;
-  graph: Record<string, any>;
+  agent_session?: CfgAgentSession | null;
+}
+
+// ── cparser4cm session.json (the real audit-walk record) ─────────────────────
+/** One codemap tool invocation. `result` (callees/callers) is present only on
+ *  tasks run after the image-layer call-graph override; older tasks omit it. */
+export interface CfgCodemapQuery {
+  command: 'getfunctioninfo' | 'getcallee' | 'getcaller' | string;
+  function_id: string;
+  params: { func?: string | null; file?: string | null } & Record<string, any>;
+  timestamp: string;
+  result?: {
+    callees?: Array<{ id?: string; function_id?: string; name?: string; signature?: string; file_path?: string; call_line?: number } & Record<string, any>>;
+    callers?: Array<{ id?: string; function_id?: string; name?: string; signature?: string; file_path?: string; call_line?: number } & Record<string, any>>;
+  } & Record<string, any>;
+}
+
+export interface CfgFunctionTaintState {
+  function: string;
+  tainted_params_in: string[];
+  via_call_chain: any[];
+  desc: string;
+  analyzed: boolean;
+}
+
+export interface CfgAuditResult {
+  function: string;
+  result: string; // 'safe' | 'vulnerable' | ...
+  vuln_line: number;
+  confidence: number | null;
+  desc: string;
+  timestamp: string;
+}
+
+export interface CfgCparserSession {
+  version: string;
+  session_id: string;
+  created_at: string;
+  updated_at: string;
+  project: Record<string, any>;
+  codemap_function_resolutions: Record<string, any>;
+  codemap_queries: CfgCodemapQuery[];
+  function_taint_states: Record<string, CfgFunctionTaintState>;
+  audit_results: Record<string, CfgAuditResult>;
+}
+
+export interface CfgWalkFunction {
+  function_id: string;
+  name: string;
+  signature?: string | null;
+  file_path?: string | null;
+  start_line?: number | null;
+  end_line?: number | null;
+  code?: {
+    file?: string;
+    abs_path?: string;
+    start_line: number;
+    end_line: number;
+    focus_line?: number | null;
+    lines: { n: number; text: string }[];
+  } | null;
+  resolved: boolean;
+}
+
+export interface CfgWalkFunctionsResponse {
+  task_id: string;
+  available: boolean;
+  upload_id: string;
+  resolved_count: number;
+  functions: CfgWalkFunction[];
 }
 
 export const cfgGuidedExploreApi = {
@@ -165,11 +217,20 @@ export const cfgGuidedExploreApi = {
   getTaskEvaluation: async (taskId: string): Promise<AppDfaTaskEvaluation> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/evaluation`, { headers: getHeaders() })),
 
-  getVulnGraph: async (taskId: string): Promise<DataflowVulnGraphResponse> =>
-    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/vuln-graph`, { headers: getHeaders() })),
+  getAgentTrace: async (taskId: string): Promise<CfgAgentTraceResponse> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions/agent-trace`, { headers: getHeaders() })),
 
-  getVulnFindings: async (taskId: string): Promise<any> =>
-    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/vuln-findings`, { headers: getHeaders() })),
+  // The cparser4cm session.json — the real audit walk (tool queries, taint
+  // states, per-function verdicts). Served raw via the session-file endpoint.
+  getCparserSession: async (taskId: string): Promise<CfgCparserSession> =>
+    handleResponse(await fetch(
+      `${BASE}/tasks/${encodeURIComponent(taskId)}/sessions/file?path=${encodeURIComponent(`cparser_sessions/${taskId}/session.json`)}`,
+      { headers: getHeaders() },
+    )),
+
+  // Resolve walked fids → real name/signature/code via codemap-manager + disk.
+  getWalkFunctions: async (taskId: string): Promise<CfgWalkFunctionsResponse> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/walk-functions`, { headers: getHeaders() })),
 
   listTaskSessions: async (taskId: string): Promise<{ task_id: string; items: AppDfaSessionMeta[] }> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions`, { headers: getHeaders() })),

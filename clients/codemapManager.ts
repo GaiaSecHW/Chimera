@@ -110,6 +110,18 @@ export const codemapManagerApi = {
     );
     await handleResponse(response);
   },
+
+  // DELETE /projects/by-upload/{uploadId}/purge — 删某个代码上传时同步删它对应的
+  // DozerDB 图库(按 uploadId 寻址,前端无需知道 db_name)。manager 会停掉在跑的
+  // 构建、记删除意图台账、即时尽力删库;即使即时删失败(deferred),后台清道夫也会
+  // 兜底,保证该库最终被删。best-effort:删源码主流程不应被它阻断。
+  purgeByUpload: async (uploadId: string): Promise<void> => {
+    const response = await fetch(
+      `${MANAGER_BASE}/projects/by-upload/${encodeURIComponent(uploadId)}/purge`,
+      { method: 'DELETE', headers: getHeaders() },
+    );
+    await handleResponse(response);
+  },
 };
 
 // 知识图谱身份下沉到「每条代码上传一图」(多图谱模型)。task_id = kg-<uploadId>,

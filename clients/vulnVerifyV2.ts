@@ -122,9 +122,10 @@ export const vulnVerifyV2Api = {
   getProjectStats: async (projectId: string): Promise<VulnVerifyV2ProjectStats> =>
     getJsonWithDedupe(`${BASE}/projects/${encodeURIComponent(projectId)}/stats`, { headers: getHeaders() }),
 
-  listTasks: async (projectId: string, params?: { status?: string; search?: string; limit?: number; offset?: number }): Promise<{ total: number; items: VulnVerifyV2Task[] }> => {
+  listTasks: async (projectId: string, params?: { status?: string; verdict?: string; search?: string; limit?: number; offset?: number }): Promise<{ total: number; items: VulnVerifyV2Task[] }> => {
     const query = new URLSearchParams();
     if (params?.status) query.set('status', params.status);
+    if (params?.verdict) query.set('verdict', params.verdict);
     if (params?.search) query.set('search', params.search);
     if (params?.limit) query.set('limit', String(params.limit));
     if (params?.offset) query.set('offset', String(params.offset));

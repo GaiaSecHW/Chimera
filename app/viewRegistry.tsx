@@ -68,6 +68,7 @@ import { TestInputPage } from '../pages/TestInputPage';
 import { TaskCenterPage } from '../pages/task/TaskCenterPage';
 import { TaskCenterTimelinePage } from '../pages/task/TaskCenterTimelinePage';
 import { TaskVulnListPage } from '../pages/task/TaskVulnListPage';
+import { TaskReportViewPage } from '../pages/task/TaskReportViewPage';
 import { WebEndToEndPage } from '../pages/task/WebEndToEndPage';
 import { KnowledgeGraphPage } from '../pages/task/KnowledgeGraphPage';
 // [DISABLED] DataflowVulnTask import - 方便后续复用
@@ -161,6 +162,7 @@ export interface ViewRegistryContext {
   activeTaskCenterTimelineTaskId: string;
   activeTaskCenterTimelineBackView?: string;
   activeTaskVulnListTaskId: string;
+  activeTaskReportTaskId: string;
   selectedStaticPkgIds: Set<string>;
   setCurrentView: (view: string) => void;
   setSelectedProjectId: (id: string) => void;
@@ -187,6 +189,7 @@ export interface ViewRegistryContext {
   setActiveRedlineTaskId: (id: string) => void;
   setActiveTaskCenterTimelineTaskId: (id: string) => void;
   setActiveTaskVulnListTaskId: (id: string) => void;
+  setActiveTaskReportTaskId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
   fetchProjects: (refresh?: boolean) => Promise<void>;
   fetchAdminStats: () => Promise<void>;
@@ -311,6 +314,14 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         <TaskVulnListPage
           projectId={ctx.selectedProjectId}
           taskId={ctx.activeTaskVulnListTaskId}
+          onBack={() => ctx.setCurrentView('task-list')}
+        />
+      );
+    case 'task-report-view':
+      return (
+        <TaskReportViewPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeTaskReportTaskId}
           onBack={() => ctx.setCurrentView('task-list')}
         />
       );
