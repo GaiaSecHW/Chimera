@@ -1925,7 +1925,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                     ))}
 
                     {selectedNodeTemplateDetails.create_service && (
-                      <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-500/20 space-y-3">
+                      <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20 space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-medium text-indigo-400 uppercase">服务配置</span>
                           <span className="text-[9px] font-medium bg-indigo-500/15 text-indigo-400 px-1.5 py-0.5 rounded">
@@ -2176,7 +2176,7 @@ className="form-select w-full mt-1 bg-transparent"
                   )}
 
                   {selectedTemplate?.type === 'app' && (
-                    <div className="space-y-4 p-4 bg-indigo-50/50 rounded-xl border border-indigo-500/20">
+                    <div className="space-y-4 p-4 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
                       <div className="flex items-center justify-between">
                         <label className="text-[10px] font-medium text-indigo-400 uppercase tracking-widest">服务配置</label>
                         <label className="flex items-center gap-2 cursor-pointer">
@@ -2712,7 +2712,7 @@ className="form-select w-full mt-1 bg-transparent"
               setMaxZIndex(newZIndex);
               setTerminalZIndex(newZIndex);
             }}
-            className="flex items-center gap-2 px-3 py-1.5 bg-theme-elevated hover:bg-slate-600 rounded-lg text-slate-200 text-sm font-medium transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 bg-theme-elevated hover:bg-theme-text-muted/10 rounded-lg text-theme-text-primary text-sm font-medium transition-all"
           >
             <Terminal size={14} className={terminalConnected ? 'text-green-400' : 'text-red-400'} />
             <span className="max-w-[120px] truncate">{terminalNodeName}</span>
@@ -3032,7 +3032,7 @@ className="form-select w-full mt-1 bg-transparent"
             <button
               key={terminal.id}
               onClick={() => handleRestoreTerminal(terminal.id)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-theme-elevated hover:bg-slate-600 rounded-lg text-slate-200 text-sm font-medium transition-all"
+              className="flex items-center gap-2 px-3 py-1.5 bg-theme-elevated hover:bg-theme-text-muted/10 rounded-lg text-theme-text-primary text-sm font-medium transition-all"
             >
               <Terminal size={14} className={terminal.connected ? 'text-green-400' : 'text-red-400'} />
               <span className="max-w-[120px] truncate">{terminal.nodeName}</span>

@@ -1304,7 +1304,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                         <button
                           type="button"
                           onClick={() => toggleSlotWorkerExpanded(worker.worker_id)}
-                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-slate-100/70"
+                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-theme-elevated"
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">

@@ -1442,7 +1442,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                       </tr>
                     ) : tableItems.length ? (
                       tableItems.map((item) => (
-                        <tr key={item.task_id} className="border-b border-theme-border hover:bg-slate-100/80">
+                        <tr key={item.task_id} className="border-b border-theme-border hover:bg-theme-elevated">
                           <td className="px-4 py-3 align-top">
                             <input
                               type="checkbox"
@@ -1691,7 +1691,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                     {taskEventLoading ? <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-theme-text-muted">调度日志加载中...</td></tr> : null}
                     {!taskEventLoading && taskEventItems.length === 0 ? <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-theme-text-muted">暂无调度日志</td></tr> : null}
                     {taskEventItems.map((event) => (
-                      <tr key={event.id} className="cursor-pointer border-b border-theme-border hover:bg-slate-100/80" onClick={() => setSelectedTaskEvent(event)}>
+                      <tr key={event.id} className="cursor-pointer border-b border-theme-border hover:bg-theme-elevated" onClick={() => setSelectedTaskEvent(event)}>
                         <td className="px-4 py-3 text-xs">{formatTime(event.created_at)}</td>
                         <td className="px-4 py-3 text-xs">{event.project_id}</td>
                         <td className="px-4 py-3 font-mono text-xs">{event.user_task_id}</td>
@@ -1818,7 +1818,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         </thead>
                         <tbody>
                           {group.items.map((item: ScheduleRuntimeQueuePreviewItem) => (
-                            <tr key={item.queue_key} className="border-b border-theme-border hover:bg-slate-100/80">
+                            <tr key={item.queue_key} className="border-b border-theme-border hover:bg-theme-elevated">
                               <td className="px-4 py-3 align-top">
                                 <div className="font-semibold text-theme-text-primary">{item.queue_name}</div>
                                 <div className="mt-1 text-xs text-theme-text-muted">{item.backend || 'unknown'}</div>

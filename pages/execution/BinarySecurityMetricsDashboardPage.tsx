@@ -4480,7 +4480,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       { label: 'Worker / Judge', value:`${formatNumber(focusedEntryStageRow.workerCalls, 0)} / ${formatNumber(focusedEntryStageRow.judgeCalls, 0)}`, hint: 'stage_role_total', tone: 'text-indigo-400' },
                       { label: 'Sessions', value: formatNumber(focusedEntryStageRow.sessionCount, 0), hint: 'stage_session_total', tone: focusedEntryStageRow.sessionCount > 0 ? 'text-theme-text-primary' : 'text-amber-400' },
                     ].map((item) => (
-                      <div key={item.label} className="rounded-2xl border border-indigo-500/20 bg-indigo-50/40 px-4 py-3">
+                      <div key={item.label} className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3">
                         <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: LK.muted }}>{item.label}</div>
                         <div className={`mt-2 text-xl font-semibold ${item.tone}`}>{item.value}</div>
                         <div style={{ marginTop: '4px', fontSize: '12px', color: LK.muted }}>{item.hint}</div>
@@ -4626,7 +4626,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </div>
               </div>
               {(b2sBusinessViewModel.availableItems || 0) <= 0 ? (
-                <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-50/80 p-4">
+                <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
                   <div className="text-sm font-semibold text-amber-300">暂无有效 runtime metrics 样本</div>
                   <p className="mt-1 text-sm text-amber-400">
                     当前 B2S 已看到 {formatNumber(b2sBusinessViewModel.missingItems)} 个缺失项。看板不会用缺失样本推导平均耗时，避免把旧任务或尚未上报的任务误读为 0。

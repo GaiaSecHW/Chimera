@@ -27,10 +27,10 @@ export const SecurityAssessmentPage: React.FC = () => {
           { step: '04', title: '报告生成', desc: '风险闭环与建议' }
         ].map((item, idx) => (
           <div key={idx} className="bg-theme-surface p-6 rounded-xl border border-theme-border relative group overflow-hidden">
-            <div className="text-4xl font-semibold text-slate-100 absolute right-4 top-4 group-hover:text-blue-50 transition-colors">{item.step}</div>
+            <div className="text-4xl font-semibold text-white/60 absolute right-4 top-4 group-hover:text-blue-50 transition-colors">{item.step}</div>
             <h4 className="font-semibold text-theme-text-primary relative z-10">{item.title}</h4>
             <p className="text-xs text-theme-text-muted mt-1 font-medium relative z-10">{item.desc}</p>
-            {idx < 3 && <div className="hidden md:block absolute -right-2 top-1/2 -translate-y-1/2 z-20"><ArrowRight size={16} className="text-slate-200" /></div>}
+            {idx < 3 && <div className="hidden md:block absolute -right-2 top-1/2 -translate-y-1/2 z-20"><ArrowRight size={16} className="text-theme-text-secondary" /></div>}
           </div>
         ))}
       </div>
@@ -89,7 +89,7 @@ export const SecurityAssessmentPage: React.FC = () => {
 
         <div className="space-y-6">
  <div className="bg-theme-surface p-6 rounded-xl border border-theme-border space-y-4 relative overflow-hidden">
-            <Activity className="absolute right-[-20px] top-[-20px] w-40 h-40 text-slate-100 opacity-80 rotate-12" />
+            <Activity className="absolute right-[-20px] top-[-20px] w-40 h-40 text-white/60 opacity-80 rotate-12" />
             <h4 className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">实时评估统计</h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-theme-surface p-4 rounded-xl border border-theme-border">

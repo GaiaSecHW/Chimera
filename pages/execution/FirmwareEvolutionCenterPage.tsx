@@ -1552,7 +1552,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                                 <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full px-2 py-1 text-[10px] font-bold ${
                                   indexItem?.status === 'running'
                                     ? selected ? 'bg-emerald-400/20 text-emerald-100' : 'bg-emerald-500/15 text-emerald-400'
-                                    : selected ? 'bg-theme-elevated text-slate-200' : 'bg-theme-elevated text-theme-text-secondary'
+                                    : selected ? 'bg-theme-elevated text-theme-text-primary' : 'bg-theme-elevated text-theme-text-secondary'
                                 }`}>
                                   {indexItem?.status === 'running' ? '运行中' : '历史'}
                                 </span>

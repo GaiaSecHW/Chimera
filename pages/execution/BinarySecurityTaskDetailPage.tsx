@@ -2041,7 +2041,7 @@ function ApiKeysPanel({
                       </thead>
                       <tbody className="divide-y divide-theme-border bg-theme-elevated">
                         {rows.map((workKey: BinarySecurityWorkKeySnapshot, index) => (
-                          <tr key={`${stageName}:${workKey.stage_item_id || index}:${workKey.agent_task_key_id || ''}`} className="hover:bg-slate-100/80">
+                          <tr key={`${stageName}:${workKey.stage_item_id || index}:${workKey.agent_task_key_id || ''}`} className="hover:bg-theme-elevated">
                             <td className="px-3 py-2 font-bold text-theme-text-primary">{STAGE_LABELS[stageName] || stageName}</td>
                             <td className="px-3 py-2 font-mono text-theme-text-secondary">{String(workKey.service || '-')}</td>
                             <td className="px-3 py-2">
@@ -4781,7 +4781,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           ) : null}
 
           {activeTab === 'overview' && cleanupSnapshot && (cleanupDownstreamRefs.length > 0 || Object.keys(cleanupCounts).length > 0) ? (
- <section className="rounded-xl border border-orange-500/20 bg-orange-50/60 p-6">
+ <section className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-6">
               <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-theme-text-primary">严格清理快照</h3>
@@ -5459,7 +5459,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             const inputContractRows = stageItemInputContractRows(item);
 	                          return (
 	                            <React.Fragment key={item.id}>
-	                              <tr className="align-top transition hover:bg-slate-100/80">
+	                              <tr className="align-top transition hover:bg-theme-elevated">
 	                                <td className="px-3 py-3">
 	                                  <input
 	                                    type="checkbox"
@@ -6034,7 +6034,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           const isAbnormalReasonEvent = event.event_type === 'abnormal_reason_recorded';
                           return (
                             <React.Fragment key={event._key}>
-                              <tr className={`align-middle hover:bg-slate-100/80 ${isAbnormalReasonEvent ? 'bg-amber-500/10' : ''}`}>
+                              <tr className={`align-middle hover:bg-theme-elevated ${isAbnormalReasonEvent ? 'bg-amber-500/10' : ''}`}>
                                 <td className="px-3 py-2 font-mono text-[11px] font-bold text-theme-text-muted">#{event._index}</td>
                                 <td className="whitespace-nowrap px-3 py-2 font-mono text-[11px] font-semibold text-theme-text-secondary">
                                   {fmt(event.created_at)}

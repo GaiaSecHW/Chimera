@@ -1430,7 +1430,7 @@ const SingleAgentLlmModal: React.FC<{
       <div className="space-y-6">
         <div className="rounded-xl border border-theme-border bg-theme-elevated p-4">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-cyan-400">Target Agent</div>
-          <div className="mt-2 text-xl font-semibold text-slate-200">{agent.agent_id}</div>
+          <div className="mt-2 text-xl font-semibold text-theme-text-primary">{agent.agent_id}</div>
           <div className="mt-1 text-sm text-theme-text-muted">{agent.agent_hostname || agent.agent_key} · {agent.service_name}</div>
           <div className="mt-3 flex flex-wrap gap-2">
             <span className="rounded-full bg-theme-elevated px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-theme-text-faint ring-1 ring-theme-border">{agent.backend_type}</span>
@@ -1817,7 +1817,7 @@ const AgentDetailDrawer: React.FC<{
         <div className="border-b border-theme-border bg-theme-elevated px-6 py-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight text-slate-200">{agent.agent_id}</h2>
+              <h2 className="text-2xl font-bold tracking-tight text-theme-text-primary">{agent.agent_id}</h2>
               <div className="mt-2 text-sm text-theme-text-muted">{agent.agent_hostname || agent.agent_key} · {agent.service_name} · {agent.backend_type}</div>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-theme-text-muted">
                 <span className="rounded-full bg-theme-elevated px-2.5 py-1 font-semibold ring-1 ring-theme-border">当前 LLM: {formatProviderText(agent.llm_provider_snapshot || { provider_key: agent.llm_provider_key })}</span>

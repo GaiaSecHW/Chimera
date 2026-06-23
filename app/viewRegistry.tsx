@@ -390,8 +390,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'dataflow-analysis-config':
       return (
         <div className="p-20 text-center">
-          <h3 className="text-xl font-semibold text-slate-400">数据流漏洞挖掘前端页面已下线</h3>
-          <p className="mt-3 text-sm text-slate-500">该功能入口已从导航中移除。</p>
+          <h3 className="text-xl font-semibold text-theme-text-muted">数据流漏洞挖掘前端页面已下线</h3>
+          <p className="mt-3 text-sm text-theme-text-muted">该功能入口已从导航中移除。</p>
         </div>
       );
     case 'pentest-dataflow-vuln-scan':
@@ -904,7 +904,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     default: {
       return (
         <div className="p-20 text-center">
-          <h3 className="text-xl font-semibold text-slate-400">模块 "{ctx.currentView}" 开发中...</h3>
+          <h3 className="text-xl font-semibold text-theme-text-muted">模块 "{ctx.currentView}" 开发中...</h3>
         </div>
       );
     }

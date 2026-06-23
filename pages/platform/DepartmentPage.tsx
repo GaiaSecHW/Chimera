@@ -239,7 +239,7 @@ export const DepartmentPage: React.FC = () => {
       return (
         <div key={dept.id}>
           <div
-            className="flex items-center justify-between gap-4 px-6 py-4 transition-all hover:bg-slate-100/90 group"
+            className="flex items-center justify-between gap-4 px-6 py-4 transition-all hover:bg-theme-elevated group"
             style={{ paddingLeft:`${depth * 26 + 24}px` }}
           >
             <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -328,7 +328,7 @@ export const DepartmentPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
  <div className="bg-[linear-gradient(135deg,_#0f172a,_#1d4ed8_65%,_#38bdf8)] p-8 rounded-xl text-white flex flex-col justify-between group overflow-hidden relative">
           <Building2 className="absolute right-[-20px] top-[-20px] w-32 h-32 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
-          <p className="text-slate-200 text-[10px] font-semibold uppercase tracking-widest relative z-10">总部门数</p>
+          <p className="text-white/70 text-[10px] font-semibold uppercase tracking-widest relative z-10">总部门数</p>
           <h3 className="text-5xl font-bold mt-4 relative z-10">{departmentStats.total}</h3>
           <p className="text-sky-100 text-[10px] font-medium uppercase mt-4 relative z-10 flex items-center gap-2">
             <Users size={12} /> Organizational Topology

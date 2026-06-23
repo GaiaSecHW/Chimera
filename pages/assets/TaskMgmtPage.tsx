@@ -452,7 +452,7 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
 
               <div className="overflow-hidden rounded-lg border border-theme-border bg-theme-surface">
                 <div className="border-b border-theme-border px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">任务日志</div>
-                <div className="max-h-[46vh] overflow-y-auto p-3 font-mono text-[11px] text-slate-200 custom-scrollbar">
+                <div className="max-h-[46vh] overflow-y-auto p-3 font-mono text-[11px] text-theme-text-primary custom-scrollbar">
                   {detailLogLoading ? (
                     <div className="flex min-h-[150px] items-center justify-center gap-2 text-blue-300"><Loader2 size={16} className="animate-spin" />加载日志中...</div>
                   ) : detailLogs.length > 0 ? (

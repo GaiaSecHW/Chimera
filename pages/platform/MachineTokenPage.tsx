@@ -191,7 +191,7 @@ export const MachineTokenPage: React.FC = () => {
             <p className="mt-4 text-4xl font-bold text-theme-text-primary">{permanentTokens}</p>
             <p className="mt-4 text-sm font-medium text-theme-text-muted">未设置过期时间、需要重点治理的常驻凭证。</p>
           </div>
- <div className="rounded-xl border border-sky-500/20 bg-sky-50/80 px-6 py-6">
+ <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-6 py-6">
             <div className="flex items-center gap-3">
  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-theme-surface text-sky-400">
                 <Server size={22} />

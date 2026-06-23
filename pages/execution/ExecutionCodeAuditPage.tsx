@@ -1014,7 +1014,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                     const itemProviderKeys = getInstanceProviderKeys(item);
                     const hasBinding = itemProviderKeys.length > 0;
                     return (
-                      <tr key={item.id} className="border-t border-theme-border align-top hover:bg-slate-100/60">
+                      <tr key={item.id} className="border-t border-theme-border align-top hover:bg-theme-elevated">
                         <td className="px-3 py-3">
                           <button
                             type="button"

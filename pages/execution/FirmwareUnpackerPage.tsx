@@ -2654,7 +2654,7 @@ function TaskDetailPanel({
                           );
                           return (
                             <React.Fragment key={event._key}>
-                              <tr className="align-middle hover:bg-slate-100/80">
+                              <tr className="align-middle hover:bg-theme-elevated">
                                 <td className="px-3 py-2 font-mono text-[11px] font-bold text-theme-text-muted">#{event._index}</td>
                                 <td className="whitespace-nowrap px-3 py-2 font-mono text-[11px] font-semibold text-theme-text-secondary">
                                   {fmtTime(event.created_at)}
@@ -2794,7 +2794,7 @@ function TaskDetailPanel({
                                 <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full px-2 py-1 text-[10px] font-bold ${
                                   indexItem?.status === 'running'
                                     ? selected ? 'bg-emerald-400/20 text-emerald-100' : 'bg-emerald-500/15 text-emerald-400'
-                                    : selected ? 'bg-theme-elevated text-slate-200' : 'bg-theme-elevated text-theme-text-secondary'
+                                    : selected ? 'bg-theme-elevated text-theme-text-primary' : 'bg-theme-elevated text-theme-text-secondary'
                                 }`}>
                                   {indexItem?.status === 'running' ? '运行中' : '历史'}
                                 </span>

@@ -450,7 +450,7 @@ function PrunedBranchBadge({ node, level = 0 }: { node: DataflowVulnTraceTreeNod
         <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 ${reasonTone}`}>{reasonLabel}</span>
       </div>
       {/* Tooltip */}
- <div className="pointer-events-none absolute left-0 top-full z-50 mt-1 min-w-[220px] rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-[11px] leading-relaxed text-slate-100 opacity-0 transition-opacity group-hover:opacity-100 whitespace-pre-wrap">
+ <div className="pointer-events-none absolute left-0 top-full z-50 mt-1 min-w-[220px] rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-[11px] leading-relaxed text-white opacity-0 transition-opacity group-hover:opacity-100 whitespace-pre-wrap">
         {tooltipLines.join('\n')}
       </div>
     </div>

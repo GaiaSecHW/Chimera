@@ -43,7 +43,7 @@ class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, Ap
         <div className="min-h-screen w-full flex items-center justify-center bg-slate-100 px-4">
           <div className="max-w-xl w-full rounded-2xl bg-white border border-rose-200 p-6 shadow-sm">
             <div className="text-lg font-bold text-rose-700">页面加载失败</div>
-            <div className="mt-2 text-sm text-slate-600">
+            <div className="mt-2 text-sm text-theme-text-secondary">
               前端发生运行时错误，请刷新页面重试；如仍失败，请将下方错误信息反馈给管理员。
             </div>
             <pre className="mt-4 text-xs text-rose-700 bg-rose-50 border border-rose-100 rounded-lg p-3 overflow-auto">

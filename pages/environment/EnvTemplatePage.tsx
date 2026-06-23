@@ -2904,7 +2904,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     ) : null}
 
                   {cardWebPortPresets.length > 0 && (
-                    <div className="bg-indigo-50/60 border border-indigo-500/20 rounded-xl p-3">
+                    <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3">
                         <p className="text-[10px] font-medium text-indigo-400 uppercase tracking-widest mb-2">WEB端口</p>
                         <div className="flex flex-wrap gap-1.5">
                           {cardWebPortPresets.slice(0, 6).map((preset, idx) => (

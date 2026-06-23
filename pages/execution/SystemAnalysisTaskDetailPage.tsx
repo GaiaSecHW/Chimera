@@ -2581,7 +2581,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                         ? 'border-emerald-300 bg-emerald-500/15 text-emerald-400'
                                         : 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400'
                                       : selected
-                                        ? 'border-slate-500 bg-theme-elevated text-slate-100'
+                                        ? 'border-theme-border bg-theme-elevated text-white'
                                         : 'border-theme-border bg-theme-elevated text-theme-text-muted'
                                   }`}>
                                     {session.is_active ? '活跃' : '历史'}
@@ -2788,7 +2788,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                           }`}
                         >
                           <div className="text-sm font-semibold">总报告</div>
-                          <div className={`mt-1 text-xs ${selection.type === 'report' ? 'text-slate-200' : 'text-theme-text-muted'}`}>完整渲染 final_report.md</div>
+                          <div className={`mt-1 text-xs ${selection.type === 'report' ? 'text-theme-text-primary' : 'text-theme-text-muted'}`}>完整渲染 final_report.md</div>
                         </button>
 
                         {result.modules.map((module) => {

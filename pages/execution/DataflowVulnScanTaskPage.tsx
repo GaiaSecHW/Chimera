@@ -1801,13 +1801,13 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                       <section
                         key={worker.worker_id}
                         className={`overflow-hidden rounded-xl border ${
-                          worker.healthy ? 'border-theme-border bg-theme-elevated' : 'border-rose-500/20 bg-rose-50/70'
+                          worker.healthy ? 'border-theme-border bg-theme-elevated' : 'border-rose-500/20 bg-rose-500/10'
                         }`}
                       >
                         <button
                           type="button"
                           onClick={() => toggleSlotWorkerExpanded(worker.worker_id)}
-                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-slate-100/70"
+                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-theme-elevated"
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
@@ -1863,7 +1863,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                                     className={`rounded-2xl border px-4 py-4 ${
                                       job.mapped
                                         ? 'border-theme-border bg-theme-elevated'
-                                        : 'border-amber-500/20 bg-amber-50/80'
+                                        : 'border-amber-500/20 bg-amber-500/10'
                                     }`}
                                   >
                                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -2161,7 +2161,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                 return (
                 <tr
                   key={t.task_id}
-                  className={`${executionTableRowClassName} ${selectedTaskIds.has(t.task_id) ? 'bg-violet-50/60' : ''}`.trim()}
+                  className={`${executionTableRowClassName} ${selectedTaskIds.has(t.task_id) ? 'bg-violet-500/10' : ''}`.trim()}
                 >
                   <ExecutionTableTd>
                     <input

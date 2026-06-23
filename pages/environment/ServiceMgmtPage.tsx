@@ -1589,7 +1589,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-slate-50 to-blue-50/40 border border-theme-border rounded-xl p-4">
+                <div className="bg-gradient-to-br from-theme-elevated to-blue-500/10 border border-theme-border rounded-xl p-4">
                   <p className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase mb-2">实时终端（新窗口）</p>
                   {selectedService?.is_stale && (
                     <div className="mb-2 px-3 py-2 rounded-xl border border-amber-500/20 bg-amber-500/15 text-amber-400 text-xs font-medium">

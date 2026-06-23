@@ -282,7 +282,7 @@ export const ServiceTerminalWindowPage: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-screen bg-theme-elevated text-slate-100 flex flex-col">
+    <div className="h-screen w-screen bg-theme-elevated text-white flex flex-col">
       <div className="px-4 py-3 border-b border-theme-border bg-slate-900/95 flex items-start gap-3">
         <div className="flex items-start gap-2 min-w-0 flex-1">
           <TerminalSquare size={16} className="text-blue-400" />
@@ -300,7 +300,7 @@ export const ServiceTerminalWindowPage: React.FC = () => {
                   onClick={() => setShowConnectionDetails((prev) => !prev)}
                   className="max-w-full flex items-center gap-2 text-left rounded-md border border-theme-border bg-slate-950/40 px-2 py-1 hover:bg-slate-950/70 transition-colors"
                 >
-                  <span className="text-[10px] text-slate-200 font-bold shrink-0">连接详情</span>
+                  <span className="text-[10px] text-theme-text-primary font-bold shrink-0">连接详情</span>
                   <span className="text-[10px] text-theme-text-muted truncate">
                     {connectionTargets.find((item) => item.active)?.label || '当前连接'}
                     {connectionInfo?.ws_url ?`: ${connectionInfo.ws_url}` : ''}
@@ -328,7 +328,7 @@ export const ServiceTerminalWindowPage: React.FC = () => {
           onChange={(e) => setShell(e.target.value)}
           placeholder="/bin/bash 或 /bin/sh"
           disabled={mode === 'attach'}
-          className="px-2 py-1.5 rounded-lg bg-theme-elevated border border-theme-border text-xs text-slate-100 w-40 xl:w-48 shrink-0 disabled:opacity-50"
+          className="px-2 py-1.5 rounded-lg bg-theme-elevated border border-theme-border text-xs text-white w-40 xl:w-48 shrink-0 disabled:opacity-50"
         />
 
         <button
@@ -346,7 +346,7 @@ export const ServiceTerminalWindowPage: React.FC = () => {
             setTerminalWs(null);
             setConnected(false);
           }}
-          className="px-3 py-1.5 rounded-lg bg-theme-elevated text-slate-200 text-xs font-medium hover:bg-theme-elevated flex items-center gap-2 shrink-0"
+          className="px-3 py-1.5 rounded-lg bg-theme-elevated text-theme-text-primary text-xs font-medium hover:bg-theme-elevated flex items-center gap-2 shrink-0"
         >
           <PlugZap size={13} />
           断开

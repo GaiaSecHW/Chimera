@@ -1867,7 +1867,7 @@ const SessionMarkdownMessage: React.FC<{ content: string }> = ({ content }) => (
 const SessionThinkingBlock: React.FC<{ text: string }> = ({ text }) => {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-2xl border border-violet-500/20 bg-violet-50/80 px-4 py-3">
+    <div className="rounded-2xl border border-violet-500/20 bg-violet-500/10 px-4 py-3">
       <button type="button" onClick={() => setOpen((value) => !value)} className="text-xs font-bold text-violet-400">
         {open ? '▼ hide' : '▶ thinking'}
       </button>
@@ -1987,7 +1987,7 @@ const SessionMessage: React.FC<{ event: AppSaSessionEvent & { _toolResults?: App
   if (event.role === 'user') {
     const text = parts.filter((part) => part.type === 'text').map((part) => String(part.text || '')).join('\n');
     return (
-      <div className="rounded-xl bg-theme-elevated px-5 py-4 text-slate-100">
+      <div className="rounded-xl bg-theme-elevated px-5 py-4 text-white">
         {time ? <div className="mb-2 text-[11px] text-theme-text-muted">{time}</div> : null}
         <div className="text-sm leading-7"><SessionMarkdownMessage content={text} /></div>
       </div>
@@ -4152,7 +4152,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Task Queue</div>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950">任务列表</h2>
+                <h2 className="mt-2 text-xl font-semibold text-theme-text-primary">任务列表</h2>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -4481,7 +4481,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
 
             <div className="mt-6 min-w-0 border-t border-theme-border pt-5">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Task Detail</div>
-              <h2 className="mt-2 truncate text-2xl font-bold text-slate-950">{selectedTask?.title || '任务详情'}</h2>
+              <h2 className="mt-2 truncate text-2xl font-bold text-theme-text-primary">{selectedTask?.title || '任务详情'}</h2>
               {selectedTask ? (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusTone(selectedTask.status)}`}>
@@ -4541,7 +4541,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Audited Result</div>
-                        <h3 className="mt-1 text-sm font-semibold text-slate-950">audited-result.json 摘要</h3>
+                        <h3 className="mt-1 text-sm font-semibold text-theme-text-primary">audited-result.json 摘要</h3>
                       </div>
                       {auditedResultSummary ? (
                         <button
@@ -4576,7 +4576,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Report Outputs</div>
-                      <h3 className="mt-1 text-sm font-semibold text-slate-950">按任务声明的报告输出</h3>
+                      <h3 className="mt-1 text-sm font-semibold text-theme-text-primary">按任务声明的报告输出</h3>
                     </div>
                     <div className="text-xs font-semibold text-theme-text-muted">
                       {currentReportOutputs.length > 0 ?`${currentReportOutputs.length} 个输出` : '当前尝试未声明输出'}
@@ -4647,7 +4647,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">AgentFlow Graph</div>
-                        <h3 className="mt-1 text-sm font-semibold text-slate-950">节点拓扑、状态与节点输出入口</h3>
+                        <h3 className="mt-1 text-sm font-semibold text-theme-text-primary">节点拓扑、状态与节点输出入口</h3>
                       </div>
                       <div className="flex flex-wrap gap-2 text-xs font-semibold text-theme-text-muted">
                         <span>{taskGraphNodeViews.length} 个节点</span>
@@ -4687,7 +4687,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                             <>
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                  <div className="text-sm font-semibold text-slate-950">{selectedGraphNode.label}</div>
+                                  <div className="text-sm font-semibold text-theme-text-primary">{selectedGraphNode.label}</div>
                                   <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">{selectedGraphNode.id}</div>
                                 </div>
                                 <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${graphNodeBadgeTone(selectedGraphNode.status)}`}>
@@ -4823,7 +4823,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                       <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Session Explorer</div>
-                      <h3 className="mt-2 text-lg font-semibold text-slate-950">动态图阶段会话与日志</h3>
+                      <h3 className="mt-2 text-lg font-semibold text-theme-text-primary">动态图阶段会话与日志</h3>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {currentStageNames.map((stageName) => (
@@ -5073,7 +5073,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
               <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Create Task</div>
-                <h2 className="mt-1 text-xl font-semibold text-slate-950">新建 IPC 扫描任务</h2>
+                <h2 className="mt-1 text-xl font-semibold text-theme-text-primary">新建 IPC 扫描任务</h2>
               </div>
               <button
                 type="button"
@@ -5720,7 +5720,7 @@ className="form-input w-full"
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Create Summary</div>
-                        <h3 className="mt-2 text-lg font-semibold text-slate-950">当前输入配置</h3>
+                        <h3 className="mt-2 text-lg font-semibold text-theme-text-primary">当前输入配置</h3>
                       </div>
                     </div>
                     <div className="mt-4 space-y-3 text-sm">
@@ -5854,7 +5854,7 @@ className="form-input w-full"
                       </span>
                     ) : null}
                   </div>
-                  <h3 className="mt-2 truncate text-lg font-semibold text-slate-950">{previewArtifact.display_name}</h3>
+                  <h3 className="mt-2 truncate text-lg font-semibold text-theme-text-primary">{previewArtifact.display_name}</h3>
                   <div className="mt-1 break-all font-mono text-xs text-theme-text-muted">{previewArtifact.relative_path}</div>
                   <div className="mt-2 flex flex-wrap gap-3 text-[11px] font-semibold text-theme-text-muted">
                     <span>{formatSize(previewArtifact.size)}</span>

@@ -762,7 +762,7 @@ export const AppInstancePage: React.FC<{
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-3 rounded-xl border border-theme-border bg-gradient-to-r from-slate-50 via-slate-50 to-blue-50/70 px-5 py-4 md:flex-row md:items-center md:justify-between">
+                      <div className="flex flex-col gap-3 rounded-xl border border-theme-border bg-gradient-to-r from-theme-elevated via-theme-elevated to-blue-500/10 px-5 py-4 md:flex-row md:items-center md:justify-between">
                         <div>
                           <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">分页浏览</div>
                           <div className="mt-1 text-sm text-theme-text-secondary">共 <span className="font-semibold text-theme-text-primary">{filteredTemplates.length}</span> 个模板</div>

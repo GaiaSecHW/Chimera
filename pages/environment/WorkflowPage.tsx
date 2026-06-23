@@ -173,7 +173,7 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                            }`}>
                               {idx + 1}. {step}
                            </div>
-                           {idx < wf.steps.length - 1 && <ChevronRight size={12} className="text-slate-200" />}
+                           {idx < wf.steps.length - 1 && <ChevronRight size={12} className="text-theme-text-secondary" />}
                         </React.Fragment>
                       ))}
                    </div>
@@ -207,7 +207,7 @@ export const WorkflowPage: React.FC<{ projectId: string }> = ({ projectId }) => 
         {/* Empty State */}
         {workflows.length === 0 && (
           <div className="bg-theme-surface rounded-[3rem] border-2 border-dashed border-theme-border p-32 text-center flex flex-col items-center gap-6">
-             <div className="w-20 h-20 bg-theme-elevated rounded-full flex items-center justify-center text-slate-200">
+             <div className="w-20 h-20 bg-theme-elevated rounded-full flex items-center justify-center text-theme-text-secondary">
                 <Workflow size={48} />
              </div>
              <div className="space-y-1">

@@ -64,7 +64,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  pending: 'bg-slate-100 text-slate-600',
+  pending: 'bg-theme-elevated text-theme-text-secondary',
   running: 'bg-blue-100 text-blue-700',
   passed: 'bg-emerald-100 text-emerald-700',
   failed: 'bg-red-100 text-red-700',
@@ -157,7 +157,7 @@ function sessionRoleTone(role?: string) {
   if (role === 'judge') return 'border-amber-200 bg-amber-50 text-amber-700';
   if (role === 'sub_worker') return 'border-violet-200 bg-violet-50 text-violet-700';
   if (role === 'master' || role === 'master_worker') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
-  return 'border-slate-200 bg-slate-50 text-slate-600';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function stageLabel(stage?: string): string {
@@ -176,7 +176,7 @@ function timelineLevelTone(level?: string | null) {
   if (normalized === 'error') return 'border-rose-200 bg-rose-50 text-rose-700';
   if (normalized === 'warning' || normalized === 'warn') return 'border-amber-200 bg-amber-50 text-amber-700';
   if (normalized === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  return 'border-slate-200 bg-slate-50 text-slate-700';
+  return 'border-theme-border bg-theme-elevated text-theme-text-primary';
 }
 
 function isAgentKillTimelineEvent(eventType?: string | null) {
@@ -205,14 +205,14 @@ function timelineEventCategoryTone(eventType?: string | null) {
   if (category === 'task_mutation') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
   if (category === 'failure') return 'border-rose-200 bg-rose-50 text-rose-700';
   if (category === 'stage_progress') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  return 'border-slate-200 bg-slate-50 text-slate-700';
+  return 'border-theme-border bg-theme-elevated text-theme-text-primary';
 }
 
 function timelineEventTypeTone(eventType?: string | null) {
   const normalized = String(eventType || '').trim();
   if (normalized === 'agent_process_manual_kill') return 'border-rose-200 bg-rose-50 text-rose-700';
   if (normalized === 'agent_process_bulk_manual_kill') return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-slate-200 bg-slate-50 text-slate-700';
+  return 'border-theme-border bg-theme-elevated text-theme-text-primary';
 }
 
 function formatTimelineEventTypeLabel(eventType?: string | null) {
@@ -358,21 +358,21 @@ function buildDfaTree(events: AppDfaStageEvent[], taskStatus: string): DfaTreeNo
 function TreeNodeView({ node }: { node: DfaTreeNode }) {
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
+      <div className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-xs">
         <span className={`h-2 w-2 rounded-full ${node.status === 'done' ? 'bg-emerald-500' : node.status === 'running' ? 'bg-blue-500' : 'bg-slate-300'}`} />
-        <span className="font-mono text-slate-700">{node.name}</span>
+        <span className="font-mono text-theme-text-primary">{node.name}</span>
       </div>
-      {node.children.length ? <div className="ml-5 border-l border-slate-200 pl-3 space-y-2">{node.children.map((child) => <TreeNodeView key={`${node.name}-${child.name}-${child.depth}`} node={child} />)}</div> : null}
+      {node.children.length ? <div className="ml-5 border-l border-theme-border pl-3 space-y-2">{node.children.map((child) => <TreeNodeView key={`${node.name}-${child.name}-${child.depth}`} node={child} />)}</div> : null}
     </div>
   );
 }
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return <div className="flex gap-3"><span className="w-24 shrink-0 text-xs text-slate-400">{label}</span><span className="text-xs text-slate-700 break-all">{value}</span></div>;
+  return <div className="flex gap-3"><span className="w-24 shrink-0 text-xs text-theme-text-muted">{label}</span><span className="text-xs text-theme-text-primary break-all">{value}</span></div>;
 }
 
 function MetricCard({ label, value, icon }: { label: string; value: React.ReactNode; icon: React.ReactNode }) {
- return <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><div className="flex items-center justify-between gap-3"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</div><div className="text-slate-400">{icon}</div></div><div className="mt-3 text-2xl font-semibold text-slate-900">{value}</div></div>;
+ return <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-4"><div className="flex items-center justify-between gap-3"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">{label}</div><div className="text-theme-text-muted">{icon}</div></div><div className="mt-3 text-2xl font-semibold text-theme-text-primary">{value}</div></div>;
 }
 
 function traceNodeTone(status?: string) {
@@ -380,7 +380,7 @@ function traceNodeTone(status?: string) {
   if (status === 'running' || status === 'queued') return 'border-blue-200 bg-blue-50 text-blue-700';
   if (status === 'failed' || status === 'error') return 'border-rose-200 bg-rose-50 text-rose-700';
   if (status === 'depth_limit' || status === 'cycle' || status === 'skipped') return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-slate-200 bg-slate-50 text-slate-600';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 }
 
 function flattenTraceTree(node?: DataflowVulnTraceTreeNode | null): DataflowVulnTraceTreeNode[] {
@@ -407,7 +407,7 @@ function pruneReasonTone(reason?: string | null): string {
   if (r === 'merged_equivalent_taint_validation' || r === 'already_analyzed') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
   if (r === 'invalid_name') return 'bg-rose-50 text-rose-700 border-rose-200';
   if (r === 'not_in_source_root_funcdb' || r === 'external' || r.startsWith('external') || r === 'stdlib skip') return 'bg-amber-50 text-amber-700 border-amber-200';
-  return 'bg-slate-50 text-slate-600 border-slate-200';
+  return 'bg-theme-elevated text-theme-text-secondary border-theme-border';
 }
 
 function PrunedBranchBadge({ node, level = 0 }: { node: DataflowVulnTraceTreeNode; level?: number }) {
@@ -431,7 +431,7 @@ function PrunedBranchBadge({ node, level = 0 }: { node: DataflowVulnTraceTreeNod
         <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 ${reasonTone}`}>{reasonLabel}</span>
       </div>
       {/* Tooltip */}
- <div className="pointer-events-none absolute left-0 top-full z-50 mt-1 min-w-[220px] rounded-xl border border-slate-300 bg-slate-900 px-3 py-2 text-[11px] leading-relaxed text-slate-100 opacity-0 transition-opacity group-hover:opacity-100 whitespace-pre-wrap">
+ <div className="pointer-events-none absolute left-0 top-full z-50 mt-1 min-w-[220px] rounded-xl border border-theme-border bg-slate-900 px-3 py-2 text-[11px] leading-relaxed text-white opacity-0 transition-opacity group-hover:opacity-100 whitespace-pre-wrap">
         {tooltipLines.join('\n')}
       </div>
     </div>
@@ -458,18 +458,18 @@ function TraceTreeNodeCard({
       <button
         type="button"
         onClick={() => onSelect(node)}
-        className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'}`}
+        className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-slate-900 bg-slate-900 text-white' : 'border-theme-border bg-theme-elevated hover:bg-theme-elevated'}`}
         style={{ marginLeft:`${level * 16}px` }}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="truncate font-mono text-sm font-semibold">{node.function_name || '-'}</div>
-            <div className={`mt-1 truncate text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>{node.source_file || '-'} {node.line_hint || ''}</div>
-            <div className={`mt-2 text-xs ${selected ? 'text-slate-300' : 'text-slate-600'}`}>污点: {node.taint_inputs?.length ? node.taint_inputs.map((item) => item.symbol).join(', ') : '未识别'}</div>
+            <div className={`mt-1 truncate text-[11px] ${selected ? 'text-theme-text-muted' : 'text-theme-text-muted'}`}>{node.source_file || '-'} {node.line_hint || ''}</div>
+            <div className={`mt-2 text-xs ${selected ? 'text-theme-text-muted' : 'text-theme-text-secondary'}`}>污点: {node.taint_inputs?.length ? node.taint_inputs.map((item) => item.symbol).join(', ') : '未识别'}</div>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
- <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${selected ? 'border-slate-200 bg-slate-100 text-white' : traceNodeTone(node.followup_status || node.status)}`}>{node.followup_status || node.status || '-'}</span>
- <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${selected ? 'bg-slate-100 text-white' : 'bg-slate-100 text-slate-600'}`}>漏洞 {node.findings_count || 0}</span>
+ <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${selected ? 'border-theme-border bg-theme-elevated text-white' : traceNodeTone(node.followup_status || node.status)}`}>{node.followup_status || node.status || '-'}</span>
+ <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${selected ? 'bg-theme-elevated text-white' : 'bg-theme-elevated text-theme-text-secondary'}`}>漏洞 {node.findings_count || 0}</span>
           </div>
         </div>
       </button>
@@ -485,7 +485,7 @@ function TraceTreeNodeCard({
 }
 
 function MarkdownContent({ content }: { content: string }) {
-  return <article className="prose prose-slate max-w-none prose-headings:font-semibold prose-pre:border prose-pre:border-slate-200 prose-pre:bg-slate-50 prose-pre:text-slate-900 prose-code:text-rose-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown></article>;
+  return <article className="prose prose-slate max-w-none prose-headings:font-semibold prose-pre:border prose-pre:border-theme-border prose-pre:bg-theme-elevated prose-pre:text-theme-text-primary prose-code:text-rose-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown></article>;
 }
 
 const SEVERITY_STYLE: Record<string, { badge: string; bar: string; label: string }> = {
@@ -493,7 +493,7 @@ const SEVERITY_STYLE: Record<string, { badge: string; bar: string; label: string
   HIGH: { badge: 'bg-orange-100 text-orange-700 border-orange-200', bar: 'bg-orange-500', label: '高危' },
   MEDIUM: { badge: 'bg-amber-100 text-amber-700 border-amber-200', bar: 'bg-amber-500', label: '中危' },
   LOW: { badge: 'bg-sky-100 text-sky-700 border-sky-200', bar: 'bg-sky-500', label: '低危' },
-  INFO: { badge: 'bg-slate-100 text-slate-600 border-slate-200', bar: 'bg-slate-400', label: '提示' },
+  INFO: { badge: 'bg-theme-elevated text-theme-text-secondary border-theme-border', bar: 'bg-slate-400', label: '提示' },
 };
 const SEVERITY_ORDER = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'];
 
@@ -504,19 +504,19 @@ function SourceSnippetBlock({ finding }: { finding: AppDfaVulnFinding }) {
     <div>
       <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-violet-500"><FileText size={12} />函数源码</div>
       {snippet?.lines?.length ? (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-950">
-          <div className="border-b border-slate-800 px-3 py-2 font-mono text-[11px] text-slate-400">{snippet.file || finding.file || 'source'} {snippet.focus_line ? `:${snippet.focus_line}` : ''}</div>
-          <pre className="max-h-96 overflow-auto p-0 text-xs leading-5 text-slate-200">
+        <div className="overflow-hidden rounded-xl border border-theme-border bg-slate-950">
+          <div className="border-b border-slate-800 px-3 py-2 font-mono text-[11px] text-theme-text-muted">{snippet.file || finding.file || 'source'} {snippet.focus_line ? `:${snippet.focus_line}` : ''}</div>
+          <pre className="max-h-96 overflow-auto p-0 text-xs leading-5 text-theme-text-primary">
             {snippet.lines.map((ln) => (
               <div key={ln.n} className={`grid grid-cols-[4rem_minmax(0,1fr)] gap-3 px-3 ${ln.n === snippet.focus_line ? 'bg-rose-500/20 text-rose-100' : ''}`}>
-                <span className="select-none text-right text-slate-500">{ln.n}</span>
+                <span className="select-none text-right text-theme-text-muted">{ln.n}</span>
                 <code className="whitespace-pre">{ln.text || ' '}</code>
               </div>
             ))}
           </pre>
         </div>
       ) : (
-        <pre className="max-h-72 overflow-auto rounded-xl border border-slate-200 bg-slate-950 px-3 py-3 text-xs leading-5 text-slate-100">{finding.code}</pre>
+        <pre className="max-h-72 overflow-auto rounded-xl border border-theme-border bg-slate-950 px-3 py-3 text-xs leading-5 text-white">{finding.code}</pre>
       )}
     </div>
   );
@@ -534,7 +534,7 @@ function FlowTraceBlock({ finding }: { finding: AppDfaVulnFinding }) {
             <div key={i} className="rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-2">
               <div className="font-mono text-xs font-bold text-cyan-900">#{step.step ?? i + 1} {step.function || step.from || ''}{step.to ? ` → ${step.to}` : ''}</div>
               <div className="mt-1 text-[11px] text-cyan-700">{step.file ? `${step.file}${step.line ? `:${step.line}` : ''}` : ''}</div>
-              {step.description ? <div className="mt-1 text-xs text-slate-700">{step.description}</div> : null}
+              {step.description ? <div className="mt-1 text-xs text-theme-text-primary">{step.description}</div> : null}
             </div>
           ))}
         </div>
@@ -543,8 +543,8 @@ function FlowTraceBlock({ finding }: { finding: AppDfaVulnFinding }) {
       ) : null}
       {(finding.source || finding.sink) ? (
         <div className="mt-2 grid gap-2 md:grid-cols-2">
-          {finding.source ? <pre className="overflow-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-700">source: {JSON.stringify(finding.source, null, 2)}</pre> : null}
-          {finding.sink ? <pre className="overflow-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-700">sink: {JSON.stringify(finding.sink, null, 2)}</pre> : null}
+          {finding.source ? <pre className="overflow-auto rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-[11px] text-theme-text-primary">source: {JSON.stringify(finding.source, null, 2)}</pre> : null}
+          {finding.sink ? <pre className="overflow-auto rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-[11px] text-theme-text-primary">sink: {JSON.stringify(finding.sink, null, 2)}</pre> : null}
         </div>
       ) : null}
     </div>
@@ -556,20 +556,20 @@ function AgentSessionSummaryPanel({ session }: { session?: Record<string, any> |
   const steps = Array.isArray(session.steps) ? session.steps : [];
   const candidates = Array.isArray(session.entry_candidates) ? session.entry_candidates : [];
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5">
+    <section className="rounded-2xl border border-theme-border bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">智能体执行摘要</div>
-          <h2 className="mt-1 text-lg font-semibold text-slate-900">根审计会话时间线</h2>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">智能体执行摘要</div>
+          <h2 className="mt-1 text-lg font-semibold text-theme-text-primary">根审计会话时间线</h2>
         </div>
-        <div className="flex flex-wrap gap-2 text-xs font-bold text-slate-600">
+        <div className="flex flex-wrap gap-2 text-xs font-bold text-theme-text-secondary">
           {session.model ? <span className="rounded-full bg-violet-50 px-3 py-1 text-violet-700">模型 {session.model}</span> : null}
           {session.llm_duration_sec ? <span className="rounded-full bg-cyan-50 px-3 py-1 text-cyan-700">LLM {session.llm_duration_sec}s</span> : null}
           {session.vuln_count !== undefined && session.vuln_count !== null ? <span className="rounded-full bg-rose-50 px-3 py-1 text-rose-700">解析漏洞 {session.vuln_count}</span> : null}
         </div>
       </div>
-      {steps.length ? <div className="mt-4 space-y-2">{steps.map((s: any, i: number) => <div key={i} className="flex gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2"><div className="w-20 shrink-0 font-mono text-[11px] text-slate-400">{s.ts || '-'}</div><div className="min-w-0"><div className="text-sm font-bold text-slate-800">{s.label}</div><div className="mt-0.5 truncate text-xs text-slate-500">{s.detail}</div></div></div>)}</div> : null}
-      {candidates.length ? <details className="mt-4 rounded-xl border border-slate-200 bg-slate-50"><summary className="cursor-pointer px-3 py-2 text-xs font-medium text-slate-600">入口函数解析候选 ({candidates.length})</summary><div className="space-y-2 border-t border-slate-100 p-3">{candidates.map((c: any, i: number) => <div key={i} className="rounded-lg bg-white px-3 py-2"><div className="font-mono text-xs font-bold text-slate-800">{c.signature || c.name}</div><div className="mt-1 text-[11px] text-slate-500">{c.file}{c.start_line ? `:${c.start_line}-${c.end_line || c.start_line}` : ''}</div></div>)}</div></details> : null}
+      {steps.length ? <div className="mt-4 space-y-2">{steps.map((s: any, i: number) => <div key={i} className="flex gap-3 rounded-xl border border-slate-100 bg-theme-elevated px-3 py-2"><div className="w-20 shrink-0 font-mono text-[11px] text-theme-text-muted">{s.ts || '-'}</div><div className="min-w-0"><div className="text-sm font-bold text-theme-text-primary">{s.label}</div><div className="mt-0.5 truncate text-xs text-theme-text-muted">{s.detail}</div></div></div>)}</div> : null}
+      {candidates.length ? <details className="mt-4 rounded-xl border border-theme-border bg-theme-elevated"><summary className="cursor-pointer px-3 py-2 text-xs font-medium text-theme-text-secondary">入口函数解析候选 ({candidates.length})</summary><div className="space-y-2 border-t border-slate-100 p-3">{candidates.map((c: any, i: number) => <div key={i} className="rounded-lg bg-white px-3 py-2"><div className="font-mono text-xs font-bold text-theme-text-primary">{c.signature || c.name}</div><div className="mt-1 text-[11px] text-theme-text-muted">{c.file}{c.start_line ? `:${c.start_line}-${c.end_line || c.start_line}` : ''}</div></div>)}</div></details> : null}
     </section>
   );
 }
@@ -584,37 +584,37 @@ function FindingCard({ finding, index }: { finding: AppDfaVulnFinding; index: nu
     || finding.dataflow_trace?.length
   );
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+    <div className="overflow-hidden rounded-2xl border border-theme-border bg-white">
       <div className={`h-1 w-full ${style.bar}`} />
       <button
         onClick={() => hasDetail && setOpen((v) => !v)}
-        className={`flex w-full items-start gap-3 px-5 py-4 text-left ${hasDetail ? 'cursor-pointer hover:bg-slate-50' : 'cursor-default'}`}
+        className={`flex w-full items-start gap-3 px-5 py-4 text-left ${hasDetail ? 'cursor-pointer hover:bg-theme-elevated' : 'cursor-default'}`}
       >
-        <span className="mt-0.5 text-xs font-medium text-slate-400">#{index + 1}</span>
+        <span className="mt-0.5 text-xs font-medium text-theme-text-muted">#{index + 1}</span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${style.badge}`}>
               <ShieldAlert size={11} />{style.label} · {sev}
             </span>
-            {finding.location ? <span className="inline-flex items-center gap-1 font-mono text-[11px] text-slate-500"><MapPin size={11} />{finding.location}</span> : null}
+            {finding.location ? <span className="inline-flex items-center gap-1 font-mono text-[11px] text-theme-text-muted"><MapPin size={11} />{finding.location}</span> : null}
           </div>
-          <div className="mt-2 text-sm font-bold leading-5 text-slate-900">
+          <div className="mt-2 text-sm font-bold leading-5 text-theme-text-primary">
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ p: ({ children }) => <span>{children}</span> }}>{finding.title}</ReactMarkdown>
           </div>
         </div>
-        {hasDetail ? <span className="mt-1 text-slate-400">{open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span> : null}
+        {hasDetail ? <span className="mt-1 text-theme-text-muted">{open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span> : null}
       </button>
       {open && hasDetail ? (
         <div className="space-y-4 border-t border-slate-100 px-5 py-4">
           {finding.root_cause ? (
             <div>
-              <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-400"><Search size={12} />根因分析</div>
+              <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-theme-text-muted"><Search size={12} />根因分析</div>
               <div className="prose prose-sm prose-slate max-w-none prose-code:text-rose-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{finding.root_cause}</ReactMarkdown></div>
             </div>
           ) : null}
           {finding.alarm && !finding.root_cause ? (
             <div>
-              <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-400"><Search size={12} />判定理由</div>
+              <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-theme-text-muted"><Search size={12} />判定理由</div>
               <div className="prose prose-sm prose-slate max-w-none prose-code:text-rose-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{finding.alarm}</ReactMarkdown></div>
             </div>
           ) : null}
@@ -623,11 +623,11 @@ function FindingCard({ finding, index }: { finding: AppDfaVulnFinding; index: nu
           {finding.proposed_fix ? (
             <div>
               <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-emerald-500"><Wrench size={12} />修复建议</div>
-              <div className="prose prose-sm prose-slate max-w-none prose-pre:bg-slate-900 prose-pre:text-slate-100 prose-code:text-emerald-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{finding.proposed_fix}</ReactMarkdown></div>
+              <div className="prose prose-sm prose-slate max-w-none prose-pre:bg-slate-900 prose-pre:text-white prose-code:text-emerald-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{finding.proposed_fix}</ReactMarkdown></div>
             </div>
           ) : null}
           {!finding.root_cause && !finding.proposed_fix && finding.detail ? (
-            <div className="prose prose-sm prose-slate max-w-none prose-pre:bg-slate-50 prose-code:text-rose-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{finding.detail}</ReactMarkdown></div>
+            <div className="prose prose-sm prose-slate max-w-none prose-pre:bg-theme-elevated prose-code:text-rose-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{finding.detail}</ReactMarkdown></div>
           ) : null}
         </div>
       ) : null}
@@ -649,7 +649,7 @@ function FindingCards({ findings, bySeverity }: { findings: AppDfaVulnFinding[];
           const style = SEVERITY_STYLE[sev];
           return <span key={sev} className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium ${style.badge}`}>{style.label} {n}</span>;
         })}
-        <span className="text-xs font-semibold text-slate-400">共 {sorted.length} 个漏洞</span>
+        <span className="text-xs font-semibold text-theme-text-muted">共 {sorted.length} 个漏洞</span>
       </div>
       {sorted.map((f, i) => <FindingCard key={f.id || i} finding={f} index={i} />)}
     </div>
@@ -1074,27 +1074,27 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
       {feedbackNodes}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-4">
- <button onClick={handleBack} className="mt-1 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-slate-600 hover:bg-slate-100"><ArrowLeft size={18} /></button>
+ <button onClick={handleBack} className="mt-1 rounded-2xl border border-theme-border bg-theme-elevated p-3 text-theme-text-secondary hover:bg-theme-elevated"><ArrowLeft size={18} /></button>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="truncate text-2xl font-semibold tracking-tight text-slate-900">{detail?.task_name || 'CFG Guided Explore 任务详情'}</h1>
-              {detail ? <span className={`rounded-full px-3 py-1 text-xs font-bold ${STATUS_COLOR[detail.status] || 'bg-slate-100 text-slate-600'}`}>{STATUS_LABEL[detail.status] || detail.status}</span> : null}
+              <h1 className="truncate text-2xl font-semibold tracking-tight text-theme-text-primary">{detail?.task_name || 'CFG Guided Explore 任务详情'}</h1>
+              {detail ? <span className={`rounded-full px-3 py-1 text-xs font-bold ${STATUS_COLOR[detail.status] || 'bg-theme-elevated text-theme-text-secondary'}`}>{STATUS_LABEL[detail.status] || detail.status}</span> : null}
               {hasReturnContext ? <span className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-bold text-cyan-700">来自二进制安全总任务</span> : null}
             </div>
-            <p className="mt-2 text-sm text-slate-500">查看数据流追踪、智能体会话、结果产物和树状跟踪过程。</p>
+            <p className="mt-2 text-sm text-theme-text-muted">查看数据流追踪、智能体会话、结果产物和树状跟踪过程。</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => void loadDetail()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100"><RefreshCw size={15} className={loading ? 'animate-spin' : ''} />刷新</button>
-          {detail && ['pending', 'running'].includes(detail.status) ? <button onClick={() => void cancelTask()} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50"><XCircle size={15} />取消</button> : null}
-          {detail && !['pending', 'running'].includes(detail.status) ? <button onClick={() => void restartTask()} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50"><RotateCcw size={15} />重试</button> : null}
+          <button onClick={() => void loadDetail()} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-elevated px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated"><RefreshCw size={15} className={loading ? 'animate-spin' : ''} />刷新</button>
+          {detail && ['pending', 'running'].includes(detail.status) ? <button onClick={() => void cancelTask()} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-theme-elevated px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50"><XCircle size={15} />取消</button> : null}
+          {detail && !['pending', 'running'].includes(detail.status) ? <button onClick={() => void restartTask()} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-theme-elevated px-4 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50"><RotateCcw size={15} />重试</button> : null}
           {detail ? <DownstreamTaskCreator projectId={projectId} sourceKind="dataflow_analysis" task={detail} buttonClassName="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50" /> : null}
-          {detail?.started_at ? <button onClick={() => void resumeTask()} className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"><CheckCircle2 size={15} />继续</button> : null}
-          {detail ? <button onClick={() => void deleteTask()} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50"><Trash2 size={15} />删除</button> : null}
+          {detail?.started_at ? <button onClick={() => void resumeTask()} className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-theme-elevated px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"><CheckCircle2 size={15} />继续</button> : null}
+          {detail ? <button onClick={() => void deleteTask()} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-theme-elevated px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50"><Trash2 size={15} />删除</button> : null}
         </div>
       </div>
 
- <div className="flex gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-1">
+ <div className="flex gap-2 rounded-2xl border border-theme-border bg-theme-elevated p-1">
         {[
           ['overview', '总览'],
           ['timeline', '事件时间线'],
@@ -1104,16 +1104,16 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
           ['result', '结果'],
           ['vuln-graph', '漏洞图谱'],
           ['evaluation', '跟踪过程'],
- ].map(([id, label]) => <button key={id} onClick={() => setActiveTab(id as DetailTab)} className={`rounded-xl px-4 py-2 text-sm font-bold transition ${activeTab === id ? 'bg-slate-900 text-white ' : 'text-slate-500 hover:bg-slate-100'}`}>{label}</button>)}
+ ].map(([id, label]) => <button key={id} onClick={() => setActiveTab(id as DetailTab)} className={`rounded-xl px-4 py-2 text-sm font-bold transition ${activeTab === id ? 'bg-slate-900 text-white ' : 'text-theme-text-muted hover:bg-theme-elevated'}`}>{label}</button>)}
       </div>
 
-      {loading && !detail ? <div className="py-20 text-center text-sm text-slate-500"><Loader2 size={18} className="mx-auto mb-3 animate-spin" />加载任务详情中...</div> : detail ? (
+      {loading && !detail ? <div className="py-20 text-center text-sm text-theme-text-muted"><Loader2 size={18} className="mx-auto mb-3 animate-spin" />加载任务详情中...</div> : detail ? (
         activeTab === 'overview' ? (
           <section className="space-y-4">
             <TaskOriginCard origin={detail} />
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">任务信息</h2>
+ <div className="rounded-2xl border border-theme-border bg-theme-elevated p-5">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">任务信息</h2>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <InfoRow label="任务 ID" value={<span className="font-mono">{detail.task_id}</span>} />
                   <InfoRow label="创建时间" value={new Date(detail.created_at).toLocaleString('zh-CN')} />
@@ -1130,53 +1130,53 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                   <InfoRow label="描述" value={detail.task_description || '-'} />
                 </div>
               </div>
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">阶段进度</h2>
+ <div className="rounded-2xl border border-theme-border bg-theme-elevated p-5">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">阶段进度</h2>
                 <div className="mt-4 space-y-3">{STAGE_STEPS.map((step, index) => {
                   const state = statusSteps[index];
                   const artifactPath = detail.output_path ? extractFsRelPath(`${detail.output_path}/${detail.task_id}/${step.artifactSubpath}`, projectId) : null;
-                  return <div key={step.key} className="rounded-xl border border-slate-200 bg-theme-elevated px-4 py-3"><div className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${state === 'completed' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : state === 'running' ? 'border-blue-500 bg-blue-50 text-blue-600' : state === 'failed' ? 'border-red-400 bg-red-50 text-red-600' : 'border-slate-200 bg-slate-50 text-slate-400'}`}>{state === 'completed' ? <CheckCircle2 size={16} /> : state === 'running' ? <Loader2 size={14} className="animate-spin" /> : state === 'failed' ? <XCircle size={16} /> : index + 1}</div><div className="min-w-0 flex-1"><p className="text-sm font-bold text-slate-900">{step.label}</p><p className="mt-1 text-xs text-slate-500">{step.desc}</p>{artifactPath && state !== 'pending' ? <button onClick={() => openInFileExplorer(artifactPath)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50"><FolderOpen size={11} />打开阶段输出</button> : null}</div></div></div>;
+                  return <div key={step.key} className="rounded-xl border border-theme-border bg-theme-elevated px-4 py-3"><div className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${state === 'completed' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : state === 'running' ? 'border-blue-500 bg-blue-50 text-blue-600' : state === 'failed' ? 'border-red-400 bg-red-50 text-red-600' : 'border-theme-border bg-theme-elevated text-theme-text-muted'}`}>{state === 'completed' ? <CheckCircle2 size={16} /> : state === 'running' ? <Loader2 size={14} className="animate-spin" /> : state === 'failed' ? <XCircle size={16} /> : index + 1}</div><div className="min-w-0 flex-1"><p className="text-sm font-bold text-theme-text-primary">{step.label}</p><p className="mt-1 text-xs text-theme-text-muted">{step.desc}</p>{artifactPath && state !== 'pending' ? <button onClick={() => openInFileExplorer(artifactPath)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50"><FolderOpen size={11} />打开阶段输出</button> : null}</div></div></div>;
                 })}</div>
               </div>
             </div>
             <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">数据流调用树</h2>
-                <div className="mt-4 max-h-[420px] overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4">{dfaTree ? <TreeNodeView node={dfaTree} /> : <div className="py-10 text-center text-sm text-slate-400">暂无调用树事件</div>}</div>
+ <div className="rounded-2xl border border-theme-border bg-theme-elevated p-5">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">数据流调用树</h2>
+                <div className="mt-4 max-h-[420px] overflow-auto rounded-2xl border border-theme-border bg-theme-elevated p-4">{dfaTree ? <TreeNodeView node={dfaTree} /> : <div className="py-10 text-center text-sm text-theme-text-muted">暂无调用树事件</div>}</div>
               </div>
- <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                <button onClick={() => setLogsExpanded((value) => !value)} className="flex w-full items-center justify-between gap-3 text-left"><div><h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">分析日志</h2><p className="mt-1 text-xs text-slate-400">{logLines.length} 条事件</p></div>{logsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>
-                {logsExpanded ? <div ref={logRef} className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 font-mono text-xs leading-relaxed text-slate-700">{logLines.length ? logLines.map((line, index) => <div key={index} className={line.includes('✗') ? 'text-red-500' : line.includes('▶') ? 'text-violet-700' : line.includes('✓') ? 'text-emerald-700' : 'text-slate-700'}>{line}</div>) : <div className="text-slate-500">暂无阶段事件</div>}</div> : null}
+ <div className="rounded-2xl border border-theme-border bg-theme-elevated p-5">
+                <button onClick={() => setLogsExpanded((value) => !value)} className="flex w-full items-center justify-between gap-3 text-left"><div><h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">分析日志</h2><p className="mt-1 text-xs text-theme-text-muted">{logLines.length} 条事件</p></div>{logsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>
+                {logsExpanded ? <div ref={logRef} className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-theme-border bg-theme-elevated px-3 py-3 font-mono text-xs leading-relaxed text-theme-text-primary">{logLines.length ? logLines.map((line, index) => <div key={index} className={line.includes('✗') ? 'text-red-500' : line.includes('▶') ? 'text-violet-700' : line.includes('✓') ? 'text-emerald-700' : 'text-theme-text-primary'}>{line}</div>) : <div className="text-theme-text-muted">暂无阶段事件</div>}</div> : null}
               </div>
             </section>
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-elevated p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">当前运行智能体</h2>
-                  <p className="mt-1 text-xs text-slate-400">展示当前任务仍处于活跃状态的智能体会话与角色，点击可查看实时会话。</p>
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">当前运行智能体</h2>
+                  <p className="mt-1 text-xs text-theme-text-muted">展示当前任务仍处于活跃状态的智能体会话与角色，点击可查看实时会话。</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">{activeSessions.length} 个活跃会话</span>
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">
+                  <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-secondary">{activeSessions.length} 个活跃会话</span>
+                  <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
                     展示 {activeAgentRangeStart}-{activeAgentRangeEnd} / {filteredActiveSessions.length}
                   </span>
                 </div>
               </div>
               {sessionsLoading && sessions.length === 0 ? (
-                <div className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" />加载智能体状态中...</div>
+                <div className="mt-4 flex items-center gap-2 rounded-xl border border-theme-border bg-theme-elevated px-4 py-4 text-sm text-theme-text-muted"><Loader2 size={15} className="animate-spin" />加载智能体状态中...</div>
               ) : activeSessions.length > 0 ? (
                 <>
                   <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                      <Search size={14} className="text-slate-400" />
+                    <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-theme-border bg-theme-elevated px-3 py-2">
+                      <Search size={14} className="text-theme-text-muted" />
                       <input
                         value={activeAgentKeyword}
                         onChange={(event) => setActiveAgentKeyword(event.target.value)}
                         placeholder="按名称、路径、分组或角色筛选"
-                        className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
+                        className="w-full bg-transparent text-sm font-medium text-theme-text-primary outline-none placeholder:text-theme-text-muted"
                       />
                     </div>
-                    <label className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+                    <label className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-semibold text-theme-text-muted">
                       每页
                       <select
                         value={activeAgentPageSize}
@@ -1188,15 +1188,15 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                     </label>
                   </div>
                   {filteredActiveSessions.length > 0 ? (
-                    <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
-                      <div className="divide-y divide-slate-200 bg-slate-50">
+                    <div className="mt-4 overflow-hidden rounded-2xl border border-theme-border">
+                      <div className="divide-y divide-slate-200 bg-theme-elevated">
                         {pagedActiveSessions.map((session) => (
-                          <button key={session.relative_path} type="button" onClick={() => openActiveAgentSession(session.relative_path)} className="w-full px-4 py-4 text-left transition hover:bg-slate-100">
+                          <button key={session.relative_path} type="button" onClick={() => openActiveAgentSession(session.relative_path)} className="w-full px-4 py-4 text-left transition hover:bg-theme-elevated">
                             <div className="flex flex-wrap items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
-                                <div className="truncate text-sm font-semibold text-slate-900">{session.display_name}</div>
-                                <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{session.relative_path}</div>
-                                <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-500">
+                                <div className="truncate text-sm font-semibold text-theme-text-primary">{session.display_name}</div>
+                                <div className="mt-1 truncate font-mono text-[11px] text-theme-text-muted">{session.relative_path}</div>
+                                <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-theme-text-muted">
                                   <span>分组 {session.stage_group || '-'}</span>
                                   <span>事件 {session.event_count}</span>
                                   <span>更新时间 {formatSessionMtime(session.mtime)}</span>
@@ -1214,19 +1214,19 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                       </div>
                     </div>
                   ) : (
-                    <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                    <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-elevated px-4 py-8 text-center text-sm text-theme-text-muted">
                       当前筛选条件下没有匹配的活跃智能体会话。
                     </div>
                   )}
                   {activeAgentTotalPages > 1 && filteredActiveSessions.length > 0 ? (
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-theme-text-muted">
                       <span>第 {normalizedActiveAgentPage} / {activeAgentTotalPages} 页</span>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => setActiveAgentPage((current) => Math.max(1, current - 1))}
                           disabled={normalizedActiveAgentPage <= 1}
-                          className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-700 disabled:opacity-40"
+                          className="rounded-lg border border-theme-border px-3 py-1.5 text-theme-text-primary disabled:opacity-40"
                         >
                           上一页
                         </button>
@@ -1234,7 +1234,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                           type="button"
                           onClick={() => setActiveAgentPage((current) => Math.min(activeAgentTotalPages, current + 1))}
                           disabled={normalizedActiveAgentPage >= activeAgentTotalPages}
-                          className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-700 disabled:opacity-40"
+                          className="rounded-lg border border-theme-border px-3 py-1.5 text-theme-text-primary disabled:opacity-40"
                         >
                           下一页
                         </button>
@@ -1243,34 +1243,34 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                   ) : null}
                 </>
               ) : (
-                <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                <div className="mt-4 rounded-xl border border-dashed border-theme-border bg-theme-elevated px-4 py-8 text-center text-sm text-theme-text-muted">
                   {detail.status === 'pending' ? '任务尚未启动，当前没有活跃智能体。' : ['running', 'pending'].includes(detail.status) ? '当前没有检测到活跃智能体会话。' : '任务已结束，当前没有活跃智能体。'}
                 </div>
               )}
             </section>
             {detail.abnormal_reason ? <AbnormalReasonCard reason={detail.abnormal_reason} history={detail.abnormal_reason_history} /> : null}
- {detail.error ? <section className="rounded-2xl border border-red-200 bg-red-50 p-5"><h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-red-600">错误信息</h2><pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-red-200 bg-slate-50 px-3 py-3 text-xs text-red-700">{detail.error}</pre></section> : null}
- {detail.prompt_content ? <section className="rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden"><details><summary className="cursor-pointer select-none px-6 py-4 text-sm font-medium text-slate-700 hover:bg-slate-100">分析 Prompt</summary><pre className="px-6 py-4 text-xs text-slate-600 whitespace-pre-wrap break-all bg-slate-50 max-h-72 overflow-auto border-t border-slate-100">{detail.prompt_content}</pre></details></section> : null}
+ {detail.error ? <section className="rounded-2xl border border-red-200 bg-red-50 p-5"><h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-red-600">错误信息</h2><pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-red-200 bg-theme-elevated px-3 py-3 text-xs text-red-700">{detail.error}</pre></section> : null}
+ {detail.prompt_content ? <section className="rounded-2xl border border-theme-border bg-theme-elevated overflow-hidden"><details><summary className="cursor-pointer select-none px-6 py-4 text-sm font-medium text-theme-text-primary hover:bg-theme-elevated">分析 Prompt</summary><pre className="px-6 py-4 text-xs text-theme-text-secondary whitespace-pre-wrap break-all bg-theme-elevated max-h-72 overflow-auto border-t border-slate-100">{detail.prompt_content}</pre></details></section> : null}
           </section>
         ) : activeTab === 'timeline' ? (
           <section className="space-y-4">
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-elevated p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">事件时间线</h2>
-                  <p className="mt-1 text-xs text-slate-400">记录任务关键时间点和运行轨迹，用于分析调度、租约、控制权和执行阶段问题。</p>
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">事件时间线</h2>
+                  <p className="mt-1 text-xs text-theme-text-muted">记录任务关键时间点和运行轨迹，用于分析调度、租约、控制权和执行阶段问题。</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+                  <div className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-semibold text-theme-text-muted">
                     展示 {timelineRangeStart}-{timelineRangeEnd} / {filteredTimeline.length}
                   </div>
-                  <label className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+                  <label className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-semibold text-theme-text-muted">
                     每页
                     <select value={timelinePageSize} onChange={(event) => setTimelinePageSize(Math.min(2000, Math.max(50, Number(event.target.value) || 200)))} className="form-select ml-2 text-xs">
                       {[50, 100, 200, 500].map((size) => <option key={size} value={size}>{size}</option>)}
                     </select>
                   </label>
-                  <button onClick={() => void loadTimeline()} disabled={timelineLoading} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60">
+                  <button onClick={() => void loadTimeline()} disabled={timelineLoading} className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3 py-2 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60">
                     {timelineLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                     刷新
                   </button>
@@ -1295,16 +1295,16 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                 </select>
               </div>
             </section>
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-elevated p-5">
               {timelineLoading && timeline.length === 0 ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">加载事件时间线中...</div>
+                <div className="rounded-xl border border-theme-border bg-theme-elevated px-4 py-10 text-center text-sm text-theme-text-muted">加载事件时间线中...</div>
               ) : filteredTimeline.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">当前暂无数据库事件时间线</div>
+                <div className="rounded-xl border border-dashed border-theme-border bg-theme-elevated px-4 py-10 text-center text-sm text-theme-text-muted">当前暂无数据库事件时间线</div>
               ) : (
-                <div className="overflow-hidden rounded-2xl border border-slate-200">
+                <div className="overflow-hidden rounded-2xl border border-theme-border">
                   <div className="overflow-x-auto">
                     <table className="min-w-[1180px] w-full divide-y divide-slate-100 text-left text-xs">
-                      <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                      <thead className="bg-theme-elevated text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                         <tr>
                           <th className="w-14 px-3 py-2">#</th>
                           <th className="w-44 px-3 py-2">时间</th>
@@ -1317,7 +1317,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                           <th className="w-36 px-3 py-2 text-right">操作</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 bg-slate-50">
+                      <tbody className="divide-y divide-slate-100 bg-theme-elevated">
                         {pagedTimelineItems.map((event, index) => {
                           const expanded = expandedTimelineEventId === event.id;
                           const payload = event.payload || {};
@@ -1329,20 +1329,20 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                           return (
                             <React.Fragment key={event.id}>
                               <tr className="align-top">
-                                <td className="px-3 py-2 font-mono text-slate-500">{timelineRangeStart + index}</td>
-                                <td className="px-3 py-2 text-slate-600">{event.created_at ? new Date(event.created_at).toLocaleString('zh-CN') : '-'}</td>
+                                <td className="px-3 py-2 font-mono text-theme-text-muted">{timelineRangeStart + index}</td>
+                                <td className="px-3 py-2 text-theme-text-secondary">{event.created_at ? new Date(event.created_at).toLocaleString('zh-CN') : '-'}</td>
                                 <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${timelineEventCategoryTone(event.event_type)}`}>{timelineEventCategoryLabel(event.event_type)}</span></td>
                                 <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${timelineEventTypeTone(event.event_type)}`}>{formatTimelineEventTypeLabel(event.event_type)}</span></td>
-                                <td className="px-3 py-2"><span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_COLOR[event.status || 'pending'] || 'bg-slate-100 text-slate-600'}`}>{STATUS_LABEL[event.status || 'pending'] || statusText}</span></td>
+                                <td className="px-3 py-2"><span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_COLOR[event.status || 'pending'] || 'bg-theme-elevated text-theme-text-secondary'}`}>{STATUS_LABEL[event.status || 'pending'] || statusText}</span></td>
                                 <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${timelineLevelTone(event.level)}`}>{event.level || 'info'}</span></td>
                                 <td className="max-w-[360px] px-3 py-2">
-                                  <div className="truncate font-semibold text-slate-800" title={timelineMessageSummary(event)}>{timelineMessageSummary(event)}</div>
+                                  <div className="truncate font-semibold text-theme-text-primary" title={timelineMessageSummary(event)}>{timelineMessageSummary(event)}</div>
                                   {auditSummary ? <div className="mt-1 truncate text-[11px] font-medium text-rose-700" title={auditSummary}>{auditSummary}</div> : null}
                                 </td>
-                                <td className="px-3 py-2 text-[11px] text-slate-500"><div className="truncate font-mono" title={sourceLabel}>{sourceLabel}</div></td>
+                                <td className="px-3 py-2 text-[11px] text-theme-text-muted"><div className="truncate font-mono" title={sourceLabel}>{sourceLabel}</div></td>
                                 <td className="px-3 py-2 text-right">
                                   <div className="flex items-center justify-end gap-3">
-                                    <button type="button" onClick={() => setExpandedTimelineEventId(expanded ? '' : event.id)} disabled={!hasPayload} className="text-[11px] font-medium text-slate-500 transition hover:text-slate-900 disabled:opacity-30">{expanded ? '收起' : '查看'}</button>
+                                    <button type="button" onClick={() => setExpandedTimelineEventId(expanded ? '' : event.id)} disabled={!hasPayload} className="text-[11px] font-medium text-theme-text-muted transition hover:text-theme-text-primary disabled:opacity-30">{expanded ? '收起' : '查看'}</button>
                                     <button onClick={() => void deleteTimelineEvent(event.id)} disabled={deletingEventId === event.id || timelineClearing} className="text-[11px] font-medium text-rose-600 transition hover:text-rose-800 disabled:opacity-40">{deletingEventId === event.id ? '删除中' : '删除'}</button>
                                   </div>
                                 </td>
@@ -1352,13 +1352,13 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                                   <td colSpan={9} className="px-3 py-3">
                                     <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                                       {timelinePayloadRows(payload).slice(0, 12).map((row) => (
-                                        <div key={row.key} className="min-w-0 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs">
-                                          <div className="font-bold capitalize text-slate-400">{row.label}</div>
-                                          <div className="mt-1 break-all font-mono text-slate-700">{row.value}</div>
+                                        <div key={row.key} className="min-w-0 rounded-lg border border-slate-100 bg-theme-elevated px-3 py-2 text-xs">
+                                          <div className="font-bold capitalize text-theme-text-muted">{row.label}</div>
+                                          <div className="mt-1 break-all font-mono text-theme-text-primary">{row.value}</div>
                                         </div>
                                       ))}
                                     </div>
-                                    <pre className="mt-3 overflow-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs leading-relaxed text-slate-900">{JSON.stringify(payload, null, 2)}</pre>
+                                    <pre className="mt-3 overflow-auto rounded-xl border border-theme-border bg-theme-elevated px-3 py-3 text-xs leading-relaxed text-theme-text-primary">{JSON.stringify(payload, null, 2)}</pre>
                                   </td>
                                 </tr>
                               ) : null}
@@ -1376,15 +1376,15 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
           <DataflowAnalysisTaskConfigPanel detail={detail} />
         ) : activeTab === 'session' ? (
           <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
- <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="flex items-center justify-between gap-3"><div><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">会话列表</div><div className="mt-1 text-xs text-slate-500">{sessions.length} 个会话文件</div></div><button onClick={() => void loadSessions()} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"><RefreshCw size={14} className={sessionsLoading ? 'animate-spin' : ''} /></button></div>{sessionsError ? <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">{sessionsError}</div> : null}{sessions.length === 0 ? <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">{sessionsLoading ? '加载会话中...' : '当前任务暂无智能体会话文件'}</div> : <div className="mt-4 max-h-[calc(100vh-20rem)] space-y-4 overflow-auto pr-1">{groupedSessions.map(([group, items]) => <div key={group}><div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{group === 'root' ? '根会话' : group}</div><div className="space-y-2">{items.map((session) => { const selected = session.relative_path === selectedSessionPath; return <button key={session.relative_path} onClick={() => setSelectedSessionPath(session.relative_path)} className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50'}`}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-semibold">{session.display_name}</div><div className={`mt-1 truncate text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>{session.relative_path}</div></div><span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${session.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>{session.is_active ? '活跃' : '历史'}</span></div><div className={`mt-3 flex flex-wrap gap-3 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}><span>事件 {session.event_count}</span><span>{new Date(session.mtime * 1000).toLocaleString('zh-CN')}</span></div></button>; })}</div></div>)}</div>}</aside>
+ <aside className="rounded-2xl border border-theme-border bg-theme-elevated p-4"><div className="flex items-center justify-between gap-3"><div><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">会话列表</div><div className="mt-1 text-xs text-theme-text-muted">{sessions.length} 个会话文件</div></div><button onClick={() => void loadSessions()} className="rounded-xl border border-theme-border p-2 text-theme-text-muted hover:bg-theme-elevated"><RefreshCw size={14} className={sessionsLoading ? 'animate-spin' : ''} /></button></div>{sessionsError ? <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">{sessionsError}</div> : null}{sessions.length === 0 ? <div className="mt-4 rounded-2xl border border-dashed border-theme-border bg-theme-elevated px-4 py-10 text-center text-sm text-theme-text-muted">{sessionsLoading ? '加载会话中...' : '当前任务暂无智能体会话文件'}</div> : <div className="mt-4 max-h-[calc(100vh-20rem)] space-y-4 overflow-auto pr-1">{groupedSessions.map(([group, items]) => <div key={group}><div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">{group === 'root' ? '根会话' : group}</div><div className="space-y-2">{items.map((session) => { const selected = session.relative_path === selectedSessionPath; return <button key={session.relative_path} onClick={() => setSelectedSessionPath(session.relative_path)} className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-slate-900 bg-slate-900 text-white' : 'border-theme-border bg-theme-elevated text-theme-text-primary hover:bg-theme-elevated'}`}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-semibold">{session.display_name}</div><div className={`mt-1 truncate text-[11px] ${selected ? 'text-theme-text-muted' : 'text-theme-text-muted'}`}>{session.relative_path}</div></div><span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${session.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-theme-border bg-theme-elevated text-theme-text-muted'}`}>{session.is_active ? '活跃' : '历史'}</span></div><div className={`mt-3 flex flex-wrap gap-3 text-[11px] ${selected ? 'text-theme-text-muted' : 'text-theme-text-muted'}`}><span>事件 {session.event_count}</span><span>{new Date(session.mtime * 1000).toLocaleString('zh-CN')}</span></div></button>; })}</div></div>)}</div>}</aside>
             <div className="space-y-4"><AgentSessionSummaryPanel session={displayedAgentSession} /><AgentSessionWarningPanel warnings={sessionWarnings} /><AgentSessionViewer sessionMeta={selectedSession as any} sessionHeader={sessionSnapshot?.session_meta} events={sessionEvents as any} loading={sessionLoading} live={sessionLive} error={sessionError} /></div>
           </section>
         ) : activeTab === 'relationship' ? (
           <section className="space-y-4"><WarningListPanel title="索引生成提示" items={sessionIndex?.warnings?.slice(0, 5) || []} /><AgentSessionWarningPanel warnings={sessionWarnings} /><SessionRelationshipGraph index={sessionIndex as any} selectedPath={selectedSessionPath} onSelect={setSelectedSessionPath} sessionPreview={{ path: selectedSessionPath, sessionMeta: selectedSession as any, sessionHeader: sessionSnapshot?.session_meta, events: sessionEvents as any, loading: sessionLoading, live: sessionLive, error: sessionError }} /></section>
         ) : activeTab === 'result' ? (
           <section className="space-y-4">
- <div className="grid gap-4 xl:grid-cols-5"><MetricCard label="追踪函数" value={result?.summary.function_count ?? 0} icon={<ScrollText size={18} />} /><MetricCard label="轮次数" value={result?.summary.round_count ?? 0} icon={<BarChart3 size={18} />} /><MetricCard label="通过轮次" value={result?.summary.passed_round_count ?? 0} icon={<CheckCircle2 size={18} />} /><MetricCard label="总 Token" value={formatNumber(result?.summary.total_tokens)} icon={<ScrollText size={18} />} /><div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">结果目录</div><div className="mt-2 text-sm font-semibold text-slate-700 line-clamp-2">{result?.output_root || '-'}</div><div className="mt-3 flex flex-wrap gap-2"><button disabled={!resultRootFsPath} onClick={() => resultRootFsPath && openInFileExplorer(resultRootFsPath)} className="inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-50"><FolderOpen size={11} />打开目录</button><button disabled={!result?.output_root} onClick={() => result?.output_root && navigator.clipboard.writeText(result.output_root)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-500 hover:bg-slate-100 disabled:opacity-50"><ClipboardCopy size={10} />复制路径</button></div></div></div>
- {resultLoading ? <section className="rounded-2xl border border-slate-200 bg-slate-50 p-10 text-center text-sm text-slate-500">加载结果中...</section> : !result || !result.available ? <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm text-slate-500">当前任务尚未生成可展示结果。</section> : <section className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)_320px]"><aside className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">结果导航</div><div className="mt-3 space-y-2">{[['final', '最终报告'], ['report', '运行报告'], ['dataflow', '函数级结果'], ['json', '结构化 JSON']].map(([id, label]) => <button key={id} onClick={() => setResultView(id as any)} className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${resultView === id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50'}`}>{label}</button>)}</div>{resultView === 'dataflow' ? <div className="mt-4 max-h-80 space-y-2 overflow-auto">{result.dataflow_files.map((file) => <button key={file.relative_path} onClick={() => setSelectedDataflowFile(file.relative_path)} className={`w-full rounded-xl border px-3 py-2 text-left text-xs ${selectedDataflow?.relative_path === file.relative_path ? 'border-cyan-300 bg-cyan-50 text-cyan-800' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>{file.name}</button>)}</div> : null}</aside><main className="rounded-2xl border border-slate-200 bg-slate-50 p-5"><h2 className="border-b border-slate-200 pb-4 text-2xl font-semibold tracking-tight text-slate-900">{resultView === 'final' ? '最终报告' : resultView === 'report' ? '运行报告' : resultView === 'dataflow' ? selectedDataflow?.name || '函数级结果' : '结构化 JSON'}</h2><div className="mt-5 max-h-[calc(100vh-24rem)] overflow-auto pr-2">{resultView === 'final' && (result.findings?.length || 0) > 0 ? <div className="space-y-5"><FindingCards findings={result.findings || []} bySeverity={result.summary?.findings_by_severity} /><details className="rounded-2xl border border-slate-200 bg-slate-50"><summary className="flex cursor-pointer select-none items-center gap-2 px-4 py-3 text-xs font-semibold text-slate-500 hover:bg-slate-100"><FileText size={13} />查看原始报告 (Markdown)</summary><div className="border-t border-slate-100 px-4 py-4">{resultContent ? <MarkdownContent content={resultContent} /> : null}</div></details></div> : resultContent ? resultView === 'json' ? <pre className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900">{resultContent}</pre> : <MarkdownContent content={resultContent} /> : <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">当前结果缺少可展示内容</div>}</div></main><aside className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">关键文件</div><div className="mt-3 space-y-2">{[...(result.output_files || []), ...(result.dataflow_files || [])].map((file) => <div key={file.relative_path} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"><div className="font-mono text-[11px] text-slate-700 break-all">{file.relative_path}</div><div className="mt-1 text-[10px] text-slate-400">{formatNumber(file.size)} bytes</div></div>)}</div></aside></section>}
+ <div className="grid gap-4 xl:grid-cols-5"><MetricCard label="追踪函数" value={result?.summary.function_count ?? 0} icon={<ScrollText size={18} />} /><MetricCard label="轮次数" value={result?.summary.round_count ?? 0} icon={<BarChart3 size={18} />} /><MetricCard label="通过轮次" value={result?.summary.passed_round_count ?? 0} icon={<CheckCircle2 size={18} />} /><MetricCard label="总 Token" value={formatNumber(result?.summary.total_tokens)} icon={<ScrollText size={18} />} /><div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-4"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">结果目录</div><div className="mt-2 text-sm font-semibold text-theme-text-primary line-clamp-2">{result?.output_root || '-'}</div><div className="mt-3 flex flex-wrap gap-2"><button disabled={!resultRootFsPath} onClick={() => resultRootFsPath && openInFileExplorer(resultRootFsPath)} className="inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-50"><FolderOpen size={11} />打开目录</button><button disabled={!result?.output_root} onClick={() => result?.output_root && navigator.clipboard.writeText(result.output_root)} className="inline-flex items-center gap-1 rounded-lg border border-theme-border px-2 py-1 text-[11px] font-semibold text-theme-text-muted hover:bg-theme-elevated disabled:opacity-50"><ClipboardCopy size={10} />复制路径</button></div></div></div>
+ {resultLoading ? <section className="rounded-2xl border border-theme-border bg-theme-elevated p-10 text-center text-sm text-theme-text-muted">加载结果中...</section> : !result || !result.available ? <section className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated p-10 text-center text-sm text-theme-text-muted">当前任务尚未生成可展示结果。</section> : <section className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)_320px]"><aside className="rounded-2xl border border-theme-border bg-theme-elevated p-4"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">结果导航</div><div className="mt-3 space-y-2">{[['final', '最终报告'], ['report', '运行报告'], ['dataflow', '函数级结果'], ['json', '结构化 JSON']].map(([id, label]) => <button key={id} onClick={() => setResultView(id as any)} className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${resultView === id ? 'border-slate-900 bg-slate-900 text-white' : 'border-theme-border bg-theme-elevated text-theme-text-primary hover:bg-theme-elevated'}`}>{label}</button>)}</div>{resultView === 'dataflow' ? <div className="mt-4 max-h-80 space-y-2 overflow-auto">{result.dataflow_files.map((file) => <button key={file.relative_path} onClick={() => setSelectedDataflowFile(file.relative_path)} className={`w-full rounded-xl border px-3 py-2 text-left text-xs ${selectedDataflow?.relative_path === file.relative_path ? 'border-cyan-300 bg-cyan-50 text-cyan-800' : 'border-theme-border bg-theme-elevated text-theme-text-secondary'}`}>{file.name}</button>)}</div> : null}</aside><main className="rounded-2xl border border-theme-border bg-theme-elevated p-5"><h2 className="border-b border-theme-border pb-4 text-2xl font-semibold tracking-tight text-theme-text-primary">{resultView === 'final' ? '最终报告' : resultView === 'report' ? '运行报告' : resultView === 'dataflow' ? selectedDataflow?.name || '函数级结果' : '结构化 JSON'}</h2><div className="mt-5 max-h-[calc(100vh-24rem)] overflow-auto pr-2">{resultView === 'final' && (result.findings?.length || 0) > 0 ? <div className="space-y-5"><FindingCards findings={result.findings || []} bySeverity={result.summary?.findings_by_severity} /><details className="rounded-2xl border border-theme-border bg-theme-elevated"><summary className="flex cursor-pointer select-none items-center gap-2 px-4 py-3 text-xs font-semibold text-theme-text-muted hover:bg-theme-elevated"><FileText size={13} />查看原始报告 (Markdown)</summary><div className="border-t border-slate-100 px-4 py-4">{resultContent ? <MarkdownContent content={resultContent} /> : null}</div></details></div> : resultContent ? resultView === 'json' ? <pre className="rounded-2xl border border-theme-border bg-theme-elevated p-4 text-xs text-theme-text-primary">{resultContent}</pre> : <MarkdownContent content={resultContent} /> : <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated px-6 py-10 text-center text-sm text-theme-text-muted">当前结果缺少可展示内容</div>}</div></main><aside className="rounded-2xl border border-theme-border bg-theme-elevated p-4"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">关键文件</div><div className="mt-3 space-y-2">{[...(result.output_files || []), ...(result.dataflow_files || [])].map((file) => <div key={file.relative_path} className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-2"><div className="font-mono text-[11px] text-theme-text-primary break-all">{file.relative_path}</div><div className="mt-1 text-[10px] text-theme-text-muted">{formatNumber(file.size)} bytes</div></div>)}</div></aside></section>}
           </section>
         ) : activeTab === 'vuln-graph' ? (
           <section className="space-y-4">
@@ -1393,19 +1393,19 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
               <MetricCard label="传播边" value={formatNumber(vulnGraph?.summary?.edges)} icon={<BarChart3 size={18} />} />
               <MetricCard label="跟入点" value={formatNumber(vulnGraph?.summary?.followups)} icon={<ChevronDown size={18} />} />
               <MetricCard label="漏洞数" value={formatNumber(vulnGraph?.summary?.findings)} icon={<XCircle size={18} />} />
- <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">图数据库</div><div className="mt-2 break-all text-xs font-semibold text-slate-600">{vulnGraph?.run_root || '-'}</div><button onClick={() => void loadVulnGraph()} className="mt-3 inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-500 hover:bg-slate-100"><RefreshCw size={10} className={vulnGraphLoading ? 'animate-spin' : ''} />刷新</button></div>
+ <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-4"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">图数据库</div><div className="mt-2 break-all text-xs font-semibold text-theme-text-secondary">{vulnGraph?.run_root || '-'}</div><button onClick={() => void loadVulnGraph()} className="mt-3 inline-flex items-center gap-1 rounded-lg border border-theme-border px-2 py-1 text-[11px] font-semibold text-theme-text-muted hover:bg-theme-elevated"><RefreshCw size={10} className={vulnGraphLoading ? 'animate-spin' : ''} />刷新</button></div>
             </section>
- {vulnGraphLoading ? <section className="rounded-2xl border border-slate-200 bg-slate-50 p-10 text-center text-sm text-slate-500">加载漏洞图谱中...</section> : !vulnGraph?.available ? <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm text-slate-500">当前任务尚未生成漏洞图谱。</section> : <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]"><main className="rounded-2xl border border-slate-200 bg-slate-50 p-5"><h2 className="border-b border-slate-200 pb-4 text-2xl font-semibold tracking-tight text-slate-900">污点传播树 / 图数据库</h2><div className="mt-5 grid gap-4 lg:grid-cols-2"><div><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">传播边</div><div className="mt-3 max-h-[32rem] space-y-2 overflow-auto pr-1">{(vulnGraph.graph?.taint_edges || []).map((edge: any) => <div key={edge.edge_id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><div className="font-mono text-xs font-bold text-slate-800">{edge.from_symbol} → {edge.to_symbol}</div><div className="mt-1 text-[11px] text-slate-500">{edge.source_file}::{edge.function_name} {edge.line}</div><div className="mt-2 text-xs text-slate-600">{edge.evidence || '-'}</div><div className="mt-2 flex flex-wrap gap-2 text-[10px]"><span className="rounded-full bg-cyan-100 px-2 py-0.5 font-bold text-cyan-700">{edge.operation || 'unknown'}</span><span className="rounded-full bg-amber-100 px-2 py-0.5 font-bold text-amber-700">清洗: {edge.sanitizer_effect || 'none'}</span>{edge.termination_reason ? <span className="rounded-full bg-slate-200 px-2 py-0.5 font-bold text-slate-700">终止: {edge.termination_reason}</span> : null}</div></div>)}</div></div><div><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">跟入点</div><div className="mt-3 max-h-[32rem] space-y-2 overflow-auto pr-1">{(vulnGraph.graph?.followups || []).map((item: any) => <div key={item.followup_id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"><div className="font-mono text-xs font-bold text-slate-800">{item.callee_function}</div><div className="mt-1 text-[11px] text-slate-500">{item.callee_file} {item.callee_line}</div><div className="mt-2 text-xs text-slate-600">污点参数: {item.tainted_params_json || '[]'}</div><span className="mt-2 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{item.status}</span></div>)}</div></div></div></main><aside className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">漏洞发现</div><div className="mt-3 space-y-3">{(vulnGraph.graph?.vulnerability_findings || []).length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">暂无漏洞发现</div> : (vulnGraph.graph?.vulnerability_findings || []).map((finding: any) => <div key={finding.finding_id} className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3"><div className="text-sm font-semibold text-rose-800">{finding.title || finding.finding_id}</div><div className="mt-1 text-xs text-rose-700">{finding.vuln_type} · {finding.severity} · 置信度 {finding.confidence}</div><p className="mt-2 text-xs leading-5 text-slate-700">{finding.summary}</p><div className="mt-2 break-all font-mono text-[10px] text-slate-500">{finding.output_dir}</div></div>)}</div></aside></section>}
+ {vulnGraphLoading ? <section className="rounded-2xl border border-theme-border bg-theme-elevated p-10 text-center text-sm text-theme-text-muted">加载漏洞图谱中...</section> : !vulnGraph?.available ? <section className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated p-10 text-center text-sm text-theme-text-muted">当前任务尚未生成漏洞图谱。</section> : <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]"><main className="rounded-2xl border border-theme-border bg-theme-elevated p-5"><h2 className="border-b border-theme-border pb-4 text-2xl font-semibold tracking-tight text-theme-text-primary">污点传播树 / 图数据库</h2><div className="mt-5 grid gap-4 lg:grid-cols-2"><div><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">传播边</div><div className="mt-3 max-h-[32rem] space-y-2 overflow-auto pr-1">{(vulnGraph.graph?.taint_edges || []).map((edge: any) => <div key={edge.edge_id} className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3"><div className="font-mono text-xs font-bold text-theme-text-primary">{edge.from_symbol} → {edge.to_symbol}</div><div className="mt-1 text-[11px] text-theme-text-muted">{edge.source_file}::{edge.function_name} {edge.line}</div><div className="mt-2 text-xs text-theme-text-secondary">{edge.evidence || '-'}</div><div className="mt-2 flex flex-wrap gap-2 text-[10px]"><span className="rounded-full bg-cyan-100 px-2 py-0.5 font-bold text-cyan-700">{edge.operation || 'unknown'}</span><span className="rounded-full bg-amber-100 px-2 py-0.5 font-bold text-amber-700">清洗: {edge.sanitizer_effect || 'none'}</span>{edge.termination_reason ? <span className="rounded-full bg-slate-200 px-2 py-0.5 font-bold text-theme-text-primary">终止: {edge.termination_reason}</span> : null}</div></div>)}</div></div><div><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">跟入点</div><div className="mt-3 max-h-[32rem] space-y-2 overflow-auto pr-1">{(vulnGraph.graph?.followups || []).map((item: any) => <div key={item.followup_id} className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3"><div className="font-mono text-xs font-bold text-theme-text-primary">{item.callee_function}</div><div className="mt-1 text-[11px] text-theme-text-muted">{item.callee_file} {item.callee_line}</div><div className="mt-2 text-xs text-theme-text-secondary">污点参数: {item.tainted_params_json || '[]'}</div><span className="mt-2 inline-flex rounded-full bg-theme-elevated px-2 py-0.5 text-[10px] font-bold text-theme-text-secondary">{item.status}</span></div>)}</div></div></div></main><aside className="rounded-2xl border border-theme-border bg-theme-elevated p-4"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">漏洞发现</div><div className="mt-3 space-y-3">{(vulnGraph.graph?.vulnerability_findings || []).length === 0 ? <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated px-4 py-8 text-center text-sm text-theme-text-muted">暂无漏洞发现</div> : (vulnGraph.graph?.vulnerability_findings || []).map((finding: any) => <div key={finding.finding_id} className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3"><div className="text-sm font-semibold text-rose-800">{finding.title || finding.finding_id}</div><div className="mt-1 text-xs text-rose-700">{finding.vuln_type} · {finding.severity} · 置信度 {finding.confidence}</div><p className="mt-2 text-xs leading-5 text-theme-text-primary">{finding.summary}</p><div className="mt-2 break-all font-mono text-[10px] text-theme-text-muted">{finding.output_dir}</div></div>)}</div></aside></section>}
           </section>
         ) : (
           <section className="space-y-4">
             {vulnGraphLoading ? (
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-10 text-center text-sm text-slate-500">加载跟踪过程图谱中...</section>
+ <section className="rounded-2xl border border-theme-border bg-theme-elevated p-10 text-center text-sm text-theme-text-muted">加载跟踪过程图谱中...</section>
             ) : !vulnGraph?.available || !traceTreeRoot ? (
- <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500"><BarChart3 size={20} /></div>
-                <div className="mt-4 text-base font-bold text-slate-800">当前任务尚未生成跟踪过程</div>
-                <div className="mt-2 text-sm text-slate-500">任务至少完成根函数分析后，才会生成函数调用树与污点跟踪过程。</div>
+ <section className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated p-10 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-theme-elevated text-theme-text-muted"><BarChart3 size={20} /></div>
+                <div className="mt-4 text-base font-bold text-theme-text-primary">当前任务尚未生成跟踪过程</div>
+                <div className="mt-2 text-sm text-theme-text-muted">任务至少完成根函数分析后，才会生成函数调用树与污点跟踪过程。</div>
               </section>
             ) : (
               <>
@@ -1416,13 +1416,13 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                   <MetricCard label="漏洞发现" value={formatNumber(vulnGraph?.summary?.findings)} icon={<BarChart3 size={18} />} />
                 </section>
                 <section className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,1.05fr)]">
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-elevated p-5">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">函数调用树</h2>
-                        <p className="mt-1 text-xs text-slate-400">按调用深度展示整个污点跟踪过程，点击节点查看详情。</p>
+                        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">函数调用树</h2>
+                        <p className="mt-1 text-xs text-theme-text-muted">按调用深度展示整个污点跟踪过程，点击节点查看详情。</p>
                       </div>
-                      <button onClick={() => void loadVulnGraph()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100">
+                      <button onClick={() => void loadVulnGraph()} className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3 py-2 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated">
                         <RefreshCw size={14} className={vulnGraphLoading ? 'animate-spin' : ''} />
                         刷新
                       </button>
@@ -1431,21 +1431,21 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                       <TraceTreeNodeCard node={traceTreeRoot} selectedRunId={selectedTraceNode?.run_id} onSelect={(node) => setSelectedTraceRunId(node.run_id || null)} />
                     </div>
                   </section>
- <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+ <section className="rounded-2xl border border-theme-border bg-theme-elevated p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">节点详情</h2>
-                        <p className="mt-1 text-xs text-slate-400">展示当前函数的污点输入、传播摘要、终止原因和子调用状态。</p>
+                        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">节点详情</h2>
+                        <p className="mt-1 text-xs text-theme-text-muted">展示当前函数的污点输入、传播摘要、终止原因和子调用状态。</p>
                       </div>
                       {selectedTraceNode ? <span className={`rounded-full border px-3 py-1 text-xs font-bold ${traceNodeTone(selectedTraceNode.followup_status || selectedTraceNode.status)}`}>{selectedTraceNode.followup_status || selectedTraceNode.status || '-'}</span> : null}
                     </div>
                     {!selectedTraceNode ? (
-                      <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">请选择一个函数节点</div>
+                      <div className="mt-6 rounded-2xl border border-dashed border-theme-border bg-theme-elevated px-4 py-10 text-center text-sm text-theme-text-muted">请选择一个函数节点</div>
                     ) : (
                       <div className="mt-4 space-y-5">
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                          <div className="font-mono text-sm font-semibold text-slate-900">{selectedTraceNode.function_name || '-'}</div>
-                          <div className="mt-2 break-all text-xs text-slate-500">{selectedTraceNode.source_file || '-'} {selectedTraceNode.line_hint || ''}</div>
+                        <div className="rounded-2xl border border-theme-border bg-theme-elevated px-4 py-4">
+                          <div className="font-mono text-sm font-semibold text-theme-text-primary">{selectedTraceNode.function_name || '-'}</div>
+                          <div className="mt-2 break-all text-xs text-theme-text-muted">{selectedTraceNode.source_file || '-'} {selectedTraceNode.line_hint || ''}</div>
                         </div>
                         <div className="space-y-3">
                           <InfoRow label="深度" value={selectedTraceNode.depth} />
@@ -1455,36 +1455,36 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                           <InfoRow label="跟入原因" value={selectedTraceNode.followup_reason || '-'} />
                         </div>
                         <div>
-                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">污点输入</div>
+                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-theme-text-muted">污点输入</div>
                           <div className="mt-3 space-y-2">
                             {selectedTraceNode.taint_inputs?.length ? selectedTraceNode.taint_inputs.map((item, index) => (
-                              <div key={`${item.symbol}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs">
-                                <div className="font-mono font-bold text-slate-800">{item.symbol}</div>
-                                <div className="mt-1 text-slate-500">{item.kind || 'param'} {item.line ?`· ${item.line}` : ''}</div>
-                                {item.description ? <div className="mt-2 text-slate-600">{item.description}</div> : null}
+                              <div key={`${item.symbol}-${index}`} className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-3 text-xs">
+                                <div className="font-mono font-bold text-theme-text-primary">{item.symbol}</div>
+                                <div className="mt-1 text-theme-text-muted">{item.kind || 'param'} {item.line ?`· ${item.line}` : ''}</div>
+                                {item.description ? <div className="mt-2 text-theme-text-secondary">{item.description}</div> : null}
                               </div>
-                            )) : <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-center text-xs text-slate-500">未记录污点输入</div>}
+                            )) : <div className="rounded-xl border border-dashed border-theme-border bg-theme-elevated px-3 py-6 text-center text-xs text-theme-text-muted">未记录污点输入</div>}
                           </div>
                         </div>
                         <div>
-                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">关键传播摘要</div>
+                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-theme-text-muted">关键传播摘要</div>
                           <div className="mt-3 space-y-2">
                             {selectedTraceNode.taint_summary?.length ? selectedTraceNode.taint_summary.map((item, index) => (
-                              <div key={`${item.from_symbol}-${item.to_symbol}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs">
-                                <div className="font-mono font-bold text-slate-800">{item.from_symbol || '-'} → {item.to_symbol || '-'}</div>
-                                <div className="mt-1 text-slate-500">{item.operation || 'unknown'} {item.line ?`· ${item.line}` : ''}</div>
-                                {item.evidence ? <div className="mt-2 text-slate-600">{item.evidence}</div> : null}
+                              <div key={`${item.from_symbol}-${item.to_symbol}-${index}`} className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-3 text-xs">
+                                <div className="font-mono font-bold text-theme-text-primary">{item.from_symbol || '-'} → {item.to_symbol || '-'}</div>
+                                <div className="mt-1 text-theme-text-muted">{item.operation || 'unknown'} {item.line ?`· ${item.line}` : ''}</div>
+                                {item.evidence ? <div className="mt-2 text-theme-text-secondary">{item.evidence}</div> : null}
                                 {item.termination_reason ? <div className="mt-2 text-amber-700">终止原因：{item.termination_reason}</div> : null}
                               </div>
-                            )) : <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-center text-xs text-slate-500">当前节点暂无传播摘要</div>}
+                            )) : <div className="rounded-xl border border-dashed border-theme-border bg-theme-elevated px-3 py-6 text-center text-xs text-theme-text-muted">当前节点暂无传播摘要</div>}
                           </div>
                         </div>
                         <div>
-                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">终止原因</div>
+                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-theme-text-muted">终止原因</div>
                           <div className="mt-3 flex flex-wrap gap-2">
                             {selectedTraceNode.termination_reasons?.length ? selectedTraceNode.termination_reasons.map((item) => (
                               <span key={item} className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">{item}</span>
-                            )) : <span className="text-xs text-slate-500">无明确终止原因</span>}
+                            )) : <span className="text-xs text-theme-text-muted">无明确终止原因</span>}
                           </div>
                         </div>
                       </div>
@@ -1495,11 +1495,11 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
             )}
           </section>
         )
-      ) : !loading ? <div className="py-16 text-center text-sm text-slate-400">未指定任务或任务不存在。</div> : null}
+      ) : !loading ? <div className="py-16 text-center text-sm text-theme-text-muted">未指定任务或任务不存在。</div> : null}
 
       {activeAgentSessionPath ? (
         <div className="fixed inset-0 z-[280] bg-slate-950/70 p-4 backdrop-blur-sm">
-          <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-900 shadow-panel">
+          <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-theme-border bg-slate-900 shadow-panel">
             <AgentSessionDialogHeader
               title={activeAgentSessionMeta?.display_name || activeAgentSessionPath}
               subtitle={activeAgentSessionMeta?.relative_path || activeAgentSessionPath}

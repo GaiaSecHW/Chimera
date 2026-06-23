@@ -1473,7 +1473,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                     const hasPayload = !!(event.payload && Object.keys(event.payload).length);
                     return (
                       <React.Fragment key={event.id}>
-                        <tr className="align-top hover:bg-slate-100/80">
+                        <tr className="align-top hover:bg-theme-elevated">
                           <td className="px-3 py-2.5 font-mono text-[11px] font-bold text-theme-text-muted">#{index + 1}</td>
                           <td className="whitespace-nowrap px-3 py-2.5 font-mono text-[11px] font-semibold text-theme-text-secondary">
                             {formatDateTime(event.created_at)}
@@ -2073,13 +2073,13 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                 </div>
               </aside>
               <div className="min-h-[600px] bg-theme-elevated">
-                <div className="flex items-center justify-between gap-3 border-b border-theme-border px-4 py-2.5 text-sm font-semibold text-slate-100">
+                <div className="flex items-center justify-between gap-3 border-b border-theme-border px-4 py-2.5 text-sm font-semibold text-white">
                   <div className="truncate">{selectedArtifact?.name || '请选择左侧文件'}</div>
                   {selectedArtifact ? (
                     <button
                       type="button"
                       onClick={() => setPreviewDialog({ title: selectedArtifact.name, subtitle: selectedArtifact.path, content: artifactContent, language: languageFromName(selectedArtifact.name), loading: artifactLoading })}
-                      className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs text-slate-200 hover:bg-theme-elevated"
+                      className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs text-theme-text-primary hover:bg-theme-elevated"
                     >
                       弹窗查看
                     </button>

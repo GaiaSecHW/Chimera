@@ -955,7 +955,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                     const batches = detail?.batches || [];
                     return (
                       <React.Fragment key={record.upload_id}>
-                        <tr className="cursor-pointer align-top hover:bg-slate-100/80" onClick={() => { void openUploadDetailDialog(record); }}>
+                        <tr className="cursor-pointer align-top hover:bg-theme-elevated" onClick={() => { void openUploadDetailDialog(record); }}>
                           <td className="px-4 py-4">
                             <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${INPUT_TYPE_META[inputType].tone}`}>
                               {INPUT_TYPE_META[inputType].icon}
@@ -1174,7 +1174,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                           : !uploadStatus.db_name
                             ? '任务排队中,db_name 未分配'
                             : '在新标签页打开 codemap_lite 知识图谱'}
-                        className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                        className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:border-theme-border disabled:bg-theme-elevated disabled:text-theme-text-muted"
                       >
                         {openServeLoading
                           ? <Loader2 size={14} className="animate-spin" />

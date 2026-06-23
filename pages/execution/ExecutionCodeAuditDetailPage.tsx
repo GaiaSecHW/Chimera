@@ -575,7 +575,7 @@ export const ExecutionCodeAuditDetailPage: React.FC<ExecutionCodeAuditDetailPage
               {logs ? (
                 <div className="space-y-1">
                    {logs.split('\n').map((line, i) => (
-                     <div key={i} className="flex gap-6 group hover:bg-slate-100/10 px-3 py-0.5 -mx-3 rounded-lg transition-colors">
+                     <div key={i} className="flex gap-6 group hover:bg-theme-elevated px-3 py-0.5 -mx-3 rounded-lg transition-colors">
                         <span className="text-theme-text-secondary w-10 shrink-0 text-right select-none opacity-40 group-hover:opacity-100 font-semibold">{i + 1}</span>
                         <span className={`break-all whitespace-pre-wrap ${
                           line.toLowerCase().includes('error') ? 'text-red-400 font-bold bg-red-400/5' :

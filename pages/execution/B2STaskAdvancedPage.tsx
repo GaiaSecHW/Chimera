@@ -456,7 +456,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
               <span className="text-theme-text-faint">·</span>
               <span>{advanced?.mode_label || detail?.mode_label || '-'}</span>
             </div>
-            <div className="mt-1 break-words text-lg font-semibold tracking-tight text-slate-950">{fileNameOf(item?.elf_path)}</div>
+            <div className="mt-1 break-words text-lg font-semibold tracking-tight text-theme-text-primary">{fileNameOf(item?.elf_path)}</div>
             <div className="mt-0.5 break-all font-mono text-[10px] font-semibold text-theme-text-muted">task {taskId} · item {itemId}</div>
           </div>
         }
@@ -530,7 +530,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
             <div className="min-w-0 bg-theme-surface">
               <div className="flex min-h-[54px] items-center justify-between gap-3 border-b border-theme-border bg-theme-surface px-4 py-3">
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-slate-100" title={selected?.name || ''}>{selected?.name || '-'}</div>
+                  <div className="truncate text-sm font-semibold text-white" title={selected?.name || ''}>{selected?.name || '-'}</div>
                   {(() => {
                     const entry = files.find((candidate) => candidate.file.path === selectedPath);
                     const metaLine = [entry?.stage, entry?.section, entry?.round, entry?.agent, entry?.role].filter(Boolean).join(' / ');

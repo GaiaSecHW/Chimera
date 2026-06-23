@@ -140,7 +140,7 @@ export const OnlineSessionPage: React.FC = () => {
             <p className="mt-4 text-4xl font-bold text-theme-text-primary">{roleCount}</p>
             <p className="mt-4 text-sm font-medium text-theme-text-muted">已附加到在线会话上的角色数量总和。</p>
           </div>
- <div className="rounded-xl border border-emerald-500/20 bg-emerald-50/80 px-6 py-6">
+ <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-6 py-6">
             <div className="flex items-center gap-3">
  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-theme-surface text-emerald-400">
                 <Zap size={22} />

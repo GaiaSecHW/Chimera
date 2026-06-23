@@ -171,7 +171,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
       render: (engine) => {
         const active = engine.status === 'active';
         return (
-          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase border ${active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 border-slate-500/20'}`}>
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase border ${active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-theme-elevated text-theme-text-muted border-theme-border'}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`} />
             {engine.status || 'unknown'}
           </span>
@@ -254,7 +254,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
         loading={loading && engines.length === 0}
         empty={
           <div className="py-40 text-center">
-            <div className="w-20 h-20 bg-theme-elevated rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
+            <div className="w-20 h-20 bg-theme-elevated rounded-full flex items-center justify-center mx-auto mb-4 text-theme-text-secondary">
               <ServerCog size={40} />
             </div>
             <p className="text-sm font-semibold text-theme-text-muted uppercase tracking-widest">尚未注册任何漏洞确认引擎</p>

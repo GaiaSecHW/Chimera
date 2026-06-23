@@ -134,7 +134,7 @@ const OcServerTable: React.FC<{ servers: AppScanOcServer[]; urlToJob: Record<str
         {servers.map((s, i) => {
           const boundJob = s.base_url ? urlToJob[s.base_url] : undefined;
           return (
-            <tr key={s.instance_id || i} className="border-b border-theme-border hover:bg-slate-100/70">
+            <tr key={s.instance_id || i} className="border-b border-theme-border hover:bg-theme-elevated">
               <td className="px-3 py-2 font-mono text-xs text-theme-text-secondary">{(s.instance_id || '').slice(0, 8)}</td>
               <td className="px-3 py-2">
                 <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ocStatusTone(s.status)}`}>{s.status || '-'}</span>
