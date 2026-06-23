@@ -259,20 +259,20 @@ function extractChain(desc?: string): string[] {
 // ── Call graph (xyflow) ──────────────────────────────────────────────────────
 interface FnNodeData extends Record<string, unknown> { label: string; vuln: boolean; audited: boolean; selected: boolean; order: number }
 function FnNode({ data }: NodeProps<Node<FnNodeData>>) {
-  // Light bg + dark text (vuln = amber). Backgrounds via inline style because
-  // the app globally remaps bg-white/bg-slate-50 to dark theme vars.
+  // Light canvas → light box fill, DARK border + DARK text (user: 浅色底/深色框/深色函数名).
+  // Backgrounds via inline style because the app globally remaps bg-white/bg-slate-50 to dark.
   const tone = data.vuln
-    ? { border: 'border-amber-400 text-amber-800', bg: '#fffbeb' }
+    ? { border: '#b45309', text: 'text-amber-900', bg: '#fffbeb', badge: 'rgba(180,83,9,0.15)' }
     : data.audited
-      ? { border: 'border-emerald-400 text-emerald-800', bg: '#ecfdf5' }
-      : { border: 'border-slate-300 text-slate-700', bg: '#ffffff' };
+      ? { border: '#047857', text: 'text-emerald-900', bg: '#ecfdf5', badge: 'rgba(4,120,87,0.15)' }
+      : { border: '#334155', text: 'text-slate-800', bg: '#ffffff', badge: 'rgba(15,23,42,0.1)' };
   const ring = data.selected ? 'ring-2 ring-slate-900 ring-offset-1' : '';
   return (
-    <div className={`min-w-[150px] rounded-lg border px-3 py-2 text-[13px] font-semibold shadow-sm ${tone.border} ${ring}`} style={{ fontFamily: MONO, backgroundColor: tone.bg }}>
-      <Handle type="target" position={Position.Top} className="!h-2 !w-2 !border !border-slate-400 !bg-slate-400" />
-      <span className="mr-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-slate-700" style={{ backgroundColor: 'rgba(15,23,42,0.1)' }}>{data.order + 1}</span>
+    <div className={`min-w-[150px] rounded-lg border-2 px-3 py-2 text-[13px] font-semibold shadow-sm ${tone.text} ${ring}`} style={{ fontFamily: MONO, backgroundColor: tone.bg, borderColor: tone.border }}>
+      <Handle type="target" position={Position.Top} className="!h-2 !w-2 !border !border-slate-500 !bg-slate-500" />
+      <span className="mr-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-slate-800" style={{ backgroundColor: tone.badge }}>{data.order + 1}</span>
       {data.label}
-      <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !border !border-slate-400 !bg-slate-400" />
+      <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !border !border-slate-500 !bg-slate-500" />
     </div>
   );
 }
@@ -309,7 +309,7 @@ function WalkGraph({ layout, selectedFid, onSelect }: {
       nodesDraggable nodesConnectable={false} elementsSelectable panOnDrag zoomOnScroll
       proOptions={{ hideAttribution: true }}
     >
-      <Background color="#334155" gap={18} />
+      <Background color="#cbd5e1" gap={18} />
       <Controls showInteractive={false} />
     </ReactFlow>
   );
@@ -358,8 +358,9 @@ function layoutGraph(walk: WalkFn[], edges: CallEdge[], selectedFid: string | nu
   }));
   const flowEdges: Edge[] = edges.map((e, i) => ({
     id: `e${i}_${e.from}_${e.to}`, source: e.from, target: e.to,
-    markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: e.kind === 'call' ? '#94a3b8' : '#64748b' },
-    style: e.kind === 'call' ? { stroke: '#94a3b8', strokeWidth: 1.5 } : { stroke: '#64748b', strokeDasharray: '4 4' },
+    type: 'smoothstep', pathOptions: { borderRadius: 12 },
+    markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: e.kind === 'call' ? '#475569' : '#94a3b8' },
+    style: e.kind === 'call' ? { stroke: '#475569', strokeWidth: 1.5 } : { stroke: '#94a3b8', strokeDasharray: '4 4' },
     animated: false,
   }));
   return { nodes, flowEdges };
@@ -851,7 +852,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
               {/* Left: ONE fused graph. NOTE: the app globally remaps Tailwind
                   bg-white/bg-slate-50 → dark theme vars (styles.css), so we set
                   light surfaces via inline style to escape that hijack. */}
-              <aside className="flex max-h-[calc(100vh-11rem)] min-h-[600px] flex-col overflow-hidden rounded-2xl border border-slate-700 shadow-sm" style={{ backgroundColor: '#0f172a' }}>
+              <aside className="flex max-h-[calc(100vh-11rem)] min-h-[600px] flex-col overflow-hidden rounded-2xl border border-slate-300 shadow-sm" style={{ backgroundColor: '#f1f5f9' }}>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-300 px-3 py-2 text-[11px] text-slate-700" style={{ backgroundColor: '#e2e8f0' }}>
                   <span className="inline-flex items-center gap-1.5 font-semibold text-slate-900"><Workflow size={13} />审查顺序 / 调用图 · {walk.length}</span>
                   <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-500" style={{ backgroundColor: '#ecfdf5' }} />安全</span>
@@ -859,7 +860,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                   <span className="inline-flex items-center gap-1.5 text-slate-600"><span className="inline-block h-0.5 w-4 bg-slate-500" />调用 {callEdges.filter((e) => e.kind === 'call').length}</span>
                   <span className="inline-flex items-center gap-1.5 text-slate-600"><span className="inline-block h-0.5 w-4 border-t border-dashed border-slate-500" />顺序 {callEdges.filter((e) => e.kind === 'flow').length}</span>
                 </div>
-                <div className="flex-1" style={{ backgroundColor: '#0b1220', ['--xy-background-color' as any]: '#0b1220' }}>
+                <div className="flex-1" style={{ backgroundColor: '#f8fafc', ['--xy-background-color' as any]: '#f8fafc' }}>
                   <WalkGraph layout={graph} selectedFid={selectedFn?.fid || null} onSelect={setSelectedFid} />
                 </div>
               </aside>
