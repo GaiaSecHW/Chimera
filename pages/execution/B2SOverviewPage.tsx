@@ -1292,7 +1292,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                       setNameEdited(true);
                     }}
                     placeholder="例如：libcrypto 逆向还原"
-                    className="mt-2 w-full rounded-2xl border border-theme-border px-4 py-3 text-sm"
+                    className="form-input w-full"
                   />
                 </label>
                 <label className="form-label">
@@ -1303,7 +1303,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     max={16}
                     value={concurrency}
                     onChange={(e) => setConcurrency(Math.max(1, Math.min(16, Number(e.target.value) || projectDefaultConcurrency)))}
-                    className="mt-2 w-full rounded-2xl border border-theme-border px-4 py-3 text-sm"
+                    className="form-input w-full"
                   />
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-normal text-theme-text-muted">
                     <span>默认取自 执行 → 参数配置，当前项目默认：{projectDefaultConcurrency}</span>

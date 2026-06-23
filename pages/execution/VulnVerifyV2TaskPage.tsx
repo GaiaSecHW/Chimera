@@ -773,7 +773,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                     value={manualCodeRoot}
                     onChange={(e) => setManualCodeRoot(e.target.value)}
                     placeholder="填写本次批量创建统一使用的 code_root"
-                    className="w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary"
+                    className="form-input w-full"
                   />
                 </div>
               ) : null}

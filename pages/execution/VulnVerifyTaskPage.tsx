@@ -784,7 +784,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                   value={batchObjectFilter}
                   onChange={(event) => setBatchObjectFilter(event.target.value)}
                   placeholder="筛选对象定位，例如 openGauss"
-                  className="w-full rounded-lg border border-theme-border bg-theme-elevated py-2 pl-9 pr-9 text-xs text-theme-text-secondary placeholder:text-theme-text-muted"
+                  className="form-input w-full pl-9 pr-9"
                 />
                 {batchObjectFilter ? (
                   <button type="button" onClick={() => setBatchObjectFilter('')} className="absolute right-2 top-1.5 rounded p-1 text-theme-text-muted hover:text-theme-text-secondary"><X size={13} /></button>
@@ -1155,8 +1155,8 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               </label>
 
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setCreateModalOpen(false)} className="rounded-xl border border-theme-border px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">取消</button>
-                <button type="submit" disabled={creating} className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2 text-sm font-medium text-white hover:bg-violet-800 disabled:opacity-50">
+                <button type="button" onClick={() => setCreateModalOpen(false)} className="btn btn-secondary">取消</button>
+                <button type="submit" disabled={creating} className="btn btn-primary">
                   {creating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}创建任务
                 </button>
               </div>
