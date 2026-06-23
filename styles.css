@@ -120,7 +120,7 @@
   input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
   textarea,
   select {
-    color: var(--text-primary);
+    color: var(--text-secondary);
     caret-color: var(--text-primary);
   }
 

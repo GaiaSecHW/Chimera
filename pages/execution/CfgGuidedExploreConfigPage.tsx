@@ -100,7 +100,7 @@ const NumberInput: React.FC<{ value: number; min?: number; max?: number; step?: 
         if (!isNaN(n)) onChange(n);
       }}
       onBlur={() => setStr(String(value))}
-      className="w-full rounded-lg border border-theme-border px-3 py-2 text-sm" />
+      className="form-input w-full" />
   );
 };
 
@@ -470,8 +470,8 @@ export const CfgGuidedExploreConfigPage: React.FC<{ projectId: string; embedded?
                 <label className="inline-flex cursor-pointer items-center gap-3 rounded-lg border border-theme-border px-3 py-2">
                   <div className="relative">
                     <input type="checkbox" className="peer sr-only" checked={!!config.deep_trace_enabled} onChange={(e) => patch({ deep_trace_enabled: e.target.checked })} />
-                    <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-violet-600 transition-colors" />
-                    <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-theme-elevated shadow transition-transform peer-checked:translate-x-5" />
+                    <div className="h-6 w-11 rounded-full bg-theme-elevated border border-theme-border peer-checked:bg-violet-600 peer-checked:border-violet-600 transition-colors" />
+                    <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-theme-surface border border-theme-border shadow transition-transform peer-checked:translate-x-5 peer-checked:bg-white peer-checked:border-transparent" />
                   </div>
                   <span className="text-sm text-theme-text-secondary">{config.deep_trace_enabled ? '深度探索开启' : '深度探索关闭'}</span>
                 </label>
@@ -518,8 +518,8 @@ export const CfgGuidedExploreConfigPage: React.FC<{ projectId: string; embedded?
               <label className="inline-flex cursor-pointer items-center gap-3">
                 <div className="relative">
                   <input type="checkbox" className="peer sr-only" checked={config.agent_timeout_retry_enabled} onChange={(e) => patch({ agent_timeout_retry_enabled: e.target.checked })} />
-                  <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-violet-600 transition-colors" />
-                  <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-theme-elevated shadow transition-transform peer-checked:translate-x-5" />
+                  <div className="h-6 w-11 rounded-full bg-theme-elevated border border-theme-border peer-checked:bg-violet-600 peer-checked:border-violet-600 transition-colors" />
+                  <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-theme-surface border border-theme-border shadow transition-transform peer-checked:translate-x-5 peer-checked:bg-white peer-checked:border-transparent" />
                 </div>
                 <span className="text-sm text-theme-text-secondary">{config.agent_timeout_retry_enabled ? '开启空闲超时自动重试' : '关闭空闲超时自动重试'}</span>
               </label>

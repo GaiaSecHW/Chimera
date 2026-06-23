@@ -2145,10 +2145,10 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               </div>
 
               {/* 任务名称 */}
-              <label className="block text-sm text-theme-text-secondary">
+              <label className="form-label">
                 任务名称 <span className="text-red-500">*</span>
                 <input
-                  className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 text-sm"
+                  className="form-input w-full"
                   value={form.task_name}
                   onChange={(e) => setForm((p) => ({ ...p, task_name: e.target.value }))}
                   placeholder="例：分析IPSec模块入口-2025"
@@ -2156,12 +2156,12 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               </label>
 
               {/* 模块目录 */}
-              <label className="block text-sm text-theme-text-secondary">
+              <label className="form-label">
                 模块目录 <span className="text-red-500">*</span>
                 <span className="ml-1 text-xs text-theme-text-muted">(含 files.list 或子模块目录)</span>
                 <div className="mt-1 flex gap-1">
                   <input
-                    className="flex-1 rounded-lg border border-theme-border px-3 py-2 text-sm font-mono"
+                    className="form-input flex-1 font-mono"
                     value={form.input_path}
                     onChange={(e) => handleSaPathChange(e.target.value)}
                     placeholder="/data/files/<project>/entry_analyse"
@@ -2170,7 +2170,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                     type="button"
                     title="从文件资源中选择目录"
                     onClick={() => { setPickerTarget('input'); setPickerOpen(true); }}
-                    className="flex items-center gap-1 rounded-lg border border-theme-border px-3 py-2 text-xs text-theme-text-secondary hover:bg-theme-elevated shrink-0"
+                    className="btn btn-secondary"
                   >
                     <FolderOpen size={13} />浏览
                   </button>
@@ -2178,7 +2178,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               </label>
 
               {/* 选择模块 */}
-              <label className="block text-sm text-theme-text-secondary">
+              <label className="form-label">
                 <span className="flex items-center gap-2">
                   选择模块 <span className="text-red-500">*</span>
                   {loadingModules ? <Loader2 size={12} className="animate-spin text-violet-500" /> : null}
@@ -2199,11 +2199,11 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               </label>
 
               {/* 源码根目录 */}
-              <label className="block text-sm text-theme-text-secondary">
+              <label className="form-label">
                 源码根目录 <span className="text-theme-text-muted text-xs">(可选，files.list中路径的解析基准；默认使用模块目录)</span>
                 <div className="mt-1 flex gap-1">
                   <input
-                    className="flex-1 rounded-lg border border-theme-border px-3 py-2 text-sm font-mono"
+                    className="form-input w-full"
                     value={form.source_path}
                     onChange={(e) => setForm((p) => ({ ...p, source_path: e.target.value }))}
                     placeholder="/data/files/<project>/source"
@@ -2220,11 +2220,11 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               </label>
 
               {/* 输出路径 */}
-              <label className="block text-sm text-theme-text-secondary">
+              <label className="form-label">
                 输出路径 <span className="text-red-500">*</span>
                 <div className="mt-1 flex gap-1">
                   <input
-                    className="flex-1 rounded-lg border border-theme-border px-3 py-2 text-sm font-mono"
+                  className="form-input w-full"
                     value={form.output_path}
                     onChange={(e) => setForm((p) => ({ ...p, output_path: e.target.value }))}
                     placeholder="/data/files/<project>/output"
@@ -2241,10 +2241,10 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               </label>
 
               {/* 任务描述 */}
-              <label className="block text-sm text-theme-text-secondary">
+              <label className="form-label">
                 任务描述 <span className="text-theme-text-muted text-xs">(可选)</span>
                 <input
-                  className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 text-sm"
+                  className="form-input w-full"
                   value={form.task_description}
                   onChange={(e) => setForm((p) => ({ ...p, task_description: e.target.value }))}
                   placeholder="简要说明分析目标或背景"

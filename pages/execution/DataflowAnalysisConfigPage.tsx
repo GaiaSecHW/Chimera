@@ -483,8 +483,8 @@ className="form-select w-full"
               <label className="inline-flex cursor-pointer items-center gap-3">
                 <div className="relative">
                   <input type="checkbox" className="peer sr-only" checked={config.agent_timeout_retry_enabled} onChange={(e) => patch({ agent_timeout_retry_enabled: e.target.checked })} />
-                  <div className="h-6 w-11 rounded-full bg-theme-elevated peer-checked:bg-violet-600 transition-colors" />
-                  <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-theme-elevated shadow transition-transform peer-checked:translate-x-5" />
+                  <div className="h-6 w-11 rounded-full bg-theme-elevated border border-theme-border peer-checked:bg-violet-600 peer-checked:border-violet-600 transition-colors" />
+                  <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-theme-surface border border-theme-border shadow transition-transform peer-checked:translate-x-5 peer-checked:bg-white peer-checked:border-transparent" />
                 </div>
                 <span className="text-sm text-theme-text-secondary">{config.agent_timeout_retry_enabled ? '开启空闲超时自动重试' : '关闭空闲超时自动重试'}</span>
               </label>

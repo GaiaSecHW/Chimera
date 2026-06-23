@@ -88,7 +88,7 @@ const NumberInput: React.FC<{ value: number; min?: number; max?: number; step?: 
         if (!isNaN(n)) onChange(n);
       }}
       onBlur={() => setStr(String(value))}
-      className="w-full rounded-lg border border-theme-border px-3 py-2 text-sm" />
+      className="form-input w-full" />
   );
 };
 
@@ -130,7 +130,7 @@ const KeywordListEditor: React.FC<{ value: string[]; onChange: (v: string[]) => 
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
           placeholder="输入关键字后回车，如 recv / handle"
-          className="flex-1 rounded-lg border border-theme-border px-3 py-2 text-sm"
+          className="form-input flex-1"
         />
         <button type="button" onClick={add}
           className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-theme-border px-4 py-2 text-sm text-theme-text-muted hover:bg-theme-elevated">
@@ -484,8 +484,8 @@ className="form-select w-full"
                 <label className="inline-flex cursor-pointer items-center gap-3 rounded-lg border border-theme-border px-3 py-2">
                   <div className="relative">
                     <input type="checkbox" className="peer sr-only" checked={!!config.deep_trace_enabled} onChange={(e) => patch({ deep_trace_enabled: e.target.checked })} />
-                    <div className="h-6 w-11 rounded-full bg-theme-elevated peer-checked:bg-violet-600 transition-colors" />
-                    <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-theme-elevated shadow transition-transform peer-checked:translate-x-5" />
+                    <div className="h-6 w-11 rounded-full bg-theme-elevated border border-theme-border peer-checked:bg-violet-600 peer-checked:border-violet-600 transition-colors" />
+                    <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-theme-surface border border-theme-border shadow transition-transform peer-checked:translate-x-5 peer-checked:bg-white peer-checked:border-transparent" />
                   </div>
                   <span className="text-sm text-theme-text-secondary">{config.deep_trace_enabled ? '深度探索开启' : '深度探索关闭'}</span>
                 </label>
@@ -512,8 +512,8 @@ className="form-select w-full"
               <label className="inline-flex cursor-pointer items-center gap-3 rounded-lg border border-theme-border px-3 py-2">
                 <div className="relative">
                   <input type="checkbox" className="peer sr-only" checked={!!config.entry_screen_enabled} onChange={(e) => patch({ entry_screen_enabled: e.target.checked })} />
-                  <div className="h-6 w-11 rounded-full bg-theme-elevated peer-checked:bg-violet-600 transition-colors" />
-                  <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-theme-elevated shadow transition-transform peer-checked:translate-x-5" />
+                  <div className="h-6 w-11 rounded-full bg-theme-elevated border border-theme-border peer-checked:bg-violet-600 peer-checked:border-violet-600 transition-colors" />
+                  <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-theme-surface border border-theme-border shadow transition-transform peer-checked:translate-x-5 peer-checked:bg-white peer-checked:border-transparent" />
                 </div>
                 <span className="text-sm text-theme-text-secondary">{config.entry_screen_enabled ? '入口快速筛查已开启' : '入口快速筛查已关闭'}</span>
               </label>
@@ -562,8 +562,8 @@ className="form-select w-full"
               <label className="inline-flex cursor-pointer items-center gap-3">
                 <div className="relative">
                   <input type="checkbox" className="peer sr-only" checked={config.agent_timeout_retry_enabled} onChange={(e) => patch({ agent_timeout_retry_enabled: e.target.checked })} />
-                  <div className="h-6 w-11 rounded-full bg-theme-elevated peer-checked:bg-violet-600 transition-colors" />
-                  <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-theme-elevated shadow transition-transform peer-checked:translate-x-5" />
+                  <div className="h-6 w-11 rounded-full bg-theme-elevated border border-theme-border peer-checked:bg-violet-600 peer-checked:border-violet-600 transition-colors" />
+                  <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-theme-surface border border-theme-border shadow transition-transform peer-checked:translate-x-5 peer-checked:bg-white peer-checked:border-transparent" />
                 </div>
                 <span className="text-sm text-theme-text-secondary">{config.agent_timeout_retry_enabled ? '开启空闲超时自动重试' : '关闭空闲超时自动重试'}</span>
               </label>

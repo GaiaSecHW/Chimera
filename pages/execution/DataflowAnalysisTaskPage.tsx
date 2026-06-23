@@ -2264,7 +2264,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
               </div>
 
               {/* 任务名称 */}
-              <label className="block text-sm text-theme-text-secondary">
+              <label className="form-label">
                 任务名称 <span className="text-red-500">*</span>
                 <input
                   className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 text-sm"
@@ -2275,7 +2275,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
               </label>
 
               {/* 源码路径 */}
-              <label className="block text-sm text-theme-text-secondary">
+              <label className="form-label">
                 源码路径 <span className="text-red-500">*</span>
                 <span className="ml-1 text-xs text-theme-text-muted">(待分析源代码所在目录)</span>
                 <div className="mt-1 flex gap-1">
@@ -2307,7 +2307,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                 </div>
 
                 {/* functions.list 路径 */}
-                <label className="block text-xs text-theme-text-muted">
+                <label className="form-label">
                   入口清单路径 <span className="text-theme-text-muted">(functions.list)</span>
                   <div className="mt-1 flex gap-1">
                     <input
@@ -2366,7 +2366,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
 
                 {/* 手动填写模块路径 + 函数名 */}
                 <div className="grid grid-cols-2 gap-2">
-                  <label className="block text-xs text-theme-text-muted">
+                  <label className="form-label">
                     模块路径 <span className="text-theme-text-muted">(自动填入或手填)</span>
                     <input
                       className="mt-1 w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-mono"
@@ -2375,7 +2375,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       placeholder="libipsec.c"
                     />
                   </label>
-                  <label className="block text-xs text-theme-text-muted">
+                  <label className="form-label">
                     入口函数名 <span className="text-red-500">*</span>
                     <input
                       className="mt-1 w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-mono"
@@ -2387,7 +2387,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                 </div>
 
                 {/* 污点变量 */}
-                <label className="block text-xs text-theme-text-muted">
+                <label className="form-label">
                   污点参数 <span className="text-theme-text-muted">(逗号分隔，自动填入或手填；留空则分析全部参数)</span>
                   <input
                     className="mt-1 w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-mono"
@@ -2418,11 +2418,11 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
               </div>
 
               {/* 输出路径 */}
-              <label className="block text-sm text-theme-text-secondary">
+              <label className="form-label">
                 输出路径 <span className="text-theme-text-muted text-xs">(留空自动填充)</span>
                 <div className="mt-1 flex gap-1">
                   <input
-                    className="flex-1 rounded-lg border border-theme-border px-3 py-2 text-sm font-mono"
+                    className="form-input w-full"
                     value={form.output_path}
                     onChange={(e) => setForm((p) => ({ ...p, output_path: e.target.value }))}
                     placeholder="/data/files/<project>/app/chimera-app-dataflow-analyse"
@@ -2439,10 +2439,10 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
               </label>
 
               {/* 任务描述 */}
-              <label className="block text-sm text-theme-text-secondary">
+              <label className="form-label">
                 任务描述 <span className="text-theme-text-muted text-xs">(可选)</span>
                 <input
-                  className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 text-sm"
+                  className="form-input w-full"
                   value={form.task_description}
                   onChange={(e) => setForm((p) => ({ ...p, task_description: e.target.value }))}
                   placeholder="简要说明分析目标或安全关注点"

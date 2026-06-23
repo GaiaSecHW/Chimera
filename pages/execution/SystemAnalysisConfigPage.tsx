@@ -359,7 +359,7 @@ const NumberInput: React.FC<{ value: number; min?: number; max?: number; step?: 
         if (!isNaN(n)) onChange(n);
       }}
       onBlur={() => setStr(String(value))}
-      style={{ width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.ink, outline: 'none' }}
+      style={{ width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.inkSoft, outline: 'none' }}
     />
   );
 };
@@ -367,13 +367,13 @@ const NumberInput: React.FC<{ value: number; min?: number; max?: number; step?: 
 const TextInput: React.FC<{ value: string; placeholder?: string; onChange: (v: string) => void }> = ({ value, placeholder, onChange }) => (
   <input type="text" placeholder={placeholder} value={value}
     onChange={(e) => onChange(e.target.value)}
-    style={{ width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.ink, outline: 'none' }}
+    style={{ width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.inkSoft, outline: 'none' }}
   />
 );
 
 const SelectInput: React.FC<{ value: string; options: string[]; onChange: (v: string) => void }> = ({ value, options, onChange }) => (
   <select value={value} onChange={(e) => onChange(e.target.value)}
-    style={{ width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.ink, outline: 'none' }}
+    style={{ width: '100%', borderRadius: '8px', border: `1px solid ${LK.border}`, padding: '8px 12px', fontSize: '14px', backgroundColor: LK.surfaceRaised, color: LK.inkSoft, outline: 'none' }}
   >
     {options.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
   </select>
