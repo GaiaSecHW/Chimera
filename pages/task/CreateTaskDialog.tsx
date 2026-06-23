@@ -21,12 +21,15 @@ import type {
 /*  Props                                                              */
 /* ------------------------------------------------------------------ */
 
+export type HomeCardMode = 'dragon-tail' | 'ram-horn' | 'lion-head';
+
 export interface CreateTaskDialogProps {
   open: boolean;
   onClose: () => void;
   projectId: string;
   projectName: string;
   preSelectedInputId?: string;
+  preSelectedMode?: HomeCardMode;
   onCreated: () => void;
 }
 
@@ -147,6 +150,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   projectId,
   projectName,
   preSelectedInputId,
+  preSelectedMode,
   onCreated,
 }) => {
   const scheduleApi = api.domains.platform.scheduleCenter;
@@ -268,9 +272,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   useEffect(() => {
     if (open) {
+      if (preSelectedMode) setMode(preSelectedMode);
       void loadDialogData();
     }
-  }, [open, projectId]);
+  }, [open, projectId, preSelectedMode]);
 
   /* --- browse helpers --- */
   const loadBrowsePath = async (relativePath: string) => {
@@ -721,33 +726,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 </div>
               ) : (
                 <>
-              {/* 工具 */}
-              <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                工具
-                <select
-                  value={taskType}
-                  onChange={(e) => setTaskType(e.target.value as any)}
-                  className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                  style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-                >
-                  {availableTaskTypes.map((item) => (
-                    <option key={item.value} value={item.value} disabled={item.disabled}>
-                      {item.label}{item.disabled ? '（已禁用）' : ''}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {taskTypeDisabled ? (
-                <div
-                  className="rounded-lg px-4 py-3 text-sm"
-                  style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
-                >
-                  {DISABLED_TASK_TYPE_MESSAGE}
-                </div>
-              ) : null}
-
               {/* sechps Agent Harness specific */}
               {taskType === 'sechps_tool' ? (
                 <>
@@ -994,6 +972,33 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* 工具 */}
+              <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                工具
+                <select
+                  value={taskType}
+                  onChange={(e) => setTaskType(e.target.value as any)}
+                  className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                  style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                >
+                  {availableTaskTypes.map((item) => (
+                    <option key={item.value} value={item.value} disabled={item.disabled}>
+                      {item.label}{item.disabled ? '（已禁用）' : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {taskTypeDisabled ? (
+                <div
+                  className="rounded-lg px-4 py-3 text-sm"
+                  style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
+                >
+                  {DISABLED_TASK_TYPE_MESSAGE}
+                </div>
+              ) : null}
 
               {/* 描述 */}
               <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>

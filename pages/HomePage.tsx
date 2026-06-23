@@ -1,4 +1,5 @@
 import React from 'react';
+import { saveHomeCreateTaskMode } from '../utils/executionReturnContext';
 
 interface HomePageProps {
   setCurrentView: (view: string) => void;
@@ -51,6 +52,11 @@ const MODES = [
 ] as const;
 
 export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
+  const handleCardClick = (modeKey: string) => {
+    saveHomeCreateTaskMode(modeKey);
+    setCurrentView('task-list');
+  };
+
   return (
     <div className="h-full overflow-y-auto" style={{ backgroundColor: LK.canvas }}>
       <div className="mx-auto max-w-[1180px] px-8 py-6">
@@ -94,11 +100,12 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
             {MODES.map((mode) => (
               <div
                 key={mode.key}
-                className="group relative flex flex-col rounded-2xl p-6 transition-all hover:-translate-y-1"
+                className="group relative flex flex-col rounded-2xl p-6 transition-all hover:-translate-y-1 cursor-pointer"
                 style={{
                   backgroundColor: LK.surface,
                   border: `1px solid ${LK.border}`,
                 }}
+                onClick={() => handleCardClick(mode.key)}
               >
                 <div
                   className="absolute inset-x-0 top-0 h-[3px] rounded-t-2xl"

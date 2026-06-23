@@ -122,7 +122,7 @@ export const Header: React.FC<HeaderProps> = ({
           <ThemeLogo size="small" showBadge={false} />
         </div>
 
-        <div className="flex justify-center min-w-0 overflow-visible">
+        <div className="flex justify-start min-w-0 overflow-visible">
           <nav className="flex items-center gap-1 flex-wrap max-w-full">
             {visibleNavItems.map((item) => {
               const isActive = currentTopLevelNav === item.id;

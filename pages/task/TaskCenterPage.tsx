@@ -5,9 +5,9 @@ import { api } from '../../clients/api';
 import { getAuthHeaders, handleResponse } from '../../clients/base';
 import { agentManageApiPath } from '../../clients/agentManage';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { saveTaskCenterReturnContext } from '../../utils/executionReturnContext';
+import { saveTaskCenterReturnContext, consumeHomeCreateTaskMode } from '../../utils/executionReturnContext';
 import { getPlatformRole } from '../../utils/rbac';
-import { CreateTaskDialog } from './CreateTaskDialog';
+import { CreateTaskDialog, HomeCardMode } from './CreateTaskDialog';
 import {
   AgentAppSummary,
   ScheduleCenterUserTaskDeleteQueueItem,
@@ -125,6 +125,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const [query, setQuery] = useState('');
   const [selectedAgentAppFilter, setSelectedAgentAppFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
+  const [preSelectedMode, setPreSelectedMode] = useState<HomeCardMode | undefined>(undefined);
   const [error, setError] = useState('');
   const [agentAppsLoadError, setAgentAppsLoadError] = useState('');
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
@@ -215,6 +216,14 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   useEffect(() => { void loadData(); }, [projectId, selectedAgentAppFilter]);
   useEffect(() => { setSelectedTaskIds([]); }, [projectId, query, selectedAgentAppFilter]);
 
+  useEffect(() => {
+    const mode = consumeHomeCreateTaskMode();
+    if (mode === 'dragon-tail' || mode === 'ram-horn' || mode === 'lion-head') {
+      setPreSelectedMode(mode as HomeCardMode);
+      setCreateOpen(true);
+    }
+  }, []);
+
   const loadDeleteQueue = async (
     nextPage = deleteQueuePage,
     nextPageSize = deleteQueuePageSize,
@@ -248,6 +257,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   };
 
   const closeCreateDialog = () => {
+    setPreSelectedMode(undefined);
     setCreateOpen(false);
   };
 
@@ -887,7 +897,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         onClose={closeCreateDialog}
         projectId={projectId}
         projectName={projectName}
-        onCreated={() => { closeCreateDialog(); void loadData(); }}
+        preSelectedMode={preSelectedMode}
+        onCreated={() => { setPreSelectedMode(undefined); closeCreateDialog(); void loadData(); }}
       />
     </div>
   );
