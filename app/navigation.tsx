@@ -53,6 +53,7 @@ export type TopLevelNavKey =
   | 'test-task'
   | 'vuln-center'
   | 'assets-center'
+  | 'asset-supply'
   | 'assessment'
   | 'observe'
   | 'skill'
@@ -112,7 +113,8 @@ export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
   { id: 'home', label: '首页', role: null },
   { id: 'test-task', label: '测试任务', role: null },
   { id: 'vuln-center', label: '漏洞中心', role: null },
-  { id: 'assets-center', label: '资产中心', role: null, showDividerBefore: true },
+  { id: 'assets-center', label: '资产管理', role: null },
+  { id: 'asset-supply', label: '资产', role: 'developer' },
   { id: 'assessment', label: '评测', role: 'developer' },
   { id: 'observe', label: '观测', role: 'developer' },
   { id: 'skill', label: '技能', role: 'developer' },
@@ -397,7 +399,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
     view === 'public-resource-pvc-management' ||
     view === 'public-resource-task-management' ||
     view === 'pvc-management'
-  ) return 'assets-center';
+  ) return 'asset-supply';
   if (view === 'assessment-coming-soon') return 'assessment';
   if (view === 'observe-coming-soon') return 'observe';
   if (view === 'skill-coming-soon') return 'skill';
@@ -423,6 +425,7 @@ export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | nul
     case 'test-task': return 'task-list';
     case 'vuln-center': return 'vuln-intake';
     case 'assets-center': return 'project-mgmt';
+    case 'asset-supply': return 'public-resource-pvc-management';
     case 'assessment': return 'assessment-coming-soon';
     case 'observe': return 'observe-coming-soon';
     case 'skill': return 'skill-coming-soon';
@@ -470,6 +473,17 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
       title: '漏洞中心',
       items: [
         { id: 'vuln-intake', label: '漏洞中心', icon: Shield, aliases: ['vuln-overview', 'vuln-engine'], requiresProject: true, healthKey: 'vulnHealth' },
+      ],
+    },
+  ],
+  'asset-supply': [
+    {
+      title: '资产',
+      items: [
+        { id: 'project-file-explorer', label: '项目文件', icon: FolderTree, requiresProject: true },
+        { id: 'fileserver-archive-tasks', label: '打包下载任务', icon: Archive, requiresProject: true },
+        { id: 'public-resource-pvc-management', label: 'PVC 管理', icon: HardDrive, requiresProject: true },
+        { id: 'public-resource-task-management', label: '资源任务', icon: ListTodo, requiresProject: true },
       ],
     },
   ],
@@ -668,7 +682,7 @@ const ASSETS_CENTER_SIDEBAR_MAP: Record<string, NavSection[]> = {
   ],
   assetSupply: [
     {
-      title: '资产供应',
+      title: '资产',
       items: [
         { id: 'project-file-explorer', label: '项目文件', icon: FolderTree, requiresProject: true },
         { id: 'fileserver-archive-tasks', label: '打包下载任务', icon: Archive, requiresProject: true },
@@ -679,26 +693,18 @@ const ASSETS_CENTER_SIDEBAR_MAP: Record<string, NavSection[]> = {
   ],
 };
 
-export type AssetsCenterChildKey = 'projectMgmt' | 'testObject' | 'testEnv' | 'assetSupply';
+export type AssetsCenterChildKey = 'projectMgmt' | 'testObject' | 'testEnv';
 
 export const ASSETS_CENTER_CHILDREN: { key: AssetsCenterChildKey; label: string; defaultView: string }[] = [
   { key: 'projectMgmt', label: '项目管理', defaultView: 'project-mgmt' },
   { key: 'testObject', label: '测试对象', defaultView: 'test-input-root' },
   { key: 'testEnv', label: '测试环境', defaultView: 'env-access' },
-  { key: 'assetSupply', label: '资产供应', defaultView: 'public-resource-pvc-management' },
 ];
 
 export const getAssetsCenterActiveChild = (currentView: string): AssetsCenterChildKey => {
   if (currentView === 'project-mgmt' || currentView === 'project-detail' || currentView === 'product-mgmt') return 'projectMgmt';
   if (currentView.startsWith('test-input-')) return 'testObject';
   if (currentView === 'env-access' || currentView === 'env-management') return 'testEnv';
-  if (
-    currentView === 'project-file-explorer' ||
-    currentView === 'fileserver-archive-tasks' ||
-    currentView === 'public-resource-pvc-management' ||
-    currentView === 'public-resource-task-management' ||
-    currentView === 'pvc-management'
-  ) return 'assetSupply';
   return 'projectMgmt';
 };
 

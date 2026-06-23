@@ -150,7 +150,7 @@ export const Header: React.FC<HeaderProps> = ({
                         <ChevronDown size={12} className={`transition-transform ${isAssetsCenterOpen ? 'rotate-180' : ''}`} />
                       </button>
                       {isAssetsCenterOpen && (
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-36 bg-theme-surface border border-theme-border rounded-xl shadow-brand p-2 z-50">
+                        <div className="absolute top-full left-0 mt-2 w-36 bg-theme-surface border border-theme-border rounded-xl shadow-brand p-2 z-50">
                           {ASSETS_CENTER_CHILDREN.map((child) => {
                             const childActive = isActive && activeAssetsCenterChild === child.key;
                             return (
