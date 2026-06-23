@@ -221,7 +221,7 @@ function mergeWalk(session?: CfgCparserSession | null, nameIdx?: Map<string, str
 
 function FnBadge({ audit }: { audit?: CfgAuditResult }) {
   if (!audit) return <span className="inline-flex items-center gap-1 rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[10px] font-bold text-theme-text-muted">未判定</span>;
-  if (isVulnResult(audit.result)) return <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/20 bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-400"><Bug size={10} />{audit.result}</span>;
+  if (isVulnResult(audit.result)) return <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700"><Bug size={10} />{audit.result}</span>;
   return <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400"><ShieldCheck size={10} />{audit.result}</span>;
 }
 
@@ -258,9 +258,9 @@ function extractChain(desc?: string): string[] {
 // ── Call graph (xyflow) ──────────────────────────────────────────────────────
 interface FnNodeData extends Record<string, unknown> { label: string; vuln: boolean; audited: boolean; selected: boolean; order: number }
 function FnNode({ data }: NodeProps<Node<FnNodeData>>) {
-  // Light bg + dark text for clear contrast (was dark bg / bright text).
+  // Light bg + dark text (vuln = amber, not red, per request).
   const tone = data.vuln
-    ? 'border-rose-400 bg-rose-50 text-rose-700'
+    ? 'border-amber-400 bg-amber-50 text-amber-800'
     : data.audited
       ? 'border-emerald-400 bg-emerald-50 text-emerald-800'
       : 'border-slate-300 bg-white text-slate-700';
@@ -356,7 +356,7 @@ function FunctionCodeBlock({ meta, focusLine }: { meta?: CfgWalkFunction; focusL
       {code?.lines?.length ? (
         <pre className="max-h-[460px] overflow-auto p-0 text-[13px] leading-6 text-slate-200">
           {code.lines.map((ln) => (
-            <div key={ln.n} className={`grid grid-cols-[3.5rem_minmax(0,1fr)] gap-3 px-3 ${ln.n === focus ? 'bg-rose-500/25 text-rose-50' : ''}`}>
+            <div key={ln.n} className={`grid grid-cols-[3.5rem_minmax(0,1fr)] gap-3 px-3 ${ln.n === focus ? 'bg-amber-400/25 text-amber-50' : ''}`}>
               <span className="select-none text-right text-theme-text-muted">{ln.n}</span>
               <code className="whitespace-pre">{ln.text || ' '}</code>
             </div>
@@ -418,7 +418,7 @@ function SourceSnippetBlock({ finding }: { finding: AppDfaVulnFinding }) {
           <div className="border-b border-slate-800 px-3 py-2 font-mono text-[11px] text-slate-400">{snippet.file || finding.file || 'source'} {snippet.focus_line ? `:${snippet.focus_line}` : ''}</div>
           <pre className="max-h-96 overflow-auto p-0 text-xs leading-5 text-slate-200">
             {snippet.lines.map((ln) => (
-              <div key={ln.n} className={`grid grid-cols-[4rem_minmax(0,1fr)] gap-3 px-3 ${ln.n === snippet.focus_line ? 'bg-rose-500/20 text-rose-100' : ''}`}>
+              <div key={ln.n} className={`grid grid-cols-[4rem_minmax(0,1fr)] gap-3 px-3 ${ln.n === snippet.focus_line ? 'bg-amber-400/20 text-amber-100' : ''}`}>
                 <span className="select-none text-right text-theme-text-muted">{ln.n}</span>
                 <code className="whitespace-pre">{ln.text || ' '}</code>
               </div>
@@ -652,7 +652,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                 <span className="text-slate-400">▸</span>
               </>
             ) : null}
-            <span className={`rounded-md px-2 py-0.5 font-mono font-bold ${isVulnResult(selectedFn.audit?.result) ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>{selectedFn.name}</span>
+            <span className={`rounded-md px-2 py-0.5 font-mono font-bold ${isVulnResult(selectedFn.audit?.result) ? 'bg-amber-100 text-amber-800' : 'bg-slate-900 text-white'}`}>{selectedFn.name}</span>
             {neighbors.callees.length ? (
               <>
                 <span className="text-slate-400">▸</span>
@@ -666,8 +666,8 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
         <div className="grid gap-2.5 sm:grid-cols-2">
           {selectedFn.meta?.signature ? <div className="sm:col-span-2"><InfoRow label="签名" value={<span className="font-mono text-[13px] text-theme-text-primary">{selectedFn.meta.signature}</span>} /></div> : null}
           <InfoRow label="位置" value={selectedFn.meta?.file_path ? <span className="font-mono text-[13px]">{selectedFn.meta.file_path}:{selectedFn.meta.start_line}-{selectedFn.meta.end_line}</span> : '—'} />
-          <InfoRow label="污点参数" value={selectedFn.taint?.tainted_params_in?.length ? <span className="font-mono text-[13px] text-rose-600">{selectedFn.taint.tainted_params_in.join(', ')}</span> : '—'} />
-          {selectedFn.audit?.vuln_line ? <InfoRow label="漏洞行" value={<span className="font-mono text-[13px] text-rose-600">{selectedFn.audit.vuln_line}</span>} /> : null}
+          <InfoRow label="污点参数" value={selectedFn.taint?.tainted_params_in?.length ? <span className="font-mono text-[13px] text-amber-700">{selectedFn.taint.tainted_params_in.join(', ')}</span> : '—'} />
+          {selectedFn.audit?.vuln_line ? <InfoRow label="漏洞行" value={<span className="font-mono text-[13px] text-amber-700">{selectedFn.audit.vuln_line}</span>} /> : null}
           {selectedFn.audit?.confidence != null ? <InfoRow label="置信度" value={selectedFn.audit.confidence} /> : null}
         </div>
       </SectionCard>
@@ -828,7 +828,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-theme-border px-3 py-2 text-[11px] text-theme-text-muted">
                   <span className="inline-flex items-center gap-1.5 font-semibold text-theme-text-secondary"><Workflow size={13} />审查顺序 / 调用图 · {walk.length}</span>
                   <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-400 bg-emerald-50" />安全</span>
-                  <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-rose-400 bg-rose-50" />漏洞</span>
+                  <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-amber-400 bg-amber-50" />漏洞</span>
                   <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-slate-500" />调用 {callEdges.filter((e) => e.kind === 'call').length}</span>
                   <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 border-t border-dashed border-slate-400" />顺序 {callEdges.filter((e) => e.kind === 'flow').length}</span>
                 </div>
