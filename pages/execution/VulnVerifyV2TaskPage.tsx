@@ -141,17 +141,6 @@ function verdictFromResults(results: VulnVerifyV2Result[]): string {
   return results?.[0]?.verdict || '-';
 }
 
-function resultSummary(result?: VulnVerifyV2Result | null): string {
-  const raw = result?.raw_result || {};
-  return String(raw.root_cause_summary || raw.summary || '').trim();
-}
-
-function ruledOutBy(result?: VulnVerifyV2Result | null): string {
-  const raw = result?.raw_result || {};
-  const value = raw.ruled_out_by;
-  return Array.isArray(value) ? value.join(', ') : value ? String(value) : '-';
-}
-
 const VerdictBadge: React.FC<{ verdict?: string | null }> = ({ verdict }) => {
   if (!verdict) return <span className="text-xs text-theme-text-muted">未产出</span>;
   const cls = verdict === 'confirmed'
@@ -185,8 +174,6 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const { confirm, feedbackNodes } = useUiFeedback();
 
   const [tasks, setTasks] = useState<VulnVerifyV2Task[]>([]);
-  const [taskResults, setTaskResults] = useState<Record<string, VulnVerifyV2Result>>({});
-  const [taskRuntimes, setTaskRuntimes] = useState<Record<string, TaskRuntime>>({});
   const [total, setTotal] = useState(0);
   const [stats, setStats] = useState<VulnVerifyV2ProjectStats | null>(null);
   const [loading, setLoading] = useState(false);
@@ -228,7 +215,10 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
     if (!projectId) return;
     setLoading(true);
     try {
-      const [list, stat, results] = await Promise.all([
+      // 后端 list_tasks 已携带 verdict / root_cause_summary / ruled_out_by / runtime
+      // 投影字段，列表页只需这一次请求（+ stats），不再需要 getProjectResults 全量拉
+      // 与逐行 getTask 的 N+1。
+      const [list, stat] = await Promise.all([
         vulnVerifyV2Api.listTasks(projectId, {
           status: statusFilter || undefined,
           verdict: verdictFilter || undefined,
@@ -237,31 +227,8 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
           offset,
         }),
         vulnVerifyV2Api.getProjectStats(projectId).catch(() => null),
-        vulnVerifyV2Api.getProjectResults(projectId).catch(() => []),
       ]);
-      const items = list.items || [];
-      const resultMap: Record<string, VulnVerifyV2Result> = {};
-      (results || []).forEach((result) => { resultMap[result.task_id] = result; });
-      const runtimeEntries = await Promise.all(items.map(async (task) => {
-        try {
-          const detail = await vulnVerifyV2Api.getTask(projectId, task.id);
-          const attempts = detail.attempts || [];
-          const latest = attempts[attempts.length - 1];
-          return [task.id, latest ? {
-            status: latest.status,
-            started_at: latest.started_at,
-            completed_at: latest.completed_at,
-            resolved_model: typeof latest.result?.resolved_model === 'string' ? latest.result.resolved_model : null,
-          } : null] as const;
-        } catch {
-          return [task.id, null] as const;
-        }
-      }));
-      const runtimeMap: Record<string, TaskRuntime> = {};
-      runtimeEntries.forEach(([taskId, runtime]) => { if (runtime) runtimeMap[taskId] = runtime; });
-      setTasks(items);
-      setTaskResults(resultMap);
-      setTaskRuntimes(runtimeMap);
+      setTasks(list.items || []);
       setTotal(Number(list.total || 0));
       setStats(stat);
       setMessage(null);
@@ -609,7 +576,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
             </label>
             <div className="relative min-w-[260px] flex-1">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" />
-              <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索 case_id / 任务名" className="form-input w-full py-2 pl-9 pr-3 text-sm text-theme-text-primary" />
+              <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索 vuln_id / 任务名" className="form-input w-full py-2 pl-9 pr-3 text-sm text-theme-text-primary" />
             </div>
             <span className="text-xs text-theme-text-muted">共 {total} 条</span>
           </div>
@@ -617,36 +584,37 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
           <ExecutionTable>
             <ExecutionTableHead>
               <tr>
-                <ExecutionTableTh>任务</ExecutionTableTh>
+                <ExecutionTableTh>漏洞 / 任务</ExecutionTableTh>
                 <ExecutionTableTh>状态</ExecutionTableTh>
                 <ExecutionTableTh>验证结果</ExecutionTableTh>
-                <ExecutionTableTh>case_id</ExecutionTableTh>
-                <ExecutionTableTh>code_root</ExecutionTableTh>
                 <ExecutionTableTh>模型</ExecutionTableTh>
-                <ExecutionTableTh>执行时间</ExecutionTableTh>
+                <ExecutionTableTh>开始时间</ExecutionTableTh>
+                <ExecutionTableTh>结束时间</ExecutionTableTh>
+                <ExecutionTableTh>耗时</ExecutionTableTh>
                 <ExecutionTableTh>创建时间</ExecutionTableTh>
                 <ExecutionTableTh>操作</ExecutionTableTh>
               </tr>
             </ExecutionTableHead>
             <tbody>
               {tasks.map((task) => {
-                const result = taskResults[task.id];
-                const runtime = taskRuntimes[task.id];
-                const summary = resultSummary(result);
+                const runtime = task.runtime;
+                const summary = task.root_cause_summary || '';
+                const ruledOut = Array.isArray(task.ruled_out_by) ? task.ruled_out_by.join(', ') : task.ruled_out_by ? String(task.ruled_out_by) : '-';
                 return (
                 <tr key={task.id} className={executionTableInteractiveRowClassName} onClick={() => void openDetail(task.id)}>
                   <ExecutionTableTd>
                     <div className="font-semibold text-theme-text-primary">{task.name}</div>
-                    <div className="mt-1 text-[11px] text-theme-text-muted">{task.id}</div>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-theme-text-muted">
+                      <span className="font-mono">vuln: {task.vuln_id || task.case_id || '-'}</span>
+                    </div>
+                    <div className="mt-1 font-mono text-[11px] text-theme-text-muted/80">task: {task.id}</div>
                   </ExecutionTableTd>
                   <ExecutionTableTd><StatusBadge status={task.status} /></ExecutionTableTd>
                   <ExecutionTableTd>
-                    <VerdictBadge verdict={result?.verdict} />
-                    {summary ? <div className="mt-1 line-clamp-2 max-w-[260px] text-xs text-theme-text-muted" title={summary}>{summary}</div> : null}
-                    {result?.verdict === 'ruled_out' ? <div className="mt-1 max-w-[260px] truncate font-mono text-[11px] text-theme-text-muted" title={ruledOutBy(result)}>ruled_out_by: {ruledOutBy(result)}</div> : null}
+                    <VerdictBadge verdict={task.verdict} />
+                    {summary ? <div className="mt-1 line-clamp-2 max-w-[320px] text-xs text-theme-text-muted" title={summary}>{summary}</div> : null}
+                    {task.verdict === 'ruled_out' ? <div className="mt-1 max-w-[320px] truncate font-mono text-[11px] text-theme-text-muted" title={ruledOut}>ruled_out_by: {ruledOut}</div> : null}
                   </ExecutionTableTd>
-                  <ExecutionTableTd><span className="font-mono text-xs">{task.case_id}</span></ExecutionTableTd>
-                  <ExecutionTableTd><span className="line-clamp-2 max-w-[280px] text-xs text-theme-text-muted">{task.code_root}</span></ExecutionTableTd>
                   <ExecutionTableTd>
                     {runtime?.resolved_model ? (
                       <span className="font-mono text-xs text-theme-text-secondary">{runtime.resolved_model}</span>
@@ -657,11 +625,15 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                     )}
                     {runtime?.resolved_model && !task.model ? <div className="mt-1 text-[11px] text-theme-text-muted">默认生效</div> : null}
                   </ExecutionTableTd>
+                  <ExecutionTableTd><span className="whitespace-nowrap font-mono text-xs text-theme-text-secondary">{fmtDate(runtime?.started_at)}</span></ExecutionTableTd>
                   <ExecutionTableTd>
-                    <span className="font-mono text-xs text-theme-text-secondary">{fmtRuntime(runtime)}</span>
+                    <span className="whitespace-nowrap font-mono text-xs text-theme-text-secondary">{fmtDate(runtime?.completed_at)}</span>
                     {runtime?.status === 'running' ? <div className="mt-1 text-[11px] text-blue-400">执行中</div> : null}
                   </ExecutionTableTd>
-                  <ExecutionTableTd>{fmtDate(task.created_at)}</ExecutionTableTd>
+                  <ExecutionTableTd>
+                    <span className="font-mono text-xs text-theme-text-secondary">{fmtRuntime(runtime)}</span>
+                  </ExecutionTableTd>
+                  <ExecutionTableTd><span className="whitespace-nowrap">{fmtDate(task.created_at)}</span></ExecutionTableTd>
                   <ExecutionTableTd>
                     <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <button onClick={() => void openDetail(task.id)} className="rounded-lg border border-theme-border px-2 py-1 text-xs text-theme-text-secondary hover:bg-theme-elevated"><Eye size={14} /></button>
@@ -937,7 +909,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                 <div className="grid gap-3 md:grid-cols-3">
                   <SummaryCard label="状态" value={<StatusBadge status={detail.status} />} />
                   <SummaryCard label="结论" value={VERDICT_LABEL[verdictFromResults(detailResults)] || verdictFromResults(detailResults)} />
-                  <SummaryCard label="case_id" value={<span className="text-sm">{detail.case_id}</span>} />
+                  <SummaryCard label="vuln_id" value={<span className="text-sm">{detail.vuln_id || detail.case_id}</span>} />
                 </div>
                 <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
                   <div className="mb-2 text-sm font-semibold text-theme-text-primary">四维判定</div>

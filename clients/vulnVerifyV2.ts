@@ -34,6 +34,13 @@ export interface VulnVerifyV2Attempt {
   failure_reason?: Record<string, any> | null;
 }
 
+export interface VulnVerifyV2TaskRuntime {
+  status?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  resolved_model?: string | null;
+}
+
 export interface VulnVerifyV2Task {
   id: string;
   project_id: string;
@@ -53,6 +60,11 @@ export interface VulnVerifyV2Task {
   status: VulnVerifyV2Status;
   created_at?: string | null;
   updated_at?: string | null;
+  // 列表页一等展示字段投影（后端冗余列，无需再发 getTask / getProjectResults）
+  verdict?: 'confirmed' | 'ruled_out' | 'unresolved' | null;
+  root_cause_summary?: string | null;
+  ruled_out_by?: string[] | null;
+  runtime?: VulnVerifyV2TaskRuntime | null;
 }
 
 export interface VulnVerifyV2TaskDetail extends VulnVerifyV2Task {
