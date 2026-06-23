@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
   Background, Controls, Edge, Handle, MarkerType, Node, NodeProps, Position, ReactFlow,
+  useNodesState, useEdgesState,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {
@@ -277,6 +278,43 @@ function FnNode({ data }: NodeProps<Node<FnNodeData>>) {
 }
 const fnNodeTypes = { fn: FnNode };
 
+/** ReactFlow wrapper with persistent positions: nodes live in local state so
+ *  dragging sticks and selection/poll re-renders don't reset the layout. We
+ *  only re-seed positions when the SET of functions (ids) actually changes;
+ *  selection just updates node.data.selected in place. */
+function WalkGraph({ layout, selectedFid, onSelect }: {
+  layout: { nodes: Node<FnNodeData>[]; flowEdges: Edge[] };
+  selectedFid: string | null;
+  onSelect: (fid: string) => void;
+}) {
+  const [nodes, setNodes, onNodesChange] = useNodesState(layout.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(layout.flowEdges);
+  const idsKey = layout.nodes.map((n) => n.id).join('|');
+  // Re-seed only when the node set changes (new task / new functions).
+  useEffect(() => { setNodes(layout.nodes); setEdges(layout.flowEdges); /* eslint-disable-next-line */ }, [idsKey]);
+  // Selection: patch data.selected in place, keep dragged positions.
+  useEffect(() => {
+    setNodes((nds) => nds.map((n) => (((n.data as FnNodeData).selected) === (n.id === selectedFid) ? n : { ...n, data: { ...(n.data as FnNodeData), selected: n.id === selectedFid } })));
+    /* eslint-disable-next-line */
+  }, [selectedFid]);
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      nodeTypes={fnNodeTypes}
+      onNodeClick={(_, node) => onSelect(node.id)}
+      fitView fitViewOptions={{ maxZoom: 1 }} minZoom={0.2}
+      nodesDraggable nodesConnectable={false} elementsSelectable panOnDrag zoomOnScroll
+      proOptions={{ hideAttribution: true }}
+    >
+      <Background color="#334155" gap={18} />
+      <Controls showInteractive={false} />
+    </ReactFlow>
+  );
+}
+
 interface CallEdge { from: string; to: string; kind: 'call' | 'flow' }
 /** Build the call graph. Real callee edges from the manager (walkFns[fid].callees)
  *  are authoritative. Review-order 'flow' edges are added ONLY to connect nodes
@@ -310,32 +348,18 @@ function buildCallEdges(walk: WalkFn[], walkFns: Record<string, CfgWalkFunction>
 }
 
 function layoutGraph(walk: WalkFn[], edges: CallEdge[], selectedFid: string | null): { nodes: Node<FnNodeData>[]; flowEdges: Edge[] } {
-  // Top-to-bottom by REVIEW ORDER (y = order). x is a small indent by call
-  // depth so the call-tree structure reads left→right within the vertical flow.
-  const callEdges = edges.filter((e) => e.kind === 'call');
-  const adj = new Map<string, string[]>();
-  const incoming = new Map<string, number>();
-  walk.forEach((w) => incoming.set(w.fid, 0));
-  callEdges.forEach((e) => { adj.set(e.from, [...(adj.get(e.from) || []), e.to]); incoming.set(e.to, (incoming.get(e.to) || 0) + 1); });
-  // depth = call-chain depth (for horizontal indent only)
-  const depth = new Map<string, number>();
-  const roots = walk.filter((w) => (incoming.get(w.fid) || 0) === 0).map((w) => w.fid);
-  const queue = [...roots]; roots.forEach((f) => depth.set(f, 0));
-  let qi = 0;
-  while (qi < queue.length) {
-    const cur = queue[qi++]; const d = depth.get(cur) || 0;
-    for (const nx of adj.get(cur) || []) { if (!depth.has(nx)) { depth.set(nx, d + 1); queue.push(nx); } }
-  }
-  const ROW_H = 76, COL_W = 168;
+  // Strict single vertical column, ordered top→bottom by review order. No
+  // horizontal scatter — every node shares x so the sequence reads cleanly.
+  const ROW_H = 76;
   const nodes: Node<FnNodeData>[] = walk.map((w) => ({
     id: w.fid, type: 'fn',
-    position: { x: Math.min(depth.get(w.fid) || 0, 5) * COL_W, y: w.order * ROW_H },
+    position: { x: 0, y: w.order * ROW_H },
     data: { label: w.name, vuln: isVulnResult(w.audit?.result), audited: Boolean(w.audit), selected: selectedFid === w.fid, order: w.order },
   }));
   const flowEdges: Edge[] = edges.map((e, i) => ({
     id: `e${i}_${e.from}_${e.to}`, source: e.from, target: e.to,
-    markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: e.kind === 'call' ? '#475569' : '#cbd5e1' },
-    style: e.kind === 'call' ? { stroke: '#475569', strokeWidth: 1.5 } : { stroke: '#cbd5e1', strokeDasharray: '4 4' },
+    markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: e.kind === 'call' ? '#94a3b8' : '#64748b' },
+    style: e.kind === 'call' ? { stroke: '#94a3b8', strokeWidth: 1.5 } : { stroke: '#64748b', strokeDasharray: '4 4' },
     animated: false,
   }));
   return { nodes, flowEdges };
@@ -587,7 +611,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
     () => (session?.codemap_queries || []).filter((q) => q.function_id === (selectedFn?.fid)),
     [session, selectedFn],
   );
-  const graph = useMemo(() => layoutGraph(walk, callEdges, selectedFn?.fid || null), [walk, callEdges, selectedFn]);
+  const graph = useMemo(() => layoutGraph(walk, callEdges, null), [walk, callEdges]);
   // Local call neighborhood of the selected fn (callers → fn → callees), for
   // the inline relation strip in the detail pane.
   const neighbors = useMemo(() => {
@@ -827,27 +851,16 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
               {/* Left: ONE fused graph. NOTE: the app globally remaps Tailwind
                   bg-white/bg-slate-50 → dark theme vars (styles.css), so we set
                   light surfaces via inline style to escape that hijack. */}
-              <aside className="flex max-h-[calc(100vh-11rem)] min-h-[600px] flex-col overflow-hidden rounded-2xl border border-slate-300 shadow-sm" style={{ backgroundColor: '#ffffff' }}>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-200 px-3 py-2 text-[11px] text-slate-500" style={{ backgroundColor: '#f1f5f9' }}>
-                  <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700"><Workflow size={13} />审查顺序 / 调用图 · {walk.length}</span>
-                  <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-400" style={{ backgroundColor: '#ecfdf5' }} />安全</span>
-                  <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-amber-400" style={{ backgroundColor: '#fffbeb' }} />漏洞</span>
-                  <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-slate-500" />调用 {callEdges.filter((e) => e.kind === 'call').length}</span>
-                  <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 border-t border-dashed border-slate-400" />顺序 {callEdges.filter((e) => e.kind === 'flow').length}</span>
+              <aside className="flex max-h-[calc(100vh-11rem)] min-h-[600px] flex-col overflow-hidden rounded-2xl border border-slate-700 shadow-sm" style={{ backgroundColor: '#0f172a' }}>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-300 px-3 py-2 text-[11px] text-slate-700" style={{ backgroundColor: '#e2e8f0' }}>
+                  <span className="inline-flex items-center gap-1.5 font-semibold text-slate-900"><Workflow size={13} />审查顺序 / 调用图 · {walk.length}</span>
+                  <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-500" style={{ backgroundColor: '#ecfdf5' }} />安全</span>
+                  <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-amber-500" style={{ backgroundColor: '#fffbeb' }} />漏洞</span>
+                  <span className="inline-flex items-center gap-1.5 text-slate-600"><span className="inline-block h-0.5 w-4 bg-slate-500" />调用 {callEdges.filter((e) => e.kind === 'call').length}</span>
+                  <span className="inline-flex items-center gap-1.5 text-slate-600"><span className="inline-block h-0.5 w-4 border-t border-dashed border-slate-500" />顺序 {callEdges.filter((e) => e.kind === 'flow').length}</span>
                 </div>
-                <div className="flex-1" style={{ backgroundColor: '#f8fafc', ['--xy-background-color' as any]: '#f8fafc' }}>
-                  <ReactFlow
-                    nodes={graph.nodes}
-                    edges={graph.flowEdges}
-                    nodeTypes={fnNodeTypes}
-                    onNodeClick={(_, node) => setSelectedFid(node.id)}
-                    fitView fitViewOptions={{ maxZoom: 1 }} minZoom={0.2}
-                    nodesDraggable nodesConnectable={false} elementsSelectable panOnDrag zoomOnScroll
-                    proOptions={{ hideAttribution: true }}
-                  >
-                    <Background color="#cbd5e1" gap={18} />
-                    <Controls showInteractive={false} />
-                  </ReactFlow>
+                <div className="flex-1" style={{ backgroundColor: '#0b1220', ['--xy-background-color' as any]: '#0b1220' }}>
+                  <WalkGraph layout={graph} selectedFid={selectedFn?.fid || null} onSelect={setSelectedFid} />
                 </div>
               </aside>
               {/* Right: detail — source code / model think / tool use */}
