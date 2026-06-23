@@ -4010,12 +4010,12 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                 固件文件
                 <div className="mt-2 flex gap-2">
                   <div className="relative flex-1">
-                    <FolderOpen size={14} className="pointer-events-none absolute left-3 top-3.5 text-theme-text-muted" />
+                    <FolderOpen size={14} className="pointer-events-none absolute left-3.5 top-3 text-theme-text-muted" />
                     <input
                       value={firmwarePath}
                       onChange={(e) => setFirmwarePath(e.target.value)}
                       placeholder={`${FILESERVER_CONTAINER_ROOT}/<project>/<subproject>/firmware.bin`}
-                      className="form-input w-full font-mono"
+                      className="form-input w-full font-mono pl-10"
                     />
                   </div>
                   <button

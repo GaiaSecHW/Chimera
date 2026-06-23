@@ -48,7 +48,7 @@ const STATUS_LABEL: Record<string, string> = {
   failed: '失败', error: '错误', cancelled: '已取消', cancelling: '取消中',
 };
 const STATUS_COLOR: Record<string, string> = {
-  pending: 'bg-slate-100 text-slate-600',
+  pending: 'bg-slate-100 text-theme-text-secondary',
   running: 'bg-blue-100 text-blue-700',
   passed: 'bg-emerald-100 text-emerald-700',
   failed: 'bg-red-100 text-red-700',
@@ -58,11 +58,11 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 const SEVERITY_STYLE: Record<string, { badge: string; bar: string; label: string }> = {
-  CRITICAL: { badge: 'bg-rose-100 text-rose-700 border-rose-200', bar: 'bg-rose-500', label: '严重' },
+  CRITICAL: { badge: 'bg-rose-500/15 text-rose-400 border-rose-500/20', bar: 'bg-rose-500', label: '严重' },
   HIGH: { badge: 'bg-orange-100 text-orange-700 border-orange-200', bar: 'bg-orange-500', label: '高危' },
   MEDIUM: { badge: 'bg-amber-100 text-amber-700 border-amber-200', bar: 'bg-amber-500', label: '中危' },
   LOW: { badge: 'bg-sky-100 text-sky-700 border-sky-200', bar: 'bg-sky-500', label: '低危' },
-  INFO: { badge: 'bg-slate-100 text-slate-600 border-slate-200', bar: 'bg-slate-400', label: '提示' },
+  INFO: { badge: 'bg-slate-100 text-theme-text-secondary border-theme-border', bar: 'bg-slate-400', label: '提示' },
 };
 const SEVERITY_ORDER = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'];
 
@@ -102,9 +102,9 @@ function isVulnResult(result?: string): boolean {
 function StatChip({ icon, label, value, tone = 'default' }: {
   icon: React.ReactNode; label: string; value: React.ReactNode; tone?: 'default' | 'danger' | 'ok';
 }) {
-  const ring = tone === 'danger' ? 'border-rose-200 bg-rose-50' : tone === 'ok' ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white';
-  const valTone = tone === 'danger' ? 'text-rose-700' : tone === 'ok' ? 'text-emerald-700' : 'text-slate-900';
-  const iconTone = tone === 'danger' ? 'text-rose-500' : tone === 'ok' ? 'text-emerald-500' : 'text-slate-400';
+  const ring = tone === 'danger' ? 'border-rose-500/20 bg-rose-500/15' : tone === 'ok' ? 'border-emerald-500/20 bg-emerald-500/15' : 'border-theme-border bg-theme-elevated';
+  const valTone = tone === 'danger' ? 'text-rose-400' : tone === 'ok' ? 'text-emerald-400' : 'text-theme-text-primary';
+  const iconTone = tone === 'danger' ? 'text-rose-400' : tone === 'ok' ? 'text-emerald-400' : 'text-theme-text-muted';
   return (
     <div className={`flex items-center gap-3 rounded-xl border px-3.5 py-2.5 ${ring}`}>
       <span className={iconTone}>{icon}</span>
@@ -117,14 +117,14 @@ function StatChip({ icon, label, value, tone = 'default' }: {
 }
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return <div className="flex gap-3"><span className="w-24 shrink-0 text-xs text-slate-400">{label}</span><span className="text-xs text-slate-700 break-all">{value}</span></div>;
+  return <div className="flex gap-3"><span className="w-24 shrink-0 text-xs text-theme-text-muted">{label}</span><span className="text-xs text-theme-text-secondary break-all">{value}</span></div>;
 }
 
 function SectionCard({ title, icon, action, children }: { title: string; icon?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5">
+    <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">{icon}{title}</h2>
+        <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-theme-text-muted">{icon}{title}</h2>
         {action}
       </div>
       <div className="mt-4">{children}</div>
@@ -135,7 +135,7 @@ function SectionCard({ title, icon, action, children }: { title: string; icon?: 
 // ── Overview: milestone timeline ─────────────────────────────────────────────
 function MilestoneTimeline({ session }: { session?: CfgAgentSession | null }) {
   const steps = session?.steps || [];
-  if (!steps.length) return <div className="rounded-xl border border-dashed border-slate-300 bg-theme-elevated px-4 py-10 text-center text-sm text-slate-400">暂无审计里程碑(任务启动后生成)</div>;
+  if (!steps.length) return <div className="rounded-xl border border-dashed border-theme-border bg-theme-elevated px-4 py-10 text-center text-sm text-slate-400">暂无审计里程碑(任务启动后生成)</div>;
   return (
     <ol className="relative space-y-0">
       {steps.map((s, i) => {
@@ -143,13 +143,13 @@ function MilestoneTimeline({ session }: { session?: CfgAgentSession | null }) {
         return (
           <li key={i} className="relative flex gap-3 pb-5">
             {!last ? <span className="absolute left-[7px] top-4 h-full w-px bg-slate-200" /> : null}
-            <span className="relative mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-emerald-500 bg-white" />
+            <span className="relative mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-emerald-500 bg-theme-elevated" />
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-2">
-                <span className="text-sm font-semibold text-slate-800">{s.label}</span>
+                <span className="text-sm font-semibold text-theme-text-primary">{s.label}</span>
                 <span className="font-mono text-[11px] text-slate-400">{(s.ts || '').slice(11) || s.ts}</span>
               </div>
-              <div className="mt-0.5 break-words text-xs text-slate-500">{s.detail}</div>
+              <div className="mt-0.5 break-words text-xs text-theme-text-muted">{s.detail}</div>
             </div>
           </li>
         );
@@ -220,25 +220,25 @@ function mergeWalk(session?: CfgCparserSession | null, nameIdx?: Map<string, str
 }
 
 function FnBadge({ audit }: { audit?: CfgAuditResult }) {
-  if (!audit) return <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-theme-elevated px-2 py-0.5 text-[10px] font-bold text-slate-500">未判定</span>;
-  if (isVulnResult(audit.result)) return <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700"><Bug size={10} />{audit.result}</span>;
-  return <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700"><ShieldCheck size={10} />{audit.result}</span>;
+  if (!audit) return <span className="inline-flex items-center gap-1 rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[10px] font-bold text-theme-text-muted">未判定</span>;
+  if (isVulnResult(audit.result)) return <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/20 bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-400"><Bug size={10} />{audit.result}</span>;
+  return <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400"><ShieldCheck size={10} />{audit.result}</span>;
 }
 
 function ThreeElementDesc({ text }: { text: string }) {
   // Highlight 【是什么】/【为什么】/【怎么样】 (taint) or [漏洞类型]/[代码调用链]/[判定理由] (audit).
   if (!text) return null;
   const parts = text.split(/(?=【)|(?=\[(?:漏洞类型|严重程度|代码调用链|判定理由|安全判定)\])/g).filter((p) => p.trim());
-  if (parts.length <= 1) return <p className="whitespace-pre-wrap text-xs leading-6 text-slate-700">{text}</p>;
+  if (parts.length <= 1) return <p className="whitespace-pre-wrap text-xs leading-6 text-theme-text-secondary">{text}</p>;
   return (
     <div className="space-y-2">
       {parts.map((p, i) => {
         const m = p.match(/^【([^】]+)】([\s\S]*)$/) || p.match(/^\[([^\]]+)\]([\s\S]*)$/);
-        if (!m) return <p key={i} className="whitespace-pre-wrap text-xs leading-6 text-slate-700">{p}</p>;
+        if (!m) return <p key={i} className="whitespace-pre-wrap text-xs leading-6 text-theme-text-secondary">{p}</p>;
         return (
           <div key={i} className="text-xs leading-6">
             <span className="mr-1.5 inline-block rounded bg-violet-100 px-1.5 py-0.5 font-bold text-violet-700">{m[1].trim()}</span>
-            <span className="text-slate-700">{m[2].trim()}</span>
+            <span className="text-theme-text-secondary">{m[2].trim()}</span>
           </div>
         );
       })}
@@ -259,17 +259,17 @@ function extractChain(desc?: string): string[] {
 interface FnNodeData extends Record<string, unknown> { label: string; vuln: boolean; audited: boolean; selected: boolean; order: number }
 function FnNode({ data }: NodeProps<Node<FnNodeData>>) {
   const tone = data.vuln
-    ? 'border-rose-400 bg-rose-50 text-rose-800'
+    ? 'border-rose-500 bg-rose-500/15 text-rose-400'
     : data.audited
       ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
-      : 'border-slate-300 bg-white text-slate-700';
+      : 'border-theme-border bg-theme-elevated text-theme-text-secondary';
   const ring = data.selected ? 'ring-2 ring-slate-900 ring-offset-1' : '';
   return (
     <div className={`rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-sm ${tone} ${ring}`} style={{ fontFamily: MONO }}>
-      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border !border-slate-300 !bg-slate-400" />
+      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border !border-theme-border !bg-slate-400" />
       <span className="mr-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-900/10 text-[9px] font-bold">{data.order + 1}</span>
       {data.label}
-      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border !border-slate-300 !bg-slate-400" />
+      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border !border-theme-border !bg-slate-400" />
     </div>
   );
 }
@@ -359,16 +359,16 @@ function FunctionCodeBlock({ meta, focusLine }: { meta?: CfgWalkFunction; focusL
   // centering focus (which is just the function midpoint).
   const focus = focusLine && focusLine > 0 ? focusLine : null;
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-950">
+    <div className="overflow-hidden rounded-xl border border-theme-border bg-slate-950">
       <div className="flex items-center justify-between gap-2 border-b border-slate-800 px-3 py-2">
         <span className="truncate font-mono text-[12px] text-slate-300">{meta.file_path || '源码'}{meta.start_line ? `:${meta.start_line}-${meta.end_line ?? ''}` : ''}</span>
-        {meta.signature ? <span className="hidden shrink-0 truncate font-mono text-[11px] text-slate-500 sm:block" title={meta.signature}>{meta.signature}</span> : null}
+        {meta.signature ? <span className="hidden shrink-0 truncate font-mono text-[11px] text-theme-text-muted sm:block" title={meta.signature}>{meta.signature}</span> : null}
       </div>
       {code?.lines?.length ? (
         <pre className="max-h-[460px] overflow-auto p-0 text-[13px] leading-6 text-slate-200">
           {code.lines.map((ln) => (
             <div key={ln.n} className={`grid grid-cols-[3.5rem_minmax(0,1fr)] gap-3 px-3 ${ln.n === focus ? 'bg-rose-500/25 text-rose-50' : ''}`}>
-              <span className="select-none text-right text-slate-500">{ln.n}</span>
+              <span className="select-none text-right text-theme-text-muted">{ln.n}</span>
               <code className="whitespace-pre">{ln.text || ' '}</code>
             </div>
           ))}
@@ -384,17 +384,17 @@ function ToolCallRow({ q, nameIdx, index }: { q: CfgCodemapQuery; nameIdx: Map<s
   const items = q.result?.callees || q.result?.callers || [];
   const kindLabel = q.result?.callees ? 'callees (被调用)' : q.result?.callers ? 'callers (调用者)' : null;
   const [open, setOpen] = useState(false);
-  const ts = TOOL_STYLE[q.command] || { badge: 'bg-slate-50 text-slate-600 border-slate-200', dot: 'bg-slate-400', label: q.command };
+  const ts = TOOL_STYLE[q.command] || { badge: 'bg-theme-elevated text-theme-text-secondary border-theme-border', dot: 'bg-theme-text-muted', label: q.command };
   const hasDetail = items.length > 0;
   const targetName = q.params?.func || nameIdx.get(q.function_id) || shortFid(q.function_id);
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-      <button onClick={() => hasDetail && setOpen((v) => !v)} className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs ${hasDetail ? 'hover:bg-slate-50' : 'cursor-default'}`}>
+    <div className="overflow-hidden rounded-xl border border-theme-border bg-theme-surface">
+      <button onClick={() => hasDetail && setOpen((v) => !v)} className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs ${hasDetail ? 'hover:bg-theme-elevated' : 'cursor-default'}`}>
         {index != null ? <span className="w-7 shrink-0 font-mono text-slate-400">{index + 1}</span> : null}
         <span className="w-16 shrink-0 font-mono text-slate-400">{(q.timestamp || '').slice(11, 19)}</span>
         <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 font-bold ${ts.badge}`}><span className={`h-1.5 w-1.5 rounded-full ${ts.dot}`} />{ts.label}</span>
-        <span className="min-w-0 flex-1 truncate font-mono text-slate-700">{targetName}</span>
-        {hasDetail ? <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{items.length} 项</span> : <span className="shrink-0 text-[10px] text-slate-400">{q.result ? '无返回' : '—'}</span>}
+        <span className="min-w-0 flex-1 truncate font-mono text-theme-text-secondary">{targetName}</span>
+        {hasDetail ? <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-theme-text-secondary">{items.length} 项</span> : <span className="shrink-0 text-[10px] text-slate-400">{q.result ? '无返回' : '—'}</span>}
         {hasDetail ? <span className="shrink-0 text-slate-400">{open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}</span> : null}
       </button>
       {open && hasDetail ? (
@@ -402,12 +402,12 @@ function ToolCallRow({ q, nameIdx, index }: { q: CfgCodemapQuery; nameIdx: Map<s
           <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">{kindLabel}</div>
           <div className="space-y-1">
             {items.map((c: any, i: number) => (
-              <div key={i} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
+              <div key={i} className="rounded-lg border border-theme-border bg-theme-surface px-2.5 py-1.5">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-[12px] font-semibold text-slate-800">{c.name || shortFid(c.id)}</span>
                   {c.id ? <span className="font-mono text-[10px] text-slate-400">{shortFid(c.id)}</span> : null}
                 </div>
-                {c.signature ? <div className="mt-0.5 truncate font-mono text-[11px] text-slate-500" title={c.signature}>{c.signature}</div> : null}
+                {c.signature ? <div className="mt-0.5 truncate font-mono text-[11px] text-theme-text-muted" title={c.signature}>{c.signature}</div> : null}
                 {(c.file_path || c.call_line) ? <div className="mt-0.5 font-mono text-[10px] text-slate-400">{c.file_path || ''}{c.call_line ? `:${c.call_line}` : ''}{c.call_type ? ` · ${c.call_type}` : ''}</div> : null}
               </div>
             ))}
@@ -425,19 +425,19 @@ function SourceSnippetBlock({ finding }: { finding: AppDfaVulnFinding }) {
     <div>
       <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-violet-500"><FileText size={12} />函数源码</div>
       {snippet?.lines?.length ? (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-950">
+        <div className="overflow-hidden rounded-xl border border-theme-border bg-slate-950">
           <div className="border-b border-slate-800 px-3 py-2 font-mono text-[11px] text-slate-400">{snippet.file || finding.file || 'source'} {snippet.focus_line ? `:${snippet.focus_line}` : ''}</div>
           <pre className="max-h-96 overflow-auto p-0 text-xs leading-5 text-slate-200">
             {snippet.lines.map((ln) => (
               <div key={ln.n} className={`grid grid-cols-[4rem_minmax(0,1fr)] gap-3 px-3 ${ln.n === snippet.focus_line ? 'bg-rose-500/20 text-rose-100' : ''}`}>
-                <span className="select-none text-right text-slate-500">{ln.n}</span>
+                <span className="select-none text-right text-theme-text-muted">{ln.n}</span>
                 <code className="whitespace-pre">{ln.text || ' '}</code>
               </div>
             ))}
           </pre>
         </div>
       ) : (
-        <pre className="max-h-72 overflow-auto rounded-xl border border-slate-200 bg-slate-950 px-3 py-3 text-xs leading-5 text-slate-100">{finding.code}</pre>
+        <pre className="max-h-72 overflow-auto rounded-xl border border-theme-border bg-slate-950 px-3 py-3 text-xs leading-5 text-slate-100">{finding.code}</pre>
       )}
     </div>
   );
@@ -458,14 +458,14 @@ function FindingCard({ finding, index }: { finding: AppDfaVulnFinding; index: nu
   const sev = (finding.severity || 'INFO').toUpperCase();
   const style = SEVERITY_STYLE[sev] || SEVERITY_STYLE.INFO;
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+    <div className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
       <div className={`h-1 w-full ${style.bar}`} />
-      <button onClick={() => setOpen((v) => !v)} className="flex w-full items-start gap-3 px-5 py-4 text-left hover:bg-slate-50">
+      <button onClick={() => setOpen((v) => !v)} className="flex w-full items-start gap-3 px-5 py-4 text-left hover:bg-theme-elevated">
         <span className="mt-0.5 text-xs font-medium text-slate-400">#{index + 1}</span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${style.badge}`}><ShieldAlert size={11} />{style.label} · {sev}</span>
-            {finding.function ? <span className="inline-flex items-center gap-1 font-mono text-[11px] text-slate-500"><MapPin size={11} />{finding.function}</span> : null}
+            {finding.function ? <span className="inline-flex items-center gap-1 font-mono text-[11px] text-theme-text-muted"><MapPin size={11} />{finding.function}</span> : null}
           </div>
           <div className="mt-2 text-sm font-bold leading-5 text-slate-900">{finding.title || finding.vulnerability || '漏洞'}</div>
         </div>
@@ -628,28 +628,28 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
       {feedbackNodes}
 
       {/* ── Status bar ── */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-3">
-            <button onClick={handleBack} className="mt-0.5 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-slate-600 hover:bg-slate-100"><ArrowLeft size={18} /></button>
+            <button onClick={handleBack} className="mt-0.5 rounded-xl border border-theme-border bg-theme-elevated p-2.5 text-theme-text-secondary hover:bg-theme-elevated"><ArrowLeft size={18} /></button>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="truncate font-mono text-xl font-semibold tracking-tight text-slate-900">{entryName}</h1>
-                {detail ? <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${STATUS_COLOR[detail.status] || 'bg-slate-100 text-slate-600'}`}>{STATUS_LABEL[detail.status] || detail.status}</span> : null}
+                {detail ? <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${STATUS_COLOR[detail.status] || 'bg-slate-100 text-theme-text-secondary'}`}>{STATUS_LABEL[detail.status] || detail.status}</span> : null}
                 {hasReturnContext ? <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-0.5 text-xs font-bold text-cyan-700">来自二进制安全总任务</span> : null}
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-theme-text-muted">
                 {entryLoc ? <span className="font-mono">{entryLoc}</span> : null}
                 {detail?.input_path ? <span className="truncate">· {detail.input_path}</span> : null}
               </div>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => { void loadDetail(); void loadTrace(); void loadSession(); void loadWalkFns(); }} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100"><RefreshCw size={15} className={loading ? 'animate-spin' : ''} />刷新</button>
-            {running ? <button onClick={() => void cancelTask()} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-slate-50 px-3.5 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50"><XCircle size={15} />取消</button> : null}
-            {detail && !running ? <button onClick={() => void restartTask()} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-slate-50 px-3.5 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50"><RotateCcw size={15} />重试</button> : null}
+            <button onClick={() => { void loadDetail(); void loadTrace(); void loadSession(); void loadWalkFns(); }} className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-elevated px-3.5 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated"><RefreshCw size={15} className={loading ? 'animate-spin' : ''} />刷新</button>
+            {running ? <button onClick={() => void cancelTask()} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-theme-elevated px-3.5 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50"><XCircle size={15} />取消</button> : null}
+            {detail && !running ? <button onClick={() => void restartTask()} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-theme-elevated px-3.5 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50"><RotateCcw size={15} />重试</button> : null}
             {detail ? <DownstreamTaskCreator projectId={projectId} sourceKind="dataflow_analysis" task={detail} buttonClassName="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100" /> : null}
-            {detail ? <button onClick={() => void deleteTask()} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-slate-50 px-3.5 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50"><Trash2 size={15} />删除</button> : null}
+            {detail ? <button onClick={() => void deleteTask()} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-theme-elevated px-3.5 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50"><Trash2 size={15} />删除</button> : null}
           </div>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
@@ -663,14 +663,14 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
       </div>
 
       {/* ── Tabs ── */}
-      <div className="flex flex-wrap gap-1.5 rounded-2xl border border-slate-200 bg-theme-elevated p-1">
+      <div className="flex flex-wrap gap-1.5 rounded-2xl border border-theme-border bg-theme-elevated p-1">
         {TABS.map(([id, label, icon]) => (
-          <button key={id} onClick={() => setActiveTab(id)} className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition ${activeTab === id ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>{icon}{label}</button>
+          <button key={id} onClick={() => setActiveTab(id)} className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition ${activeTab === id ? 'bg-slate-900 text-white' : 'text-theme-text-muted hover:bg-theme-elevated'}`}>{icon}{label}</button>
         ))}
       </div>
 
       {loading && !detail ? (
-        <div className="py-20 text-center text-sm text-slate-500"><Loader2 size={18} className="mx-auto mb-3 animate-spin" />加载任务详情中...</div>
+        <div className="py-20 text-center text-sm text-theme-text-muted"><Loader2 size={18} className="mx-auto mb-3 animate-spin" />加载任务详情中...</div>
       ) : !detail ? (
         <div className="py-16 text-center text-sm text-slate-400">未指定任务或任务不存在。</div>
       ) : activeTab === 'overview' ? (
@@ -687,7 +687,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                   <section className="rounded-2xl border border-rose-200 bg-rose-50 p-5">
                     <div className="flex items-center gap-2 text-rose-700"><Bug size={18} /><span className="text-base font-bold">发现 {vulnCount} 个漏洞</span></div>
                     <p className="mt-2 text-sm text-rose-700/90">入口 <span className="font-mono">{entryName}</span> 可达漏洞,覆盖 {fnCount} 个函数。</p>
-                    <button onClick={() => setActiveTab('result')} className="mt-3 inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100">查看结果 →</button>
+                    <button onClick={() => setActiveTab('result')} className="mt-3 inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-theme-surface px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100">查看结果 →</button>
                   </section>
                 ) : (
                   <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
@@ -709,26 +709,26 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
             </div>
           </div>
           {detail.abnormal_reason ? <AbnormalReasonCard reason={detail.abnormal_reason} history={detail.abnormal_reason_history} /> : null}
-          {detail.error ? <section className="rounded-2xl border border-red-200 bg-red-50 p-5"><h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-red-600">错误信息</h2><pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-red-200 bg-white px-3 py-3 text-xs text-red-700">{detail.error}</pre></section> : null}
+          {detail.error ? <section className="rounded-2xl border border-red-200 bg-red-50 p-5"><h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-red-600">错误信息</h2><pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-red-200 bg-theme-surface px-3 py-3 text-xs text-red-700">{detail.error}</pre></section> : null}
           {/* Raw events (demoted) */}
-          <details open={rawOpen} onToggle={(e) => setRawOpen((e.target as HTMLDetailsElement).open)} className="rounded-2xl border border-slate-200 bg-white">
-            <summary className="cursor-pointer select-none px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50">原始事件 ({timeline.length})</summary>
+          <details open={rawOpen} onToggle={(e) => setRawOpen((e.target as HTMLDetailsElement).open)} className="rounded-2xl border border-theme-border bg-theme-surface">
+            <summary className="cursor-pointer select-none px-5 py-3 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">原始事件 ({timeline.length})</summary>
             <div className="max-h-80 overflow-auto border-t border-slate-100 px-5 py-3" ref={logRef}>
-              {timeline.length ? <div className="space-y-1.5 font-mono text-xs">{timeline.map((ev: any) => <div key={ev.id} className="flex gap-2"><span className="text-slate-400">{ev.ts || (ev.at ? new Date(ev.at * 1000).toLocaleTimeString('zh-CN') : '')}</span><span className="font-bold text-slate-600">{ev.event || ev.event_type}</span><span className="text-slate-500">{ev.message || ev.status || ''}</span></div>)}</div> : <div className="text-sm text-slate-400">暂无事件</div>}
+              {timeline.length ? <div className="space-y-1.5 font-mono text-xs">{timeline.map((ev: any) => <div key={ev.id} className="flex gap-2"><span className="text-slate-400">{ev.ts || (ev.at ? new Date(ev.at * 1000).toLocaleTimeString('zh-CN') : '')}</span><span className="font-bold text-theme-text-secondary">{ev.event || ev.event_type}</span><span className="text-theme-text-muted">{ev.message || ev.status || ''}</span></div>)}</div> : <div className="text-sm text-slate-400">暂无事件</div>}
             </div>
           </details>
-          <button onClick={() => { setSessionDrawer(true); }} className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800"><FileText size={13} />查看智能体会话文件</button>
+          <button onClick={() => { setSessionDrawer(true); }} className="inline-flex items-center gap-2 text-xs font-semibold text-theme-text-muted hover:text-slate-800"><FileText size={13} />查看智能体会话文件</button>
         </section>
       ) : activeTab === 'walk' ? (
         <section className="space-y-4">
           {walk.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-theme-elevated p-12 text-center text-sm text-slate-400">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div>
+            <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated p-12 text-center text-sm text-slate-400">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div>
           ) : (
             <>
               {/* Collapsible call graph */}
-              <details className="overflow-hidden rounded-2xl border border-slate-200 bg-white" open={graphOpen} onToggle={(e) => setGraphOpen((e.target as HTMLDetailsElement).open)}>
-                <summary className="flex cursor-pointer flex-wrap items-center gap-3 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50">
-                  <Network size={16} className="text-slate-500" />
+              <details className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface" open={graphOpen} onToggle={(e) => setGraphOpen((e.target as HTMLDetailsElement).open)}>
+                <summary className="flex cursor-pointer flex-wrap items-center gap-3 px-4 py-3 text-sm text-theme-text-secondary hover:bg-theme-elevated">
+                  <Network size={16} className="text-theme-text-muted" />
                   <span className="font-semibold">污点传播 / 调用图</span>
                   <span className="text-xs text-slate-400">{walk.length} 函数 · {callEdges.filter((e) => e.kind === 'call').length} 调用边</span>
                   <span className="ml-auto inline-flex items-center gap-2 text-[11px]">
@@ -753,7 +753,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
 
               {/* Left-right: ordered review list + selected detail (with code) */}
               <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-                <aside className="rounded-2xl border border-slate-200 bg-white p-3">
+                <aside className="rounded-2xl border border-theme-border bg-theme-surface p-3">
                   <div className="px-1 pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">审查顺序 ({walk.length})</div>
                   <ol className="relative max-h-[calc(100vh-16rem)] space-y-0 overflow-auto pr-1">
                     {walk.map((w, i) => {
@@ -763,15 +763,15 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                       return (
                         <li key={w.fid} className="relative flex gap-2.5">
                           <div className="relative flex flex-col items-center">
-                            <span className={`mt-2.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-bold ${vuln ? 'border-rose-400 bg-rose-50 text-rose-700' : w.audit ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-slate-300 bg-white text-slate-400'}`}>{i + 1}</span>
+                            <span className={`mt-2.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-bold ${vuln ? 'border-rose-400 bg-rose-50 text-rose-700' : w.audit ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-theme-border bg-theme-surface text-slate-400'}`}>{i + 1}</span>
                             {!last ? <span className="w-px flex-1 bg-slate-200" /> : null}
                           </div>
-                          <button onClick={() => setSelectedFid(w.fid)} className={`mb-2 flex-1 rounded-xl border px-3 py-2.5 text-left transition ${sel ? 'border-slate-400 bg-slate-100 ring-1 ring-slate-300' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                          <button onClick={() => setSelectedFid(w.fid)} className={`mb-2 flex-1 rounded-xl border px-3 py-2.5 text-left transition ${sel ? 'border-slate-400 bg-slate-100 ring-1 ring-slate-300' : 'border-theme-border bg-theme-surface hover:bg-theme-elevated'}`}>
                             <div className="flex items-center justify-between gap-2">
                               <span className="truncate font-mono text-sm font-semibold text-slate-900">{w.name}</span>
                               {vuln ? <Bug size={14} className="text-rose-500" /> : w.audit ? <ShieldCheck size={14} className="text-emerald-500" /> : null}
                             </div>
-                            <div className="mt-1 truncate text-xs text-slate-500">污点 {w.taint?.tainted_params_in?.length ? w.taint.tainted_params_in.join(', ') : '—'}{w.ts ? ` · ${w.ts.slice(11, 19)}` : ''}</div>
+                            <div className="mt-1 truncate text-xs text-theme-text-muted">污点 {w.taint?.tainted_params_in?.length ? w.taint.tainted_params_in.join(', ') : '—'}{w.ts ? ` · ${w.ts.slice(11, 19)}` : ''}</div>
                           </button>
                         </li>
                       );
@@ -779,7 +779,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                   </ol>
                 </aside>
                 <div className="space-y-4">
-                  {!selectedFn ? <div className="rounded-2xl border border-dashed border-slate-300 bg-theme-elevated px-4 py-16 text-center text-sm text-slate-400">点击左侧函数或图节点,查看污点传播、模型推理与源码</div> : (
+                  {!selectedFn ? <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated px-4 py-16 text-center text-sm text-slate-400">点击左侧函数或图节点,查看污点传播、模型推理与源码</div> : (
                     <>
                       <SectionCard title={`#${selectedFn.order + 1} · ${selectedFn.name}`} icon={<Crosshair size={16} />} action={<FnBadge audit={selectedFn.audit} />}>
                         <div className="grid gap-2.5 sm:grid-cols-2">
@@ -818,13 +818,13 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
         <section className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             {Object.entries(toolCounts).map(([cmd, n]) => {
-              const ts = TOOL_STYLE[cmd] || { badge: 'bg-slate-50 text-slate-600 border-slate-200', dot: 'bg-slate-400', label: cmd };
+              const ts = TOOL_STYLE[cmd] || { badge: 'bg-theme-elevated text-theme-text-secondary border-theme-border', dot: 'bg-slate-400', label: cmd };
               return <span key={cmd} className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${ts.badge}`}><span className={`h-2 w-2 rounded-full ${ts.dot}`} />{ts.label} {n}</span>;
             })}
             <span className="text-xs font-semibold text-slate-400">总计 {toolCount} 次 · {callEdges.filter((e) => e.kind === 'call').length} 条调用边</span>
           </div>
           {toolCount === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-12 text-center text-sm text-slate-400">{sessionMissing ? '暂无工具调用记录' : '加载中...'}</div>
+            <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-12 text-center text-sm text-slate-400">{sessionMissing ? '暂无工具调用记录' : '加载中...'}</div>
           ) : (
             <div className="space-y-2">
               {(session?.codemap_queries || []).map((q, i) => <ToolCallRow key={i} q={q} nameIdx={nameIdx} index={i} />)}
@@ -833,7 +833,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
         </section>
       ) : activeTab === 'result' ? (
         <section className="space-y-4">
-          {resultLoading ? <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">加载结果中...</div> : !result ? <div className="rounded-2xl border border-dashed border-slate-300 bg-theme-elevated p-10 text-center text-sm text-slate-400">尚无结果。</div> : (
+          {resultLoading ? <div className="rounded-2xl border border-theme-border bg-theme-surface p-10 text-center text-sm text-theme-text-muted">加载结果中...</div> : !result ? <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated p-10 text-center text-sm text-slate-400">尚无结果。</div> : (
             <>
               <div className="flex flex-wrap items-center gap-2">
                 {SEVERITY_ORDER.map((sev) => {
@@ -844,7 +844,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                 <span className="text-xs font-semibold text-slate-400">共 {result.summary?.total_findings ?? (result.findings?.length || 0)} 个漏洞</span>
                 <div className="ml-auto flex gap-1.5">
                   {([['findings', '漏洞卡'], ['report', '最终报告'], ['json', '结构化 JSON']] as [typeof resultView, string][]).map(([id, label]) => (
-                    <button key={id} onClick={() => setResultView(id)} className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${resultView === id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>{label}</button>
+                    <button key={id} onClick={() => setResultView(id)} className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${resultView === id ? 'border-slate-900 bg-slate-900 text-white' : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated'}`}>{label}</button>
                   ))}
                 </div>
               </div>
@@ -859,11 +859,11 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                   </section>
                 )
               ) : resultView === 'report' ? (
-                result.result_markdown ? <article className="prose prose-slate max-w-none rounded-2xl border border-slate-200 bg-white p-6"><ReactMarkdown remarkPlugins={[remarkGfm]}>{result.result_markdown}</ReactMarkdown></article> : <div className="rounded-2xl border border-dashed border-slate-300 bg-theme-elevated p-10 text-center text-sm text-slate-400">无报告内容</div>
+                result.result_markdown ? <article className="prose prose-slate max-w-none rounded-2xl border border-theme-border bg-theme-surface p-6"><ReactMarkdown remarkPlugins={[remarkGfm]}>{result.result_markdown}</ReactMarkdown></article> : <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated p-10 text-center text-sm text-slate-400">无报告内容</div>
               ) : (
-                <pre className="overflow-auto rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-800">{JSON.stringify(result.result_json || {}, null, 2)}</pre>
+                <pre className="overflow-auto rounded-2xl border border-theme-border bg-theme-surface p-4 text-xs text-slate-800">{JSON.stringify(result.result_json || {}, null, 2)}</pre>
               )}
-              {(result as any).prompt ? <details className="rounded-2xl border border-slate-200 bg-white"><summary className="cursor-pointer select-none px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50">分析 Prompt</summary><pre className="max-h-72 overflow-auto whitespace-pre-wrap break-all border-t border-slate-100 px-5 py-3 text-xs text-slate-600">{(result as any).prompt?.raw || JSON.stringify((result as any).prompt, null, 2)}</pre></details> : null}
+              {(result as any).prompt ? <details className="rounded-2xl border border-theme-border bg-theme-surface"><summary className="cursor-pointer select-none px-5 py-3 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">分析 Prompt</summary><pre className="max-h-72 overflow-auto whitespace-pre-wrap break-all border-t border-slate-100 px-5 py-3 text-xs text-theme-text-secondary">{(result as any).prompt?.raw || JSON.stringify((result as any).prompt, null, 2)}</pre></details> : null}
             </>
           )}
         </section>
@@ -874,15 +874,15 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
       {/* ── Session drawer ── */}
       {sessionDrawer ? (
         <div className="fixed inset-0 z-[280] bg-slate-950/60 p-4 backdrop-blur-sm" onClick={() => setSessionDrawer(false)}>
-          <div className="mx-auto flex h-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-6 py-4">
+          <div className="mx-auto flex h-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-theme-border bg-theme-surface shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-3 border-b border-theme-border px-6 py-4">
               <div className="text-sm font-bold text-slate-800">智能体会话文件</div>
-              <button onClick={() => setSessionDrawer(false)} className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-100"><XCircle size={16} /></button>
+              <button onClick={() => setSessionDrawer(false)} className="rounded-lg border border-theme-border p-1.5 text-theme-text-muted hover:bg-theme-elevated"><XCircle size={16} /></button>
             </div>
             <div className="grid flex-1 grid-cols-[220px_minmax(0,1fr)] overflow-hidden">
-              <aside className="overflow-auto border-r border-slate-200 p-3">
+              <aside className="overflow-auto border-r border-theme-border p-3">
                 {sessionsMeta.length === 0 ? <div className="text-xs text-slate-400">加载中...</div> : sessionsMeta.map((s) => (
-                  <button key={s.relative_path} onClick={() => void openSessionFile(`${s.relative_path}/audit_report.md`)} className="mb-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">{s.display_name}</button>
+                  <button key={s.relative_path} onClick={() => void openSessionFile(`${s.relative_path}/audit_report.md`)} className="mb-1.5 w-full rounded-lg border border-theme-border px-3 py-2 text-left text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated">{s.display_name}</button>
                 ))}
               </aside>
               <div className="overflow-auto p-4">

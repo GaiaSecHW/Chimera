@@ -291,15 +291,17 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
               />
             </label>
 
-            <label className="form-label">
-              分析 Prompt <span className="text-theme-text-muted text-xs">(可选，不填则使用服务默认生成逻辑)</span>
+            <div className="space-y-2">
+              <label className="form-label block">
+                分析 Prompt <span className="text-theme-text-muted text-xs">(可选，不填则使用服务默认生成逻辑)</span>
+              </label>
               <textarea
-                className="form-textarea min-h-[120px] leading-6"
+                className="form-textarea min-h-[120px] w-full leading-6"
                 value={form.prompt_content}
                 onChange={(e) => setForm((prev) => ({ ...prev, prompt_content: e.target.value }))}
                 placeholder="可复用原任务的 Prompt，或在此调整新的分析指令"
               />
-            </label>
+            </div>
 
             <div className="rounded-xl border border-theme-border bg-theme-elevated p-4">
               <p className="text-xs font-semibold text-theme-text-secondary">分析模式</p>
