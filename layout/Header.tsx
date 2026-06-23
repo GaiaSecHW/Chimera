@@ -224,57 +224,57 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="relative shrink-0" ref={userMenuRef}>
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="group flex items-center gap-3 p-1 pr-4 bg-theme-header rounded-lg hover:bg-theme-sidebar transition-all active:scale-95 shadow-brand"
+              className="flex items-center gap-2.5 px-3.5 py-2.5 theme-shell-muted rounded-lg text-sm font-medium"
             >
-              <div className="w-10 h-10 rounded-xl bg-logo-surface flex items-center justify-center text-theme-text-inverse font-semibold text-sm border shadow-inner group-hover:rotate-6 transition-transform" style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 42%, rgba(255,255,255,0.08))' }}>
+              <div className="w-8 h-8 rounded-lg bg-brand-soft flex items-center justify-center text-brand-primary font-semibold text-sm shrink-0">
                 {user?.username?.[0]?.toUpperCase()}
               </div>
               <div className="text-left hidden md:block">
-                <p className="text-[10px] font-medium text-theme-text-inverse leading-tight">{user?.username}</p>
-                <p className="text-[8px] font-medium text-theme-text-faint uppercase tracking-widest">{getPlatformRoleLabel(userAccess.platformRole)}</p>
+                <p className="text-xs font-medium text-theme-text-primary leading-tight">{user?.username}</p>
+                <p className="text-[10px] font-medium text-theme-text-muted uppercase tracking-wider">{getPlatformRoleLabel(userAccess.platformRole)}</p>
               </div>
-              <ChevronDown size={14} className={`text-theme-text-faint transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={14} className={`text-theme-text-faint shrink-0 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isUserMenuOpen && (
-              <div className="absolute top-full right-0 mt-3 w-64 bg-theme-surface border border-theme-border rounded-xl shadow-brand overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50 p-2 border-t-4 border-t-brand-primary">
-                <div className="px-4 py-4 border-b border-theme-border mb-1">
-                  <p className="text-[9px] font-medium text-theme-text-faint uppercase tracking-widest">Current Identity</p>
-                  <div className="flex items-center gap-3 mt-1.5">
-                    <div className="w-10 h-10 rounded-xl bg-theme-elevated flex items-center justify-center text-theme-text-primary font-semibold">
+              <div className="absolute top-full right-0 mt-2 w-56 bg-theme-surface border border-theme-border rounded-lg shadow-overlay overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50 p-2">
+                <div className="px-3 py-3 border-b border-theme-border mb-1">
+                  <p className="text-[10px] font-medium text-theme-text-faint uppercase tracking-wider">Current Identity</p>
+                  <div className="flex items-center gap-2.5 mt-1.5">
+                    <div className="w-8 h-8 rounded-lg bg-brand-soft flex items-center justify-center text-brand-primary font-semibold text-sm shrink-0">
                       {user?.username?.[0]?.toUpperCase()}
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-theme-text-primary leading-tight">{user?.username}</p>
-                      <span className="text-[8px] font-medium uppercase text-brand-primary bg-brand-soft px-1.5 py-0.5 rounded border border-brand-border mt-1 inline-block">
+                      <span className="text-[10px] font-medium uppercase text-brand-primary bg-brand-soft px-1.5 py-0.5 rounded-md border border-brand-border mt-1 inline-block">
                         UID: {user?.id}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-1 space-y-0.5">
+                <div className="space-y-0.5">
                   <button
                     onClick={() => {
                       setCurrentView('change-password');
                       setIsUserMenuOpen(false);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated rounded-xl transition-all"
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated rounded-lg transition-colors"
                   >
-                    <Lock size={16} className="text-theme-text-faint" /> 修改密码
+                    <Lock size={14} className="text-theme-text-faint" /> 修改密码
                   </button>
                 </div>
 
-                <div className="h-px bg-theme-elevated my-1 mx-2" />
+                <div className="h-px bg-theme-border my-1 mx-1" />
 
                 <button
                   onClick={() => {
                     handleLogout();
                     setIsUserMenuOpen(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-medium text-state-danger hover:bg-state-danger-soft rounded-xl transition-all uppercase tracking-widest"
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-medium text-state-danger hover:bg-state-danger-soft rounded-lg transition-colors uppercase tracking-wider"
                 >
-                  <LogOut size={16} /> 退出系统
+                  <LogOut size={14} /> 退出系统
                 </button>
               </div>
             )}
