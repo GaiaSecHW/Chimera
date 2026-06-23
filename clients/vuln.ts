@@ -325,7 +325,7 @@ export const vulnApi = {
       body: JSON.stringify(payload),
     })),
 
-  updateConfirmEngine: async (engineName: string, payload: { endpoint: string; version: string; bind_tools: string[] }) =>
+  updateConfirmEngine: async (engineName: string, payload: { engine_name: string; endpoint: string; version: string; bind_tools: string[] }) =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/admin/vuln-confirm/engines/${encodeURIComponent(engineName)}`, {
       method: 'PUT',
       headers: getHeaders(),

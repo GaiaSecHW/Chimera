@@ -80,6 +80,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
     try {
       if (editingEngine) {
         await vulnApi.updateConfirmEngine(editingEngine.engine_name, {
+          engine_name: formData.engine_name.trim(),
           endpoint: formData.endpoint,
           version: formData.version,
           bind_tools,
@@ -281,13 +282,11 @@ export const VulnConfirmEnginesPage: React.FC = () => {
             <label className="form-label">引擎名称 *</label>
             <input
               required
-              disabled={!!editingEngine}
               placeholder="e.g. loki-triage-prod"
-              className="form-input w-full font-mono disabled:opacity-60 disabled:cursor-not-allowed"
+              className="form-input w-full font-mono"
               value={formData.engine_name}
               onChange={(e) => setFormData({ ...formData, engine_name: e.target.value })}
             />
-            {editingEngine && <p className="text-[10px] text-theme-text-faint ml-1">引擎名称创建后不可修改</p>}
           </div>
           <div className="space-y-1.5">
             <label className="form-label">Endpoint *</label>
