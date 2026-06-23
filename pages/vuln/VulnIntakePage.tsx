@@ -2108,7 +2108,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       <div>{displaySummary?.subtitle || selectedDetail.summary || '暂无摘要说明'}</div>
                       <div className="rounded-xl p-4 bg-theme-elevated">
                         <div className="text-xs font-semibold text-theme-text-muted-soft">当前结论</div>
-                        <div className="mt-1 text-sm font-semibold text-theme-text-primary">
+                        <div className={`mt-1 text-sm font-semibold ${(selectedDetail.finished_reason || selectedDetail.validation_result) === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-primary'}`}>
                           {(selectedDetail.current_stage === 'finished' || selectedDetail.finished_reason)
                             ? (toConclusionText(selectedDetail.finished_reason || selectedDetail.validation_result) || '—')
                             : '—'}
@@ -2675,7 +2675,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       <div className="min-w-0">
                         {(item.current_stage === 'finished' || item.finished_reason) ? (
                           <>
-                            <div className="text-sm font-semibold text-theme-text-secondary">
+                            <div className={`text-sm font-semibold ${(item.finished_reason || item.validation_result) === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-secondary'}`}>
                               {toConclusionText(item.finished_reason || item.validation_result)}
                             </div>
                             <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
