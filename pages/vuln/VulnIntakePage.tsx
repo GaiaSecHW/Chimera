@@ -396,6 +396,7 @@ const CONCLUSION_TEXT: Record<string, string> = {
 const toUserVulnStatusText = (itemOrStage?: any, status?: string) => {
   if (itemOrStage && typeof itemOrStage === 'object') {
     if (itemOrStage.current_stage === 'finished' || itemOrStage.finished_reason) return '已结束';
+    if (itemOrStage.confirm_engine_name) return '研判中';
     status = itemOrStage.current_status;
     itemOrStage = itemOrStage.current_stage;
   }
