@@ -50,12 +50,9 @@ export type NavRole = 'user' | 'developer' | 'admin' | null;
 
 export type TopLevelNavKey =
   | 'home'
-  | 'project-mgmt-nav'
-  | 'test-object'
-  | 'test-env'
   | 'test-task'
   | 'vuln-center'
-  | 'assets'
+  | 'assets-center'
   | 'assessment'
   | 'observe'
   | 'skill'
@@ -113,13 +110,10 @@ export const NAV_ROLE_CONFIG: Record<string, { label: string; color: string; act
 
 export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
   { id: 'home', label: '首页', role: null },
-  { id: 'project-mgmt-nav', label: '项目管理', role: null },
   { id: 'test-task', label: '测试任务', role: null },
   { id: 'vuln-center', label: '漏洞中心', role: null },
-  { id: 'test-object', label: '测试对象', role: null },
-  { id: 'test-env', label: '测试环境', role: null },
-  { id: 'assets', label: '资产', role: 'developer', showDividerBefore: true },
-  { id: 'assessment', label: '评测', role: 'developer' },
+  { id: 'assets-center', label: '资产中心', role: null },
+  { id: 'assessment', label: '评测', role: 'developer', showDividerBefore: true },
   { id: 'observe', label: '观测', role: 'developer' },
   { id: 'skill', label: '技能', role: 'developer' },
   { id: 'tools', label: '工具', role: 'developer' },
@@ -140,7 +134,7 @@ export const getVisibleTopLevelNavItems = (
   const platformRole = getPlatformRole(user);
   const accessibleRoles = ROLE_TAB_ACCESS[platformRole] || ROLE_TAB_ACCESS.ordinary_user;
   return TOP_LEVEL_NAV_ITEMS.filter((item) => {
-    if (item.id === 'home') return true;
+    if (item.id === 'home' || item.id === 'assets-center') return true;
     if (item.role && !accessibleRoles.has(item.role)) return false;
     return true;
   });
@@ -392,18 +386,18 @@ const SYSTEM_ADMIN_ENVIRONMENT_VIEWS = new Set([
 
 export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (view === 'home') return 'home';
-  if (view === 'project-mgmt' || view === 'project-detail' || view === 'product-mgmt') return 'project-mgmt-nav';
-  if (view.startsWith('test-input-')) return 'test-object';
-  if (view === 'env-access' || view === 'env-management') return 'test-env';
   if (view.startsWith('task-') || view === 'task-list' || view === 'task-center-timeline') return 'test-task';
   if (view === 'vuln-engine' || view.startsWith('vuln-')) return 'vuln-center';
+  if (view === 'project-mgmt' || view === 'project-detail' || view === 'product-mgmt') return 'assets-center';
+  if (view.startsWith('test-input-')) return 'assets-center';
+  if (view === 'env-access' || view === 'env-management' || view.startsWith('env-')) return 'assets-center';
   if (
     view === 'project-file-explorer' ||
     view === 'fileserver-archive-tasks' ||
     view === 'public-resource-pvc-management' ||
     view === 'public-resource-task-management' ||
     view === 'pvc-management'
-  ) return 'assets';
+  ) return 'assets-center';
   if (view === 'assessment-coming-soon') return 'assessment';
   if (view === 'observe-coming-soon') return 'observe';
   if (view === 'skill-coming-soon') return 'skill';
@@ -413,7 +407,6 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (DEVELOPER_TOOL_VIEWS.has(view) || view === 'developer-tools-overview' || view === 'developer-tools') return 'tools';
   if (DEVELOPER_ATOMIC_CAPABILITY_VIEWS.has(view) || view.startsWith('developer-atomic-capability') || view.startsWith('developer-')) return 'atomic';
   if (SYSTEM_ADMIN_DASHBOARD_VIEWS.has(view)) return 'system-admin';
-  if (SYSTEM_ADMIN_ENVIRONMENT_VIEWS.has(view) || view.startsWith('env-')) return 'system-admin';
   if (AIGW_VIEWS.has(view)) return 'system-admin';
   if (SCHEDULE_VIEWS.has(view)) return 'system-admin';
   if (EVOLUTION_VIEWS.has(view) || view.startsWith('binary-evolution-') || view.startsWith('secocto-')) return 'system-admin';
@@ -427,12 +420,9 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
 export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | null): string => {
   switch (nav) {
     case 'home': return 'home';
-    case 'project-mgmt-nav': return 'project-mgmt';
-    case 'test-object': return 'test-input-root';
-    case 'test-env': return 'env-access';
     case 'test-task': return 'task-list';
     case 'vuln-center': return 'vuln-intake';
-    case 'assets': return 'public-resource-pvc-management';
+    case 'assets-center': return 'project-mgmt';
     case 'assessment': return 'assessment-coming-soon';
     case 'observe': return 'observe-coming-soon';
     case 'skill': return 'skill-coming-soon';
@@ -467,31 +457,6 @@ const PLATFORM_ACCOUNT_ORG_SECTIONS: NavSection[] = [
 
 export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
   home: [],
-  'project-mgmt-nav': [
-    {
-      title: '项目管理',
-      items: [
-        { id: 'project-mgmt', label: '项目管理', icon: Briefcase, aliases: ['project-detail'], healthKey: 'projectHealth' },
-      ],
-    },
-  ],
-  'test-object': [
-    {
-      title: '测试对象',
-      items: [
-        { id: 'test-input-root', label: '测试对象', icon: FileBox, requiresProject: true },
-      ],
-    },
-  ],
-  'test-env': [
-    {
-      title: '测试环境',
-      items: [
-        { id: 'env-access', label: '环境接入', icon: Terminal, requiresProject: true, healthKey: 'envHealth' },
-        { id: 'env-management', label: '环境管理', icon: ServerCog, requiresProject: true, healthKey: 'envHealth' },
-      ],
-    },
-  ],
   'test-task': [
     {
       title: '测试任务',
@@ -505,17 +470,6 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
       title: '漏洞中心',
       items: [
         { id: 'vuln-intake', label: '漏洞中心', icon: Shield, aliases: ['vuln-overview', 'vuln-engine'], requiresProject: true, healthKey: 'vulnHealth' },
-      ],
-    },
-  ],
-  assets: [
-    {
-      title: '资产供应',
-      items: [
-        { id: 'project-file-explorer', label: '项目文件', icon: FolderTree, requiresProject: true },
-        { id: 'fileserver-archive-tasks', label: '打包下载任务', icon: Archive, requiresProject: true },
-        { id: 'public-resource-pvc-management', label: 'PVC 管理', icon: HardDrive, requiresProject: true },
-        { id: 'public-resource-task-management', label: '资源任务', icon: ListTodo, requiresProject: true },
       ],
     },
   ],
@@ -684,4 +638,71 @@ export const getSystemAdminActiveChild = (currentView: string): SystemAdminChild
 export const getSystemAdminSidebarSections = (currentView: string): NavSection[] => {
   const childKey = getSystemAdminActiveChild(currentView);
   return SYSTEM_ADMIN_SIDEBAR_MAP[childKey] || [];
+};
+
+const ASSETS_CENTER_SIDEBAR_MAP: Record<string, NavSection[]> = {
+  projectMgmt: [
+    {
+      title: '项目管理',
+      items: [
+        { id: 'project-mgmt', label: '项目管理', icon: Briefcase, aliases: ['project-detail'], healthKey: 'projectHealth' },
+      ],
+    },
+  ],
+  testObject: [
+    {
+      title: '测试对象',
+      items: [
+        { id: 'test-input-root', label: '测试对象', icon: FileBox, requiresProject: true },
+      ],
+    },
+  ],
+  testEnv: [
+    {
+      title: '测试环境',
+      items: [
+        { id: 'env-access', label: '环境接入', icon: Terminal, requiresProject: true, healthKey: 'envHealth' },
+        { id: 'env-management', label: '环境管理', icon: ServerCog, requiresProject: true, healthKey: 'envHealth' },
+      ],
+    },
+  ],
+  assetSupply: [
+    {
+      title: '资产供应',
+      items: [
+        { id: 'project-file-explorer', label: '项目文件', icon: FolderTree, requiresProject: true },
+        { id: 'fileserver-archive-tasks', label: '打包下载任务', icon: Archive, requiresProject: true },
+        { id: 'public-resource-pvc-management', label: 'PVC 管理', icon: HardDrive, requiresProject: true },
+        { id: 'public-resource-task-management', label: '资源任务', icon: ListTodo, requiresProject: true },
+      ],
+    },
+  ],
+};
+
+export type AssetsCenterChildKey = 'projectMgmt' | 'testObject' | 'testEnv' | 'assetSupply';
+
+export const ASSETS_CENTER_CHILDREN: { key: AssetsCenterChildKey; label: string; defaultView: string }[] = [
+  { key: 'projectMgmt', label: '项目管理', defaultView: 'project-mgmt' },
+  { key: 'testObject', label: '测试对象', defaultView: 'test-input-root' },
+  { key: 'testEnv', label: '测试环境', defaultView: 'env-access' },
+  { key: 'assetSupply', label: '资产供应', defaultView: 'public-resource-pvc-management' },
+];
+
+export const getAssetsCenterActiveChild = (currentView: string): AssetsCenterChildKey => {
+  if (currentView === 'project-mgmt' || currentView === 'project-detail' || currentView === 'product-mgmt') return 'projectMgmt';
+  if (currentView.startsWith('test-input-')) return 'testObject';
+  if (currentView === 'env-access' || currentView === 'env-management') return 'testEnv';
+  if (
+    currentView === 'project-file-explorer' ||
+    currentView === 'fileserver-archive-tasks' ||
+    currentView === 'public-resource-pvc-management' ||
+    currentView === 'public-resource-task-management' ||
+    currentView === 'pvc-management'
+  ) return 'assetSupply';
+  return 'projectMgmt';
+};
+
+export const getAssetsCenterSidebarSections = (currentView: string): NavSection[] => {
+  const childKey = getAssetsCenterActiveChild(currentView);
+  return ASSETS_CENTER_SIDEBAR_MAP[childKey] || [];
 };
