@@ -427,7 +427,7 @@ function archiveJobSourcePath(job: {
 const stageItemTone = (selected: boolean) => (
   selected
  ? 'border-sky-300 bg-gradient-to-br from-sky-50 via-slate-50 to-cyan-50 '
-    : 'border-theme-border bg-slate-50/70 hover:border-theme-border hover:bg-theme-elevated'
+    : 'border-theme-border bg-theme-elevated hover:border-theme-border hover:bg-theme-elevated'
 );
 
 const detailPanelTone = { borderRadius: '8px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '8px 12px', fontSize: '12px', color: LK.inkSoft };
@@ -1209,7 +1209,7 @@ function TimelineDetailBlock({ payload }: { payload: Record<string, any> | null 
   const rows = timelineDetailRows(payload);
   if (rows.length === 0) return null;
   return (
-    <div className="rounded-2xl border border-theme-border bg-slate-50/80 px-3 py-3">
+    <div className="rounded-2xl border border-theme-border bg-theme-elevated px-3 py-3">
       <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">
         <Info size={12} />
         事件细节
@@ -2041,7 +2041,7 @@ function ApiKeysPanel({
                       </thead>
                       <tbody className="divide-y divide-theme-border bg-theme-elevated">
                         {rows.map((workKey: BinarySecurityWorkKeySnapshot, index) => (
-                          <tr key={`${stageName}:${workKey.stage_item_id || index}:${workKey.agent_task_key_id || ''}`} className="hover:bg-slate-100/80">
+                          <tr key={`${stageName}:${workKey.stage_item_id || index}:${workKey.agent_task_key_id || ''}`} className="hover:bg-theme-elevated">
                             <td className="px-3 py-2 font-bold text-theme-text-primary">{STAGE_LABELS[stageName] || stageName}</td>
                             <td className="px-3 py-2 font-mono text-theme-text-secondary">{String(workKey.service || '-')}</td>
                             <td className="px-3 py-2">
@@ -3823,8 +3823,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   <tr
                     key={moduleKey}
                     onClick={() => void openModuleReportDialog(moduleKey, moduleContractText(module, 'module_name') || moduleKey)}
-                    className={`cursor-pointer transition hover:bg-sky-50/70 ${
-                      rowActive ? 'bg-sky-50/80 ring-1 ring-inset ring-sky-500/20' : checked ? 'bg-amber-50/60' : selected ? 'bg-emerald-50/40' : 'bg-theme-elevated'
+                    className={`cursor-pointer transition hover:bg-sky-500/10 ${
+                      rowActive ? 'bg-sky-500/10 ring-1 ring-inset ring-sky-500/20' : checked ? 'bg-amber-500/10' : selected ? 'bg-emerald-500/10' : 'bg-theme-elevated'
                     }`}
                   >
                     {requiresModuleConfirmation ? (
@@ -3920,7 +3920,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               className="flex max-h-[calc(100vh-2.5rem)] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-theme-border bg-theme-surface"
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-theme-border bg-slate-50/80 px-6 py-5 sm:px-8">
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-theme-border bg-theme-elevated px-6 py-5 sm:px-8">
                 <div>
                   <h3 className="text-2xl font-bold tracking-tight text-theme-text-primary">{selectedModuleReportDetail?.module_name || selectedModuleReportTarget.moduleName}</h3>
                   <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold">
@@ -4007,7 +4007,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         <div className="fixed inset-0 z-[120] bg-slate-950/50 backdrop-blur-sm">
           <div className="flex h-full w-full items-center justify-center p-4 sm:p-6">
             <div className="flex w-full max-w-5xl max-h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface sm:max-h-[calc(100vh-4rem)]">
-              <div className="border-b border-theme-border bg-slate-50/80 px-6 py-5 sm:px-8">
+              <div className="border-b border-theme-border bg-theme-elevated px-6 py-5 sm:px-8">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-theme-text-muted">Task Action</div>
                 <div className="mt-2 flex items-center gap-3">
                   <div className="rounded-2xl bg-sky-500/15 p-3 text-sky-400">
@@ -4050,7 +4050,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                         : '确认后接口会立即受理，后台准备完成后任务会自动重新排队。'}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-theme-border bg-slate-50/80 p-5 sm:p-6">
+                  <div className="rounded-xl border border-theme-border bg-theme-elevated p-5 sm:p-6">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-theme-text-muted">状态</div>
                     <div className="mt-4 space-y-3">
                       <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
@@ -4317,7 +4317,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
               </div>
             </div>
-            <div className="mt-4 rounded-xl border border-theme-border bg-slate-50/80 p-4">
+            <div className="mt-4 rounded-xl border border-theme-border bg-theme-elevated p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">下游同步总览</div>
@@ -4785,7 +4785,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           ) : null}
 
           {activeTab === 'overview' && cleanupSnapshot && (cleanupDownstreamRefs.length > 0 || Object.keys(cleanupCounts).length > 0) ? (
- <section className="rounded-xl border border-orange-500/20 bg-orange-50/60 p-6">
+ <section className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-6">
               <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-theme-text-primary">严格清理快照</h3>
@@ -5290,7 +5290,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     </button>
                   </div>
                 </div>
-	              <div className="flex flex-col gap-3 rounded-xl border border-theme-border bg-slate-50/80 px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
+	              <div className="flex flex-col gap-3 rounded-xl border border-theme-border bg-theme-elevated px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
 	                <div className="flex flex-wrap items-center gap-2">
 	                  <button
 	                    type="button"
@@ -5463,7 +5463,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             const inputContractRows = stageItemInputContractRows(item);
 	                          return (
 	                            <React.Fragment key={item.id}>
-	                              <tr className="align-top transition hover:bg-slate-100/80">
+	                              <tr className="align-top transition hover:bg-theme-elevated">
 	                                <td className="px-3 py-3">
 	                                  <input
 	                                    type="checkbox"
@@ -5615,7 +5615,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                 </td>
                               </tr>
 	                              {expanded ? (
-	                                <tr className="bg-slate-50/70">
+	                                <tr className="bg-theme-elevated">
 	                                  <td colSpan={isSystemAnalysisStageTable ? 13 : isEntryAnalysisStageTable ? 11 : 10} className="px-4 py-4">
 	                                    <div className={`rounded-[1.25rem] border p-4 ${stageItemTone(item.stage_name === selectedStage)}`}>
 	                                      <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
@@ -5810,7 +5810,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
           {activeTab === 'modules' ? (
             <div className="space-y-6">
- <section className={`binary-security-modules-confirmation rounded-xl border p-6 ${requiresModuleConfirmation ? 'border-amber-500/20 bg-amber-50/70' : 'border-theme-border bg-theme-surface'}`}>
+ <section className={`binary-security-modules-confirmation rounded-xl border p-6 ${requiresModuleConfirmation ? 'border-amber-500/20 bg-amber-500/10' : 'border-theme-border bg-theme-surface'}`}>
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div>
                     <h2 className="text-xl font-semibold text-theme-text-primary">{isBinaryModuleTask ? '模块输入' : '模块确认'}</h2>
@@ -5891,7 +5891,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           ) : null}
 
           {activeTab === 'modules' && (detail?.status === 'pending_entry_confirmation' || entrySelection) ? (
- <section className="rounded-xl border border-amber-500/20 bg-amber-50/70 p-6">
+ <section className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-6">
               <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                 <div>
                   <h2 className="text-xl font-semibold text-theme-text-primary">入口确认</h2>
@@ -6038,7 +6038,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           const isAbnormalReasonEvent = event.event_type === 'abnormal_reason_recorded';
                           return (
                             <React.Fragment key={event._key}>
-                              <tr className={`align-middle hover:bg-slate-100/80 ${isAbnormalReasonEvent ? 'bg-amber-50/40' : ''}`}>
+                              <tr className={`align-middle hover:bg-theme-elevated ${isAbnormalReasonEvent ? 'bg-amber-500/10' : ''}`}>
                                 <td className="px-3 py-2 font-mono text-[11px] font-bold text-theme-text-muted">#{event._index}</td>
                                 <td className="whitespace-nowrap px-3 py-2 font-mono text-[11px] font-semibold text-theme-text-secondary">
                                   {fmt(event.created_at)}
@@ -6121,7 +6121,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                 </td>
                               </tr>
                               {expanded ? (
-                                <tr className="bg-slate-50/60">
+                                <tr className="bg-theme-elevated">
                                   <td colSpan={8} className="px-3 py-3">
                                   <TimelineDetailBlock payload={event.payload} />
                                 </td>

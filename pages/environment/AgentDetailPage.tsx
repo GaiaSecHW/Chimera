@@ -614,7 +614,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
 
   if (!agent) return (
     <div className="p-20 text-center flex flex-col items-center gap-4">
-      <ShieldAlert size={48} className="text-slate-200" />
+      <ShieldAlert size={48} className="text-theme-text-secondary" />
       <p className="font-semibold text-theme-text-muted uppercase tracking-widest">未找到该节点资产或连接已中断</p>
       <button onClick={onBack} className="text-blue-400 font-bold hover:underline">返回列表</button>
     </div>
@@ -804,7 +804,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                  </thead>
                  <tbody className="divide-y divide-slate-50">
                     {sys?.processes_top?.map((p: any) => (
-                       <tr key={p.pid} className="hover:bg-slate-100/50 transition-all group">
+                       <tr key={p.pid} className="hover:bg-theme-elevated transition-all group">
                           <td className="px-8 py-4 font-mono text-xs text-theme-text-muted">{p.pid}</td>
                           <td className="px-6 py-4">
                              <p className="text-xs font-medium text-theme-text-secondary">{p.name}</p>
@@ -932,7 +932,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                           key={svc.id}
                           type="button"
                           onClick={() => setSelectedNodeService(svc)}
-                          className={`w-full text-left px-8 py-5 transition-all ${isSelected ? 'bg-blue-50/70' : 'hover:bg-slate-100/80'}`}
+                          className={`w-full text-left px-8 py-5 transition-all ${isSelected ? 'bg-blue-500/10' : 'hover:bg-theme-elevated'}`}
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0 flex-1 space-y-2">
@@ -1474,13 +1474,13 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                   </div>
                 ) : daemonServices.length === 0 ? (
                   <div className="py-20 text-center">
-                    <Server className="text-slate-200 mx-auto mb-4" size={48} />
+                    <Server className="text-theme-text-secondary mx-auto mb-4" size={48} />
                     <p className="text-xs text-theme-text-faint italic">未发现守护进程服务</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-50">
                     {daemonServices.map(service => (
-                      <div key={service.name} className="p-6 hover:bg-slate-100/50 transition-all">
+                      <div key={service.name} className="p-6 hover:bg-theme-elevated transition-all">
                         <div className="flex items-start justify-between gap-4">
                           {/* 服务信息 */}
                           <div className="flex items-start gap-4 flex-1">

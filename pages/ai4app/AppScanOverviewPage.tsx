@@ -376,7 +376,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
                   return (
                     <tr
                       key={item.tool_task_id}
-                      className="group cursor-pointer border-b border-theme-border transition hover:bg-slate-100/70"
+                      className="group cursor-pointer border-b border-theme-border transition hover:bg-theme-elevated"
                       onClick={() => onOpenTask(item.tool_task_id)}
                     >
                       <td className="px-3 py-3 font-mono text-xs text-theme-text-secondary">

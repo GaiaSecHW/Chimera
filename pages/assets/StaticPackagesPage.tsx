@@ -114,19 +114,19 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
 
         {/* Stats Section */}
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
- <article className="rounded-xl border bg-gradient-to-br p-4 from-slate-50 via-slate-50 to-slate-100/70 border-slate-200/70">
+ <article className="rounded-xl border border-theme-border bg-theme-elevated p-4">
             <div className="truncate text-center text-xs font-medium text-theme-text-muted">存储总量</div>
             <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-theme-text-primary">{packageStats?.summary.total_size_human || '0.00 GB'}</div>
           </article>
- <article className="rounded-xl border bg-gradient-to-br p-4 from-slate-50 via-slate-50 to-slate-100/70 border-slate-200/70">
+ <article className="rounded-xl border border-theme-border bg-theme-elevated p-4">
             <div className="truncate text-center text-xs font-medium text-theme-text-muted">组件总数</div>
             <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-theme-text-primary">{packageStats?.summary.total_packages ?? 0}</div>
           </article>
- <article className="rounded-xl border bg-gradient-to-br p-4 from-sky-50 via-slate-50 to-sky-100/70 border-sky-200/70">
+ <article className="rounded-xl border border-cyan-500/20 bg-cyan-500/15 p-4">
             <div className="truncate text-center text-xs font-medium text-theme-text-muted">累计下载</div>
             <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-theme-text-primary">{packageStats?.summary.total_downloads.toLocaleString() || 0}</div>
           </article>
- <article className="rounded-xl border bg-gradient-to-br p-4 from-slate-50 via-slate-50 to-slate-100/70 border-slate-200/70">
+ <article className="rounded-xl border border-theme-border bg-theme-elevated p-4">
             <div className="truncate text-center text-xs font-medium text-theme-text-muted">架构种类数</div>
             <div className="mt-1.5 truncate text-center text-sm font-semibold tabular-nums text-theme-text-primary">{packageStats?.by_architecture.length ?? 0}</div>
           </article>
@@ -171,7 +171,7 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
         {/* Architecture chips panel */}
         {packageStats && packageStats.by_architecture.length > 0 && (
  <section className="overflow-hidden rounded-xl border border-theme-border bg-theme-surface">
-            <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
+            <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
               <h2 className="text-lg font-semibold text-theme-text-primary">架构分布</h2>
             </div>
             <div className="flex flex-wrap gap-2 px-4 py-4 md:px-5">
@@ -186,7 +186,7 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
         )}
 
  <section className="overflow-hidden rounded-xl border border-theme-border bg-theme-surface">
-          <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
+          <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
             <h2 className="text-lg font-semibold text-theme-text-primary">软件包列表</h2>
           </div>
            {(() => {

@@ -1354,8 +1354,8 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
       {createModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
  <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-            <div className="shrink-0 border-b border-theme-border bg-slate-50/90 px-5 py-4">
-              <h3 className="text-lg font-semibold text-slate-950">新建{CATEGORY_LABELS[activeTab]}任务</h3>
+            <div className="shrink-0 border-b border-theme-border bg-theme-elevated px-5 py-4">
+              <h3 className="text-lg font-semibold text-theme-text-primary">新建{CATEGORY_LABELS[activeTab]}任务</h3>
             </div>
             <div className="flex-1 space-y-5 overflow-auto p-5">
               <label className="block">
@@ -1445,7 +1445,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                 </label>
               ) : null}
             </div>
-            <div className="shrink-0 border-t border-theme-border bg-slate-50/90 px-5 py-4">
+            <div className="shrink-0 border-t border-theme-border bg-theme-elevated px-5 py-4">
               <div className="flex items-center justify-end gap-3">
                 <button
                   type="button"
@@ -1473,9 +1473,9 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
       {showPathPicker ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
  <div className="flex h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-            <div className="flex shrink-0 items-center justify-between border-b border-theme-border bg-slate-50/90 px-5 py-4">
+            <div className="flex shrink-0 items-center justify-between border-b border-theme-border bg-theme-elevated px-5 py-4">
               <div>
-                <h3 className="text-lg font-semibold text-slate-950">{pathPickerTitle}</h3>
+                <h3 className="text-lg font-semibold text-theme-text-primary">{pathPickerTitle}</h3>
                 <div className="mt-1 break-all font-mono text-xs text-theme-text-muted">{formatWorkspaceDisplayPath(browsePath)}</div>
               </div>
               <button type="button" onClick={() => setShowPathPicker(false)} className="rounded-lg p-1.5 text-theme-text-muted transition hover:bg-theme-elevated">
@@ -1545,7 +1545,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                 </div>
               )}
             </div>
-            <div className="shrink-0 border-t border-theme-border bg-slate-50/90 px-5 py-3">
+            <div className="shrink-0 border-t border-theme-border bg-theme-elevated px-5 py-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-theme-text-muted">
                   {pathPickerMode === 'file' ? '进入目录后点击文件旁的"选择"' : '点击目录名进入，点击"选择"确认路径'}

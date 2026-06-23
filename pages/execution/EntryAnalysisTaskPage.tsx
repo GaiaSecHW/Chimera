@@ -1098,7 +1098,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               {pagedSlotWorkers.map((worker) => {
                 const expanded = expandedWorkerIds.includes(worker.worker_id);
                 return (
-                  <div key={worker.worker_id} className={`rounded-2xl border px-4 py-4 ${worker.healthy ? 'border-theme-border bg-theme-surface' : 'border-rose-500/20 bg-rose-50/50'}`}>
+                  <div key={worker.worker_id} className={`rounded-2xl border px-4 py-4 ${worker.healthy ? 'border-theme-border bg-theme-surface' : 'border-rose-500/20 bg-rose-500/10'}`}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -1151,7 +1151,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                       worker.active_tasks.length > 0 ? (
                         <div className="mt-4 space-y-2">
                           {worker.active_tasks.map((task) => (
-                            <div key={`${worker.worker_id}:${task.task_id}`} className={`rounded-2xl border px-4 py-4 text-xs ${worker.healthy ? 'border-theme-border bg-slate-50/70' : 'border-amber-500/20 bg-amber-50/80'}`}>
+                            <div key={`${worker.worker_id}:${task.task_id}`} className={`rounded-2xl border px-4 py-4 text-xs ${worker.healthy ? 'border-theme-border bg-theme-elevated' : 'border-amber-500/20 bg-amber-500/10'}`}>
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div className="min-w-0 flex-1">
                                   <div className="flex flex-wrap items-center gap-2">
@@ -1201,7 +1201,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
         </div>
       ) : null}
       {stageFocusHint ? (
-        <section className="rounded-xl border border-indigo-500/20 bg-indigo-50/80 px-5 py-4 shadow-sm">
+        <section className="rounded-xl border border-indigo-500/20 bg-theme-elevated px-5 py-4 shadow-sm">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-400">Stage Focus</div>
           <div className="mt-2 text-sm font-bold text-indigo-300">当前从性能看板带入了 {stageFocusHint} 阶段线索</div>
           <div className="mt-1 text-xs leading-6 text-indigo-400">
@@ -1210,7 +1210,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
         </section>
       ) : null}
       {riskPreset ? (
-        <section className="rounded-xl border border-amber-500/20 bg-amber-50/80 px-5 py-4 shadow-sm">
+        <section className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-5 py-4 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-400">Risk Focus</div>
@@ -1548,7 +1548,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               </div>
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {pagedSlotWorkers.map((worker) => (
-                  <div key={worker.worker_id} className={`rounded-2xl border px-4 py-4 ${worker.healthy ? 'border-theme-border bg-slate-50/70' : worker.worker_role_state === 'retired' ? 'border-amber-500/20 bg-amber-50/70' : 'border-rose-500/20 bg-rose-50/70'}`}>
+                  <div key={worker.worker_id} className={`rounded-2xl border px-4 py-4 ${worker.healthy ? 'border-theme-border bg-theme-elevated' : worker.worker_role_state === 'retired' ? 'border-amber-500/20 bg-amber-500/10' : 'border-rose-500/20 bg-rose-500/10'}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold text-theme-text-primary">{worker.pod_name}</div>
@@ -1696,7 +1696,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                     <div>更新时间：<span className="font-semibold text-theme-text-secondary">{new Date(task.updated_at || task.created_at).toLocaleString('zh-CN')}</span></div>
                     <div>输入路径：<span className="font-mono text-theme-text-secondary">{task.input_path}</span></div>
                   </div>
-                  <div className="mt-3 rounded-xl border border-indigo-500/20 bg-indigo-50/60 px-3 py-2 text-[11px] leading-5 text-indigo-300">
+                  <div className="mt-3 rounded-xl border border-indigo-500/20 bg-theme-elevated px-3 py-2 text-[11px] leading-5 text-indigo-300">
                     <span className="font-semibold">推荐依据：</span>{reason}
                   </div>
                 </button>
@@ -1938,17 +1938,17 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                 const shouldHighlightLeaseWarning = leaseExpired && !shouldHighlightLeaseError;
                 const displayStatus = getEntryTaskDisplayStatus(t, clockNow);
                 const contextualRowClassName = selectedTaskIds.has(t.task_id)
-                  ? 'bg-violet-50/60'
+                  ? 'bg-theme-elevated'
                   : hasInvalidOwner
-                    ? 'bg-rose-50/70 hover:bg-rose-100/70'
+                    ? 'bg-rose-500/10 hover:bg-rose-500/20'
                   : shouldHighlightLeaseError
-                    ? 'bg-rose-50/70 hover:bg-rose-100/70'
+                    ? 'bg-rose-500/10 hover:bg-rose-500/20'
                   : shouldHighlightLeaseWarning
-                    ? 'bg-amber-50/50 hover:bg-amber-100/60'
+                    ? 'bg-amber-500/10 hover:bg-amber-500/20'
                   : recommended
-                    ? 'bg-indigo-50/40'
+                    ? 'bg-theme-elevated'
                     : matchedRisk
-                      ? 'bg-amber-50/40'
+                      ? 'bg-amber-500/10'
                       : '';
                 return (
                 <tr

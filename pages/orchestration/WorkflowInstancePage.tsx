@@ -282,7 +282,7 @@ export const WorkflowInstancePage: React.FC<{
             {loading && instances.length === 0 ? (
               <tr><td colSpan={7} className="py-32 text-center"><Loader2 className="animate-spin mx-auto text-blue-400" size={40} /></td></tr>
             ) : paginatedInstances.map(instance => (
-              <tr key={instance.id} className={`hover:bg-theme-elevated transition-all group ${selectedIds.includes(instance.id) ? 'bg-blue-50/30' : ''}`}>
+              <tr key={instance.id} className={`hover:bg-theme-elevated transition-all group ${selectedIds.includes(instance.id) ? 'bg-blue-500/10' : ''}`}>
                 <td className="px-8 py-6">
                   <input
                     type="checkbox"

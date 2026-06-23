@@ -128,7 +128,7 @@ export const SecOctoSkillsPage: React.FC<SkillsProps> = ({ onNavigateSkill, onNa
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="搜索当前页…"
-            className="form-input w-56 pl-9 pr-3"
+            className="form-input w-full pl-9 pr-3"
           />
         </div>
       </div>

@@ -105,14 +105,14 @@ const NumberInput: React.FC<{ value: number; min?: number; max?: number; step?: 
         if (!isNaN(n)) onChange(n);
       }}
       onBlur={() => setStr(String(value))}
-      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+      className="w-full rounded-lg border border-theme-border px-3 py-2 text-sm" />
   );
 };
 
 const TextInput: React.FC<{ value: string; placeholder?: string; onChange: (v: string) => void }> = ({ value, placeholder, onChange }) => (
   <input type="text" placeholder={placeholder} value={value}
     onChange={(e) => onChange(e.target.value)}
-    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+    className="w-full rounded-lg border border-theme-border px-3 py-2 text-sm" />
 );
 
 const ModelSelect: React.FC<{ value: string; options: string[]; onChange: (v: string) => void }> = ({ value, options, onChange }) => {
@@ -133,14 +133,14 @@ const AgentInstanceList: React.FC<{ agents: EntryAnalysisAgentInstance[]; modelO
   return (
     <div className="space-y-2">
       {agents.map((agent, i) => (
-        <div key={i} className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
+        <div key={i} className="flex items-center gap-2 rounded-xl border border-slate-100 bg-theme-elevated p-3">
           <div className="flex-1">
             <ModelSelect value={agent.model} options={modelOptions} onChange={(v) => update(i, { model: v })} />
           </div>
           <button onClick={() => remove(i)} className="flex-shrink-0 rounded-lg border border-red-100 p-2 text-red-400 hover:bg-red-50"><Trash2 size={14} /></button>
         </div>
       ))}
-      <button onClick={add} className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50">
+      <button onClick={add} className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-theme-border px-4 py-2 text-sm text-theme-text-muted hover:bg-theme-elevated">
         <Plus size={14} /> 添加 Agent 实例
       </button>
     </div>
@@ -365,18 +365,18 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
       {feedbackNodes}
 
       {!embedded && (
-        <section className="rounded-xl border border-slate-200 bg-white/90 p-6 shadow-sm">
+        <section className="rounded-xl border border-theme-border bg-theme-surface/90 p-6 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-violet-600">Entry Analysis</p>
-          <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900">分析配置</h1>
-          <p className="mt-2 text-sm text-slate-500">配置 chimera-app-entry-analyse 分析引擎的运行参数，修改后点击「保存配置」生效。</p>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight text-theme-text-primary">分析配置</h1>
+          <p className="mt-2 text-sm text-theme-text-muted">配置 chimera-app-entry-analyse 分析引擎的运行参数，修改后点击「保存配置」生效。</p>
           {config.updated_at && (
-            <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
+            <p className="mt-1 text-xs text-theme-text-muted">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
           )}
         </section>
       )}
 
       {loading ? (
-        <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+        <div className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-secondary">
           <Loader2 size={15} className="animate-spin" />加载中...
         </div>
       ) : (
@@ -401,12 +401,12 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
           >
             <div className="grid grid-cols-2 gap-4 md:grid-cols-2">
               <FieldRow label="Pod 智能体占用/可用" hint="只读观测值，由 worker 心跳上报">
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm text-theme-text-primary">
                   {(slotCluster?.agent_in_use ?? 0)} / {(slotCluster?.agent_available ?? 0)}
                 </div>
               </FieldRow>
               <FieldRow label="智能体等待请求" hint="多个任务竞争同一 Pod 槽位时按 FIFO 排队">
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                <div className="rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm text-theme-text-primary">
                   {(slotCluster?.agent_waiting_requests ?? 0)} 请求 / {(slotCluster?.agent_waiting_tasks ?? 0)} 任务
                 </div>
               </FieldRow>
@@ -415,14 +415,14 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
             {/* 各阶段轮次独立配置 */}
             {/* 快速模式配置（独立区块，蓝色边框） */}
             <div className={`rounded-xl border-2 px-4 py-4 transition-colors ${
-              config.fast_mode ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-slate-50'
+              config.fast_mode ? 'border-blue-400 bg-blue-50' : 'border-theme-border bg-theme-elevated'
             }`}>
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <div className="text-sm font-semibold text-slate-900">
-                    快速模式 <span className="font-mono text-xs font-normal text-slate-500">Fast Mode</span>
+                  <div className="text-sm font-semibold text-theme-text-primary">
+                    快速模式 <span className="font-mono text-xs font-normal text-theme-text-muted">Fast Mode</span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-theme-text-muted">
                     开启后，在 R2 阶段完成后由脚本收集函数名+调用关系，
                     分批交给 LLM 快速筛选潜在入口，仅被选中的函数进入 R3 完整分析。
                     速度显著提升，但不保证全面性（可能漏报部分入口）。
@@ -434,10 +434,10 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
                       checked={config.fast_mode}
                       onChange={(e) => patch({ fast_mode: e.target.checked })} />
                     <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-blue-600 transition-colors" />
-                    <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+                    <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-theme-surface shadow transition-transform peer-checked:translate-x-5" />
                   </div>
                   <span className={`text-sm font-semibold ${
-                    config.fast_mode ? 'text-blue-700' : 'text-slate-500'
+                    config.fast_mode ? 'text-blue-700' : 'text-theme-text-muted'
                   }`}>
                     {config.fast_mode ? '快速模式(不保证全面性)' : '标准模式'}
                   </span>
@@ -462,14 +462,14 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
 
               {/* 极速模式开关 */}
               <div className={`mt-4 rounded-xl border-2 px-4 py-3 transition-colors ${
-                config.super_fast_mode ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50'
+                config.super_fast_mode ? 'border-red-400 bg-red-50' : 'border-theme-border bg-theme-elevated'
               }`}>
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-sm font-semibold text-slate-900">
-                      极速模式 <span className="font-mono text-xs font-normal text-slate-500">Super Fast</span>
+                    <div className="text-sm font-semibold text-theme-text-primary">
+                      极速模式 <span className="font-mono text-xs font-normal text-theme-text-muted">Super Fast</span>
                     </div>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-theme-text-muted">
                       关闭所有评审者(J)，只用脚本保证输出格式正确；跳过函数功能解读报告，只输出入口决策和污点信息。
                     </p>
                   </div>
@@ -479,10 +479,10 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
                         checked={config.super_fast_mode}
                         onChange={(e) => patch({ super_fast_mode: e.target.checked })} />
                       <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-red-600 transition-colors" />
-                      <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+                      <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-theme-surface shadow transition-transform peer-checked:translate-x-5" />
                     </div>
                     <span className={`text-sm font-semibold ${
-                      config.super_fast_mode ? 'text-red-700' : 'text-slate-500'
+                      config.super_fast_mode ? 'text-red-700' : 'text-theme-text-muted'
                     }`}>
                       {config.super_fast_mode ? '极速模式' : '标准模式'}
                     </span>
@@ -497,7 +497,7 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
             </div>
 
             <FieldRow label="智能体并发说明" hint="单任务内不再单独限流">
-              <p className="text-xs leading-5 text-slate-500">
+              <p className="text-xs leading-5 text-theme-text-muted">
                 入口分析的任务并发和智能体并发都由配置页动态控制，并通过 worker 心跳热生效，无需重启 Pod。
                 单任务可以吃满所在 Pod 的智能体进程；多个任务同时运行时，所有智能体请求按 FIFO 排队获取槽位。
               </p>
@@ -529,9 +529,9 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
                 <div className="relative">
                   <input type="checkbox" className="peer sr-only" checked={config.agent_timeout_retry_enabled} onChange={(e) => patch({ agent_timeout_retry_enabled: e.target.checked })} />
                   <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-violet-600 transition-colors" />
-                  <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+                  <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-theme-surface shadow transition-transform peer-checked:translate-x-5" />
                 </div>
-                <span className="text-sm text-slate-600">{config.agent_timeout_retry_enabled ? '开启超时自动重试' : '关闭超时自动重试'}</span>
+                <span className="text-sm text-theme-text-secondary">{config.agent_timeout_retry_enabled ? '开启超时自动重试' : '关闭超时自动重试'}</span>
               </label>
             </FieldRow>
           </SectionCard>

@@ -139,7 +139,7 @@ export const WorkflowInstanceLogsPage: React.FC<{ instanceId: string; onBack: ()
         ) : (
           records.map((record) => (
  <div key={record.id} className="bg-theme-surface border border-theme-border rounded-xl overflow-hidden">
-              <div className="px-7 py-6 border-b border-theme-border bg-slate-50/70">
+              <div className="px-7 py-6 border-b border-theme-border bg-theme-elevated">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div className="space-y-2">
                     <div className="flex items-center gap-3">

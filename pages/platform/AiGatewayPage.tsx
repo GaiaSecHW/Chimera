@@ -1349,7 +1349,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <div className="font-semibold">{group.alias.alias_name}</div>
-                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${active ? 'bg-slate-50/15 text-white' : 'bg-theme-elevated text-theme-text-muted'}`}>{group.bindings.length}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${active ? 'bg-theme-elevated text-theme-text-primary' : 'bg-theme-elevated text-theme-text-muted'}`}>{group.bindings.length}</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <button
@@ -1358,7 +1358,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                             e.stopPropagation();
                             openAliasModal(group.alias);
                           }}
- className={`rounded-xl p-1.5 ${active ? 'bg-slate-50/15 text-white hover:bg-theme-elevated' : 'bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'}`}
+ className={`rounded-xl p-1.5 ${active ? 'bg-theme-elevated text-theme-text-primary hover:bg-theme-elevated' : 'bg-theme-elevated text-theme-text-secondary hover:bg-theme-elevated'}`}
                           aria-label={`编辑模型别名 ${group.alias.alias_name}`}
                         >
                           <Pencil className="h-3.5 w-3.5" />
@@ -1404,7 +1404,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                 if (selectedAliasId && draggingBackendUnitId) event.preventDefault();
               }}
               onDrop={createBindingFromDrop}
-              className={`mt-4 min-h-[420px] flex-1 overflow-auto rounded-xl border p-4 transition ${selectedAliasId && draggingBackendUnitId ? 'border-sky-300 bg-sky-50/70' : selectedAliasId ? 'border-theme-border bg-theme-surface' : 'border-theme-border bg-slate-50/60'}`}
+              className={`mt-4 min-h-[420px] flex-1 overflow-auto rounded-xl border p-4 transition ${selectedAliasId && draggingBackendUnitId ? 'border-sky-300 bg-blue-500/10' : selectedAliasId ? 'border-theme-border bg-theme-surface' : 'border-theme-border bg-theme-elevated'}`}
             >
               {selectedAliasId ? (
                 <div className="space-y-6">

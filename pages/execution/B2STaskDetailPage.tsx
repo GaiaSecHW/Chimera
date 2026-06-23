@@ -1273,7 +1273,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
             const count = timing?.current_items || 0;
             const completed = timing?.completed_items || 0;
             return (
-              <div key={phase} className="rounded-xl border border-theme-border bg-slate-50/70 px-3 py-2.5">
+              <div key={phase} className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-2.5">
                 <div className={`h-1.5 rounded-full ${count ? 'bg-blue-500' : completed ? 'bg-emerald-400' : 'bg-theme-elevated'}`} />
                 <div className="mt-2 text-sm font-semibold text-theme-text-primary">{timing?.phase_label || PHASE_LABELS[phase]}</div>
                 <div className="mt-0.5 text-[11px] font-semibold text-theme-text-muted">当前 {count} · 已过 {completed}</div>
@@ -1473,7 +1473,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                     const hasPayload = !!(event.payload && Object.keys(event.payload).length);
                     return (
                       <React.Fragment key={event.id}>
-                        <tr className="align-top hover:bg-slate-100/80">
+                        <tr className="align-top hover:bg-theme-elevated">
                           <td className="px-3 py-2.5 font-mono text-[11px] font-bold text-theme-text-muted">#{index + 1}</td>
                           <td className="whitespace-nowrap px-3 py-2.5 font-mono text-[11px] font-semibold text-theme-text-secondary">
                             {formatDateTime(event.created_at)}
@@ -1557,7 +1557,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                           </td>
                         </tr>
                         {expanded ? (
-                          <tr className="bg-slate-50/60">
+                          <tr className="bg-theme-elevated">
                             <td colSpan={14} className="px-3 py-3">
                               {hasPayload ? (
                                 <TimelinePayloadBlock payload={event.payload} />
@@ -1735,7 +1735,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         <div className="flex items-center gap-2 text-sm text-theme-text-muted"><Loader2 size={16} className="animate-spin" />加载会话索引中...</div>
       ) : (
         <div className="space-y-4">
-          <div className="rounded-2xl border border-theme-border bg-slate-50/70 p-4">
+          <div className="rounded-2xl border border-theme-border bg-theme-elevated p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">ELF 会话分区</div>
@@ -1899,7 +1899,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
           <div className="space-y-4">
             <AgentSessionWarningPanel warnings={sessionWarnings} />
             {selectedSessionRuntimeEntry ? (
-              <div className="rounded-2xl border border-theme-border bg-slate-50/70 p-4">
+              <div className="rounded-2xl border border-theme-border bg-theme-elevated p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">当前会话状态</div>
@@ -1959,7 +1959,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
               acc[key].push(node);
               return acc;
             }, {})).map(([group, nodes]) => (
-              <div key={group} className="rounded-xl border border-theme-border bg-slate-50/70 p-3">
+              <div key={group} className="rounded-xl border border-theme-border bg-theme-elevated p-3">
                 <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-text-muted">{group}</div>
                 <div className="space-y-1.5">
                   {nodes.slice(0, 24).map((node) => {
@@ -2059,7 +2059,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
             <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-4 py-8 text-center text-sm text-theme-text-muted">当前 item 还没有可展示的结果文件。</div>
           ) : (
             <div className="grid min-h-[600px] grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)]">
-              <aside className="border-b border-theme-border bg-slate-50/80 xl:border-b-0 xl:border-r">
+              <aside className="border-b border-theme-border bg-theme-elevated xl:border-b-0 xl:border-r">
                 <div className="max-h-[600px] overflow-auto p-2.5">
                   {itemArtifacts.artifacts.map((artifact) => {
                     const active = selectedArtifactId === artifact.id;
@@ -2073,13 +2073,13 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                 </div>
               </aside>
               <div className="min-h-[600px] bg-theme-elevated">
-                <div className="flex items-center justify-between gap-3 border-b border-theme-border px-4 py-2.5 text-sm font-semibold text-slate-100">
+                <div className="flex items-center justify-between gap-3 border-b border-theme-border px-4 py-2.5 text-sm font-semibold text-white">
                   <div className="truncate">{selectedArtifact?.name || '请选择左侧文件'}</div>
                   {selectedArtifact ? (
                     <button
                       type="button"
                       onClick={() => setPreviewDialog({ title: selectedArtifact.name, subtitle: selectedArtifact.path, content: artifactContent, language: languageFromName(selectedArtifact.name), loading: artifactLoading })}
-                      className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs text-slate-200 hover:bg-theme-elevated"
+                      className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs text-theme-text-primary hover:bg-theme-elevated"
                     >
                       弹窗查看
                     </button>

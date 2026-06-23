@@ -238,7 +238,7 @@ export const DeployScriptPage: React.FC = () => {
       {/* Main Browser Window */}
  <div className="flex-1 min-h-0 bg-theme-surface overflow-hidden rounded-xl border border-theme-border flex flex-col relative">
         {/* Browser Navbar */}
-        <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5 flex items-center justify-between shrink-0">
+        <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5 flex items-center justify-between shrink-0">
            <div className="flex items-center gap-4 flex-1 min-w-0">
               <button
                 onClick={goBack}
@@ -369,7 +369,7 @@ export const DeployScriptPage: React.FC = () => {
                    empty={
                      !loading && (
                        <div className="py-32 text-center">
-                         <div className="w-16 h-16 bg-theme-surface rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
+                         <div className="w-16 h-16 bg-theme-surface rounded-full flex items-center justify-center mx-auto mb-4 text-theme-text-secondary">
                            <HardDrive size={32} />
                          </div>
                          <p className="text-xs font-medium text-theme-text-muted uppercase tracking-widest">Directory is currently empty</p>

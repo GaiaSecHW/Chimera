@@ -1014,7 +1014,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                     const itemProviderKeys = getInstanceProviderKeys(item);
                     const hasBinding = itemProviderKeys.length > 0;
                     return (
-                      <tr key={item.id} className="border-t border-theme-border align-top hover:bg-slate-100/60">
+                      <tr key={item.id} className="border-t border-theme-border align-top hover:bg-theme-elevated">
                         <td className="px-3 py-3">
                           <button
                             type="button"
@@ -1231,7 +1231,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                       const selected = selectedTaskIds.has(taskId);
                       const isActive = activeTaskId === taskId;
                       return (
-                      <tr key={task.id} className={`border-t border-theme-border text-xs text-theme-text-secondary ${isActive ? 'bg-blue-50/40' : ''}`}>
+                      <tr key={task.id} className={`border-t border-theme-border text-xs text-theme-text-secondary ${isActive ? 'bg-blue-500/10' : ''}`}>
                         <td className="px-3 py-2.5">
                           <input type="checkbox" checked={selected} onChange={() => toggleTaskSelection(taskId)} />
                         </td>
@@ -1266,7 +1266,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                 <div className="py-20 text-center text-[11px] font-semibold uppercase tracking-widest text-theme-text-muted">暂无任务记录</div>
               )}
             </div>
-            <div className="border-t border-theme-border bg-slate-50/70 p-3">
+            <div className="border-t border-theme-border bg-theme-elevated p-3">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary">任务详情</p>
                 {activeTaskId && <p className="text-[11px] font-mono text-theme-text-muted">{activeTaskId}</p>}

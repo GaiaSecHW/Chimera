@@ -660,7 +660,7 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                 {(lastBatchResult.results || [])
                   .filter((item) => (resultOnlyFailed ? !item.success : true))
                   .map((item) => (
-                  <div key={`${item.agent_key}::${item.service_name}::${item.session_id}`} className={`rounded-lg border px-3 py-2 ${item.success ? 'border-emerald-500/20 bg-emerald-50/50' : 'border-rose-500/20 bg-rose-50/50'}`}>
+                  <div key={`${item.agent_key}::${item.service_name}::${item.session_id}`} className={`rounded-lg border px-3 py-2 ${item.success ? 'border-emerald-500/20 bg-emerald-500/10' : 'border-rose-500/20 bg-rose-500/10'}`}>
                     <div className="font-mono text-[11px]">{item.agent_key}/{item.service_name}/{item.session_id}</div>
                     <div className={item.success ? 'text-emerald-400' : 'text-rose-400'}>
                       {item.success ? '终止成功' :`终止失败: ${item.error || 'unknown error'}`}

@@ -1328,7 +1328,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     isDeployModalOpen && (
       <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
  <div className="bg-theme-surface w-full max-w-6xl max-h-[86vh] rounded-[2.25rem] overflow-hidden flex flex-col animate-in zoom-in-95">
-          <div className="p-7 border-b border-theme-border bg-slate-50/60 shrink-0">
+          <div className="p-7 border-b border-theme-border bg-theme-elevated shrink-0">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-4">
  <div className="w-14 h-14 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-blue-600/25">
@@ -1374,7 +1374,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             </div>
           </div>
 
-          <div className="min-h-0 overflow-y-auto p-7 bg-slate-50/20 custom-scrollbar">
+          <div className="min-h-0 overflow-y-auto p-7 bg-theme-elevated custom-scrollbar">
             {deployModalTab === 'agents' && (
               <div className="space-y-4">
                 <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
@@ -1451,7 +1451,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           type="button"
                           onClick={() => online && toggleAgentSelect(agent.key)}
                           className={`w-full text-left grid grid-cols-[44px_1.1fr_1fr_120px_220px_140px] gap-3 px-4 py-3 border-b border-theme-border transition-colors ${
-                            online ? 'hover:bg-blue-50/50' : 'opacity-60 cursor-not-allowed'
+                            online ? 'hover:bg-blue-500/10' : 'opacity-60 cursor-not-allowed'
                           } ${selected ? 'bg-blue-500/15' : 'bg-theme-surface'}`}
                         >
                           <div className="flex items-center justify-center">
@@ -1874,7 +1874,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 当前模板仅拥有者可执行 LLM Provider 重新生成和恢复原始模板操作。
               </div>
             )}
-            <div className="rounded-xl border border-theme-border bg-slate-50/80 p-4 space-y-2">
+            <div className="rounded-xl border border-theme-border bg-theme-elevated p-4 space-y-2">
               <div className="text-xs font-medium text-theme-text-secondary">当前模板来源</div>
               <div className="text-sm font-semibold text-theme-text-primary">
                 {templateDetail?.metadata?.llm_mix_state?.provider_keys?.length
@@ -1947,7 +1947,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       <div className="select-none">
         <div
           onClick={() => !isFile && toggleFolder(node.path || 'root')}
-          className={`group flex items-center py-2 px-4 hover:bg-blue-50/50 cursor-pointer rounded-xl transition-all ${depth > 0 ? 'ml-6' : ''}`}
+          className={`group flex items-center py-2 px-4 hover:bg-blue-500/10 cursor-pointer rounded-xl transition-all ${depth > 0 ? 'ml-6' : ''}`}
         >
           <div className="flex items-center gap-3 flex-1 min-w-0">
             {!isFile && (
@@ -2217,7 +2217,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 当前模板仅拥有者可执行 LLM Provider 重新生成和恢复原始模板操作。
               </div>
             )}
-            <div className="rounded-xl border border-theme-border bg-slate-50/80 p-4 space-y-2">
+            <div className="rounded-xl border border-theme-border bg-theme-elevated p-4 space-y-2">
               <div className="text-xs font-medium text-theme-text-secondary">当前模板来源</div>
               <div className="text-sm font-semibold text-theme-text-primary">
                 {templateDetail?.metadata?.llm_mix_state?.provider_keys?.length
@@ -2904,7 +2904,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     ) : null}
 
                   {cardWebPortPresets.length > 0 && (
-                    <div className="bg-indigo-50/60 border border-indigo-500/20 rounded-xl p-3">
+                    <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3">
                         <p className="text-[10px] font-medium text-indigo-400 uppercase tracking-widest mb-2">WEB端口</p>
                         <div className="flex flex-wrap gap-1.5">
                           {cardWebPortPresets.slice(0, 6).map((preset, idx) => (
@@ -2919,7 +2919,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     </div>
                   )}
                   {getTemplateCurrentMixBinding(t)?.provider_keys?.length ? (
-                    <div className="bg-emerald-50/60 border border-emerald-500/20 rounded-xl p-3">
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
                       <p className="text-[10px] font-medium text-emerald-400 uppercase tracking-widest mb-2">当前 LLM 混合结果</p>
                       <div className="flex flex-wrap gap-1.5">
                         {getTemplateCurrentMixBinding(t)?.provider_keys.map((providerKey) => (
@@ -3041,7 +3041,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             )}
 
             {/* Form Content */}
-            <div className={`flex-1 overflow-y-auto bg-slate-50/20 custom-scrollbar ${uploadTab === 'editor' ? 'p-6' : 'p-6'}`}>
+            <div className={`flex-1 overflow-y-auto bg-theme-elevated custom-scrollbar ${uploadTab === 'editor' ? 'p-6' : 'p-6'}`}>
               <form onSubmit={handleUploadSubmit} className="space-y-4">
                 {/* Template Name */}
                 <div>
@@ -3301,7 +3301,7 @@ className="form-select col-span-2 text-xs"
                       onDrop={handleUploadDrop}
                       className={`border-2 border-dashed rounded-xl p-8 text-center transition-all bg-theme-elevated ${
                         isDragOverUpload
-                          ? 'border-blue-500 bg-blue-50/50'
+                          ? 'border-blue-500 bg-blue-500/10'
                           : 'border-theme-border hover:border-blue-400'
                       }`}
                     >

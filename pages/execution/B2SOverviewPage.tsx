@@ -568,7 +568,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         </div>
       )}
 
- <section className="rounded-xl border border-theme-border bg-slate-50/70 p-5">
+ <section className="rounded-xl border border-theme-border bg-theme-elevated p-5">
         <B2SStatsHeader stats={stats} title="当前项目逆向统计" />
       </section>
 
@@ -692,7 +692,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
           <div className="w-full max-w-5xl rounded-2xl border border-theme-border bg-theme-elevated shadow-panel" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
               <div>
-                <h3 className="text-2xl font-bold tracking-tight text-slate-200">执行槽位详情</h3>
+                <h3 className="text-2xl font-bold tracking-tight text-theme-text-primary">执行槽位详情</h3>
                 <p className="mt-2 text-sm text-theme-text-muted">按 worker 展示当前正在执行的逆向任务；点击每个 worker 头部展开或收起详细信息。</p>
               </div>
               <div className="flex items-center gap-3">
@@ -727,13 +727,13 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                       <section
                         key={worker.worker_id}
                         className={`overflow-hidden rounded-xl border ${
-                          worker.healthy ? 'border-theme-border bg-theme-surface' : 'border-rose-500/20 bg-rose-50/70'
+                          worker.healthy ? 'border-theme-border bg-theme-surface' : 'border-rose-500/20 bg-rose-500/10'
                         }`}
                       >
                         <button
                           type="button"
                           onClick={() => toggleSlotWorkerExpanded(worker.worker_id)}
-                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-slate-100/70"
+                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-theme-elevated"
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
@@ -790,8 +790,8 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                                     key={`${worker.worker_id}:${job.pi_job_id}`}
                                     className={`rounded-2xl border px-4 py-4 ${
                                       job.mapped
-                                        ? 'border-theme-border bg-slate-50/70'
-                                        : 'border-amber-500/20 bg-amber-50/80'
+                                        ? 'border-theme-border bg-theme-elevated'
+                                        : 'border-amber-500/20 bg-amber-500/10'
                                     }`}
                                   >
                                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1391,7 +1391,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     ))}
                   </select>
                 </label>
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-50/70 p-4">
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="text-sm font-semibold text-theme-text-primary">复用已有缓存</div>

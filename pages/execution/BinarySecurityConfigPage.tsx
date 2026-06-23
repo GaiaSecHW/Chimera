@@ -648,7 +648,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
           </div>
         </section>
       ) : activeTab === 'binary-evolution' ? (
- <section className="rounded-xl border border-theme-border bg-slate-50/70 p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-elevated p-6">
           <div className="flex flex-wrap items-center gap-2">
             <Settings size={18} className="text-amber-400" />
             <h2 className="text-xl font-semibold text-theme-text-primary">进化中心调度配置</h2>

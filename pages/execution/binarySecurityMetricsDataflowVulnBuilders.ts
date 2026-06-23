@@ -87,21 +87,21 @@ export const buildDataflowVulnOverviewViewModel = (rows: MetricRowLike[], deps: 
 
   return {
     topCards: [
-      { label: '运行中 Run', value: formatNumber(runningRuns), hint: 'run_status{status=running}', tone: (runningRuns || 0) > 0 ? 'text-teal-700' : 'text-slate-900' },
+      { label: '运行中 Run', value: formatNumber(runningRuns), hint: 'run_status{status=running}', tone: (runningRuns || 0) > 0 ? 'text-teal-700' : 'text-theme-text-primary' },
       { label: 'Run 队列', value: formatNumber(runQueueDepth), hint: 'queue_depth{kind=run}', tone: (runQueueDepth || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
       { label: 'Execution 队列', value: formatNumber(executionQueueDepth), hint: 'queue_depth{kind=execution}', tone: (executionQueueDepth || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
-      { label: '平均派发时延', value: formatSeconds(dispatchAvg), hint: 'execution_dispatch_duration_seconds', tone: (dispatchAvg || 0) > 30 ? 'text-amber-700' : 'text-slate-900' },
-      { label: '平均执行时长', value: formatSeconds(processAvg), hint: 'execution_process_duration_seconds', tone: (processAvg || 0) > 1800 ? 'text-rose-700' : 'text-slate-900' },
+      { label: '平均派发时延', value: formatSeconds(dispatchAvg), hint: 'execution_dispatch_duration_seconds', tone: (dispatchAvg || 0) > 30 ? 'text-amber-700' : 'text-theme-text-primary' },
+      { label: '平均执行时长', value: formatSeconds(processAvg), hint: 'execution_process_duration_seconds', tone: (processAvg || 0) > 1800 ? 'text-rose-700' : 'text-theme-text-primary' },
       { label: '失败 Execution', value: formatNumber(failedExecutions), hint: 'execution_status{status=failed}', tone: (failedExecutions || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
-      { label: '取消 Execution', value: formatNumber(cancelledExecutions), hint: 'execution_status{status=cancelled}', tone: (cancelledExecutions || 0) > 0 ? 'text-slate-700' : 'text-emerald-700' },
+      { label: '取消 Execution', value: formatNumber(cancelledExecutions), hint: 'execution_status{status=cancelled}', tone: (cancelledExecutions || 0) > 0 ? 'text-theme-text-primary' : 'text-emerald-700' },
       { label: '重试事件', value: formatNumber(retryEvents), hint: 'execution_events_total{event=retry}', tone: (retryEvents || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
     ],
     cycleCards: [
       { label: '最新漏洞数', value: formatNumber(cycleField('issue_count')), hint: 'cycle_metrics issue_count', tone: 'text-rose-700' },
       { label: '当前失败项', value: formatNumber(cycleField('current_failed')), hint: 'cycle_metrics current_failed', tone: (cycleField('current_failed') || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
       { label: '历史已移除', value: formatNumber(cycleField('historical_removed')), hint: 'cycle_metrics historical_removed', tone: 'text-emerald-700' },
-      { label: '未评审新增', value: formatNumber(cycleField('unreviewed_new')), hint: 'cycle_metrics unreviewed_new', tone: (cycleField('unreviewed_new') || 0) > 0 ? 'text-amber-700' : 'text-slate-900' },
-      { label: '摘要规模', value: formatMetricValue(cycleField('summary_size') ?? Number.NaN), hint: 'cycle_metrics summary_size', tone: 'text-slate-900' },
+      { label: '未评审新增', value: formatNumber(cycleField('unreviewed_new')), hint: 'cycle_metrics unreviewed_new', tone: (cycleField('unreviewed_new') || 0) > 0 ? 'text-amber-700' : 'text-theme-text-primary' },
+      { label: '摘要规模', value: formatMetricValue(cycleField('summary_size') ?? Number.NaN), hint: 'cycle_metrics summary_size', tone: 'text-theme-text-primary' },
       { label: '支撑文档数', value: formatNumber(cycleField('supporting_docs_count')), hint: 'cycle_metrics supporting_docs_count', tone: 'text-indigo-700' },
     ],
     chartData: [
@@ -131,7 +131,7 @@ export const buildDataflowVulnOverviewViewModel = (rows: MetricRowLike[], deps: 
         label: '平均每结果周期',
         value: resultCount && resultCount > 0 && cyclesUsed != null ? formatNumber(cyclesUsed / resultCount, 2) : '-',
         hint:`cycles_used ${formatNumber(cyclesUsed)} / result_count ${formatNumber(resultCount)}`,
-        tone: resultCount && cyclesUsed != null && resultCount > 0 && cyclesUsed / resultCount > 2 ? 'text-amber-700' : 'text-slate-900',
+        tone: resultCount && cyclesUsed != null && resultCount > 0 && cyclesUsed / resultCount > 2 ? 'text-amber-700' : 'text-theme-text-primary',
       },
       {
         label: '平台期激活数',
@@ -155,7 +155,7 @@ export const buildDataflowVulnOverviewViewModel = (rows: MetricRowLike[], deps: 
         label: 'Trace 输出总量',
         value: formatMetricValue(runtimeOutputBytes ?? Number.NaN),
         hint: 'runtime_trace_total output_bytes',
-        tone: (runtimeOutputBytes || 0) > 0 ? 'text-slate-900' : 'text-slate-500',
+        tone: (runtimeOutputBytes || 0) > 0 ? 'text-theme-text-primary' : 'text-theme-text-muted',
       },
     ],
     plateauFlags: Object.entries(plateauHints).map(([label, hint]) => ({
@@ -196,20 +196,20 @@ export const buildDataflowVulnAiViewModel = (rows: MetricRowLike[], deps: Builde
 
   return {
     topCards: [
-      { label: 'Cycle 轮次', value: formatNumber(cycleRounds), hint: 'ai_round_total{kind=cycle}', tone: (cycleRounds || 0) > 0 ? 'text-indigo-700' : 'text-slate-900' },
-      { label: 'Review 轮次', value: formatNumber(reviewRounds), hint: 'ai_round_total{kind=review}', tone: (reviewRounds || 0) > 0 ? 'text-fuchsia-700' : 'text-slate-900' },
-      { label: 'AI 会话数', value: formatNumber(sessionTotal), hint: 'ai_session_total{role=agent}', tone: (sessionTotal || 0) > 0 ? 'text-sky-700' : 'text-slate-900' },
-      { label: '总 Token', value: formatNumber(totalTokens), hint: 'ai_token_usage_total{type=total}', tone: (totalTokens || 0) > 0 ? 'text-violet-700' : 'text-slate-900' },
-      { label: '累计成本', value: formatMetricValue(costTotal ?? Number.NaN), hint: 'ai_token_cost_total', tone: (costTotal || 0) > 0 ? 'text-violet-700' : 'text-slate-900' },
+      { label: 'Cycle 轮次', value: formatNumber(cycleRounds), hint: 'ai_round_total{kind=cycle}', tone: (cycleRounds || 0) > 0 ? 'text-indigo-700' : 'text-theme-text-primary' },
+      { label: 'Review 轮次', value: formatNumber(reviewRounds), hint: 'ai_round_total{kind=review}', tone: (reviewRounds || 0) > 0 ? 'text-fuchsia-700' : 'text-theme-text-primary' },
+      { label: 'AI 会话数', value: formatNumber(sessionTotal), hint: 'ai_session_total{role=agent}', tone: (sessionTotal || 0) > 0 ? 'text-sky-700' : 'text-theme-text-primary' },
+      { label: '总 Token', value: formatNumber(totalTokens), hint: 'ai_token_usage_total{type=total}', tone: (totalTokens || 0) > 0 ? 'text-violet-700' : 'text-theme-text-primary' },
+      { label: '累计成本', value: formatMetricValue(costTotal ?? Number.NaN), hint: 'ai_token_cost_total', tone: (costTotal || 0) > 0 ? 'text-violet-700' : 'text-theme-text-primary' },
       { label: 'AI 重试/失败', value:`${formatNumber(retryTotal)} / ${formatNumber(failureTotal)}`, hint: 'retry / runtime failure', tone: (failureTotal || 0) > 0 ? 'text-rose-700' : (retryTotal || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
     ],
     phaseCards: [
       { label: 'Plugin 超时', value: formatNumber(timeoutTotal), hint: 'ai_timeout_total{scope=plugin}', tone: (timeoutTotal || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
-      { label: 'Runtime 调用', value: formatNumber(runtimeCalls), hint: 'runtime_trace_total calls', tone: (runtimeCalls || 0) > 0 ? 'text-slate-900' : 'text-slate-500' },
+      { label: 'Runtime 调用', value: formatNumber(runtimeCalls), hint: 'runtime_trace_total calls', tone: (runtimeCalls || 0) > 0 ? 'text-theme-text-primary' : 'text-theme-text-muted' },
       { label: 'Runtime 超时', value: formatNumber(runtimeTimeouts), hint: 'runtime_trace_total timeout_failures', tone: (runtimeTimeouts || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
       { label: 'API / PI 失败', value:`${formatNumber(runtimeApiFailures)} / ${formatNumber(runtimePiFailures)}`, hint: 'runtime api_failures / pi_failures', tone: (runtimeApiFailures || 0) > 0 || (runtimePiFailures || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
-      { label: 'Runtime 总耗时', value: formatSeconds(runtimeDuration), hint: 'runtime_trace_total duration_seconds', tone: (runtimeDuration || 0) > 3600 ? 'text-amber-700' : 'text-slate-900' },
-      { label: 'Partial Review', value: formatNumber(reviewPartial), hint: 'ai_review_total{result=partial}', tone: (reviewPartial || 0) > 0 ? 'text-fuchsia-700' : 'text-slate-900' },
+      { label: 'Runtime 总耗时', value: formatSeconds(runtimeDuration), hint: 'runtime_trace_total duration_seconds', tone: (runtimeDuration || 0) > 3600 ? 'text-amber-700' : 'text-theme-text-primary' },
+      { label: 'Partial Review', value: formatNumber(reviewPartial), hint: 'ai_review_total{result=partial}', tone: (reviewPartial || 0) > 0 ? 'text-fuchsia-700' : 'text-theme-text-primary' },
     ],
     roleChart: [
       { name: 'agent', value: valueOrZero(roleValue('agent')), fill: '#7c3aed' },
@@ -228,6 +228,6 @@ export const buildDataflowVulnAiViewModel = (rows: MetricRowLike[], deps: Builde
           hint: 'plugin_results_total',
           tone: row.labels.result === 'success' ? 'text-emerald-700' : row.labels.result === 'partial' ? 'text-amber-700' : 'text-rose-700',
         }))
-      : [{ label: 'Plugin 结果', value: '-', hint: '暂无 plugin_results_total', tone: 'text-slate-500' }],
+      : [{ label: 'Plugin 结果', value: '-', hint: '暂无 plugin_results_total', tone: 'text-theme-text-muted' }],
   };
 };

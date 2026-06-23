@@ -60,7 +60,7 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
           <StatCard label="Active" value={stats.active} icon={<Bot size={20} />} />
         </div>
 
- <section className="rounded-xl border border-theme-border bg-gradient-to-br from-slate-50 via-slate-50 to-cyan-50/40 p-6">
+ <section className="rounded-xl border border-theme-border bg-theme-elevated p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-sm font-medium uppercase tracking-[0.2em] text-cyan-400">节点摘要</div>
@@ -102,7 +102,7 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
                   </div>
 
                   <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-                    <div className="rounded-xl border border-theme-border bg-slate-50/70 p-3">
+                    <div className="rounded-xl border border-theme-border bg-theme-elevated p-3">
                       <div className="mb-3 text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">Helper 服务</div>
                       <div className="space-y-2">
                       {helperItems.map((helper) => (
@@ -127,7 +127,7 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-theme-border bg-slate-50/70 p-3">
+                    <div className="rounded-xl border border-theme-border bg-theme-elevated p-3">
                       <div className="mb-3 text-xs font-medium uppercase tracking-[0.16em] text-theme-text-muted">AI Agent 列表</div>
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
                         {nodeAgents.length === 0 ? <div className="text-sm text-theme-text-muted">当前节点暂无可用 AI Agent。</div> : nodeAgents.map((agent) => (

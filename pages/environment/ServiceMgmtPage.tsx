@@ -1589,7 +1589,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-slate-50 to-blue-50/40 border border-theme-border rounded-xl p-4">
+                <div className="bg-gradient-to-br from-theme-elevated to-blue-500/10 border border-theme-border rounded-xl p-4">
                   <p className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase mb-2">实时终端（新窗口）</p>
                   {selectedService?.is_stale && (
                     <div className="mb-2 px-3 py-2 rounded-xl border border-amber-500/20 bg-amber-500/15 text-amber-400 text-xs font-medium">
@@ -1811,7 +1811,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
           </div>
 
           <div className="p-5 space-y-4">
-            <div className="flex flex-wrap items-center gap-2 border border-theme-border bg-slate-50/70 rounded-xl p-2">
+            <div className="flex flex-wrap items-center gap-2 border border-theme-border bg-theme-elevated rounded-xl p-2">
               <button
                 onClick={() => setDeployModalTab('scope')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-medium ${deployModalTab === 'scope' ? 'bg-theme-elevated text-blue-400 border border-blue-500/20' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}

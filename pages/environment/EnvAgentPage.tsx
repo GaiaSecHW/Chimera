@@ -885,7 +885,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             ) : syncHistory.map(item => (
               <div
                 key={item.sync_id}
-                className="w-full border border-theme-border rounded-xl px-2.5 py-2 hover:border-blue-500/20 hover:bg-blue-50/30 transition-all"
+                className="w-full border border-theme-border rounded-xl px-2.5 py-2 hover:border-blue-500/20 hover:bg-blue-500/10 transition-all"
               >
                 <div className="flex items-center gap-2">
                   <button
@@ -1239,7 +1239,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                           </span>
                         )}
                         <LiveIndicator status={agent.status} />
-                        <ChevronRight size={18} className="text-slate-200 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
+                        <ChevronRight size={18} className="text-theme-text-secondary group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
                       </div>
                     </td>
                   </tr>
@@ -1248,7 +1248,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               {!loading && projectId && filteredAgents.length === 0 && (
                 <tr>
                   <td colSpan={8} className="py-40 text-center">
-                    <div className="w-20 h-20 bg-theme-elevated rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
+                    <div className="w-20 h-20 bg-theme-elevated rounded-full flex items-center justify-center mx-auto mb-4 text-theme-text-secondary">
                       <Monitor size={40} />
                     </div>
                     <p className="text-sm font-semibold text-theme-text-muted uppercase tracking-widest">未检索到匹配的 Agent 资产</p>

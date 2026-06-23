@@ -183,7 +183,7 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({ user }) 
           <div className="mt-8 rounded-xl border border-theme-border bg-theme-elevated p-5">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold text-slate-200">密码强度趋势</p>
+                <p className="text-sm font-semibold text-theme-text-primary">密码强度趋势</p>
                 <p className="mt-1 text-sm text-theme-text-muted">达到 5 条以上建议后，再提交体验会更顺畅。</p>
               </div>
               <span className={`rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${strengthMeta[strengthLevel].panel}`}>
@@ -217,7 +217,7 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({ user }) 
               </div>
             ) : null}
 
-            <div className="rounded-xl border border-theme-border bg-slate-50/80 p-5">
+            <div className="rounded-xl border border-theme-border bg-theme-elevated p-5">
               <p className="text-sm font-semibold text-theme-text-primary">安全规则检查</p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {rules.map((rule) => (

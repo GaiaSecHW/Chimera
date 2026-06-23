@@ -253,10 +253,23 @@ export const CasesWorkspace: React.FC<any> = ({
   };
   const getCaseStatusLabel = (item: any) => labelOf(item.current_status, CASE_STATUS_LABELS, '') || item.current_status || '未知状态';
   const getValidationConclusionLabel = (item: any) => {
-    if (item.current_stage !== 'validation') return '-';
-    return item.current_status === 'validation_completed'
-      ? labelOf(item.validation_result, VALIDATION_RESULT_LABELS, '') || '结论不确定'
-      : '待验证';
+    // finished 阶段：显示 finished_reason 作为最终结论，缺失时回退到 decision_status
+    if (item.current_stage === 'finished') {
+      return labelOf(item.finished_reason, FINISHED_REASON_LABELS, '')
+        || labelOf(item.decision_status, DECISION_LABELS, '')
+        || '已结束';
+    }
+    // validation 阶段：显示 validation_result 作为验证结论
+    if (item.current_stage === 'validation') {
+      if (item.current_status !== 'validation_completed') return '待验证';
+      // 如果 validation_result 是异常值（如 'observe'），回退到 decision_status
+      const vrLabel = labelOf(item.validation_result, VALIDATION_RESULT_LABELS, '');
+      if (vrLabel && vrLabel !== item.validation_result) return vrLabel;
+      // validation_result 不在合法取值范围内，尝试用 decision_status 兜底
+      const dsLabel = labelOf(item.decision_status, DECISION_LABELS, '');
+      return dsLabel || vrLabel || '结论不确定';
+    }
+    return '-';
   };
   const resultSummaryCards = React.useMemo<Array<{
     id: string;
@@ -1152,7 +1165,7 @@ export const CasesWorkspace: React.FC<any> = ({
                   <>
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                       {resultSummaryCards.map((item) => (
-                        <div key={`summary-${item.id}`} className="rounded-[1.5rem] border border-indigo-500/20 bg-indigo-50/50 px-4 py-4">
+                        <div key={`summary-${item.id}`} className="rounded-[1.5rem] border border-indigo-500/20 bg-indigo-500/10 px-4 py-4">
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="px-2 py-1 rounded-lg bg-indigo-500/15 text-[10px] font-semibold uppercase tracking-widest text-indigo-400">{item.resultType}</span>
@@ -1342,7 +1355,7 @@ export const CasesWorkspace: React.FC<any> = ({
       </div>
  <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 p-6 rounded-[2rem] text-white">
         <div className="flex items-center gap-3"><Bot size={18} className="text-blue-300" /><h3 className="text-lg font-semibold">案例运行提示</h3></div>
-        <div className="mt-4 space-y-3 text-sm text-slate-200">
+        <div className="mt-4 space-y-3 text-sm text-white/80">
           <div className="flex items-start gap-3"><Sparkles size={15} className="mt-0.5 text-blue-300" /><p>优先看自动推进信号和推荐动作，再决定手动派发还是一键自动编排。</p></div>
           <div className="flex items-start gap-3"><ListTodo size={15} className="mt-0.5 text-amber-300" /><p>当结果失败或低置信度时，引擎会自动创建人工任务，记得在任务页统一处理。</p></div>
         </div>

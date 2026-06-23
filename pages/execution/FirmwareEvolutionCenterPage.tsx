@@ -1304,7 +1304,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                 {progressPhases.map((phase, index) => {
                   const isRunning = phase.status === 'running';
                   return (
- <div key={phase.key} className={`rounded-2xl border px-4 py-4 ${isRunning ? 'border-blue-300 bg-blue-50/70 ' : 'border-theme-border bg-theme-surface'}`}>
+ <div key={phase.key} className={`rounded-2xl border px-4 py-4 ${isRunning ? 'border-blue-300 bg-blue-500/10 ' : 'border-theme-border bg-theme-surface'}`}>
                       <div className="flex items-start gap-3">
                         <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${progressStatusClass(phase.status)}`}>
                           {phase.status === 'completed' ? <CheckCircle2 size={14} /> : phase.status === 'failed' ? <XCircle size={14} /> : phase.status === 'running' ? <Loader2 size={14} className="animate-spin" /> : index + 1}
@@ -1552,7 +1552,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                                 <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full px-2 py-1 text-[10px] font-bold ${
                                   indexItem?.status === 'running'
                                     ? selected ? 'bg-emerald-400/20 text-emerald-100' : 'bg-emerald-500/15 text-emerald-400'
-                                    : selected ? 'bg-theme-elevated text-slate-200' : 'bg-theme-elevated text-theme-text-secondary'
+                                    : selected ? 'bg-theme-elevated text-theme-text-primary' : 'bg-theme-elevated text-theme-text-secondary'
                                 }`}>
                                   {indexItem?.status === 'running' ? '运行中' : '历史'}
                                 </span>

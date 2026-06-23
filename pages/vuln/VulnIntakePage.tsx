@@ -13,6 +13,7 @@ import {
   Download,
   FileCode2,
   FileClock,
+  Filter,
   FolderOpen,
   Key,
   Layers3,
@@ -171,6 +172,14 @@ const NORMAL_AUTH_PAYLOAD = {
       note: 'normal mode payload',
     },
   },
+};
+
+const STAGE_LABELS: Record<string, string> = {
+  all: '全部阶段',
+  receive: '已接收',
+  triage: '研判中',
+  validation: '研判中',
+  finished: '已结束',
 };
 
 const PUBLIC_FIELDS = [
@@ -387,26 +396,25 @@ const DECISION_TEXT: Record<string, string> = {
 };
 
 const CONCLUSION_TEXT: Record<string, string> = {
-  vulnerable: '是漏洞',
-  not_vulnerable: '不是漏洞',
-  inconclusive: '无法判定',
+  vulnerable: '确认漏洞',
+  not_vulnerable: '漏洞不成立',
+  inconclusive: '结论不确定',
+  issue: '问题',
+  non_issue: '非问题',
+  observe: '继续观察',
   manual_terminated: '人工终止',
 };
 
-const toUserVulnStatusText = (itemOrStage?: any, status?: string) => {
-  if (itemOrStage && typeof itemOrStage === 'object') {
-    if (itemOrStage.current_stage === 'finished' || itemOrStage.finished_reason) return '已结束';
-    status = itemOrStage.current_status;
-    itemOrStage = itemOrStage.current_stage;
-  }
-  if (status && STATUS_TEXT[status]) return STATUS_TEXT[status];
-  if (itemOrStage && STAGE_TEXT[itemOrStage]) return STAGE_TEXT[itemOrStage];
-  return '未知';
-};
 const toStageText = (value?: string) => (value ? STAGE_TEXT[value] || value : '未知');
 const toStatusText = (value?: string) => (value ? STATUS_TEXT[value] || value : '未知');
 const toDecisionText = (value?: string) => (value ? DECISION_TEXT[value] || value : '未知');
-const toConclusionText = (value?: string | null) => (value ? CONCLUSION_TEXT[value] || value : '');
+const toConclusionText = (value?: string) => (value ? CONCLUSION_TEXT[value] || DECISION_TEXT[value] || value : '未形成结论');
+const toUserVulnStatusText = (detail?: { current_status?: string; current_stage?: string } | null) => {
+  if (!detail) return '未知';
+  if (detail.current_status) return toStatusText(detail.current_status);
+  if (detail.current_stage) return toStageText(detail.current_stage);
+  return '未知';
+};
 
 const DOWNLOAD_STATUS_TEXT: Record<string, string> = {
   pending: '等待处理中',
@@ -485,6 +493,44 @@ const hasArtifactFiles = (artifacts: any): boolean => {
   return false;
 };
 
+const normalizeConclusionValue = (value?: string | null) => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '';
+  if (normalized === 'non_vulnerable') return 'not_vulnerable';
+  return normalized;
+};
+
+const getCaseConclusionMeta = (item: any): { code: string; label: string; source: 'finished' | 'validation' | 'decision' } | null => {
+  const stage = String(item?.current_stage || '').trim();
+  const status = String(item?.current_status || '').trim();
+  const finishedReason = normalizeConclusionValue(item?.finished_reason);
+  const validationResult = normalizeConclusionValue(item?.validation_result);
+  const decisionStatus = normalizeConclusionValue(item?.decision_status);
+
+  if (stage === 'finished') {
+    const code = finishedReason || validationResult || decisionStatus;
+    if (!code) return null;
+    return { code, label: toConclusionText(code), source: finishedReason ? 'finished' : validationResult ? 'validation' : 'decision' };
+  }
+
+  if (stage === 'validation' && status === 'validation_completed') {
+    const code = validationResult || decisionStatus;
+    if (!code) return null;
+    return { code, label: toConclusionText(code), source: validationResult ? 'validation' : 'decision' };
+  }
+
+  if (decisionStatus) {
+    return { code: decisionStatus, label: toConclusionText(decisionStatus), source: 'decision' };
+  }
+
+  return null;
+};
+
+const matchesCaseConclusion = (item: any, filter: string) => {
+  if (filter === 'all') return true;
+  return getCaseConclusionMeta(item)?.code === filter;
+};
+
 const DialogShell: React.FC<{
   title: string;
   subtitle?: string;
@@ -501,6 +547,55 @@ const DetailMetricCard: React.FC<{
   value: React.ReactNode;
   hint?: React.ReactNode;
 }> = ({ label, value, hint }) => <StatisticCard label={label} value={value} hint={hint} />;
+
+type HoverPreviewEntry = {
+  label: string;
+  value?: string | null;
+};
+
+const buildHoverPreviewTitle = (title: string | undefined, entries: HoverPreviewEntry[]) => {
+  const lines = [
+    title?.trim(),
+    ...entries
+      .filter((entry) => String(entry.value || '').trim())
+      .map((entry) => `${entry.label}: ${String(entry.value || '').trim()}`),
+  ].filter(Boolean);
+  return lines.join('\n');
+};
+
+const HoverPreviewField: React.FC<{
+  primary: string;
+  secondary?: string | null;
+  previewTitle?: string;
+  entries: HoverPreviewEntry[];
+  align?: 'left' | 'right';
+}> = ({ primary, secondary, previewTitle, entries, align = 'left' }) => {
+  const filteredEntries = entries.filter((entry) => String(entry.value || '').trim());
+  const tooltipText = buildHoverPreviewTitle(previewTitle, filteredEntries);
+  const tooltipAnchor = align === 'right' ? 'right-0 origin-top-right' : 'left-0 origin-top-left';
+
+  return (
+    <div className="group/hover-preview relative min-w-0" title={tooltipText || primary}>
+      <div className="truncate text-sm font-semibold text-slate-800">{primary}</div>
+      {secondary ? <div className="mt-0.5 truncate text-xs text-slate-400">{secondary}</div> : null}
+      {filteredEntries.length > 0 ? (
+        <div
+          className={`pointer-events-none absolute ${tooltipAnchor} top-full z-20 mt-2 w-max max-w-[28rem] translate-y-1 rounded-xl border border-slate-200 bg-white/95 px-3 py-3 text-left opacity-0 shadow-[0_20px_50px_-24px_rgba(15,23,42,0.55)] ring-1 ring-slate-900/5 backdrop-blur-sm transition duration-150 group-hover/hover-preview:translate-y-0 group-hover/hover-preview:opacity-100`}
+        >
+          {previewTitle ? <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{previewTitle}</div> : null}
+          <div className={previewTitle ? 'mt-2 space-y-1.5' : 'space-y-1.5'}>
+            {filteredEntries.map((entry) => (
+              <div key={`${previewTitle || 'preview'}-${entry.label}`} className="text-xs leading-5 text-slate-600">
+                <span className="font-semibold text-slate-900">{entry.label}：</span>
+                <span className="break-all">{entry.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+};
 
 const slugifyHeading = (value: string) =>
   value
@@ -573,6 +668,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [severityFilter, setSeverityFilter] = useState('all');
   const [cvssBandFilter, setCvssBandFilter] = useState('all');
   const [reporterTypeFilter, setReporterTypeFilter] = useState('all');
+  const [conclusionFilter, setConclusionFilter] = useState('all');
   const [taskFilter, setTaskFilter] = useState<string[]>([]);
   const [taskOptions, setTaskOptions] = useState<Array<{ id: string; name?: string }>>([]);
   const [taskFilterOpen, setTaskFilterOpen] = useState(false);
@@ -602,6 +698,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const autoVerifySyncGuardRef = useRef<string>('');
   const [selectedSuspicionIds, setSelectedSuspicionIds] = useState<string[]>([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [batchSyncingAutoVerify, setBatchSyncingAutoVerify] = useState(false);
   const [rowDeletingId, setRowDeletingId] = useState<string | null>(null);
   const [confirmingCase, setConfirmingCase] = useState<any | null>(null);
   const [manualConfirmResult, setManualConfirmResult] = useState<'vulnerable' | 'not_vulnerable'>('vulnerable');
@@ -621,6 +718,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [downloadJobsLoading, setDownloadJobsLoading] = useState(false);
   const [creatingDownload, setCreatingDownload] = useState(false);
   const [downloadActionJobId, setDownloadActionJobId] = useState<string | null>(null);
+  const [filteredDownloadCaseIds, setFilteredDownloadCaseIds] = useState<string[]>([]);
   const [detailEditMode, setDetailEditMode] = useState(false);
   const [detailSaving, setDetailSaving] = useState(false);
   const [editableDetail, setEditableDetail] = useState<EditableCaseIntake | null>(null);
@@ -712,6 +810,42 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const processActions = Array.isArray(selectedDetail?.actions) ? selectedDetail.actions : [];
   const openProcessTasks = processManualTasks.filter((item: any) => !['completed', 'closed'].includes(item.status));
   const runningProcessActions = processActions.filter((item: any) => ['queued', 'running'].includes(item.execution_status));
+  const hasActiveConclusionFilter = conclusionFilter !== 'all';
+
+  const buildCaseListParams = (page: number, size: number) => ({
+    project_id: projectId,
+    current_stage: stageFilter === 'all' ? undefined : stageFilter,
+    severity: severityFilter === 'all' ? undefined : severityFilter,
+    reporter_type: reporterTypeFilter === 'all' ? undefined : reporterTypeFilter,
+    cvss_band: cvssBandFilter === 'all' ? undefined : cvssBandFilter,
+    search: search.trim() || undefined,
+    sort_field: sortField,
+    sort_direction: sortDirection,
+    page,
+    page_size: size,
+  });
+
+  const fetchAllCasesForActiveFilters = async () => {
+    const batchSize = 200;
+    const items: any[] = [];
+    let page = 1;
+    let total = 0;
+
+    while (true) {
+      const response = await vulnApi.vuln.listCases(buildCaseListParams(page, batchSize));
+      const batch = Array.isArray(response?.items) ? response.items : [];
+      if (page === 1) {
+        total = Number(response?.total || 0);
+      }
+      items.push(...batch);
+      if (!batch.length || batch.length < batchSize || items.length >= total) {
+        break;
+      }
+      page += 1;
+    }
+
+    return items;
+  };
 
   const loadOverview = async () => {
     if (!projectId) {
@@ -737,6 +871,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       setSelectedTimeline([]);
       setConfirmRecords([]);
       setLinkedFiles(null);
+      setFilteredDownloadCaseIds([]);
       setLoading(false);
       return;
     }
@@ -744,77 +879,29 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     setLoading(true);
     setError(null);
     try {
-      const baseParams = {
-        project_id: projectId,
-        current_stage: stageFilter === 'all' ? undefined : stageFilter,
-        severity: severityFilter === 'all' ? undefined : severityFilter,
-        reporter_type: reporterTypeFilter === 'all' ? undefined : reporterTypeFilter,
-        cvss_band: cvssBandFilter === 'all' ? undefined : cvssBandFilter,
-        search: search.trim() || undefined,
-        sort_field: sortField,
-        sort_direction: sortDirection,
-      };
-      const matchesFinalResult = (item: any) => {
-        if (finalResultFilter === 'all') return true;
-        const isTerminal = item.current_stage === 'finished' || !!item.finished_reason;
-        if (finalResultFilter === 'analyzing') return !isTerminal;
-        const effective = isTerminal ? String(item.finished_reason || item.validation_result || '').trim() : '';
-        if (finalResultFilter === 'not_vulnerable') return effective === 'not_vulnerable' || effective === 'non_vulnerable';
-        if (finalResultFilter === 'inconclusive') return effective === 'inconclusive' || effective === 'manual_terminated';
-        return effective === finalResultFilter;
-      };
-      const needsClientFilter = finalResultFilter !== 'all';
-      if (taskFilter.length <= 1 && !needsClientFilter) {
-        const response = await vulnApi.vuln.listCases({
-          ...baseParams,
-          source_task_id: taskFilter[0],
-          page: pageOverride ?? currentPage,
-          page_size: pageSize,
-        });
-        if (requestSeq !== suspicionRequestSeq.current) return;
+      if (hasActiveConclusionFilter) {
+        const allItems = await fetchAllCasesForActiveFilters();
+        const filteredItems = allItems.filter((item) => matchesCaseConclusion(item, conclusionFilter));
+        const allIds = Array.from(new Set(filteredItems.map((item) => String(item?.id || '')).filter(Boolean)));
+        const total = filteredItems.length;
+        const totalPagesForFilter = Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
+        const requestedPage = pageOverride ?? currentPage;
+        const nextPage = Math.min(Math.max(1, requestedPage), totalPagesForFilter);
+        const pageStartIndex = (nextPage - 1) * pageSize;
+        setFilteredDownloadCaseIds(allIds);
+        setListTotal(total);
+        setSuspicions(filteredItems.slice(pageStartIndex, pageStartIndex + pageSize));
+        if (nextPage !== currentPage) {
+          setCurrentPage(nextPage);
+        }
+      } else {
+        const response = await vulnApi.vuln.listCases(buildCaseListParams(pageOverride ?? currentPage, pageSize));
+        setFilteredDownloadCaseIds([]);
         setSuspicions(response.items || []);
         setListTotal(Number(response.total || 0));
         if (response.page && response.page !== currentPage) {
           setCurrentPage(response.page);
         }
-      } else {
-        const fetchAllForTask = async (taskId: string | undefined): Promise<any[]> => {
-          const first = await vulnApi.vuln.listCases({
-            ...baseParams,
-            source_task_id: taskId,
-            page: 1,
-            page_size: 500,
-          });
-          const total = Number(first.total || 0);
-          const items = [...(first.items || [])];
-          const pages = Math.ceil(total / 500);
-          for (let page = 2; page <= pages; page += 1) {
-            const next = await vulnApi.vuln.listCases({
-              ...baseParams,
-              source_task_id: taskId,
-              page,
-              page_size: 500,
-            });
-            items.push(...(next.items || []));
-          }
-          return items;
-        };
-        const taskIds = taskFilter.length > 0 ? taskFilter : [undefined];
-        const chunks: any[][] = [];
-        for (const taskId of taskIds) {
-          if (requestSeq !== suspicionRequestSeq.current) return;
-          chunks.push(await fetchAllForTask(taskId));
-        }
-        if (requestSeq !== suspicionRequestSeq.current) return;
-        const merged = sortCases(
-          Array.from(new Map(chunks.flat().map((item: any) => [item.id, item])).values()),
-          sortField,
-          sortDirection,
-        );
-        const filtered = needsClientFilter ? merged.filter(matchesFinalResult) : merged;
-        const nextPage = pageOverride ?? currentPage;
-        setSuspicions(filtered.slice((nextPage - 1) * pageSize, nextPage * pageSize));
-        setListTotal(filtered.length);
       }
     } catch (err: any) {
       setError(err?.message || '加载漏洞列表失败');
@@ -1111,7 +1198,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   useEffect(() => {
     void loadSuspicions();
-  }, [projectId, currentPage, pageSize, search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, taskFilter, finalResultFilter, sortField, sortDirection]);
+  }, [projectId, currentPage, pageSize, search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, conclusionFilter, sortField, sortDirection]);
 
   useEffect(() => {
     if (rootTab !== 'download-center') return;
@@ -1238,7 +1325,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, taskFilter, finalResultFilter, pageSize, sortField, sortDirection]);
+  }, [search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, conclusionFilter, pageSize, sortField, sortDirection]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -1587,6 +1674,64 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       setError(err?.message || '批量删除漏洞失败');
     } finally {
       setBulkDeleting(false);
+    }
+  };
+
+  const handleBatchSyncSelectedVerifyStatus = async () => {
+    const uniqueCaseIds = Array.from(new Set(selectedSuspicionIds.filter(Boolean)));
+    if (!projectId || uniqueCaseIds.length === 0) return;
+    if (uniqueCaseIds.length > 100) {
+      setError('批量同步一次最多支持 100 条漏洞，请减少选择后重试。');
+      return;
+    }
+
+    setBatchSyncingAutoVerify(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    const batchFallback = async (caseIds: string[]) => {
+      let synced = 0;
+      let skipped = 0;
+      let failed = 0;
+
+      for (const caseId of caseIds) {
+        try {
+          const response = await vulnApi.vuln.syncAutoVerifyTask(caseId, {});
+          if (response?.validation_result || response?.task_status || response?.case_status) {
+            synced += 1;
+          } else {
+            skipped += 1;
+          }
+        } catch {
+          failed += 1;
+        }
+      }
+
+      return { total: caseIds.length, processed: caseIds.length, synced, skipped, failed };
+    };
+
+    try {
+      let response: any;
+      try {
+        response = await vulnApi.vuln.syncAutoVerifyTasksBatch({
+          project_id: projectId,
+          case_ids: uniqueCaseIds,
+          max_concurrency: 3,
+        });
+      } catch {
+        response = await batchFallback(uniqueCaseIds);
+      }
+
+      await Promise.all([loadOverview(), loadSuspicions(currentPage)]);
+      if (selectedSuspicionId && uniqueCaseIds.includes(selectedSuspicionId)) {
+        await loadSuspicionDetail(selectedSuspicionId);
+      }
+
+      setSuccessMessage(`批量同步完成：成功 ${Number(response?.synced || 0)}，跳过 ${Number(response?.skipped || 0)}，失败 ${Number(response?.failed || 0)}。`);
+    } catch (err: any) {
+      setError(err?.message || '批量同步验证状态失败');
+    } finally {
+      setBatchSyncingAutoVerify(false);
     }
   };
 
@@ -2518,18 +2663,33 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
             <StatisticCard label="无法判定" value={stats.inconclusive} tone="warning" />
           </div>
 
-          <div className="table-container">
-            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-theme-border-subtle">
-              <div className="relative max-w-[420px] flex-1">
-                <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" />
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="搜索标题、摘要、资产定位、来源服务"
-                  className="form-input w-full !pl-9"
-                />
-              </div>
-              <div className="flex items-center gap-1.5">
+ <div className="rounded-[2rem] border border-slate-200 bg-slate-50 overflow-hidden">
+            <div className="space-y-4 px-5 py-4 xl:px-6">
+              <div className="grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_auto_auto_auto_auto_auto]">
+                <div className="relative min-w-0">
+                  <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="搜索标题、摘要、资产定位、来源服务"
+                    className="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-4 text-sm outline-none"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.entries(STAGE_LABELS).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setStageFilter(key)}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold uppercase tracking-wider ${
+                        stageFilter === key ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      <Filter size={12} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
                 <select
                   value={severityFilter}
                   onChange={(event) => setSeverityFilter(event.target.value)}
@@ -2542,72 +2702,125 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   <option value="medium">medium</option>
                   <option value="low">low</option>
                 </select>
-                <div ref={taskFilterRef} className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setTaskFilterOpen((open) => !open)}
-                    className="form-select flex items-center justify-between gap-2 text-left"
-                    style={{ width: '220px' }}
-                  >
-                    <span className="truncate">{selectedTaskFilterLabel}</span>
-                    <ChevronDown size={14} />
-                  </button>
-                  {taskFilterOpen && (
-                    <div className="absolute right-0 top-full z-50 mt-2 max-h-72 w-72 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
-                      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
-                        <input
-                          type="checkbox"
-                          checked={taskFilter.length === 0}
-                          onChange={clearTaskFilter}
-                          className="h-4 w-4 rounded border-theme-border"
-                        />
-                        全部任务
-                      </label>
-                      {taskOptions.map((task) => {
-                        const checked = taskFilter.includes(task.id);
-                        return (
-                          <label key={task.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleTaskFilter(task.id)}
-                              className="h-4 w-4 rounded border-theme-border"
-                            />
-                            <span className="min-w-0 truncate" title={task.name?.trim() || task.id}>{task.name?.trim() || task.id}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
                 <select
-                  value={finalResultFilter}
-                  onChange={(event) => setFinalResultFilter(event.target.value)}
-                  className="form-select"
-                  style={{ width: '140px' }}
+                  value={reporterTypeFilter}
+                  onChange={(event) => setReporterTypeFilter(event.target.value)}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none"
                 >
-                  <option value="all">全部结果</option>
-                  <option value="vulnerable">是漏洞</option>
-                  <option value="not_vulnerable">不是漏洞</option>
-                  <option value="inconclusive">无法判定</option>
-                  <option value="analyzing">分析中</option>
+                  <option value="all">全部来源方式</option>
+                  <option value="plugin">plugin</option>
+                  <option value="service">service</option>
+                  <option value="cli">cli</option>
+                  <option value="skill">skill</option>
+                  <option value="api">api</option>
+                  <option value="human">human</option>
+                  <option value="other">other</option>
                 </select>
-                <button
-                  type="button"
-                  onClick={handleCreateTaskDownloadJob}
-                  disabled={creatingDownload || taskFilter.length === 0}
-                  className="btn btn-secondary btn-sm"
-                  title={taskFilter.length === 0 ? '请先在全部任务下拉菜单中选择一个或多个任务' : undefined}
+                <select
+                  value={cvssBandFilter}
+                  onChange={(event) => setCvssBandFilter(event.target.value)}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none"
                 >
-                  <Download size={12} />
-                  {creatingDownload ? '创建中...' : '导出所选任务'}
-                </button>
+                  <option value="all">全部 CVSS 档位</option>
+                  <option value="critical">critical (9.0-10.0)</option>
+                  <option value="high">high (7.0-8.9)</option>
+                  <option value="medium">medium (4.0-6.9)</option>
+                  <option value="low">low (0.1-3.9)</option>
+                </select>
+                <select
+                  value={conclusionFilter}
+                  onChange={(event) => setConclusionFilter(event.target.value)}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none"
+                >
+                  <option value="all">全部结论</option>
+                  <option value="vulnerable">确认漏洞</option>
+                  <option value="not_vulnerable">漏洞不成立</option>
+                  <option value="inconclusive">结论不确定</option>
+                  <option value="issue">问题</option>
+                  <option value="non_issue">非问题</option>
+                  <option value="observe">继续观察</option>
+                  <option value="manual_terminated">人工终止</option>
+                </select>
               </div>
             </div>
 
-            <div className="space-y-4 px-5 py-4 xl:px-6">
-              <div className="overflow-hidden rounded-xl border border-theme-border">
-                  <div className="grid grid-cols-[0.4fr_1.5fr_2.2fr_0.9fr_1.1fr_0.7fr_1.2fr_1.1fr_0.9fr] gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2.5">
+              {hasActiveConclusionFilter && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700">
+                    已按结论“{toConclusionText(conclusionFilter)}”匹配 {listTotal} 条漏洞
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleCreateDownloadJob(filteredDownloadCaseIds, 'batch')}
+                      disabled={creatingDownload || filteredDownloadCaseIds.length === 0}
+                      className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition-colors disabled:opacity-50"
+                      onMouseEnter={(e) => { if (!creatingDownload) e.currentTarget.style.backgroundColor = '#059669'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#059669'; }}
+                      style={{ backgroundColor: '#059669' }}
+                    >
+                      <Download size={14} />
+                      {creatingDownload ? '创建下载任务中...' : `下载当前筛选结果 (${filteredDownloadCaseIds.length})`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConclusionFilter('all')}
+                      className="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 transition-colors"
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ecfdf5'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#ffffff'; }}
+                    >
+                      清空结论筛选
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {selectedSuspicionIds.length > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50/60 px-4 py-3">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-sky-700">
+                    已选择 {selectedSuspicionIds.length} 条漏洞
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleBatchSyncSelectedVerifyStatus}
+                      disabled={batchSyncingAutoVerify || selectedSuspicionIds.length === 0}
+                      className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-700 transition-colors disabled:opacity-50"
+                      onMouseEnter={(e) => { if (!batchSyncingAutoVerify) e.currentTarget.style.backgroundColor = '#fffbeb'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ''; }}
+                    >
+                      <RefreshCw size={14} className={batchSyncingAutoVerify ? 'animate-spin' : ''} />
+                      {batchSyncingAutoVerify ? '同步中...' : `批量同步验证状态 (${selectedSuspicionIds.length})`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCreateDownloadJob(selectedSuspicionIds, 'batch')}
+                      disabled={creatingDownload || selectedSuspicionIds.length === 0}
+                      className="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-xs font-semibold text-white transition-colors disabled:opacity-50"
+                      onMouseEnter={(e) => { if (!creatingDownload) e.currentTarget.style.backgroundColor = '#0284c7'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#0284c7'; }}
+                      style={{ backgroundColor: '#0284c7' }}
+                    >
+                      <Download size={14} />
+                      {creatingDownload ? '创建下载任务中...' :`批量下载 (${selectedSuspicionIds.length})`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteSelectedFromList}
+                      disabled={bulkDeleting || selectedSuspicionIds.length === 0}
+                      className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700 transition-colors disabled:opacity-50"
+                      onMouseEnter={(e) => { if (!bulkDeleting) e.currentTarget.style.backgroundColor = '#fff1f2'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ''; }}
+                    >
+                      <Trash2 size={14} />
+                      {bulkDeleting ? '删除中...' :`批量删除 (${selectedSuspicionIds.length})`}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="overflow-hidden rounded-[1.25rem] border border-slate-200">
+                  <div className="grid grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_0.9fr_1.1fr_0.7fr_0.9fr] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
                   <div className="flex items-center justify-center">
                     <input
                       type="checkbox"
@@ -2631,124 +2844,197 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 ) : pagedSuspicions.length === 0 ? (
                   <div className="bg-theme-surface px-4 py-8 text-sm text-theme-text-faint">当前筛选条件下没有漏洞。</div>
                 ) : (
-                  pagedSuspicions.map((item) => (
-                    <div
-                      key={item.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setSelectedSuspicionId(item.id)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          setSelectedSuspicionId(item.id);
-                        }
-                      }}
-                      className="grid cursor-pointer grid-cols-[0.4fr_1.5fr_2.2fr_0.9fr_1.1fr_0.7fr_1.2fr_1.1fr_0.9fr] gap-3 border-b border-theme-border-subtle bg-theme-surface px-4 py-3.5 text-left transition hover:bg-theme-elevated last:border-b-0"
-                    >
-                      <div className="flex items-center justify-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedSuspicionIds.includes(item.id)}
-                          onChange={() => toggleSuspicionSelection(item.id)}
-                          onClick={(event) => event.stopPropagation()}
-                          aria-label={`选择漏洞 ${item.title}`}
-                          className="h-4 w-4 cursor-pointer rounded border-theme-border"
-                        />
-                      </div>
-                      <div className="min-w-0 text-sm font-semibold text-theme-text-secondary" title={getTaskName(item)}>
-                        <div className="truncate">{getTaskName(item)}</div>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-theme-text-primary">{item.title}</div>
-                        <div className="mt-1 font-mono text-[11px] text-theme-text-faint">{item.id}</div>
-                        <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-theme-text-muted">{item.summary || '暂无摘要'}</div>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-theme-text-secondary">{toUserVulnStatusText(item)}</div>
-                        {item.confirm_engine_name && !(item.current_stage === 'finished' || item.finished_reason) ? (
-                          <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
-                            已派发: {item.confirm_engine_name}
+                  pagedSuspicions.map((item) => {
+                    const conclusionMeta = getCaseConclusionMeta(item);
+                    return (
+                      <div
+                        key={item.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedSuspicionId(item.id)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            setSelectedSuspicionId(item.id);
+                          }
+                        }}
+                        className="grid cursor-pointer grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_0.9fr_1.1fr_0.7fr_0.9fr] gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3.5 text-left transition hover:bg-slate-100 last:border-b-0"
+                      >
+                        <div className="flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedSuspicionIds.includes(item.id)}
+                            onChange={() => toggleSuspicionSelection(item.id)}
+                            onClick={(event) => event.stopPropagation()}
+                            aria-label={`选择漏洞 ${item.title}`}
+                            className="h-4 w-4 cursor-pointer rounded border-slate-300"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-slate-900">{item.title}</div>
+                          <div className="mt-1 font-mono text-[11px] text-slate-400">{item.id}</div>
+                          <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-slate-500">{item.summary || '暂无摘要'}</div>
+                        </div>
+                        <div className="flex items-start justify-center">
+                          {item.has_artifact_files || hasArtifactFiles(item.artifacts) ? (
+                            <span title="含文件/文件夹" className="inline-flex items-center justify-center rounded-md bg-emerald-100 p-1 text-emerald-700">
+                              <FolderOpen size={14} />
+                            </span>
+                          ) : (
+                            <span title="无文件" className="inline-flex items-center justify-center rounded-md bg-slate-100 p-1 text-slate-400">
+                              <FolderOpen size={14} />
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-slate-700">{toStageText(item.current_stage)}</div>
+                          <div className="mt-1 inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                            {toStatusText(item.current_status)}
                           </div>
-                        ) : null}
-                      </div>
-                      <div className="min-w-0">
-                        {(item.current_stage === 'finished' || item.finished_reason) ? (
-                          <>
-                            <div className="text-sm font-semibold text-theme-text-secondary">
-                              {toConclusionText(item.finished_reason || item.validation_result)}
+                          {item.confirm_engine_name && item.current_stage !== 'finished' && !item.finished_reason ? (
+                            <div className="mt-1 text-[10px] font-medium text-slate-400">
+                              已派发: {item.confirm_engine_name}
                             </div>
-                            <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
-                              来源: {item.finished_reason ? '人工判定' : `${item.confirm_engine_name || '引擎'}判定`}
+                          ) : null}
+                          {conclusionMeta ? (
+                            <div className="mt-1 text-[10px] font-semibold text-slate-500">
+                              结论: {conclusionMeta.label}
                             </div>
-                          </>
-                        ) : (
-                          <span className="text-sm text-theme-text-faint">—</span>
-                        )}
-                      </div>
-                      <div>
-                        <span className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${toneOf(item.severity)}`}>
-                          {item.severity}
-                        </span>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-theme-text-secondary">{item.reporter?.name || 'unknown'}</div>
-                        <div className="mt-0.5 text-xs text-theme-text-faint">{item.reporter?.version || 'n/a'}</div>
-                      </div>
-                      <div className="text-sm text-theme-text-muted">{formatTime(item.updated_at || item.created_at)}</div>
-                      <div>
-                        <div className="flex flex-wrap gap-1.5">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              openManualConfirm(item);
-                            }}
-                            disabled={manualConfirmSubmitting || !!item.finished_reason}
-                            title={item.finished_reason ? '已终审' : '确认漏洞'}
-                            aria-label={`确认漏洞 ${item.title}`}
-                            className="btn btn-secondary btn-sm px-2"
-                          >
-                            <ShieldCheck size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleCreateDownloadJob([item.id], 'single');
-                            }}
-                            disabled={creatingDownload}
-                            title={creatingDownload ? '创建下载任务中' : '下载'}
-                            aria-label={`下载漏洞 ${item.title}`}
-                            className="btn btn-secondary btn-sm px-2"
-                          >
-                            <Download size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleDeleteSingleFromList(item.id, item.title);
-                            }}
-                            disabled={bulkDeleting || rowDeletingId === item.id}
-                            title={rowDeletingId === item.id ? '删除中' : '删除'}
-                            aria-label={`删除漏洞 ${item.title}`}
-                            className="btn btn-ghost-danger btn-sm px-2"
-                          >
-                            {rowDeletingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                          </button>
+                          ) : null}
+                        </div>
+                        <div>
+                          <span className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${toneOf(item.severity)}`}>
+                            {item.severity}
+                          </span>
+                        </div>
+                        <div className="text-sm font-semibold text-slate-800">{Number(item.cvss_score || 0).toFixed(1)}</div>
+                        <div className="min-w-0">
+                          <HoverPreviewField
+                            primary={item.reporter?.name || 'unknown'}
+                            secondary={item.reporter?.version || 'n/a'}
+                            previewTitle="上报者"
+                            entries={[
+                              { label: '名称', value: item.reporter?.name || 'unknown' },
+                              { label: '版本', value: item.reporter?.version || 'n/a' },
+                              { label: '类型', value: item.reporter?.type || 'other' },
+                              { label: '接口', value: item.reporter?.endpoint || null },
+                              { label: '实例', value: item.reporter?.instance_id || null },
+                            ]}
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <HoverPreviewField
+                            primary={item.subject?.locator || 'unscoped asset'}
+                            secondary={item.subject?.type || 'generic'}
+                            previewTitle="目标对象"
+                            entries={[
+                              { label: '定位', value: item.subject?.locator || 'unscoped asset' },
+                              { label: '类型', value: item.subject?.type || 'generic' },
+                              { label: '名称', value: item.subject?.name || null },
+                              { label: '版本', value: item.subject?.version || null },
+                            ]}
+                          />
+                        </div>
+                        <div className="text-sm font-semibold text-slate-700">{item.reporter?.type || 'other'}</div>
+                        <div className="text-sm text-slate-500">{formatTime(item.updated_at || item.created_at)}</div>
+                        <div className="text-right text-xl font-semibold text-slate-900">{item.confidence}</div>
+                        <div>
+                          <div className="flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleCreateDownloadJob([item.id], 'single');
+                              }}
+                              disabled={creatingDownload}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 disabled:opacity-50"
+                            >
+                              <Download size={12} />
+                              下载
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleDeleteSingleFromList(item.id, item.title);
+                              }}
+                              disabled={bulkDeleting || rowDeletingId === item.id}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 disabled:opacity-50"
+                            >
+                              <Trash2 size={12} />
+                              {rowDeletingId === item.id ? '删除中' : '删除'}
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-theme-border bg-theme-surface px-3 py-2.5">
-                <div className="text-xs font-semibold text-theme-text-muted">
-                  当前显示 {totalFiltered === 0 ? 0 : pageStart + 1} - {Math.min(pageStart + pageSize, totalFiltered)} / {totalFiltered}
+              <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                <div className="flex flex-wrap items-center justify-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={normalizedPage <= 1}
+                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
+                  >
+                    上一页
+                  </button>
+                  {(() => {
+                    const MAX_VISIBLE = 7;
+                    const pages: (number | 'ellipsis-start' | 'ellipsis-end')[] = [];
+                    if (totalPages <= MAX_VISIBLE) {
+                      for (let i = 1; i <= totalPages; i++) pages.push(i);
+                    } else {
+                      pages.push(1);
+                      if (normalizedPage > 3) pages.push('ellipsis-start');
+                      const start = Math.max(2, normalizedPage - 1);
+                      const end = Math.min(totalPages - 1, normalizedPage + 1);
+                      for (let i = start; i <= end; i++) pages.push(i);
+                      if (normalizedPage < totalPages - 2) pages.push('ellipsis-end');
+                      pages.push(totalPages);
+                    }
+                    return pages.map((page, idx) => {
+                      if (typeof page === 'string') {
+                        return (
+                          <span key={page} className="px-1 text-xs text-slate-400">
+                            ...
+                          </span>
+                        );
+                      }
+                      const isActive = page === normalizedPage;
+                      return (
+                        <button
+                          key={page}
+                          type="button"
+                          onClick={() => setCurrentPage(page)}
+                          className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                            isActive
+                              ? 'bg-slate-900 text-white'
+                              : 'border border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    });
+                  })()}
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={normalizedPage >= totalPages}
+                    className="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
+                  >
+                    下一页
+                  </button>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <label className="text-xs font-semibold text-theme-text-muted">
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <div className="text-xs font-semibold text-slate-600">
+                    当前显示 {totalFiltered === 0 ? 0 : pageStart + 1} - {Math.min(pageStart + pageSize, totalFiltered)} / {totalFiltered}
+                  </div>
+                  <label className="text-xs font-semibold text-slate-600">
                     每页
                     <select
                       value={pageSize}
@@ -2766,14 +3052,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       ))}
                     </select>
                   </label>
-                  <button type="button" onClick={() => setCurrentPage(1)} disabled={normalizedPage <= 1} className="btn btn-secondary btn-sm">首页</button>
-                  <button type="button" onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))} disabled={normalizedPage <= 1} className="btn btn-secondary btn-sm">上一页</button>
-                  <button type="button" onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))} disabled={normalizedPage >= totalPages} className="btn btn-secondary btn-sm">下一页</button>
-                  <button type="button" onClick={() => setCurrentPage(totalPages)} disabled={normalizedPage >= totalPages} className="btn btn-secondary btn-sm">末页</button>
                 </div>
               </div>
             </div>
-          </div>
         </>
         )}
         </>

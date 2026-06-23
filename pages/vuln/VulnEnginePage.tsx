@@ -493,7 +493,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
     setSelectedEvolutionCaseIds([]);
   };
 
-  const handleBatchSyncAutoVerify = async (caseIds: string[]) => {
+  const handleBatchSyncAutoVerify = async (caseIds: string[], options?: { onlyWithAutoVerifyTask?: boolean }) => {
     const uniqueCaseIds = Array.from(new Set(caseIds.filter(Boolean)));
     if (!projectId || !uniqueCaseIds.length) {
       setError('没有可同步的验证案例。');
@@ -506,13 +506,32 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
     setBatchSyncingAutoVerify(true);
     setError(null);
     setSuccessMessage(null);
+    // 如果后端没有 sync-batch 端点，逐个调用单 case sync 端点作为回退
+    const batchFallback = async (ids: string[]) => {
+      let synced = 0, skipped = 0, failed = 0;
+      for (const caseId of ids) {
+        try {
+          await vulnApi.vuln.syncAutoVerifyTask(caseId, {});
+          synced++;
+        } catch {
+          failed++;
+        }
+      }
+      return { synced, skipped, failed, total: ids.length };
+    };
     try {
-      const response = await vulnApi.vuln.syncAutoVerifyTasksBatch({
-        project_id: projectId,
-        case_ids: uniqueCaseIds,
-        only_with_auto_verify_task: true,
-        max_concurrency: 3,
-      });
+      let response: any;
+      try {
+        response = await vulnApi.vuln.syncAutoVerifyTasksBatch({
+          project_id: projectId,
+          case_ids: uniqueCaseIds,
+          only_with_auto_verify_task: options?.onlyWithAutoVerifyTask ?? false,
+          max_concurrency: 3,
+        });
+      } catch {
+        // 批量端点不存在时回退到逐个同步
+        response = await batchFallback(uniqueCaseIds);
+      }
       await refreshAll();
       setSuccessMessage(`批量同步完成：成功 ${response.synced}，跳过 ${response.skipped}，失败 ${response.failed}。`);
     } catch (err: any) {
@@ -1350,52 +1369,40 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
           onToggleBulkCaseId={toggleEvolutionCaseId}
           onToggleAllVisibleCaseIds={toggleAllVisibleEvolutionCaseIds}
           onClearBulkSelection={clearEvolutionSelection}
-          bulkActionBar={showValidationListFilters ? (
+          bulkActionBar={
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-xs text-theme-text-secondary">
-                使用 vuln-verification 批量同步接口拉取当前自动化验证任务结果。
+              <div className="text-xs" style={{ color: LK.body }}>
+                选择案例后批量同步 VulnVerify 自动化验证结果。同步后将更新验证结论与案例状态。
                 {filteredCases.length > 100 &&` 当前筛选 ${filteredCases.length} 条，本次最多同步前 100 条。`}
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => void handleBatchSyncAutoVerify(selectedEvolutionCaseIds)}
+                  onClick={() => void handleBatchSyncAutoVerify(selectedEvolutionCaseIds, { onlyWithAutoVerifyTask: false })}
                   disabled={batchSyncingAutoVerify || selectedEvolutionCaseIds.length === 0}
-                  className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ backgroundColor: LK.primary }}
+                  onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}
                 >
                   <RefreshCw size={14} className={batchSyncingAutoVerify ? 'animate-spin' : ''} />
                   {batchSyncingAutoVerify ? '同步中...' : '同步选中'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => void handleBatchSyncAutoVerify(currentBatchSyncCaseIds)}
+                  onClick={() => void handleBatchSyncAutoVerify(currentBatchSyncCaseIds, { onlyWithAutoVerifyTask: false })}
                   disabled={batchSyncingAutoVerify || currentBatchSyncCaseIds.length === 0}
-                  className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-medium text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-black transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ backgroundColor: LK.surface, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                  onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; } }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}
                 >
                   <RefreshCw size={14} className={batchSyncingAutoVerify ? 'animate-spin' : ''} />
                   {batchSyncingAutoVerify ? '同步中...' : '同步当前筛选前100条'}
                 </button>
               </div>
             </div>
-          ) : (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-xs text-theme-text-secondary">
-                支持从已人工收敛的数据流漏洞案例中，整批预览并创建进化任务。
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowEvolutionDialog(true);
-                  setEvolutionPreview(null);
-                }}
-                disabled={selectedEvolutionCaseIds.length === 0}
-                className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Sparkles size={14} />
-                创建进化任务
-              </button>
-            </div>
-          )}
+          }
         />
       )}
 

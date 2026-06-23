@@ -96,12 +96,12 @@ export function renderContractValue(value: string) {
     .map((line) => line.trim())
     .filter(Boolean);
   if (lines.length <= 1) {
-    return <div className="mt-1 break-all font-mono text-[11px] text-slate-700">{value}</div>;
+    return <div className="mt-1 break-all font-mono text-[11px] text-theme-text-primary">{value}</div>;
   }
   return (
     <div className="mt-2 space-y-1.5">
       {lines.map((line, index) => (
-        <div key={`${line}-${index}`} className="break-all rounded-lg border border-slate-200 bg-white px-2 py-1 font-mono text-[11px] text-slate-700">
+        <div key={`${line}-${index}`} className="break-all rounded-lg border border-theme-border bg-theme-surface px-2 py-1 font-mono text-[11px] text-theme-text-primary">
           {line}
         </div>
       ))}

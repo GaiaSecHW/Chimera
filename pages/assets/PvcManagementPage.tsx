@@ -1365,7 +1365,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
             )}
 
             {fileUploadState.visible && (
-              <div className="rounded-xl border border-blue-500/20 bg-blue-50/60 px-4 py-3">
+              <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3">
                 <div>
                   <div className="text-xs font-medium text-blue-300">{fileUploadState.completed ? '文件上传完成' : '文件上传中'}</div>
                   <div className="mt-1 text-xs font-semibold text-blue-400">
@@ -1737,7 +1737,7 @@ className="form-select w-full"
               </div>
               <div
                 className={`rounded-xl border border-dashed p-4 transition-colors ${
-                  archiveDragOver ? 'border-blue-400 bg-blue-50/80' : 'border-theme-border bg-theme-surface'
+                  archiveDragOver ? 'border-blue-400 bg-blue-500/10' : 'border-theme-border bg-theme-surface'
                 }`}
                 onDragEnter={(event) => {
                   event.preventDefault();

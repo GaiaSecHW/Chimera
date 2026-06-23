@@ -361,7 +361,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
         </section>
 
         <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-          <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
+          <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
             <h2 className="text-lg font-semibold text-theme-text-primary">任务同步参数</h2>
           </div>
           <div className="grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
@@ -420,7 +420,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
         </section>
 
  <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-          <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
+          <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
             <h2 className="text-lg font-semibold text-theme-text-primary">调度策略</h2>
           </div>
           <div className="grid gap-4 p-4 md:grid-cols-2 md:p-5 xl:grid-cols-3">
@@ -461,7 +461,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
         </section>
 
  <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-          <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
+          <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
             <h2 className="text-lg font-semibold text-theme-text-primary">工具默认配置</h2>
           </div>
           <div className="grid gap-4 p-4 md:p-5 xl:grid-cols-2">
@@ -484,7 +484,7 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
         </section>
 
  <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
             <div>
               <h2 className="text-lg font-semibold text-theme-text-primary">时段规则</h2>
               <p className="mt-1 text-sm text-theme-text-muted">支持配置多个白天/夜间时段，命中后覆盖基础调度参数。</p>

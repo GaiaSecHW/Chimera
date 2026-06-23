@@ -234,7 +234,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
             <label className="form-label">
               任务名称 <span className="text-red-500">*</span>
               <input
-                className="form-input"
+                className="form-input w-full"
                 value={form.task_name}
                 onChange={(e) => setForm((prev) => ({ ...prev, task_name: e.target.value }))}
                 placeholder="例：固件安全分析-2025"
@@ -245,7 +245,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
               输入路径 <span className="text-red-500">*</span>
               <div className="mt-1 flex gap-1">
                 <input
-                  className="form-input flex-1 font-mono"
+                  className="form-input flex-1 w-full font-mono"
                   value={form.input_path}
                   onChange={(e) => setForm((prev) => ({ ...prev, input_path: e.target.value }))}
                   placeholder="/data/files/<project>/<subproject>"
@@ -265,7 +265,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
               输出路径 <span className="text-red-500">*</span>
               <div className="mt-1 flex gap-1">
                 <input
-                  className="form-input flex-1 font-mono"
+                  className="form-input flex-1 w-full font-mono"
                   value={form.output_path}
                   onChange={(e) => setForm((prev) => ({ ...prev, output_path: e.target.value }))}
                   placeholder="/data/files/<project>/<subproject>"
@@ -284,7 +284,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
             <label className="form-label">
               任务描述 <span className="text-theme-text-muted text-xs">(可选)</span>
               <input
-                className="form-input"
+                className="form-input w-full"
                 value={form.task_description}
                 onChange={(e) => setForm((prev) => ({ ...prev, task_description: e.target.value }))}
                 placeholder="简要说明分析目标或背景"

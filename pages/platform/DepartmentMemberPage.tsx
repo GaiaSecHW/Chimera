@@ -460,7 +460,7 @@ export const DepartmentMemberPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
  <div className="bg-[linear-gradient(135deg,_#0f172a,_#1d4ed8_65%,_#38bdf8)] p-8 rounded-xl text-white flex flex-col justify-between group overflow-hidden relative">
           <Users className="absolute right-[-20px] top-[-20px] w-32 h-32 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
-          <p className="text-slate-200 text-[10px] font-semibold uppercase tracking-widest relative z-10">当前部门成员</p>
+          <p className="text-white/70 text-[10px] font-semibold uppercase tracking-widest relative z-10">当前部门成员</p>
           <h3 className="text-5xl font-bold mt-4 relative z-10">{memberStats.total}</h3>
           <p className="text-sky-100 text-[10px] font-medium uppercase mt-4 relative z-10 flex items-center gap-2">
             <UserCheck size={12} /> Team Members
@@ -857,7 +857,7 @@ placeholder="输入用户名筛选"
             <div className="p-6 pt-6 overflow-y-auto space-y-4">
               {importStage === 'upload' && (
                 <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-8">
-                  <div className="rounded-xl border border-theme-border bg-slate-50/70 p-6 space-y-4">
+                  <div className="rounded-xl border border-theme-border bg-theme-elevated p-6 space-y-4">
                     <div className="space-y-2">
                       <h4 className="text-xl font-semibold text-theme-text-primary">1. 准备成员导入文件</h4>
                       <p className="text-sm text-theme-text-muted font-medium">模板只要求填写已有账号的用户名。普通管理员仅允许导入`member`。</p>

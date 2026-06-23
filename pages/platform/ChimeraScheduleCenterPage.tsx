@@ -1158,7 +1158,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
 
  <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
 
-              <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
+              <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.5fr_repeat(4,minmax(0,0.9fr))] 2xl:grid-cols-[1.7fr_repeat(4,minmax(0,0.85fr))_auto] xl:items-end">
                   <div className="block">
                     <div className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
@@ -1442,7 +1442,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                       </tr>
                     ) : tableItems.length ? (
                       tableItems.map((item) => (
-                        <tr key={item.task_id} className="border-b border-theme-border hover:bg-slate-100/80">
+                        <tr key={item.task_id} className="border-b border-theme-border hover:bg-theme-elevated">
                           <td className="px-4 py-3 align-top">
                             <input
                               type="checkbox"
@@ -1554,7 +1554,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                 </table>
               </div>
 
-              <div className="border-t border-theme-border bg-slate-50/70 px-4 py-3 md:px-5">
+              <div className="border-t border-theme-border bg-theme-elevated px-4 py-3 md:px-5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="text-sm font-semibold text-theme-text-muted">
                     第 {page} / {totalPages} 页，共 {formatCount(total)} 条
@@ -1609,7 +1609,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
 
 
  <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-              <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
+              <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
                 <div className="mb-4">
                   <h2 className="text-lg font-semibold text-theme-text-primary">调度日志</h2>
                   <p className="mt-1 text-sm font-medium text-theme-text-muted">查看任务级调度、同步、删除与状态刷新事件。</p>
@@ -1691,7 +1691,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                     {taskEventLoading ? <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-theme-text-muted">调度日志加载中...</td></tr> : null}
                     {!taskEventLoading && taskEventItems.length === 0 ? <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-theme-text-muted">暂无调度日志</td></tr> : null}
                     {taskEventItems.map((event) => (
-                      <tr key={event.id} className="cursor-pointer border-b border-theme-border hover:bg-slate-100/80" onClick={() => setSelectedTaskEvent(event)}>
+                      <tr key={event.id} className="cursor-pointer border-b border-theme-border hover:bg-theme-elevated" onClick={() => setSelectedTaskEvent(event)}>
                         <td className="px-4 py-3 text-xs">{formatTime(event.created_at)}</td>
                         <td className="px-4 py-3 text-xs">{event.project_id}</td>
                         <td className="px-4 py-3 font-mono text-xs">{event.user_task_id}</td>
@@ -1708,7 +1708,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                 </table>
               </div>
 
-              <div className="border-t border-theme-border bg-slate-50/70 px-4 py-3 md:px-5">
+              <div className="border-t border-theme-border bg-theme-elevated px-4 py-3 md:px-5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="text-sm font-semibold text-theme-text-muted">第 {taskEventPage} 页，共 {Math.max(1, Math.ceil(taskEventTotal / taskEventPageSize))} 页，共 {formatCount(taskEventTotal)} 条</div>
                   <div className="flex items-center gap-3">
@@ -1728,7 +1728,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
               </div>
 
               {selectedTaskEvent ? (
-                <div className="border-t border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
+                <div className="border-t border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
                   <div className="flex items-center justify-between">
                     <div className="text-sm font-semibold text-theme-text-primary">事件详情：{selectedTaskEvent.event_type}</div>
                     <button onClick={() => setSelectedTaskEvent(null)} className="rounded-lg p-1 text-theme-text-muted hover:bg-theme-elevated"><X size={16} /></button>
@@ -1784,7 +1784,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
             </section>
 
  <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-              <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
+              <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
                 <h2 className="text-lg font-semibold text-theme-text-primary">调度队列预览</h2>
                 <p className="mt-1 text-sm font-medium text-theme-text-muted">查看调度执行、删除维护和用户任务同步队列的当前积压与等待时长。</p>
               </div>
@@ -1797,7 +1797,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                 <div className="space-y-4 px-4 py-4 md:px-5">
                   {(queuePreview?.groups || []).map((group: ScheduleRuntimeQueuePreviewGroup) => (
                     <section key={group.group_key} className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-                      <div className="border-b border-theme-border bg-slate-50/70 px-4 py-3">
+                      <div className="border-b border-theme-border bg-theme-elevated px-4 py-3">
                         <div className="text-xs font-bold uppercase tracking-[0.16em] text-theme-text-muted">{group.group_key}</div>
                         <h3 className="mt-1 text-base font-semibold text-theme-text-primary">{group.group_name}</h3>
                       </div>
@@ -1818,7 +1818,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         </thead>
                         <tbody>
                           {group.items.map((item: ScheduleRuntimeQueuePreviewItem) => (
-                            <tr key={item.queue_key} className="border-b border-theme-border hover:bg-slate-100/80">
+                            <tr key={item.queue_key} className="border-b border-theme-border hover:bg-theme-elevated">
                               <td className="px-4 py-3 align-top">
                                 <div className="font-semibold text-theme-text-primary">{item.queue_name}</div>
                                 <div className="mt-1 text-xs text-theme-text-muted">{item.backend || 'unknown'}</div>
@@ -1890,7 +1890,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
             </section>
 
  <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-              <div className="border-b border-theme-border bg-slate-50/70 px-4 py-4 md:px-5">
+              <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
                 <h2 className="text-lg font-semibold text-theme-text-primary">{legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].title}</h2>
                 <p className="mt-1 text-sm font-medium leading-6 text-theme-text-muted">
                   {legacySectionContent[nav as Exclude<OverviewNav, 'overview'>].summary}

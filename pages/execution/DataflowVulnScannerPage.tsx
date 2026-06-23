@@ -590,7 +590,7 @@ const MetricCard: React.FC<{ label: string; value: React.ReactNode; icon: React.
   const toneMap: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info' | 'brand'> = {
     success: 'success', warning: 'warning', danger: 'danger', info: 'info', brand: 'brand',
     emerald: 'success', rose: 'danger', amber: 'warning', red: 'danger', green: 'success',
-    'bg-emerald-50/70': 'success', 'bg-rose-50/70': 'danger', 'bg-theme-elevated': 'default',
+    'bg-emerald-500/10': 'success', 'bg-rose-500/10': 'danger', 'bg-theme-elevated': 'default',
   };
   return <StatisticCard label={label} value={value} icon={icon} hint={hint} tone={tone ? (toneMap[tone] ?? 'default') : 'default'} />;
 };
@@ -624,7 +624,7 @@ const PageHeader: React.FC<{
           title={title}
           version={version}
           className="mt-2"
-          titleClassName="text-2xl font-semibold tracking-tight text-slate-950"
+          titleClassName="text-2xl font-semibold tracking-tight text-theme-text-primary"
           badgeClassName="text-[10px]"
         />
         {description ? <p style={{ marginTop: 8, maxWidth: 896, fontSize: 14, lineHeight: 1.5, color: LK.body }}>{description}</p> : null}
@@ -1332,8 +1332,8 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <MetricCard label="任务总数" value={stats.total} icon={<Layers size={17} />} />
           <MetricCard label="运行中" value={stats.running} icon={<Activity size={17} />} />
-          <MetricCard label="已成功" value={stats.succeeded} icon={<ShieldCheck size={17} />} tone="bg-emerald-50/70" />
-          <MetricCard label="失败" value={stats.failed} icon={<AlertTriangle size={17} />} tone="bg-rose-50/70" />
+          <MetricCard label="已成功" value={stats.succeeded} icon={<ShieldCheck size={17} />} tone="bg-emerald-500/10" />
+          <MetricCard label="失败" value={stats.failed} icon={<AlertTriangle size={17} />} tone="bg-rose-500/10" />
         </section>
 
  <section className="rounded-[2rem] border border-theme-border bg-theme-elevated p-5">
@@ -1596,7 +1596,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     return (
                       <tr
                         key={task.task_id}
-                        className={`${executionTableRowClassName} ${selectedTaskIds.has(task.task_id) ? 'bg-cyan-50/60' : ''}`.trim()}
+                        className={`${executionTableRowClassName} ${selectedTaskIds.has(task.task_id) ? 'bg-cyan-500/10' : ''}`.trim()}
                       >
                         <ExecutionTableTd onClick={(event) => event.stopPropagation()}>
                           <input
@@ -1836,11 +1836,11 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     const expanded = expandedSlotWorkerIds.includes(worker.worker_id);
                     const activeJobs = worker.active_jobs || [];
                     return (
-                      <section key={worker.worker_id} className={`overflow-hidden rounded-[1.5rem] border ${worker.healthy ? 'border-theme-border bg-theme-elevated' : 'border-rose-500/20 bg-rose-50/70'}`}>
+                      <section key={worker.worker_id} className={`overflow-hidden rounded-[1.5rem] border ${worker.healthy ? 'border-theme-border bg-theme-elevated' : 'border-rose-500/20 bg-rose-500/10'}`}>
                         <button
                           type="button"
                           onClick={() => toggleSlotWorkerExpanded(worker.worker_id)}
-                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-slate-100/70"
+                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-theme-elevated"
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
@@ -1872,7 +1872,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                             ) : (
                               <div className="space-y-3">
                                 {activeJobs.map((job) => (
-                                  <div key={`${worker.worker_id}:${job.execution_id}:${job.worker_job_id}`} className={`rounded-2xl border px-4 py-4 ${job.mapped ? 'border-theme-border bg-slate-50/70' : 'border-amber-500/20 bg-amber-50/80'}`}>
+                                  <div key={`${worker.worker_id}:${job.execution_id}:${job.worker_job_id}`} className={`rounded-2xl border px-4 py-4 ${job.mapped ? 'border-theme-border bg-theme-elevated' : 'border-amber-500/20 bg-amber-500/10'}`}>
                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                       <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
@@ -2255,7 +2255,7 @@ const CreateTaskDialog: React.FC<{
           <div className="flex items-center justify-between border-b border-theme-border px-5 py-4">
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-400">New Scan Task</div>
-              <h3 className="mt-1 text-xl font-semibold text-slate-950">创建数据流漏洞挖掘任务</h3>
+              <h3 className="mt-1 text-xl font-semibold text-theme-text-primary">创建数据流漏洞挖掘任务</h3>
             </div>
             <button onClick={onClose} disabled={submitting} className="rounded-lg p-2 text-theme-text-muted hover:bg-theme-elevated disabled:opacity-40">
               <X size={18} />
@@ -2420,7 +2420,7 @@ const CreateTaskDialog: React.FC<{
               </label>
             </div>
 
-            <div className="mt-4 rounded-lg border border-emerald-500/20 bg-emerald-50/70 p-4">
+            <div className="mt-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4">
               <label className="flex items-start gap-3">
                 <input
                   type="checkbox"
@@ -2783,7 +2783,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
       {feedbackNodes}
       <div className={embedded ? 'space-y-6' : 'mx-auto max-w-[1800px] space-y-4'}>
         {embedded ? (
- <section className="rounded-[2rem] border border-theme-border bg-slate-50/70 p-6">
+ <section className="rounded-[2rem] border border-theme-border bg-theme-elevated p-6">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">

@@ -110,7 +110,7 @@ export const PermMgmtPage: React.FC = () => {
                              <p className={`text-[9px] font-bold uppercase ${selectedUserId === user.id ? 'text-purple-200' : 'text-theme-text-muted'}`}>{user.role?.length || 0} Roles Attached</p>
                           </div>
                        </div>
-                       <ChevronRight size={14} className={selectedUserId === user.id ? 'text-white' : 'text-slate-200'} />
+                       <ChevronRight size={14} className={selectedUserId === user.id ? 'text-white' : 'text-theme-text-secondary'} />
                     </div>
                   ))}
                </div>

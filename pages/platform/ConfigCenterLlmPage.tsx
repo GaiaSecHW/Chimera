@@ -1371,7 +1371,7 @@ API_TIMEOUT_MS=600000`}
                 <div className="inline-flex rounded-full border border-blue-500/30 bg-blue-950 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-blue-400">
                   Guide
                 </div>
-                <h3 className="mt-3 text-2xl font-bold tracking-tight text-slate-200">如何获取和使用 LLM 对接配置</h3>
+                <h3 className="mt-3 text-2xl font-bold tracking-tight text-theme-text-primary">如何获取和使用 LLM 对接配置</h3>
                 <p className="mt-3 text-sm leading-7 text-theme-text-muted">
                   这个弹窗面向需要消费配置中心的开发者、运维或其它微服务维护者，用来快速说明如何读取系统当前支持的 LLM Provider，以及如何拿到某个 Provider 的完整配置。
                 </p>

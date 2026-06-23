@@ -1172,7 +1172,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                     </div>
                   </div>
                   {isVulnDownstream && vulnCreateState ? (
-                    <div className="rounded-2xl border border-cyan-500/20 bg-cyan-50/70 p-4">
+                    <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4">
                       <div className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-400">当前默认填充值</div>
                       <div className="mt-3 space-y-3 text-xs text-theme-text-secondary">
                         <div>
@@ -1194,7 +1194,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                       </div>
                     </div>
                   ) : dataflowVulnPreview ? (
-                    <div className="rounded-2xl border border-cyan-500/20 bg-cyan-50/70 p-4">
+                    <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4">
                       <div className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-400">漏洞挖掘默认参数</div>
                       <div className="mt-3 space-y-3 text-xs text-theme-text-secondary">
                         <div>

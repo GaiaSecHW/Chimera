@@ -450,7 +450,7 @@ function PrunedBranchBadge({ node, level = 0 }: { node: DataflowVulnTraceTreeNod
         <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 ${reasonTone}`}>{reasonLabel}</span>
       </div>
       {/* Tooltip */}
- <div className="pointer-events-none absolute left-0 top-full z-50 mt-1 min-w-[220px] rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-[11px] leading-relaxed text-slate-100 opacity-0 transition-opacity group-hover:opacity-100 whitespace-pre-wrap">
+ <div className="pointer-events-none absolute left-0 top-full z-50 mt-1 min-w-[220px] rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-[11px] leading-relaxed text-white opacity-0 transition-opacity group-hover:opacity-100 whitespace-pre-wrap">
         {tooltipLines.join('\n')}
       </div>
     </div>
@@ -983,7 +983,7 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                 <div className="mt-4 space-y-3">{STAGE_STEPS.map((step, index) => {
                   const state = statusSteps[index];
                   const artifactPath = detail.output_path ? extractFsRelPath(`${detail.output_path}/${detail.task_id}/${step.artifactSubpath}`, projectId) : null;
-                  return <div key={step.key} className="rounded-xl border border-theme-border bg-slate-50/70 px-4 py-3"><div className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${state === 'completed' ? 'border-emerald-500 bg-emerald-500/15 text-emerald-400' : state === 'running' ? 'border-blue-500 bg-blue-500/15 text-blue-400' : state === 'failed' ? 'border-red-400 bg-red-500/15 text-red-400' : 'border-theme-border bg-theme-surface text-theme-text-muted'}`}>{state === 'completed' ? <CheckCircle2 size={16} /> : state === 'running' ? <Loader2 size={14} className="animate-spin" /> : state === 'failed' ? <XCircle size={16} /> : index + 1}</div><div className="min-w-0 flex-1"><p className="text-sm font-bold text-theme-text-primary">{step.label}</p><p className="mt-1 text-xs text-theme-text-muted">{step.desc}</p>{artifactPath && state !== 'pending' ? <button onClick={() => openInFileExplorer(artifactPath)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-violet-500/20 px-2 py-1 text-[11px] font-semibold text-violet-400 hover:bg-violet-500/15"><FolderOpen size={11} />打开阶段输出</button> : null}</div></div></div>;
+                  return <div key={step.key} className="rounded-xl border border-theme-border bg-theme-elevated px-4 py-3"><div className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${state === 'completed' ? 'border-emerald-500 bg-emerald-500/15 text-emerald-400' : state === 'running' ? 'border-blue-500 bg-blue-500/15 text-blue-400' : state === 'failed' ? 'border-red-400 bg-red-500/15 text-red-400' : 'border-theme-border bg-theme-surface text-theme-text-muted'}`}>{state === 'completed' ? <CheckCircle2 size={16} /> : state === 'running' ? <Loader2 size={14} className="animate-spin" /> : state === 'failed' ? <XCircle size={16} /> : index + 1}</div><div className="min-w-0 flex-1"><p className="text-sm font-bold text-theme-text-primary">{step.label}</p><p className="mt-1 text-xs text-theme-text-muted">{step.desc}</p>{artifactPath && state !== 'pending' ? <button onClick={() => openInFileExplorer(artifactPath)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-violet-500/20 px-2 py-1 text-[11px] font-semibold text-violet-400 hover:bg-violet-500/15"><FolderOpen size={11} />打开阶段输出</button> : null}</div></div></div>;
                 })}</div>
               </div>
             </div>
@@ -1204,7 +1204,7 @@ className="form-select ml-2 text-xs"
                                 </td>
                               </tr>
                               {expanded ? (
-                                <tr className="bg-slate-50/60">
+                                <tr className="bg-theme-elevated">
                                   <td colSpan={9} className="px-3 py-3">
                                     <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                                       {timelinePayloadRows(payload).slice(0, 12).map((row) => (

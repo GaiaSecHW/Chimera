@@ -84,7 +84,7 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
     const info = formatTaskTime(timeStr);
     return (
       <>
-        <div className="text-slate-200 font-mono text-xs">{info.date}</div>
+        <div className="text-theme-text-primary font-mono text-xs">{info.date}</div>
         <div className="text-theme-text-muted font-mono text-[11px]">{info.time}</div>
       </>
     );
@@ -290,7 +290,7 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               {filteredTasks.length === 0 && !loading && (
                 <tr>
                   <td colSpan={6} className="py-40 text-center">
-                    <div className="w-20 h-20 bg-theme-elevated rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
+                    <div className="w-20 h-20 bg-theme-elevated rounded-full flex items-center justify-center mx-auto mb-4 text-theme-text-primary">
                       <History size={40} />
                     </div>
                     <p className="text-sm font-semibold text-theme-text-muted uppercase tracking-widest">暂无活跃部署任务</p>
@@ -330,7 +330,7 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                 <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
                   <div className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase">任务类型</div>
-                  <div className="mt-1 text-sm font-semibold text-slate-100">{selectedTask.type || '-'}</div>
+                  <div className="mt-1 text-sm font-semibold text-white">{selectedTask.type || '-'}</div>
                 </div>
                 <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
                   <div className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase">任务状态</div>
@@ -338,7 +338,7 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 </div>
                 <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
                   <div className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase">目标节点</div>
-                  <div className="mt-1 text-sm font-semibold text-slate-100 break-all">{selectedTaskNode?.primary || '-'}</div>
+                  <div className="mt-1 text-sm font-semibold text-white break-all">{selectedTaskNode?.primary || '-'}</div>
                   {selectedTaskNode?.secondary && selectedTaskNode.secondary !== selectedTaskNode.primary ? (
                     <div className="mt-0.5 text-xs text-theme-text-faint break-all">{selectedTaskNode.secondary}</div>
                   ) : null}
@@ -346,7 +346,7 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 </div>
                 <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
                   <div className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase">执行进度</div>
-                  <div className="mt-1 text-sm font-semibold text-slate-100">{selectedTask.progress || 0}%</div>
+                  <div className="mt-1 text-sm font-semibold text-white">{selectedTask.progress || 0}%</div>
                 </div>
                 <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
                   <div className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase">创建时间</div>
@@ -362,13 +362,13 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 </div>
                 <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
                   <div className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase">日志条数</div>
-                  <div className="mt-1 text-sm font-semibold text-slate-100">{selectedTask.log_count ?? logs.length}</div>
+                  <div className="mt-1 text-sm font-semibold text-white">{selectedTask.log_count ?? logs.length}</div>
                 </div>
               </div>
 
               <div className="rounded-xl border border-theme-border bg-theme-surface px-3 py-3">
                 <div className="text-[10px] font-medium tracking-widest text-theme-text-muted uppercase">任务消息</div>
-                <div className="mt-1 text-xs leading-relaxed text-slate-200 whitespace-pre-wrap break-words">
+                <div className="mt-1 text-xs leading-relaxed text-theme-text-primary whitespace-pre-wrap break-words">
                   {selectedTask.message || '暂无任务消息'}
                 </div>
               </div>
@@ -391,7 +391,7 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                       </span>
                       <span className="text-[9px] font-mono text-theme-text-muted">{log.timestamp || '-'}</span>
                     </div>
-                    <pre className="text-[11px] leading-tight text-slate-200 whitespace-pre-wrap break-words font-mono">{log.message}</pre>
+                    <pre className="text-[11px] leading-tight text-theme-text-primary whitespace-pre-wrap break-words font-mono">{log.message}</pre>
                   </div>
                 ))
               )}
