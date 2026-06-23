@@ -257,7 +257,9 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   // 3s 轮询:对每条处于进行中状态的上传各拉一次状态;全部到终态即停。
   useEffect(() => {
     const inProgress = Object.entries(codemapStatusByUpload)
-      .filter(([, s]) => s && IN_PROGRESS_STATUSES.has(s.status))
+      // 顶层 FSM 进行中,或攻击面子阶段 running(重跑入口分析不动顶层 status,必须
+      // 单独纳入,否则重跑期间地铁条不刷新——与详情页 KnowledgeGraphPanel 同口径)。
+      .filter(([, s]) => s && (IN_PROGRESS_STATUSES.has(s.status) || s.attack?.status === 'running'))
       .map(([uid]) => uid);
     if (inProgress.length === 0) return undefined;
     const timer = window.setInterval(async () => {
@@ -788,14 +790,15 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                     <th className="px-4 py-4">批次 / 模式</th>
                     <th className="px-4 py-4">文件 / 容量</th>
                     <th className="px-4 py-4">创建信息</th>
+                    <th className="px-4 py-4 text-center">知识图谱构建进度</th>
                     <th className="px-4 py-4 text-right">操作</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-theme-border bg-theme-elevated text-sm">
                   {loading ? (
-                    <tr><td colSpan={6} className="px-6 py-20 text-center"><Loader2 className="mx-auto animate-spin text-theme-text-muted" size={32} /></td></tr>
+                    <tr><td colSpan={7} className="px-6 py-20 text-center"><Loader2 className="mx-auto animate-spin text-theme-text-muted" size={32} /></td></tr>
                   ) : filteredRecords.length === 0 ? (
-                    <tr><td colSpan={6} className="px-6 py-20 text-center text-theme-text-muted">暂无上传记录</td></tr>
+                    <tr><td colSpan={7} className="px-6 py-20 text-center text-theme-text-muted">暂无上传记录</td></tr>
                   ) : filteredRecords.map((record) => {
                     const inputType = normalizeType(record.input_type);
                     const isExpanded = expandedUploadIds.includes(record.upload_id);
@@ -845,12 +848,18 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                             <div className="mt-1 text-xs text-theme-text-muted">完成 {formatDateTime(record.finished_at)}</div>
                           </td>
                           <td className="px-4 py-4">
-                            <div className="flex items-center justify-end gap-2" onClick={(event) => event.stopPropagation()}>
+                            <div className="flex justify-center">
                               {inputType === 'code' ? (
                                 <CodemapMetroProgress
                                   status={codemapStatusByUpload[record.upload_id] ?? null}
                                 />
-                              ) : null}
+                              ) : (
+                                <span className="text-xs text-theme-text-faint">—</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center justify-end gap-2" onClick={(event) => event.stopPropagation()}>
                               <button onClick={() => { void openUploadDetailDialog(record); }} className="rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated">
                                 <Eye size={14} className="mr-1 inline-block" />
                                 详情
@@ -881,7 +890,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                         </tr>
                         {isExpanded ? (
                           <tr className="bg-theme-elevated">
-                            <td colSpan={6} className="px-6 py-5">
+                            <td colSpan={7} className="px-6 py-5">
                               <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
                                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                                   <div>
@@ -1069,6 +1078,11 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                       onRetryDispatch={() => { void handleCodemapRetryDispatch(uploadId); }}
                       retrying={codemapRebuildingIds.includes(uploadId)}
                       dispatchError={codemapDispatchErrorByUpload[uploadId]}
+                      onStatusChange={(next) => {
+                        // panel 内重跑/自拉的权威状态回写父缓存:地铁条与之同步,
+                        // 且关闭详情页后 attack.status=running 仍命中 3s 轮询门槛。
+                        setCodemapStatusByUpload((cur) => ({ ...cur, [uploadId]: next }));
+                      }}
                     />
                   ) : null}
 

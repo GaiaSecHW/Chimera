@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ExternalLink, Loader2, Network, RefreshCw, RotateCw, ShieldCheck, Wrench } from 'lucide-react';
 import { api } from '../clients/api';
 import {
@@ -35,6 +35,10 @@ interface KnowledgeGraphPanelProps {
   onRetryDispatch?: () => void;
   retrying?: boolean;
   dispatchError?: string;
+  // 把本组件自拉/乐观更新的权威 task 状态回传父组件,让其 codemapStatusByUpload
+  // 缓存与地铁条同步、并触发父组件的 3s 轮询(重跑入口分析后关闭详情页,地铁条仍
+  // 需转圈——否则父缓存陈旧,attack.status 永远停在 ok,门槛不触发,见下)。
+  onStatusChange?: (status: CodemapTaskStatus) => void;
 }
 
 const pillBase =
@@ -71,6 +75,7 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
   onRetryDispatch,
   retrying,
   dispatchError,
+  onStatusChange,
 }) => {
   const [audit, setAudit] = useState<CodemapAuditSources | null>(null);
   const [auditError, setAuditError] = useState<string | null>(null);
@@ -85,6 +90,11 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
   // 点重跑后的乐观态(后台线程异步,manager 可能还没翻 running)。一旦自拉的 task
   // 确认进入对应进行中态就清掉,改以真实 task 为准。
   const [localStatus, setLocalStatus] = useState<CodemapTaskStatus | null>(null);
+  // 父组件每次渲染传入新的 onStatusChange 闭包;若直接进 loadTask 的依赖会让其
+  // identity 每帧变化、把 mount/轮询 effect 拖进重建循环。用 ref 固定,loadTask 依赖
+  // 保持稳定。
+  const onStatusChangeRef = useRef(onStatusChange);
+  onStatusChangeRef.current = onStatusChange;
 
   const effective = localStatus ?? task ?? status;
 
@@ -92,6 +102,7 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
     try {
       const t = await api.codemapManager.getTaskStatus(buildCodemapTaskId(uploadId));
       setTask(t);
+      onStatusChangeRef.current?.(t);
       // 后台已进入对应进行中态(攻击面 running / repair building_repair)→ 乐观态
       // 使命完成,撤掉,后续完全以真实 task 为准(含 running→ok/failed 的终态)。
       if (t.status === 'building_repair' || t.attack?.status === 'running') {
@@ -148,11 +159,12 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
     try {
       await api.codemapManager.reidentify(uploadId);
       // 乐观:攻击面阶段标 running,跟随轮询;随后 loadTask 拿到真实 running 即接管。
-      setLocalStatus((cur) => {
-        const base = cur ?? task ?? status;
-        if (!base) return base ?? null;
-        return { ...base, attack: { status: 'running', entries: base.attack?.entries ?? 0 } };
-      });
+      const base = localStatus ?? task ?? status;
+      if (base) {
+        const next = { ...base, attack: { status: 'running', entries: base.attack?.entries ?? 0 } };
+        setLocalStatus(next);
+        onStatusChangeRef.current?.(next);   // 立即同步父缓存 → 地铁条转圈 + 父轮询启动
+      }
       void loadTask();
     } catch (error) {
       setActionError((error as any)?.message || '触发重跑攻击入口分析失败');
@@ -168,11 +180,12 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
     try {
       await api.codemapManager.rerepair(uploadId);
       // 乐观:整体状态标 building_repair,跟随轮询;随后 loadTask 接管。
-      setLocalStatus((cur) => {
-        const base = cur ?? task ?? status;
-        if (!base) return base ?? null;
-        return { ...base, status: 'building_repair' };
-      });
+      const base = localStatus ?? task ?? status;
+      if (base) {
+        const next = { ...base, status: 'building_repair' };
+        setLocalStatus(next);
+        onStatusChangeRef.current?.(next);   // 立即同步父缓存 → 地铁条转圈 + 父轮询启动
+      }
       void loadTask();
     } catch (error) {
       setActionError((error as any)?.message || '触发重跑 repair 失败');

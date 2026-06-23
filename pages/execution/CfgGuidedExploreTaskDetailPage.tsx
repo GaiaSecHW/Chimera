@@ -897,12 +897,12 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
           {walk.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated p-12 text-center text-sm text-theme-text-muted">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div>
           ) : (
-            <div className="grid gap-4">
-              {/* Top: ONE fused graph, FULL WIDTH so the top-down tree spreads
-                  out instead of being crushed in a narrow column. NOTE: the app
-                  globally remaps Tailwind bg-white/bg-slate-50 → dark theme vars
-                  (styles.css), so we set light surfaces via inline style. */}
-              <aside className="flex h-[460px] flex-col overflow-hidden rounded-2xl border border-slate-300 shadow-sm" style={{ backgroundColor: '#f1f5f9' }}>
+            <div className="grid gap-4 xl:grid-cols-2">
+              {/* Left: ONE fused graph. Gets the larger share + tall canvas so
+                  the top-down tree spreads out instead of being crushed. NOTE:
+                  the app globally remaps Tailwind bg-white/bg-slate-50 → dark
+                  theme vars (styles.css), so we set light surfaces via inline. */}
+              <aside className="flex h-[calc(100vh-12rem)] min-h-[560px] flex-col overflow-hidden rounded-2xl border border-slate-300 shadow-sm xl:sticky xl:top-4" style={{ backgroundColor: '#f1f5f9' }}>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-300 px-3 py-2 text-[11px]" style={{ backgroundColor: '#e2e8f0', color: '#334155' }}>
                   <span className="inline-flex shrink-0 items-center gap-1 font-semibold" style={{ color: '#0f172a' }}><Workflow size={13} />调用图 · {walk.length}</span>
                   <span className="inline-flex items-center gap-1" style={{ color: '#334155' }}><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-500" style={{ backgroundColor: '#ecfdf5' }} />安全</span>
@@ -914,7 +914,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                   <WalkGraph layout={graph} selectedFid={selectedFn?.fid || null} onSelect={setSelectedFid} />
                 </div>
               </aside>
-              {/* Below: detail — source code / model think / tool use */}
+              {/* Right: detail — source code / model think / tool use */}
               {walkDetailPane}
             </div>
           )}
