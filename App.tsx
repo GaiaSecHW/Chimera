@@ -617,6 +617,7 @@ const AppShell: React.FC = () => {
           onSelectTopLevelNav={(nav) => navigateToView(getTopLevelDefaultView(nav, user))}
           currentView={currentView}
           onSelectSystemAdminChild={(view) => navigateToView(view)}
+          onSelectAssetsCenterChild={(view) => navigateToView(view)}
           projects={projects} 
           selectedProjectId={selectedProjectId} 
           setSelectedProjectId={setSelectedProjectId} 

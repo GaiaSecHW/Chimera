@@ -1,4 +1,3 @@
-import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Lock, LogOut, Moon, RotateCw, Sun } from 'lucide-react';
 import {
   TopLevelNavKey,
@@ -7,15 +6,15 @@ import {
   getVisibleTopLevelNavItems,
   SYSTEM_ADMIN_CHILDREN,
   getSystemAdminActiveChild,
+  ASSETS_CENTER_CHILDREN,
+  getAssetsCenterActiveChild,
 } from '../app/navigation';
 import { SecurityProject, UserInfo, ViewType } from '../types/types';
 import { getPlatformRoleLabel, getUserAccess } from '../utils/rbac';
 import { ThemeLogo } from '../components/ThemeLogo';
 import { useTheme } from '../theme/ThemeProvider';
 
-const FRONTEND_BUILD_VERSION = String(
-  typeof __CHIMERA_BUILD_VERSION__ !== 'undefined' ? __CHIMERA_BUILD_VERSION__ : '',
-).trim() || 'dev';
+import React, { useEffect, useRef, useState } from 'react';
 
 const getTabStyle = (item: TopLevelNavItem, isActive: boolean): React.CSSProperties => {
   if (isActive) {
@@ -36,6 +35,7 @@ interface HeaderProps {
   onSelectTopLevelNav: (nav: TopLevelNavKey) => void;
   currentView: ViewType | string;
   onSelectSystemAdminChild: (view: string) => void;
+  onSelectAssetsCenterChild: (view: string) => void;
   projects: SecurityProject[];
   selectedProjectId: string;
   setSelectedProjectId: (id: string) => void;
@@ -54,6 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectTopLevelNav,
   currentView,
   onSelectSystemAdminChild,
+  onSelectAssetsCenterChild,
   user,
   projects,
   selectedProjectId,
@@ -77,6 +78,10 @@ export const Header: React.FC<HeaderProps> = ({
   const systemAdminRef = useRef<HTMLDivElement>(null);
   const systemAdminTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [isAssetsCenterOpen, setIsAssetsCenterOpen] = useState(false);
+  const assetsCenterRef = useRef<HTMLDivElement>(null);
+  const assetsCenterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleSystemAdminEnter = () => {
     if (systemAdminTimerRef.current) clearTimeout(systemAdminTimerRef.current);
     setIsSystemAdminOpen(true);
@@ -85,15 +90,26 @@ export const Header: React.FC<HeaderProps> = ({
     systemAdminTimerRef.current = setTimeout(() => setIsSystemAdminOpen(false), 150);
   };
 
+  const handleAssetsCenterEnter = () => {
+    if (assetsCenterTimerRef.current) clearTimeout(assetsCenterTimerRef.current);
+    setIsAssetsCenterOpen(true);
+  };
+  const handleAssetsCenterLeave = () => {
+    assetsCenterTimerRef.current = setTimeout(() => setIsAssetsCenterOpen(false), 150);
+  };
+
   const currentProject = projects.find((p) => p.id === selectedProjectId) || { name: '选择项目' };
 
   const visibleNavItems = getVisibleTopLevelNavItems(user);
   const activeSystemAdminChild = getSystemAdminActiveChild(String(currentView));
+  const activeAssetsCenterChild = getAssetsCenterActiveChild(String(currentView));
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) setIsUserMenuOpen(false);
       if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) setIsProjectDropdownOpen(false);
+      if (assetsCenterRef.current && !assetsCenterRef.current.contains(event.target as Node)) setIsAssetsCenterOpen(false);
+      if (systemAdminRef.current && !systemAdminRef.current.contains(event.target as Node)) setIsSystemAdminOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -103,13 +119,63 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="bg-theme-header border-b border-theme-sidebar shadow-brand z-20 sticky top-0">
       <div className="h-14 px-6 xl:px-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
         <div className="flex items-center gap-4 min-w-0">
-          <ThemeLogo size="small" buildVersion={FRONTEND_BUILD_VERSION} showBadge={false} />
+          <ThemeLogo size="small" showBadge={false} />
         </div>
 
         <div className="flex justify-center min-w-0 overflow-visible">
           <nav className="flex items-center gap-1 flex-wrap max-w-full">
             {visibleNavItems.map((item) => {
               const isActive = currentTopLevelNav === item.id;
+
+              if (item.id === 'assets-center') {
+                return (
+                  <React.Fragment key={item.id}>
+                    {item.showDividerBefore && (
+                      <div className="w-px h-4 bg-theme-text-faint/20 mx-1.5 shrink-0" />
+                    )}
+                    <div
+                      className="relative shrink-0"
+                      ref={assetsCenterRef}
+                      onMouseEnter={handleAssetsCenterEnter}
+                      onMouseLeave={handleAssetsCenterLeave}
+                    >
+                      <button
+                        onClick={() => setIsAssetsCenterOpen((v) => !v)}
+                        style={getTabStyle(item, isActive)}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                          isActive ? '' : 'hover:bg-theme-sidebar-muted hover:text-theme-text-inverse'
+                        }`}
+                      >
+                        {item.label}
+                        <ChevronDown size={12} className={`transition-transform ${isAssetsCenterOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {isAssetsCenterOpen && (
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-36 bg-theme-surface border border-theme-border rounded-xl shadow-brand p-2 z-50">
+                          {ASSETS_CENTER_CHILDREN.map((child) => {
+                            const childActive = isActive && activeAssetsCenterChild === child.key;
+                            return (
+                              <button
+                                key={child.key}
+                                onClick={() => {
+                                  onSelectAssetsCenterChild(child.defaultView);
+                                  setIsAssetsCenterOpen(false);
+                                }}
+                                className={`w-full text-left px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${
+                                  childActive
+                                    ? 'theme-shell-active'
+                                    : 'text-theme-text-secondary hover:bg-theme-elevated'
+                                }`}
+                              >
+                                {child.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </React.Fragment>
+                );
+              }
 
               if (item.id === 'system-admin') {
                 return (
