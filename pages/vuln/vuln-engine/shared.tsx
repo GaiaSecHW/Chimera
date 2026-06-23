@@ -58,7 +58,7 @@ export const DEFAULT_VALIDATION_FORM = {
 export const STAGE_OPTIONS = ['all', 'receive', 'triage', 'validation', 'finished'];
 export const DECISION_OPTIONS = ['issue', 'non_issue', 'observe'];
 export const VALIDATION_RESULT_OPTIONS = ['vulnerable', 'not_vulnerable', 'inconclusive'];
-export const FINISHED_REASON_OPTIONS = ['vulnerable', 'non_vulnerable', 'inconclusive', 'non_issue', 'observe', 'manual_terminated'];
+export const FINISHED_REASON_OPTIONS = ['vulnerable', 'not_vulnerable', 'inconclusive', 'manual_terminated'];
 export const ACTION_TYPES = ['analysis', 'validation', 'poc_generation', 'exp_generation', 'proof_verification', 'tool_feedback'];
 export const ACTION_QUEUE_FILTERS = ['all', 'queued', 'running', 'failed', 'cancelled', 'succeeded'];
 export const REPRO_ACTION_TYPES = ['validation', 'proof_verification', 'poc_generation', 'exp_generation'];
@@ -186,10 +186,13 @@ export const DECISION_LABELS: Record<string, string> = {
   issue: '问题',
   non_issue: '非问题',
   observe: '待观察',
+  vulnerable: '确认漏洞',
+  not_vulnerable: '不是漏洞',
 };
 
 export const FINISHED_REASON_LABELS: Record<string, string> = {
   vulnerable: '确认漏洞',
+  not_vulnerable: '不是漏洞',
   non_vulnerable: '验证非漏洞',
   inconclusive: '结果不确定',
   non_issue: '研判非问题',

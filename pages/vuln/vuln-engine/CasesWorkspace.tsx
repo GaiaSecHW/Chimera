@@ -175,6 +175,11 @@ export const CasesWorkspace: React.FC<any> = ({
   const succeededActionItems = actionItems.filter((item: any) => item.execution_status === 'succeeded');
   const latestProofVerificationAction = [...actionItems].find((item: any) => item.action_type === 'proof_verification');
   const latestVerificationSignal = [...resultItems].find((item: any) => item.result_type === 'validation' || item.result_type === 'timeout' || item.result_type === 'proof_verification');
+  const latestFinishedSummary = [...selectedTimeline]
+    .filter((item: any) => item.item_type === 'case_finished' || item.payload?.event_type === 'case_finished')
+    .sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || ''))
+    .map((item: any) => item.payload?.summary || item.payload?.payload?.transition_reason || item.payload?.payload?.reason || item.payload?.transition_reason || item.payload?.reason || '')
+    .find((value: string) => !!value);
   const triageChecklist = [
     { key: 'recommended', label: '已有推荐动作', done: recommendedActions.length > 0, helper:`${recommendedActions.length} 个` },
     { key: 'results', label: '已有分析/自动化结果', done: resultItems.length > 0, helper:`${resultItems.length} 条` },
@@ -954,7 +959,7 @@ export const CasesWorkspace: React.FC<any> = ({
                 <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-4">
                   <div className="rounded-lg px-4 py-4" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
                     <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>最后关键结果</div>
-                    <div className="mt-3 text-sm font-semibold" style={{ color: LK.ink }}>{latestVerificationSignal?.summary || '暂无关键结果摘要'}</div>
+                    <div className="mt-3 text-sm font-semibold" style={{ color: LK.ink }}>{latestFinishedSummary || latestVerificationSignal?.summary || '暂无关键结果摘要'}</div>
                     <div className="mt-2 text-xs" style={{ color: LK.body }}>
                       {latestVerificationSignal
                         ?`${latestVerificationSignal.source_service_id || '未知服务'} · ${formatTime(latestVerificationSignal.created_at)}`
@@ -1051,17 +1056,17 @@ export const CasesWorkspace: React.FC<any> = ({
                     <button key={stage} onClick={() => handleStageTransition(stage)} disabled={transitioningStage || stage === selectedCaseDetail.current_stage} className="px-3 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50" style={{ backgroundColor: stage === selectedCaseDetail.current_stage ? LK.surface : LK.surfaceRaised, color: stage === selectedCaseDetail.current_stage ? LK.muted : LK.body }} onMouseEnter={(e) => { if (!(transitioningStage || stage === selectedCaseDetail.current_stage)) e.currentTarget.style.color = LK.ink; }} onMouseLeave={(e) => { if (stage !== selectedCaseDetail.current_stage) e.currentTarget.style.color = LK.body; }}>{labelOf(stage, STAGE_LABELS)}</button>
                   ))}
                 </div>
-                {['triage', 'validation'].includes(selectedCaseDetail.current_stage) && (
+                {['triage', 'validation', 'finished'].includes(selectedCaseDetail.current_stage) && (
                   <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40` }}>
-                    <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.error }}>人工结束案例</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.error }}>{selectedCaseDetail.current_stage === 'finished' ? '修正终审结论' : '人工结束案例'}</div>
                     <select value={finishForm.finished_reason} onChange={(event) => setFinishForm({ ...finishForm, finished_reason: event.target.value })} className="form-select w-full text-xs font-semibold">
                       {FINISHED_REASON_OPTIONS.map((item) => (
                         <option key={item} value={item}>{labelOf(item, FINISHED_REASON_LABELS)}</option>
                       ))}
                     </select>
-                    <input value={finishForm.summary} onChange={(event) => setFinishForm({ ...finishForm, summary: event.target.value })} placeholder="结束说明（必填）" className="form-input w-full text-sm" />
+                    <input value={finishForm.summary} onChange={(event) => setFinishForm({ ...finishForm, summary: event.target.value })} placeholder={selectedCaseDetail.current_stage === 'finished' ? '判定原因（必填）' : '结束说明（必填）'} className="form-input w-full text-sm" />
                     <button onClick={handleFinishCase} disabled={submittingFinish} className="w-full px-3 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50" style={{ backgroundColor: LK.error, color: '#ffffff' }} onMouseEnter={(e) => { if (!submittingFinish) e.currentTarget.style.opacity = '0.9'; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}>
-                      {submittingFinish ? '结束中...' : '结束案例'}
+                      {submittingFinish ? '提交中...' : selectedCaseDetail.current_stage === 'finished' ? '重新判定' : '结束案例'}
                     </button>
                   </div>
                 )}

@@ -719,7 +719,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         .filter((item: any) => item.item_type === 'case_finished' || item.payload?.event_type === 'case_finished')
         .sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || ''));
       const text = finishedEvents
-        .map((item: any) => item.payload?.transition_reason || item.payload?.reason || '')
+        .map((item: any) => item.payload?.summary || item.payload?.payload?.transition_reason || item.payload?.payload?.reason || item.payload?.transition_reason || item.payload?.reason || '')
         .find((value: string) => !!value);
       return { source: 'human', text: text || '', engineName: '' };
     }
@@ -728,7 +728,22 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         .filter((record: any) => record && (record.status === 'completed' || record.result))
         .sort((a: any, b: any) => (b.completed_at || b.created_at || '').localeCompare(a.completed_at || a.created_at || ''));
       const top = completed[0];
-      return { source: 'engine', text: top?.reason || '', engineName: top?.engine_name || '' };
+      if (top?.engine_name) {
+        return { source: 'engine', text: top?.reason || '', engineName: top.engine_name };
+      }
+      // No engine confirm record: this validation_result came from a human submission
+      // via /validation/result (which writes a validation_result_updated event but no
+      // confirm record), not from an engine. Don't mislabel it as engine judgment.
+      const humanEvents = selectedTimeline
+        .filter((item: any) => item.payload?.event_type === 'validation_result_updated')
+        .sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || ''));
+      if (humanEvents.length > 0) {
+        const text = humanEvents
+          .map((item: any) => item.payload?.summary || '')
+          .find((value: string) => !!value);
+        return { source: 'human', text: text || '', engineName: '' };
+      }
+      return { source: '', text: '', engineName: '' };
     }
     return { source: '', text: '', engineName: '' };
   }, [selectedDetail, selectedTimeline, confirmRecords]);
@@ -890,6 +905,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       return;
     }
     setDetailLoading(true);
+    setSelectedDetail(null);
     setError(null);
     try {
       const [detail, timeline, reports, confirm] = await Promise.all([
@@ -2000,6 +2016,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   );
 
   const renderDetailView = () => {
+    if (detailLoading && !selectedDetail) {
+      return (
+        <div className="rounded-xl px-8 py-16 text-center text-sm border border-theme-border bg-theme-surface text-theme-text-muted">
+          <Loader2 size={20} className="mx-auto mb-3 animate-spin text-theme-text-faint" />
+          正在加载漏洞详情...
+        </div>
+      );
+    }
     if (!selectedDetail) {
       return (
         <div className="rounded-xl px-8 py-10 text-center text-sm border border-dashed border-theme-border bg-theme-surface text-theme-text-faint">
@@ -2164,9 +2188,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                             ? (toConclusionText(selectedDetail.finished_reason || selectedDetail.validation_result) || '—')
                             : '—'}
                         </div>
-                        {(selectedDetail.current_stage === 'finished' || selectedDetail.finished_reason) ? (
+                        {(selectedDetail.current_stage === 'finished' || selectedDetail.finished_reason) && (conclusionReason.source === 'engine' || conclusionReason.source === 'human') ? (
                           <div className="mt-1 text-[11px] font-medium text-theme-text-muted">
-                            来源: {selectedDetail.finished_reason ? '人工判定' : `${conclusionReason.engineName || '引擎'}判定`}
+                            来源: {conclusionReason.source === 'engine'
+                              ? `${conclusionReason.engineName || '引擎'}判定`
+                              : '人工判定'}
                           </div>
                         ) : null}
                         {conclusionReason.text ? (
@@ -2764,9 +2790,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                             <div className={`text-sm font-semibold ${(item.finished_reason || item.validation_result) === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-secondary'}`}>
                               {toConclusionText(item.finished_reason || item.validation_result)}
                             </div>
-                            <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
-                              来源: {item.finished_reason ? '人工判定' : `${item.confirm_engine_name || '引擎'}判定`}
-                            </div>
+                            {(item.finished_reason || item.confirm_engine_name) ? (
+                              <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
+                                来源: {item.finished_reason
+                                  ? '人工判定'
+                                  : `${item.confirm_engine_name}判定`}
+                              </div>
+                            ) : null}
                           </>
                         ) : (
                           <span className="text-sm text-theme-text-faint">—</span>
@@ -2786,8 +2816,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                               event.stopPropagation();
                               openManualConfirm(item);
                             }}
-                            disabled={manualConfirmSubmitting || !!item.finished_reason}
-                            title={item.finished_reason ? '已终审' : '确认漏洞'}
+                            disabled={manualConfirmSubmitting}
+                            title={item.finished_reason ? '重新判定' : '确认漏洞'}
                             aria-label={`确认漏洞 ${item.title}`}
                             className="btn btn-secondary btn-sm px-2"
                           >
