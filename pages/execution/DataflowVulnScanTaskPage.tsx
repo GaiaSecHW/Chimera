@@ -2316,7 +2316,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
               <label className="block text-sm text-theme-text-secondary">
                 任务名称 <span className="text-red-500">*</span>
                 <input
-                  className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm"
                   value={form.task_name}
                   onChange={(e) => setForm((p) => ({ ...p, task_name: e.target.value }))}
                   placeholder="例：登录模块数据流漏洞挖掘-2025"
@@ -2329,7 +2329,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                 <span className="ml-1 text-xs text-theme-text-muted">(待分析源代码所在目录)</span>
                 <div className="mt-1 flex gap-1">
                   <input
-                    className="flex-1 rounded-lg border border-theme-border px-3 py-2 text-sm font-mono"
+                    className="flex-1 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-mono"
                     value={form.input_path}
                     onChange={(e) => {
                       const v = e.target.value;
@@ -2471,7 +2471,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                 输出路径 <span className="text-theme-text-muted text-xs">(留空自动填充)</span>
                 <div className="mt-1 flex gap-1">
                   <input
-                    className="flex-1 rounded-lg border border-theme-border px-3 py-2 text-sm font-mono"
+                    className="flex-1 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-mono"
                     value={form.output_path}
                     onChange={(e) => setForm((p) => ({ ...p, output_path: e.target.value }))}
                     placeholder="/data/files/<project>/app/chimera-app-dataflow-vuln-scan"
@@ -2491,7 +2491,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
               <label className="block text-sm text-theme-text-secondary">
                 任务描述 <span className="text-theme-text-muted text-xs">(可选)</span>
                 <input
-                  className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm"
                   value={form.task_description}
                   onChange={(e) => setForm((p) => ({ ...p, task_description: e.target.value }))}
                   placeholder="简要说明分析目标或安全关注点"
