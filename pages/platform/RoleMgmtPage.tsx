@@ -214,7 +214,7 @@ export const RoleMgmtPage: React.FC = () => {
               </div>
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                  <div className="space-y-1.5">
-                    <label className="form-label">角色标识名称 *</label>
+                    <label className="form-label">角色标识名称 <span className="required"> *</span></label>
                     <input
                       required placeholder="e.g. security_auditor"
                       className="form-input w-full"

@@ -451,7 +451,7 @@ export const MachineTokenPage: React.FC = () => {
               ) : (
                 <form onSubmit={handleCreate} className="space-y-6 overflow-y-auto px-8 py-8">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.22em] text-theme-text-muted">机器唯一标识码 *</label>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.22em] text-theme-text-muted">机器唯一标识码 <span className="required"> *</span></label>
                     <input
                       required
                       placeholder="e.g. scanner-node-beijing-01"

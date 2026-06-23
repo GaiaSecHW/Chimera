@@ -670,7 +670,7 @@ export const DepartmentMemberPage: React.FC = () => {
                 <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto_1fr] gap-4 items-end">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-3">
-                      <label className="form-label">选择部门 *</label>
+                      <label className="form-label">选择部门 <span className="required"> *</span></label>
                       <button
                         type="button"
                         onClick={() => setDepartmentPickerSearchOpen((open) => !open)}
@@ -716,7 +716,7 @@ placeholder="输入部门名称筛选"
 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-3">
-                      <label className="form-label">选择用户 *</label>
+                      <label className="form-label">选择用户 <span className="required"> *</span></label>
                       <button
                         type="button"
                         onClick={() => setUserPickerSearchOpen((open) => !open)}
@@ -756,7 +756,7 @@ placeholder="输入用户名筛选"
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="form-label">角色 *</label>
+                <label className="form-label">角色 <span className="required"> *</span></label>
                 <select required className="form-select w-full" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
                   {getAvailableRoles().map((role) => (
                     <option key={role.value} value={role.value}>{role.label}</option>
@@ -786,7 +786,7 @@ placeholder="输入用户名筛选"
             </div>
             <form onSubmit={handleMoveMember} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="form-label">目标部门 *</label>
+                <label className="form-label">目标部门 <span className="required"> *</span></label>
                 <select required className="form-select w-full" value={moveDepartmentId} onChange={(e) => setMoveDepartmentId(e.target.value)}>
                   {departments.map((dept) => (
                     <option key={dept.id} value={dept.id}>{dept.name}</option>
@@ -816,7 +816,7 @@ placeholder="输入用户名筛选"
             </div>
             <form onSubmit={handleEditMember} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="form-label">角色 *</label>
+                <label className="form-label">角色 <span className="required"> *</span></label>
                 <select required className="form-select w-full" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
                   {getAvailableRoles().map((role) => (
                     <option key={role.value} value={role.value}>{role.label}</option>

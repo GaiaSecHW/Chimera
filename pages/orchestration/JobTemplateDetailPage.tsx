@@ -211,7 +211,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">模板名称 *</label>
+                <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">模板名称 <span className="required"> *</span></label>
                 <input
                   disabled={!isEditMode}
                   required placeholder="e.g. nmap-scanner"
@@ -378,7 +378,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">镜像 (Image) *</label>
+                      <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">镜像 (Image) <span className="required"> *</span></label>
                       <input
                         disabled={!isEditMode}
                         required placeholder="e.g. nmap:latest"

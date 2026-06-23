@@ -2146,7 +2146,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
 
               {/* 任务名称 */}
               <label className="form-label">
-                任务名称 <span className="text-red-500">*</span>
+                任务名称 <span className="required"> *</span>
                 <input
                   className="form-input w-full"
                   value={form.task_name}
@@ -2157,7 +2157,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
 
               {/* 模块目录 */}
               <label className="form-label">
-                模块目录 <span className="text-red-500">*</span>
+                模块目录 <span className="required"> *</span>
                 <span className="ml-1 text-xs text-theme-text-muted">(含 files.list 或子模块目录)</span>
                 <div className="mt-1 flex gap-1">
                   <input
@@ -2180,7 +2180,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               {/* 选择模块 */}
               <label className="form-label">
                 <span className="flex items-center gap-2">
-                  选择模块 <span className="text-red-500">*</span>
+                  选择模块 <span className="required"> *</span>
                   {loadingModules ? <Loader2 size={12} className="animate-spin text-violet-500" /> : null}
                   {!loadingModules && availableModules.length > 0 ? <span className="text-xs text-theme-text-muted">找到 {availableModules.length} 个模块</span> : null}
                   {!loadingModules && form.input_path.trim() && availableModules.length === 0 ? <span className="text-xs text-red-400">未找到模块</span> : null}
@@ -2221,7 +2221,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
 
               {/* 输出路径 */}
               <label className="form-label">
-                输出路径 <span className="text-red-500">*</span>
+                输出路径 <span className="required"> *</span>
                 <div className="mt-1 flex gap-1">
                   <input
                   className="form-input w-full"

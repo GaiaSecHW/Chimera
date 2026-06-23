@@ -3046,7 +3046,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 {/* Template Name */}
                 <div>
                   <label className="form-label">
-                    模版名称 <span className="text-red-500">*</span>
+                    模版名称 <span className="required"> *</span>
                   </label>
                   <input
                     type="text"
@@ -3280,7 +3280,7 @@ className="form-select col-span-2 text-xs"
                 {uploadTab === 'file' ? (
                   <div>
                     <label className="form-label">
-                      上传文件 <span className="text-red-500">*</span>
+                      上传文件 <span className="required"> *</span>
                     </label>
                     <div
                       onDragOver={(e) => {
@@ -3350,7 +3350,7 @@ className="form-select col-span-2 text-xs"
                 ) : (
                   <div>
                     <label className="form-label">
-                      YAML 内容 <span className="text-red-500">*</span>
+                      YAML 内容 <span className="required"> *</span>
                     </label>
                     <div className="bg-theme-surface rounded-xl p-5 relative">
                       <div className="absolute top-6 left-6 pointer-events-none z-10">

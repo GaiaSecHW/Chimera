@@ -831,11 +831,11 @@ export const AppInstancePage: React.FC<{
                   )}
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">实例名称 *</label>
+                      <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">实例名称 <span className="required"> *</span></label>
                       <input value={formData.name} onChange={(event) => setFormData({ ...formData, name: event.target.value })} className="form-input w-full" placeholder="例如：demo-nginx" />
                     </div>
                     <div>
-                      <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">Service 名称 *</label>
+                      <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">Service 名称 <span className="required"> *</span></label>
                       <input value={formData.service_name} onChange={(event) => setFormData({ ...formData, service_name: event.target.value })} className="form-input w-full" placeholder="例如：nginx-svc" />
                     </div>
                     <div className="md:col-span-2">

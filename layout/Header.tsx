@@ -184,20 +184,20 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="relative min-w-0 max-w-[18rem]" ref={projectDropdownRef}>
             <button
               onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-              className="flex items-center gap-3 px-4 py-2.5 theme-shell-muted rounded-lg text-sm font-semibold min-w-[12rem] max-w-[18rem]"
+              className="flex items-center gap-2.5 px-3.5 py-2.5 theme-shell-muted rounded-lg text-sm font-medium min-w-[12rem] max-w-[18rem]"
             >
-              <div className="w-2.5 h-2.5 rounded-full bg-brand-primary shrink-0" />
+              <div className="w-2 h-2 rounded-full bg-brand-primary shrink-0" />
               <span className="truncate">{currentProject.name}</span>
-              <ChevronDown size={16} className="shrink-0" />
+              <ChevronDown size={14} className="shrink-0 text-theme-text-faint" />
             </button>
             {isProjectDropdownOpen && (
-              <div className="absolute top-full right-0 mt-3 w-80 bg-theme-header border border-theme-sidebar rounded-xl shadow-brand p-3 z-50">
+              <div className="absolute top-full right-0 mt-2 w-72 bg-theme-surface border border-theme-border rounded-lg shadow-overlay p-2 z-50">
                 <input
                   placeholder="过滤项目..."
-                  className="w-full px-4 py-3 bg-theme-sidebar text-theme-text-inverse rounded-lg text-xs outline-none placeholder:text-theme-text-faint"
+                  className="form-input w-full text-xs placeholder:text-theme-text-faint"
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <div className="max-h-60 overflow-y-auto mt-2 space-y-1">
+                <div className="max-h-60 overflow-y-auto mt-1.5 space-y-0.5">
                   {projects.filter((p) => p.name.includes(searchQuery)).map((p) => (
                     <button
                       key={p.id}
@@ -205,8 +205,8 @@ export const Header: React.FC<HeaderProps> = ({
                         setSelectedProjectId(p.id);
                         setIsProjectDropdownOpen(false);
                       }}
-                      className={`w-full text-left px-4 py-3 rounded-xl text-xs font-medium ${
-                        selectedProjectId === p.id ? 'theme-shell-active' : 'text-theme-text-soft hover:bg-theme-sidebar hover:text-theme-text-inverse'
+                      className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                        selectedProjectId === p.id ? 'theme-shell-active' : 'text-theme-text-secondary hover:bg-theme-elevated'
                       }`}
                     >
                       {p.name}
