@@ -13,6 +13,7 @@ import {
   Download,
   FileCode2,
   FileClock,
+  Filter,
   FolderOpen,
   Key,
   Layers3,
@@ -171,6 +172,14 @@ const NORMAL_AUTH_PAYLOAD = {
       note: 'normal mode payload',
     },
   },
+};
+
+const STAGE_LABELS: Record<string, string> = {
+  all: '全部阶段',
+  receive: '已接收',
+  triage: '研判中',
+  validation: '研判中',
+  finished: '已结束',
 };
 
 const PUBLIC_FIELDS = [
@@ -400,6 +409,12 @@ const toStageText = (value?: string) => (value ? STAGE_TEXT[value] || value : '�
 const toStatusText = (value?: string) => (value ? STATUS_TEXT[value] || value : '未知');
 const toDecisionText = (value?: string) => (value ? DECISION_TEXT[value] || value : '未知');
 const toConclusionText = (value?: string) => (value ? CONCLUSION_TEXT[value] || DECISION_TEXT[value] || value : '未形成结论');
+const toUserVulnStatusText = (detail?: { current_status?: string; current_stage?: string } | null) => {
+  if (!detail) return '未知';
+  if (detail.current_status) return toStatusText(detail.current_status);
+  if (detail.current_stage) return toStageText(detail.current_stage);
+  return '未知';
+};
 
 const DOWNLOAD_STATUS_TEXT: Record<string, string> = {
   pending: '等待处理中',
@@ -654,6 +669,10 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [cvssBandFilter, setCvssBandFilter] = useState('all');
   const [reporterTypeFilter, setReporterTypeFilter] = useState('all');
   const [conclusionFilter, setConclusionFilter] = useState('all');
+  const [taskFilter, setTaskFilter] = useState<string[]>([]);
+  const [taskOptions, setTaskOptions] = useState<Array<{ id: string; name?: string }>>([]);
+  const [taskFilterOpen, setTaskFilterOpen] = useState(false);
+  const [finalResultFilter, setFinalResultFilter] = useState('all');
   const [sortField, setSortField] = useState<SortField>('updated_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -2624,62 +2643,24 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   <option value="medium">medium</option>
                   <option value="low">low</option>
                 </select>
-                <div ref={taskFilterRef} className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setTaskFilterOpen((open) => !open)}
-                    className="form-select flex items-center justify-between gap-2 text-left"
-                    style={{ width: '220px' }}
-                  >
-                    <span className="truncate">{selectedTaskFilterLabel}</span>
-                    <ChevronDown size={14} />
-                  </button>
-                  {taskFilterOpen && (
-                    <div className="absolute right-0 top-full z-50 mt-2 max-h-72 w-72 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
-                      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
-                        <input
-                          type="checkbox"
-                          checked={taskFilter.length === 0}
-                          onChange={clearTaskFilter}
-                          className="h-4 w-4 rounded border-theme-border"
-                        />
-                        全部任务
-                      </label>
-                      {taskOptions.map((task) => {
-                        const checked = taskFilter.includes(task.id);
-                        return (
-                          <label key={task.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleTaskFilter(task.id)}
-                              className="h-4 w-4 rounded border-theme-border"
-                            />
-                            <span className="min-w-0 truncate" title={task.name?.trim() || task.id}>{task.name?.trim() || task.id}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
                 <select
-                  value={finalResultFilter}
-                  onChange={(event) => setFinalResultFilter(event.target.value)}
-                  className="form-select"
-                  style={{ width: '140px' }}
+                  value={reporterTypeFilter}
+                  onChange={(event) => setReporterTypeFilter(event.target.value)}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none"
                 >
-                  <option value="all">全部结果</option>
-                  <option value="vulnerable">是漏洞</option>
-                  <option value="not_vulnerable">不是漏洞</option>
-                  <option value="inconclusive">无法判定</option>
-                  <option value="analyzing">分析中</option>
+                  <option value="all">全部来源方式</option>
+                  <option value="plugin">plugin</option>
+                  <option value="service">service</option>
+                  <option value="cli">cli</option>
+                  <option value="skill">skill</option>
+                  <option value="api">api</option>
+                  <option value="human">human</option>
+                  <option value="other">other</option>
                 </select>
-                <button
-                  type="button"
-                  onClick={handleCreateTaskDownloadJob}
-                  disabled={creatingDownload || taskFilter.length === 0}
-                  className="btn btn-secondary btn-sm"
-                  title={taskFilter.length === 0 ? '请先在全部任务下拉菜单中选择一个或多个任务' : undefined}
+                <select
+                  value={cvssBandFilter}
+                  onChange={(event) => setCvssBandFilter(event.target.value)}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none"
                 >
                   <option value="all">全部 CVSS 档位</option>
                   <option value="critical">critical (9.0-10.0)</option>
@@ -2999,7 +2980,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 </div>
               </div>
             </div>
-          </div>
         </>
         )}
         </>
