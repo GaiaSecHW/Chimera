@@ -897,7 +897,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
           {walk.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated p-12 text-center text-sm text-theme-text-muted">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div>
           ) : (
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+            <div className="grid gap-4 xl:grid-cols-2">
               {/* Left: ONE fused graph. Gets the larger share + tall canvas so
                   the top-down tree spreads out instead of being crushed. NOTE:
                   the app globally remaps Tailwind bg-white/bg-slate-50 → dark
