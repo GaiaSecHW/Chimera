@@ -191,7 +191,7 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           <input
             type="text"
             placeholder="检索任务 ID、服务名称或目标节点..."
- className="w-full pl-16 pr-8 py-5 bg-theme-elevated border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="form-input w-full pl-16 pr-8 py-5 font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
