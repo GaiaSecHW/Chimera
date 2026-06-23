@@ -4015,7 +4015,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                       value={firmwarePath}
                       onChange={(e) => setFirmwarePath(e.target.value)}
                       placeholder={`${FILESERVER_CONTAINER_ROOT}/<project>/<subproject>/firmware.bin`}
-                      className="w-full rounded-2xl border border-theme-border py-3 pl-9 pr-4 text-sm font-mono text-theme-text-primary outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                      className="form-input w-full font-mono"
                     />
                   </div>
                   <button
