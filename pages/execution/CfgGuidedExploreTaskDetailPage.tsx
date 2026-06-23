@@ -258,17 +258,18 @@ function extractChain(desc?: string): string[] {
 // ── Call graph (xyflow) ──────────────────────────────────────────────────────
 interface FnNodeData extends Record<string, unknown> { label: string; vuln: boolean; audited: boolean; selected: boolean; order: number }
 function FnNode({ data }: NodeProps<Node<FnNodeData>>) {
-  // Light bg + dark text (vuln = amber, not red, per request).
+  // Light bg + dark text (vuln = amber). Backgrounds via inline style because
+  // the app globally remaps bg-white/bg-slate-50 to dark theme vars.
   const tone = data.vuln
-    ? 'border-amber-400 bg-amber-50 text-amber-800'
+    ? { border: 'border-amber-400 text-amber-800', bg: '#fffbeb' }
     : data.audited
-      ? 'border-emerald-400 bg-emerald-50 text-emerald-800'
-      : 'border-slate-300 bg-white text-slate-700';
+      ? { border: 'border-emerald-400 text-emerald-800', bg: '#ecfdf5' }
+      : { border: 'border-slate-300 text-slate-700', bg: '#ffffff' };
   const ring = data.selected ? 'ring-2 ring-slate-900 ring-offset-1' : '';
   return (
-    <div className={`min-w-[150px] rounded-lg border px-3 py-2 text-[13px] font-semibold shadow-sm ${tone} ${ring}`} style={{ fontFamily: MONO }}>
+    <div className={`min-w-[150px] rounded-lg border px-3 py-2 text-[13px] font-semibold shadow-sm ${tone.border} ${ring}`} style={{ fontFamily: MONO, backgroundColor: tone.bg }}>
       <Handle type="target" position={Position.Top} className="!h-2 !w-2 !border !border-slate-400 !bg-slate-400" />
-      <span className="mr-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-900/10 text-[9px] font-bold text-slate-700">{data.order + 1}</span>
+      <span className="mr-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-slate-700" style={{ backgroundColor: 'rgba(15,23,42,0.1)' }}>{data.order + 1}</span>
       {data.label}
       <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !border !border-slate-400 !bg-slate-400" />
     </div>
@@ -823,18 +824,18 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
             <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated p-12 text-center text-sm text-theme-text-muted">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div>
           ) : (
             <div className="grid gap-4 xl:grid-cols-[440px_minmax(0,1fr)]">
-              {/* Left: ONE fused graph — review order (top→bottom) + call edges.
-                  Light "canvas card" (white frame + header) so the light flow
-                  area reads as an intentional canvas against the dark app. */}
-              <aside className="flex max-h-[calc(100vh-11rem)] min-h-[600px] flex-col overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-200 bg-slate-100 px-3 py-2 text-[11px] text-slate-500">
+              {/* Left: ONE fused graph. NOTE: the app globally remaps Tailwind
+                  bg-white/bg-slate-50 → dark theme vars (styles.css), so we set
+                  light surfaces via inline style to escape that hijack. */}
+              <aside className="flex max-h-[calc(100vh-11rem)] min-h-[600px] flex-col overflow-hidden rounded-2xl border border-slate-300 shadow-sm" style={{ backgroundColor: '#ffffff' }}>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-200 px-3 py-2 text-[11px] text-slate-500" style={{ backgroundColor: '#f1f5f9' }}>
                   <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700"><Workflow size={13} />审查顺序 / 调用图 · {walk.length}</span>
-                  <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-400 bg-emerald-50" />安全</span>
-                  <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-amber-400 bg-amber-50" />漏洞</span>
+                  <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-400" style={{ backgroundColor: '#ecfdf5' }} />安全</span>
+                  <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-amber-400" style={{ backgroundColor: '#fffbeb' }} />漏洞</span>
                   <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-slate-500" />调用 {callEdges.filter((e) => e.kind === 'call').length}</span>
                   <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 border-t border-dashed border-slate-400" />顺序 {callEdges.filter((e) => e.kind === 'flow').length}</span>
                 </div>
-                <div className="flex-1 bg-slate-50">
+                <div className="flex-1" style={{ backgroundColor: '#f8fafc', ['--xy-background-color' as any]: '#f8fafc' }}>
                   <ReactFlow
                     nodes={graph.nodes}
                     edges={graph.flowEdges}
@@ -844,7 +845,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                     nodesDraggable nodesConnectable={false} elementsSelectable panOnDrag zoomOnScroll
                     proOptions={{ hideAttribution: true }}
                   >
-                    <Background color="#e2e8f0" gap={18} />
+                    <Background color="#cbd5e1" gap={18} />
                     <Controls showInteractive={false} />
                   </ReactFlow>
                 </div>
