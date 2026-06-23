@@ -266,11 +266,11 @@ function FnNode({ data }: NodeProps<Node<FnNodeData>>) {
       : 'border-slate-300 bg-white text-slate-700';
   const ring = data.selected ? 'ring-2 ring-slate-900 ring-offset-1' : '';
   return (
-    <div className={`rounded-lg border px-3 py-2 text-[13px] font-semibold shadow-sm ${tone} ${ring}`} style={{ fontFamily: MONO }}>
-      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border !border-slate-400 !bg-slate-400" />
+    <div className={`min-w-[150px] rounded-lg border px-3 py-2 text-[13px] font-semibold shadow-sm ${tone} ${ring}`} style={{ fontFamily: MONO }}>
+      <Handle type="target" position={Position.Top} className="!h-2 !w-2 !border !border-slate-400 !bg-slate-400" />
       <span className="mr-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-900/10 text-[9px] font-bold text-slate-700">{data.order + 1}</span>
       {data.label}
-      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border !border-slate-400 !bg-slate-400" />
+      <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !border !border-slate-400 !bg-slate-400" />
     </div>
   );
 }
@@ -309,38 +309,32 @@ function buildCallEdges(walk: WalkFn[], walkFns: Record<string, CfgWalkFunction>
 }
 
 function layoutGraph(walk: WalkFn[], edges: CallEdge[], selectedFid: string | null): { nodes: Node<FnNodeData>[]; flowEdges: Edge[] } {
-  // Layer by BFS depth over 'call' edges; fall back to review order for x.
+  // Top-to-bottom by REVIEW ORDER (y = order). x is a small indent by call
+  // depth so the call-tree structure reads left→right within the vertical flow.
   const callEdges = edges.filter((e) => e.kind === 'call');
+  const adj = new Map<string, string[]>();
   const incoming = new Map<string, number>();
   walk.forEach((w) => incoming.set(w.fid, 0));
-  callEdges.forEach((e) => incoming.set(e.to, (incoming.get(e.to) || 0) + 1));
+  callEdges.forEach((e) => { adj.set(e.from, [...(adj.get(e.from) || []), e.to]); incoming.set(e.to, (incoming.get(e.to) || 0) + 1); });
+  // depth = call-chain depth (for horizontal indent only)
   const depth = new Map<string, number>();
-  const adj = new Map<string, string[]>();
-  callEdges.forEach((e) => adj.set(e.from, [...(adj.get(e.from) || []), e.to]));
-  const queue = walk.filter((w) => (incoming.get(w.fid) || 0) === 0).map((w) => w.fid);
-  queue.forEach((f) => depth.set(f, 0));
+  const roots = walk.filter((w) => (incoming.get(w.fid) || 0) === 0).map((w) => w.fid);
+  const queue = [...roots]; roots.forEach((f) => depth.set(f, 0));
   let qi = 0;
   while (qi < queue.length) {
     const cur = queue[qi++]; const d = depth.get(cur) || 0;
     for (const nx of adj.get(cur) || []) { if (!depth.has(nx)) { depth.set(nx, d + 1); queue.push(nx); } }
   }
-  walk.forEach((w, i) => { if (!depth.has(w.fid)) depth.set(w.fid, Math.min(6, Math.floor(i / 4))); });
-  const byDepth = new Map<number, string[]>();
-  walk.forEach((w) => { const d = depth.get(w.fid) || 0; byDepth.set(d, [...(byDepth.get(d) || []), w.fid]); });
-  const nodes: Node<FnNodeData>[] = walk.map((w) => {
-    const d = depth.get(w.fid) || 0;
-    const col = byDepth.get(d) || [];
-    const row = col.indexOf(w.fid);
-    return {
-      id: w.fid, type: 'fn',
-      position: { x: d * 230, y: row * 64 },
-      data: { label: w.name, vuln: isVulnResult(w.audit?.result), audited: Boolean(w.audit), selected: selectedFid === w.fid, order: w.order },
-    };
-  });
+  const ROW_H = 76, COL_W = 168;
+  const nodes: Node<FnNodeData>[] = walk.map((w) => ({
+    id: w.fid, type: 'fn',
+    position: { x: Math.min(depth.get(w.fid) || 0, 5) * COL_W, y: w.order * ROW_H },
+    data: { label: w.name, vuln: isVulnResult(w.audit?.result), audited: Boolean(w.audit), selected: selectedFid === w.fid, order: w.order },
+  }));
   const flowEdges: Edge[] = edges.map((e, i) => ({
     id: `e${i}_${e.from}_${e.to}`, source: e.from, target: e.to,
-    markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: e.kind === 'call' ? '#64748b' : '#cbd5e1' },
-    style: e.kind === 'call' ? { stroke: '#64748b' } : { stroke: '#cbd5e1', strokeDasharray: '4 4' },
+    markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15, color: e.kind === 'call' ? '#475569' : '#cbd5e1' },
+    style: e.kind === 'call' ? { stroke: '#475569', strokeWidth: 1.5 } : { stroke: '#cbd5e1', strokeDasharray: '4 4' },
     animated: false,
   }));
   return { nodes, flowEdges };
@@ -492,7 +486,6 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
   const [sessionMissing, setSessionMissing] = useState(false);
   const [walkFns, setWalkFns] = useState<Record<string, CfgWalkFunction>>({});
   const [siblings, setSiblings] = useState<{ task_id: string; function_name: string; status: string; finding_count: number }[] | null>(null);
-  const [navView, setNavView] = useState<'order' | 'graph'>('order');
   const [result, setResult] = useState<AppDfaTaskResult | null>(null);
   const [resultLoading, setResultLoading] = useState(false);
   const [resultView, setResultView] = useState<'findings' | 'report' | 'json'>('findings');
@@ -829,59 +822,30 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
           {walk.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-theme-border bg-theme-elevated p-12 text-center text-sm text-theme-text-muted">{sessionMissing ? '暂无审计走查数据' : '加载中...'}</div>
           ) : (
-            <div className="grid gap-4 xl:grid-cols-[420px_minmax(0,1fr)]">
-              {/* Left: navigation — review order list OR call graph (both select a fn) */}
-              <aside className="flex max-h-[calc(100vh-12rem)] min-h-[560px] flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-                <div className="flex items-center gap-1 border-b border-theme-border p-2">
-                  <button onClick={() => setNavView('order')} className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${navView === 'order' ? 'bg-slate-900 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}><Workflow size={13} />审查顺序 {walk.length}</button>
-                  <button onClick={() => setNavView('graph')} className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${navView === 'graph' ? 'bg-slate-900 text-white' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}><Network size={13} />调用图</button>
+            <div className="grid gap-4 xl:grid-cols-[440px_minmax(0,1fr)]">
+              {/* Left: ONE fused graph — review order (top→bottom) + call edges */}
+              <aside className="flex max-h-[calc(100vh-11rem)] min-h-[600px] flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-theme-border px-3 py-2 text-[11px] text-theme-text-muted">
+                  <span className="inline-flex items-center gap-1.5 font-semibold text-theme-text-secondary"><Workflow size={13} />审查顺序 / 调用图 · {walk.length}</span>
+                  <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-400 bg-emerald-50" />安全</span>
+                  <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-rose-400 bg-rose-50" />漏洞</span>
+                  <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-slate-500" />调用 {callEdges.filter((e) => e.kind === 'call').length}</span>
+                  <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 border-t border-dashed border-slate-400" />顺序 {callEdges.filter((e) => e.kind === 'flow').length}</span>
                 </div>
-                {navView === 'order' ? (
-                  <ol className="relative flex-1 space-y-0 overflow-auto p-3">
-                    {walk.map((w, i) => {
-                      const sel = selectedFn?.fid === w.fid;
-                      const vuln = isVulnResult(w.audit?.result);
-                      const last = i === walk.length - 1;
-                      return (
-                        <li key={w.fid} className="relative flex gap-2.5">
-                          <div className="relative flex flex-col items-center">
-                            <span className={`mt-2.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-bold ${vuln ? 'border-rose-400 bg-rose-50 text-rose-700' : w.audit ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-theme-border bg-theme-surface text-theme-text-muted'}`}>{i + 1}</span>
-                            {!last ? <span className="w-px flex-1 bg-slate-200" /> : null}
-                          </div>
-                          <button onClick={() => setSelectedFid(w.fid)} className={`mb-2 flex-1 rounded-xl border px-3 py-2.5 text-left transition ${sel ? 'border-slate-400 bg-slate-100 ring-1 ring-slate-300' : 'border-theme-border bg-theme-surface hover:bg-theme-elevated'}`}>
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="truncate font-mono text-sm font-semibold text-theme-text-primary">{w.name}</span>
-                              {vuln ? <Bug size={14} className="text-rose-500" /> : w.audit ? <ShieldCheck size={14} className="text-emerald-500" /> : null}
-                            </div>
-                            <div className="mt-1 truncate text-xs text-theme-text-muted">污点 {w.taint?.tainted_params_in?.length ? w.taint.tainted_params_in.join(', ') : '—'}{w.ts ? ` · ${w.ts.slice(11, 19)}` : ''}</div>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                ) : (
-                  <div className="flex flex-1 flex-col">
-                    <div className="flex flex-wrap items-center gap-2 px-3 py-1.5 text-[11px] text-theme-text-muted">
-                      <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-400 bg-emerald-50" />安全</span>
-                      <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-rose-400 bg-rose-50" />漏洞</span>
-                      <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 bg-slate-500" />调用 {callEdges.filter((e) => e.kind === 'call').length}</span>
-                      <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0.5 w-4 border-t border-dashed border-slate-400" />顺序 {callEdges.filter((e) => e.kind === 'flow').length}</span>
-                    </div>
-                    <div className="flex-1 border-t border-theme-border bg-slate-50">
-                      <ReactFlow
-                        nodes={graph.nodes}
-                        edges={graph.flowEdges}
-                        nodeTypes={fnNodeTypes}
-                        onNodeClick={(_, node) => setSelectedFid(node.id)}
-                        fitView nodesDraggable nodesConnectable={false} elementsSelectable panOnDrag zoomOnScroll
-                        proOptions={{ hideAttribution: true }}
-                      >
-                        <Background color="#e2e8f0" gap={18} />
-                        <Controls showInteractive={false} />
-                      </ReactFlow>
-                    </div>
-                  </div>
-                )}
+                <div className="flex-1 bg-slate-50">
+                  <ReactFlow
+                    nodes={graph.nodes}
+                    edges={graph.flowEdges}
+                    nodeTypes={fnNodeTypes}
+                    onNodeClick={(_, node) => setSelectedFid(node.id)}
+                    fitView fitViewOptions={{ maxZoom: 1 }} minZoom={0.2}
+                    nodesDraggable nodesConnectable={false} elementsSelectable panOnDrag zoomOnScroll
+                    proOptions={{ hideAttribution: true }}
+                  >
+                    <Background color="#e2e8f0" gap={18} />
+                    <Controls showInteractive={false} />
+                  </ReactFlow>
+                </div>
               </aside>
               {/* Right: detail — source code / model think / tool use */}
               {walkDetailPane}
