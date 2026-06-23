@@ -68,25 +68,6 @@ const TASK_TYPE_LABELS: Record<string, string> = {
   ai4red: 'AI4RED 红线验证',
   sechps_tool: 'Agent Harness 任务',
 };
-const TASK_DOWNSTREAM_VIEW: Record<string, string> = {
-  binary_firmware_e2e: 'binary-security-detail',
-  source_scan_e2e: 'source-security-detail',
-  kg_source_vuln_scan_e2e: 'kg-source-security-detail',
-  binary_module_e2e: 'binary-module-security-detail',
-  ai4app_fast: 'app-security-scan-detail',
-  ai4web_fast: 'app-security-scan-detail',
-  ai4app_deep: 'app-security-scan-detail',
-  ai4web_deep: 'app-security-scan-detail',
-  ai4red: 'task-redline-detail',
-};
-const TASK_ID_KEY: Record<string, string> = {
-  'binary-security-detail': 'binarySecurityTaskId',
-  'source-security-detail': 'sourceSecurityTaskId',
-  'kg-source-security-detail': 'binarySecurityTaskId',
-  'binary-module-security-detail': 'binaryModuleSecurityTaskId',
-  'app-security-scan-detail': 'appScanTaskId',
-  'task-redline-detail': 'redlineTaskId',
-};
 const getTaskTypeLabel = (t: string) => TASK_TYPE_LABELS[t] || t;
 const getTaskHarnessLabel = (task: any) =>
   task.task_type === 'sechps_tool' ? (task.agent_app_name || 'Agent Harness') : getTaskTypeLabel(String(task.task_type || ''));
