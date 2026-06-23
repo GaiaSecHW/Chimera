@@ -386,13 +386,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
       <PageHeader
         title="任务中心"
         description="统一展示当前项目下的所有测试任务，追踪分发、执行与同步状态"
-        actions={
-          <div className="flex items-center gap-2">
-            <button onClick={openDeleteQueue} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><Shield size={15} />删除队列</button>
-            <button onClick={() => void loadData()} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><RefreshCw size={15} />刷新</button>
-            <button onClick={openCreateDialog} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}><Plus size={15} />创建任务</button>
-          </div>
-        }
       />
 
       <div className="grid gap-3 md:grid-cols-5">
@@ -453,25 +446,23 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
       ) : null}
 
       <div
-        className="flex items-center justify-between gap-3 rounded-lg px-4 py-3"
+        className="flex items-center gap-2 rounded-lg px-4 py-3"
         style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
       >
-        <div className="text-sm" style={{ color: LK.body }}>
-          当前页已选 <span style={{ color: LK.ink }}>{selectedTaskIds.length}</span> 项
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => void submitDelete(selectedTaskIds)}
-            disabled={!selectedTaskIds.length || deleteSubmitting}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ backgroundColor: LK.error, color: '#ffffff' }}
-            onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#e04848'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.error; }}
-          >
-            {deleteSubmitting ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
-            批量删除（{selectedTaskIds.length}）
-          </button>
-        </div>
+        <button onClick={openCreateDialog} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}><Plus size={15} />创建任务</button>
+        <button
+          onClick={() => void submitDelete(selectedTaskIds)}
+          disabled={!selectedTaskIds.length || deleteSubmitting}
+          className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+          style={{ backgroundColor: LK.error, color: '#ffffff' }}
+          onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#e04848'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.error; }}
+        >
+          {deleteSubmitting ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+          批量删除（{selectedTaskIds.length}）
+        </button>
+        <button onClick={() => void loadData()} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><RefreshCw size={15} />刷新</button>
+        <div className="flex-1" />
       </div>
 
       {error ? (
