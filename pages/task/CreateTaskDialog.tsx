@@ -41,14 +41,15 @@ type TaskTypeOption = {
   label: string;
   downstreamView?: string;
   modes: readonly TaskMode[];
+  disabled?: boolean;
 };
 
 const TASK_TYPES: readonly TaskTypeOption[] = [
-  { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail', modes: ['dragon-tail', 'ram-horn'] },
+  { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail', modes: ['dragon-tail', 'ram-horn'], disabled: true },
   { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'cfg_db_vuln', label: 'CFG-挖掘工具', downstreamView: 'cfg-db-vuln-detail', modes: ['dragon-tail', 'ram-horn'] },
-  { value: 'kg_source_vuln_scan_e2e', label: '知识图谱-漏洞挖掘', downstreamView: 'kg-source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
-  { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail', modes: ['dragon-tail', 'ram-horn'] },
+  { value: 'kg_source_vuln_scan_e2e', label: '知识图谱-漏洞挖掘', downstreamView: 'kg-source-security-detail', modes: ['dragon-tail', 'ram-horn'], disabled: true },
+  { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail', modes: ['dragon-tail', 'ram-horn'], disabled: true },
   { value: 'ai4app_fast', label: 'AI4APP 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
   { value: 'ai4web_fast', label: 'AI4WEB 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
   { value: 'ai4app_deep', label: 'AI4APP 扫描（深度）', downstreamView: 'app-security-scan-detail', modes: ['ram-horn'] },
@@ -56,6 +57,8 @@ const TASK_TYPES: readonly TaskTypeOption[] = [
   { value: 'ai4red', label: 'AI4RED 红线验证', downstreamView: 'task-redline-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'sechps_tool', label: 'Agent Harness 任务', modes: ['dragon-tail', 'ram-horn'] },
 ];
+
+const DISABLED_TASK_TYPE_MESSAGE = '该任务类型已临时禁用，请勿从调度中心创建。';
 
 const CREATE_TABS = [
   { key: 'basic', label: '基础信息' },
@@ -154,7 +157,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [activeCreateTab, setActiveCreateTab] = useState<(typeof CREATE_TABS)[number]['key']>('basic');
-  const [taskType, setTaskType] = useState<(typeof TASK_TYPES)[number]['value']>('binary_firmware_e2e');
+  const [taskType, setTaskType] = useState<(typeof TASK_TYPES)[number]['value']>('source_scan_e2e');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [mode, setMode] = useState('dragon-tail');
@@ -191,6 +194,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const rootBrowse = browseCache[''] || null;
   const isDirectorySelectionValid = directorySelectionTouched && selectedRelativePath !== null;
   const taskTypeMeta = useMemo(() => TASK_TYPES.find((item) => item.value === taskType) || TASK_TYPES[0], [taskType]);
+  const taskTypeDisabled = Boolean(taskTypeMeta?.disabled);
   const isKgSourceTask = taskType === 'kg_source_vuln_scan_e2e';
   const availableTaskTypes = useMemo(
     () => TASK_TYPES.filter((item) => item.modes.includes(mode as TaskMode)),
@@ -215,7 +219,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     return '请选择一个文件作为测试对象。';
   }, [selectionMode, taskType]);
 
-  const canCreateTask = mode !== 'lion-head' && (
+  const canCreateTask = !taskTypeDisabled && mode !== 'lion-head' && (
     taskType === 'cfg_db_vuln'
       // CFG mining runs over an existing, already-ingested code upload (its
       // codemap graph must exist); just need a name + a selected record.
@@ -288,8 +292,9 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   /* --- keep taskType valid for the selected mode --- */
   useEffect(() => {
     if (mode === 'lion-head') return;
-    if (!availableTaskTypes.some((item) => item.value === taskType)) {
-      setTaskType(availableTaskTypes[0]?.value || 'binary_firmware_e2e');
+    const enabledTaskTypes = availableTaskTypes.filter((item) => !item.disabled);
+    if (!enabledTaskTypes.some((item) => item.value === taskType)) {
+      setTaskType(enabledTaskTypes[0]?.value || 'source_scan_e2e');
     }
   }, [mode, availableTaskTypes, taskType]);
 
@@ -392,6 +397,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setSaving(true);
     setError('');
     try {
+      if (taskTypeDisabled) {
+        setError(DISABLED_TASK_TYPE_MESSAGE);
+        return;
+      }
       // CFG-挖掘工具: our own two-stage pipeline, not the schedule-center flow.
       // Runs over the selected code upload's root (codemap graph keyed by that
       // upload_id), then opens the CFG detail view.
@@ -715,9 +724,21 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
                   onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
                 >
-                  {availableTaskTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                  {availableTaskTypes.map((item) => (
+                    <option key={item.value} value={item.value} disabled={item.disabled}>
+                      {item.label}{item.disabled ? '（已禁用）' : ''}
+                    </option>
+                  ))}
                 </select>
               </label>
+              {taskTypeDisabled ? (
+                <div
+                  className="rounded-lg px-4 py-3 text-sm"
+                  style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
+                >
+                  {DISABLED_TASK_TYPE_MESSAGE}
+                </div>
+              ) : null}
 
               {/* sechps Agent Harness specific */}
               {taskType === 'sechps_tool' ? (
