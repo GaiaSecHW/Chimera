@@ -366,6 +366,7 @@ const STAGE_TEXT: Record<string, string> = {
   validation: '研判中',
   finished: '已结束',
 };
+const STAGE_LABELS = STAGE_TEXT;
 
 const STATUS_TEXT: Record<string, string> = {
   pending: '已接收',
@@ -677,6 +678,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [taskFilter, setTaskFilter] = useState<string[]>([]);
+  const [taskOptions, setTaskOptions] = useState<any[]>([]);
+  const [taskFilterOpen, setTaskFilterOpen] = useState(false);
   const [showSdkDialog, setShowSdkDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [catalog, setCatalog] = useState<any | null>(null);
@@ -2727,6 +2731,15 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   <option value="medium">medium (4.0-6.9)</option>
                   <option value="low">low (0.1-3.9)</option>
                 </select>
+                <button
+                  type="button"
+                  onClick={handleCreateTaskDownloadJob}
+                  disabled={creatingDownload || taskFilter.length === 0}
+                  className="btn btn-secondary btn-sm"
+                  title={taskFilter.length === 0 ? '请先在全部任务下拉菜单中选择一个或多个任务' : undefined}
+                >
+                  {creatingDownload ? '创建下载任务中...' : '创建下载任务'}
+                </button>
                 <select
                   value={conclusionFilter}
                   onChange={(event) => setConclusionFilter(event.target.value)}
@@ -2742,7 +2755,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   <option value="manual_terminated">人工终止</option>
                 </select>
               </div>
-            </div>
 
               {hasActiveConclusionFilter && (
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3">
@@ -2820,7 +2832,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               )}
 
               <div className="overflow-hidden rounded-[1.25rem] border border-slate-200">
-                  <div className="grid grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_0.9fr_1.1fr_0.7fr_0.9fr] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
+                <div className="grid grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_0.9fr_1.1fr_0.7fr_0.9fr] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
                   <div className="flex items-center justify-center">
                     <input
                       type="checkbox"
@@ -3056,7 +3068,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               </div>
             </div>
         </>
-        )}
+          )}
         </>
       ) : (
         renderDetailView()
