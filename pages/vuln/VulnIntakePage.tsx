@@ -48,7 +48,7 @@ interface VulnPageProps {
 
 type PublicKind = 'cli' | 'plugin' | 'skill' | 'openapi';
 type AuthExampleMode = 'simple' | 'normal';
-type SortField = 'title' | 'current_stage' | 'severity' | 'reporter' | 'subject' | 'updated_at' | 'confidence' | 'cvss_score';
+type SortField = 'title' | 'current_stage' | 'severity' | 'reporter' | 'subject' | 'updated_at' | 'created_at' | 'confidence' | 'cvss_score';
 type SortDirection = 'asc' | 'desc';
 type IntakeDetailTab = 'overview' | 'report' | 'evidence' | 'process' | 'context';
 type IntakeRootTab = 'cases' | 'download-center';
@@ -297,8 +297,21 @@ const getCaseSortValue = (item: any, field: SortField) => {
   if (field === 'reporter') return item?.reporter?.name || '';
   if (field === 'subject') return item?.subject?.locator || '';
   if (field === 'updated_at') return parseTimeMs(item?.updated_at || item?.created_at);
+  if (field === 'created_at') return parseTimeMs(item?.created_at);
   if (field === 'confidence' || field === 'cvss_score') return Number(item?.[field] || 0);
   return String(item?.[field] || '').toLowerCase();
+};
+
+const matchesFinalResultFilter = (item: any, filters: string[]) => {
+  if (!filters || filters.length === 0) return true;
+  const isTerminal = item.current_stage === 'finished' || !!item.finished_reason;
+  const effective = isTerminal ? String(item.finished_reason || item.validation_result || '').trim() : '';
+  return filters.some((f) => {
+    if (f === 'analyzing') return !isTerminal;
+    if (f === 'not_vulnerable') return effective === 'not_vulnerable' || effective === 'non_vulnerable';
+    if (f === 'inconclusive') return effective === 'inconclusive' || effective === 'manual_terminated';
+    return effective === f;
+  });
 };
 
 const sortCases = (items: any[], field: SortField, direction: SortDirection) => {
@@ -577,7 +590,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [taskFilter, setTaskFilter] = useState<string[]>([]);
   const [taskOptions, setTaskOptions] = useState<Array<{ id: string; name?: string }>>([]);
   const [taskFilterOpen, setTaskFilterOpen] = useState(false);
-  const [finalResultFilter, setFinalResultFilter] = useState('all');
+  const [finalResultFilter, setFinalResultFilter] = useState<string[]>([]);
+  const [finalResultFilterOpen, setFinalResultFilterOpen] = useState(false);
+  const finalResultFilterRef = useRef<HTMLDivElement | null>(null);
   const [sortField, setSortField] = useState<SortField>('updated_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -755,16 +770,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         sort_field: sortField,
         sort_direction: sortDirection,
       };
-      const matchesFinalResult = (item: any) => {
-        if (finalResultFilter === 'all') return true;
-        const isTerminal = item.current_stage === 'finished' || !!item.finished_reason;
-        if (finalResultFilter === 'analyzing') return !isTerminal;
-        const effective = isTerminal ? String(item.finished_reason || item.validation_result || '').trim() : '';
-        if (finalResultFilter === 'not_vulnerable') return effective === 'not_vulnerable' || effective === 'non_vulnerable';
-        if (finalResultFilter === 'inconclusive') return effective === 'inconclusive' || effective === 'manual_terminated';
-        return effective === finalResultFilter;
-      };
-      const needsClientFilter = finalResultFilter !== 'all';
+      const matchesFinalResult = (item: any) => matchesFinalResultFilter(item, finalResultFilter);
+      const needsClientFilter = finalResultFilter.length > 0;
       if (taskFilter.length <= 1 && !needsClientFilter) {
         const response = await vulnApi.vuln.listCases({
           ...baseParams,
@@ -1226,6 +1233,29 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   }, [taskFilterOpen]);
 
   useEffect(() => {
+    if (!finalResultFilterOpen) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!finalResultFilterRef.current?.contains(event.target as Node)) {
+        setFinalResultFilterOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFinalResultFilterOpen(false);
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [finalResultFilterOpen]);
+
+  const toggleFinalResultFilter = (value: string) => {
+    setFinalResultFilter((current) => (current.includes(value) ? current.filter((v) => v !== value) : [...current, value]));
+  };
+  const clearFinalResultFilter = () => setFinalResultFilter([]);
+
+  useEffect(() => {
     if (showSdkDialog && !catalog) {
       loadPublicAssets();
     }
@@ -1673,15 +1703,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         sort_field: sortField,
         sort_direction: sortDirection,
       };
-      const matchesFinalResult = (item: any) => {
-        if (finalResultFilter === 'all') return true;
-        const isTerminal = item.current_stage === 'finished' || !!item.finished_reason;
-        if (finalResultFilter === 'analyzing') return !isTerminal;
-        const effective = isTerminal ? String(item.finished_reason || item.validation_result || '').trim() : '';
-        if (finalResultFilter === 'not_vulnerable') return effective === 'not_vulnerable' || effective === 'non_vulnerable';
-        if (finalResultFilter === 'inconclusive') return effective === 'inconclusive' || effective === 'manual_terminated';
-        return effective === finalResultFilter;
-      };
+      const matchesFinalResult = (item: any) => matchesFinalResultFilter(item, finalResultFilter);
       const ids: string[] = [];
       const taskIds = taskFilter.length > 0 ? taskFilter : [undefined];
       for (const taskId of taskIds) {
@@ -1776,6 +1798,18 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     : taskFilter.length === 1
       ? taskOptions.find((task) => task.id === taskFilter[0])?.name?.trim() || taskFilter[0]
       : `已选 ${taskFilter.length} 个任务`;
+
+  const FINAL_RESULT_OPTIONS: Array<{ value: string; label: string }> = [
+    { value: 'vulnerable', label: '是漏洞' },
+    { value: 'not_vulnerable', label: '不是漏洞' },
+    { value: 'inconclusive', label: '无法判定' },
+    { value: 'analyzing', label: '分析中' },
+  ];
+  const selectedFinalResultLabel = finalResultFilter.length === 0
+    ? '全部结果'
+    : finalResultFilter.length === 1
+      ? FINAL_RESULT_OPTIONS.find((o) => o.value === finalResultFilter[0])?.label || finalResultFilter[0]
+      : `已选 ${finalResultFilter.length} 项`;
 
   const taskNameById = useMemo(
     () => new Map(taskOptions.map((task) => [task.id, task.name?.trim() || task.id])),
@@ -2582,18 +2616,44 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     </div>
                   )}
                 </div>
-                <select
-                  value={finalResultFilter}
-                  onChange={(event) => setFinalResultFilter(event.target.value)}
-                  className="form-select"
-                  style={{ width: '140px' }}
-                >
-                  <option value="all">全部结果</option>
-                  <option value="vulnerable">是漏洞</option>
-                  <option value="not_vulnerable">不是漏洞</option>
-                  <option value="inconclusive">无法判定</option>
-                  <option value="analyzing">分析中</option>
-                </select>
+                <div ref={finalResultFilterRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setFinalResultFilterOpen((open) => !open)}
+                    className="form-select flex items-center justify-between gap-2 text-left"
+                    style={{ width: '160px' }}
+                  >
+                    <span className="truncate">{selectedFinalResultLabel}</span>
+                    <ChevronDown size={14} />
+                  </button>
+                  {finalResultFilterOpen ? (
+                    <div className="absolute right-0 top-full z-50 mt-2 max-h-72 w-56 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
+                      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
+                        <input
+                          type="checkbox"
+                          checked={finalResultFilter.length === 0}
+                          onChange={clearFinalResultFilter}
+                          className="h-4 w-4 rounded border-theme-border"
+                        />
+                        全部结果
+                      </label>
+                      {FINAL_RESULT_OPTIONS.map((opt) => {
+                        const checked = finalResultFilter.includes(opt.value);
+                        return (
+                          <label key={opt.value} className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleFinalResultFilter(opt.value)}
+                              className="h-4 w-4 rounded border-theme-border"
+                            />
+                            <span className="min-w-0 truncate">{opt.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
                 <button
                   type="button"
                   onClick={handleCreateTaskDownloadJob}
@@ -2609,7 +2669,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
             <div className="space-y-4 px-5 py-4 xl:px-6">
               <div className="overflow-hidden rounded-xl border border-theme-border">
-                  <div className="grid grid-cols-[0.4fr_1.5fr_2.2fr_0.9fr_1.1fr_0.7fr_1.2fr_1.1fr_0.9fr] gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2.5">
+                  <div className="grid grid-cols-[0.4fr_1.5fr_2.2fr_0.9fr_1.1fr_0.7fr_1.2fr_1.1fr_1.1fr_0.9fr] gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2.5">
                   <div className="flex items-center justify-center">
                     <input
                       type="checkbox"
@@ -2626,6 +2686,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   {renderSortHeader('等级', 'severity')}
                   {renderSortHeader('工具', 'reporter')}
                   {renderSortHeader('更新时间', 'updated_at')}
+                  {renderSortHeader('创建时间', 'created_at')}
                   <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">操作</div>
                 </div>
                 {loading ? (
@@ -2645,7 +2706,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           setSelectedSuspicionId(item.id);
                         }
                       }}
-                      className="grid cursor-pointer grid-cols-[0.4fr_1.5fr_2.2fr_0.9fr_1.1fr_0.7fr_1.2fr_1.1fr_0.9fr] gap-3 border-b border-theme-border-subtle bg-theme-surface px-4 py-3.5 text-left transition hover:bg-theme-elevated last:border-b-0"
+                      className="grid cursor-pointer grid-cols-[0.4fr_1.5fr_2.2fr_0.9fr_1.1fr_0.7fr_1.2fr_1.1fr_1.1fr_0.9fr] gap-3 border-b border-theme-border-subtle bg-theme-surface px-4 py-3.5 text-left transition hover:bg-theme-elevated last:border-b-0"
                     >
                       <div className="flex items-center justify-center">
                         <input
@@ -2697,6 +2758,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         <div className="mt-0.5 text-xs text-theme-text-faint">{item.reporter?.version || 'n/a'}</div>
                       </div>
                       <div className="text-sm text-theme-text-muted">{formatTime(item.updated_at || item.created_at)}</div>
+                      <div className="text-sm text-theme-text-muted">{formatTime(item.created_at)}</div>
                       <div>
                         <div className="flex flex-wrap gap-1.5">
                           <button
