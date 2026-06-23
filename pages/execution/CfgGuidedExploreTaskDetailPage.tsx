@@ -898,12 +898,12 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
                   bg-white/bg-slate-50 → dark theme vars (styles.css), so we set
                   light surfaces via inline style to escape that hijack. */}
               <aside className="flex max-h-[calc(100vh-11rem)] min-h-[600px] flex-col overflow-hidden rounded-2xl border border-slate-300 shadow-sm" style={{ backgroundColor: '#f1f5f9' }}>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-300 px-3 py-2 text-[11px] text-slate-700" style={{ backgroundColor: '#e2e8f0' }}>
-                  <span className="inline-flex items-center gap-1.5 font-semibold text-slate-900"><Workflow size={13} />审查顺序 / 调用图 · {walk.length}</span>
-                  <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-500" style={{ backgroundColor: '#ecfdf5' }} />安全</span>
-                  <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded border border-amber-500" style={{ backgroundColor: '#fffbeb' }} />漏洞</span>
-                  <span className="inline-flex items-center gap-1.5 text-slate-600"><span className="inline-block h-0.5 w-4 bg-slate-500" />调用 {callEdges.filter((e) => e.kind === 'call').length}</span>
-                  {treeCount > 1 ? <span className="inline-flex items-center gap-1 text-slate-600" title="审计图中存在多个互不相连的调用树:入口函数的静态调用图未覆盖到的函数(如经回调/间接调用到达)会形成独立的树">{treeCount} 棵树</span> : null}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-300 px-3 py-2 text-[11px]" style={{ backgroundColor: '#e2e8f0', color: '#334155' }}>
+                  <span className="inline-flex shrink-0 items-center gap-1 font-semibold" style={{ color: '#0f172a' }}><Workflow size={13} />调用图 · {walk.length}</span>
+                  <span className="inline-flex items-center gap-1" style={{ color: '#334155' }}><span className="inline-block h-2.5 w-2.5 rounded border border-emerald-500" style={{ backgroundColor: '#ecfdf5' }} />安全</span>
+                  <span className="inline-flex items-center gap-1" style={{ color: '#334155' }}><span className="inline-block h-2.5 w-2.5 rounded border border-amber-500" style={{ backgroundColor: '#fffbeb' }} />漏洞</span>
+                  <span className="inline-flex items-center gap-1.5" style={{ color: '#475569' }}><span className="inline-block h-0.5 w-4" style={{ backgroundColor: '#475569' }} />调用 {callEdges.filter((e) => e.kind === 'call').length}</span>
+                  {treeCount > 1 ? <span className="inline-flex items-center gap-1" style={{ color: '#475569' }} title="审计图中存在多个互不相连的调用树:入口函数的静态调用图未覆盖到的函数(如经回调/间接调用到达)会形成独立的树">{treeCount} 棵树</span> : null}
                 </div>
                 <div className="flex-1" style={{ backgroundColor: '#f8fafc', ['--xy-background-color' as any]: '#f8fafc' }}>
                   <WalkGraph layout={graph} selectedFid={selectedFn?.fid || null} onSelect={setSelectedFid} />
