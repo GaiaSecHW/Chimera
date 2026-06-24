@@ -18,7 +18,7 @@ import React, { useEffect, useRef, useState } from 'react';
 
 const getTabStyle = (item: TopLevelNavItem, isActive: boolean): React.CSSProperties => {
   if (isActive) {
-    if (!item.role) return { background: '#6366f1', color: '#fff', boxShadow: '0 2px 12px rgba(99,102,241,0.32)' };
+    if (!item.role) return { background: '#2563EB', color: '#fff', boxShadow: '0 2px 12px rgba(99,102,241,0.32)' };
     const cfg = NAV_ROLE_CONFIG[item.role!];
     return { background: cfg.activeBg, color: '#fff', boxShadow: `0 2px 12px ${cfg.color}52` };
   }
@@ -117,12 +117,12 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="bg-theme-header border-b border-theme-sidebar shadow-brand z-20 sticky top-0">
-      <div className="h-14 px-6 xl:px-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+      <div className="h-14 px-4 flex items-center gap-4">
         <div className="flex items-center gap-4 min-w-0">
           <ThemeLogo size="small" showBadge={false} />
         </div>
 
-        <div className="flex justify-start min-w-0 overflow-visible">
+        <div className="flex justify-start  flex-1 min-w-0 overflow-visible">
           <nav className="flex items-center gap-1 flex-wrap max-w-full">
             {visibleNavItems.map((item) => {
               const isActive = currentTopLevelNav === item.id;
@@ -141,9 +141,9 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <button
                         onClick={() => setIsAssetsCenterOpen((v) => !v)}
-                        style={getTabStyle(item, isActive)}
+                        // style={getTabStyle(item, isActive)}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
-                          isActive ? '' : 'hover:bg-theme-sidebar-muted hover:text-theme-text-inverse'
+                          isActive ? 'head-tab-active' : 'head-tab-hover'
                         }`}
                       >
                         {item.label}
@@ -191,9 +191,10 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <button
                         onClick={() => setIsSystemAdminOpen((v) => !v)}
-                        style={getTabStyle(item, isActive)}
+                        //style={getTabStyle(item, isActive)}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
-                          isActive ? '' : 'hover:bg-theme-sidebar-muted hover:text-theme-text-inverse'
+                          //isActive ? '' : 'hover:bg-theme-sidebar-muted hover:text-theme-text-inverse'
+                            isActive ? 'head-tab-active' : 'head-tab-hover'
                         }`}
                       >
                         {item.label}
@@ -234,9 +235,10 @@ export const Header: React.FC<HeaderProps> = ({
                   )}
                   <button
                     onClick={() => onSelectTopLevelNav(item.id)}
-                    style={getTabStyle(item, isActive)}
+                    // style={getTabStyle(item, isActive)}
                     className={`px-3 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
-                      isActive ? '' : 'hover:bg-theme-sidebar-muted hover:text-theme-text-inverse'
+                      // isActive ? '' : 'hover:bg-theme-sidebar-muted hover:text-theme-text-inverse'
+                        isActive ? 'head-tab-active' : 'head-tab-hover'
                     }`}
                   >
                     {item.label}

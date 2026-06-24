@@ -9,10 +9,10 @@ import type {
 import type { RuntimeDiagnosis, RuntimeOwnerTopology } from '../../utils/binarySecurityRuntimeHealth';
 
 const LK = {
-  surfaceRaised: '#18233a',
-  border: '#26324a',
-  body: '#a4aec4',
-  muted: '#72809a',
+  surfaceRaised: 'var(--bg-app)',
+  border: 'var(--border-default)',
+  body: 'var(--text-secondary)',
+  muted: 'var(--text-secondary)',
   success: '#45c06f',
   warning: '#d5a13a',
   error: '#f15d5d',
