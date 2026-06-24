@@ -48,3 +48,27 @@ export function resolveBatchCreateCodeRoot(
   }
   return resolveCaseCodeRoot(item);
 }
+
+export function resolveCaseSourceFile(item: PendingVerifyCase): string | null {
+  const subject = item.subject || {};
+  const locator = subject.locator || '';
+  if (!locator) return null;
+  const parts = locator.split('/');
+  return parts[0] || null;
+}
+
+export function resolveCaseFunctionName(item: PendingVerifyCase): string | null {
+  const subject = item.subject || {};
+  const locator = subject.locator || '';
+  if (!locator) return null;
+  const parts = locator.split('/');
+  return parts[1] || null;
+}
+
+export function resolveCaseCweType(item: PendingVerifyCase): string | null {
+  const subject = item.subject || {};
+  const locator = subject.locator || '';
+  if (!locator) return null;
+  const parts = locator.split('/');
+  return parts[2] || null;
+}

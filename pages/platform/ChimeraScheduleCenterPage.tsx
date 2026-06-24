@@ -1159,21 +1159,18 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
  <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
 
               <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.5fr_repeat(4,minmax(0,0.9fr))] 2xl:grid-cols-[1.7fr_repeat(4,minmax(0,0.85fr))_auto] xl:items-end">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.5fr_repeat(3,minmax(0,0.9fr))_auto] 2xl:grid-cols-[1.7fr_repeat(3,minmax(0,0.85fr))_auto] xl:items-end">
                   <div className="block">
-                    <div className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2">
-                      <Search size={16} className="text-theme-text-muted" />
-                      <input
-                        value={filters.search}
-                        onChange={(event) => {
-                          const next = event.target.value;
-                          setFilters((current) => ({ ...current, search: next }));
-                          if (page !== 1) setPage(1);
-                        }}
-                        placeholder="任务名 / 下游任务 ID / 创建人"
-                        className="form-input w-full"
-                      />
-                    </div>
+                    <input
+                      value={filters.search}
+                      onChange={(event) => {
+                        const next = event.target.value;
+                        setFilters((current) => ({ ...current, search: next }));
+                        if (page !== 1) setPage(1);
+                      }}
+                      placeholder="任务名 / ID / 创建人"
+                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none placeholder:text-theme-text-muted"
+                    />
                   </div>
 
                   <div className="block">
@@ -1221,22 +1218,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                     </select>
                   </div>
 
-                  <div className="block">
-                    <select
-                      value={pageSize}
-                      onChange={(event) => {
-                        setPageSize(Number(event.target.value));
-                        setPage(1);
-                      }}
-                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
-                    >
-                      {PAGE_SIZE_OPTIONS.map((value) => (
-                        <option key={value} value={value}>{value}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2 md:col-span-2 xl:col-span-5 2xl:col-span-1 2xl:justify-end">
+                  <div className="flex flex-wrap items-center gap-2 md:col-span-2 xl:col-span-4 2xl:col-span-1 2xl:justify-end">
                     <label className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-medium text-theme-text-secondary">
                       <input
                         type="checkbox"
@@ -1560,6 +1542,18 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                     第 {page} / {totalPages} 页，共 {formatCount(total)} 条
                   </div>
                   <div className="flex items-center gap-3">
+                    <select
+                      value={pageSize}
+                      onChange={(event) => {
+                        setPageSize(Number(event.target.value));
+                        setPage(1);
+                      }}
+                      className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
+                    >
+                      {PAGE_SIZE_OPTIONS.map((value) => (
+                        <option key={value} value={value}>{value} / 页</option>
+                      ))}
+                    </select>
                     <button
                       onClick={() => setPage((current) => Math.max(1, current - 1))}
                       disabled={page <= 1}

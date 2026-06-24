@@ -96,6 +96,7 @@ export interface CfgCparserSession {
 
 export interface CfgWalkFunction {
   function_id: string;
+  callees?: { id: string; name?: string | null; call_line?: number | null }[];
   name: string;
   signature?: string | null;
   file_path?: string | null;

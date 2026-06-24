@@ -1382,7 +1382,7 @@ export const ExecutionCodeAuditPage: React.FC<ExecutionCodeAuditPageProps> = ({ 
                   <h4 className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-secondary">基础信息</h4>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <div>
-                      <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">实例名称 *</label>
+                      <label className="text-[10px] font-semibold uppercase tracking-widest text-theme-text-muted">实例名称 <span className="required"> *</span></label>
                       <input
                         required
                         placeholder="auth-service-review"

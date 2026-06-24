@@ -279,7 +279,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="space-y-1.5">
-            <label className="form-label">引擎名称 *</label>
+            <label className="form-label">引擎名称 <span className="required"> *</span></label>
             <input
               required
               placeholder="e.g. loki-triage-prod"
@@ -289,7 +289,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="form-label">Endpoint *</label>
+            <label className="form-label">Endpoint <span className="required"> *</span></label>
             <input
               required
               placeholder="http://engine-host:port"
@@ -299,7 +299,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="form-label">版本 *</label>
+            <label className="form-label">版本 <span className="required"> *</span></label>
             <input
               required
               placeholder="v1.0.0"
@@ -309,7 +309,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="form-label">绑定工具 (bind_tools) *</label>
+            <label className="form-label">绑定工具 (bind_tools) <span className="required"> *</span></label>
             <textarea
               rows={4}
               placeholder={'每行一个工具名，例如：\nloki-triage\nloki-validate'}

@@ -275,6 +275,9 @@ const AppShell: React.FC = () => {
         taskCenterTimelineBackView?: string;
         taskVulnListTaskId?: string;
         taskReportTaskId?: string;
+        vulnIntakeTaskFilter?: string;
+        openCreateTask?: boolean;
+        openCreateProject?: boolean;
         path?: string;
       }>).detail;
       const nextView = String(detail?.view || '').trim();

@@ -1104,11 +1104,38 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
       <PageHeader
         title="集群服务发现"
         description="服务批量启停删与实例筛选管理"
-        actions={<div className="flex gap-4">
-            <button onClick={() => void forceSyncAndReloadServices()} disabled={!projectId || syncRefreshing} className="px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 text-xs font-medium flex items-center gap-2" title="调用后端服务发现同步，再回填页面">{syncRefreshing ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}强制发现</button>
-            <button onClick={() => void loadAllServices({ showFullLoading: false })} disabled={!projectId || refreshing} className="p-4 bg-theme-elevated border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all active:scale-95 disabled:opacity-50" title="仅重新拉取当前服务快照">{refreshing ? <Loader2 size={20} className="animate-spin" /> : <RefreshCw size={20} />}</button>
-            <button onClick={() => void openDeployModal()} disabled={!projectId} className="bg-theme-surface text-white px-8 py-4 rounded-lg font-semibold flex items-center gap-2 disabled:opacity-60"><Plus size={18} /> 部署新服务</button>
-          </div>}
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void forceSyncAndReloadServices()}
+              disabled={!projectId || syncRefreshing}
+              className="btn btn-primary"
+              title="调用后端服务发现同步，再回填页面"
+            >
+              {syncRefreshing ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+              强制发现
+            </button>
+            <button
+              type="button"
+              onClick={() => void loadAllServices({ showFullLoading: false })}
+              disabled={!projectId || refreshing}
+              className="btn-icon"
+              title="仅重新拉取当前服务快照"
+              aria-label="刷新"
+            >
+              {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+            </button>
+            <button
+              type="button"
+              onClick={() => void openDeployModal()}
+              disabled={!projectId}
+              className="btn btn-primary"
+            >
+              <Plus size={16} /> 部署新服务
+            </button>
+          </div>
+        }
       />
 
       {!projectId && (
@@ -1257,7 +1284,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="过滤服务名 / 模板名 / 节点"
-            className="w-full pl-10 pr-3 py-2 border border-theme-border rounded-xl text-sm outline-none focus:ring-2 ring-blue-500/10"
+            className="form-input w-full pl-10 pr-3 py-2"
           />
         </div>
         <select
@@ -1625,7 +1652,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                       onChange={(e) => setTerminalShell(e.target.value)}
                       placeholder="/bin/bash 或 /bin/sh"
                       disabled={terminalMode === 'attach'}
-                      className="w-full px-3 py-2 rounded-xl border border-theme-border text-xs disabled:opacity-50"
+                      className="form-input w-full text-xs disabled:opacity-50"
                     />
                     <div className="grid grid-cols-2 gap-2">
                       <button
@@ -1704,7 +1731,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                     min={1}
                     max={65535}
                     placeholder="目标端口"
-                    className="md:col-span-1 px-3 py-2 text-xs border border-theme-border rounded-xl"
+                    className="form-input md:col-span-1 text-xs"
                   />
                   <select
                     value={ingressTlsEnabled ? 'https' : 'http'}
@@ -1726,13 +1753,13 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                     value={ingressPath}
                     onChange={(e) => setIngressPath(e.target.value)}
                     placeholder="Path (默认 /)"
-                    className="md:col-span-1 px-3 py-2 text-xs border border-theme-border rounded-xl"
+                    className="form-input md:col-span-1 text-xs"
                   />
                   <input
                     value={ingressHostPrefix}
                     onChange={(e) => setIngressHostPrefix(e.target.value)}
                     placeholder="Host 前缀"
-                    className="md:col-span-2 px-3 py-2 text-xs border border-theme-border rounded-xl"
+                    className="form-input md:col-span-2 text-xs"
                   />
                   <button
                     onClick={createServiceIngress}
@@ -1844,7 +1871,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                   value={deployServiceSuffix}
                   onChange={(e) => setDeployServiceSuffix(e.target.value)}
                   placeholder="可选：服务名后缀，如 v2"
-                  className="px-3 py-2 text-xs border border-theme-border rounded-xl outline-none focus:ring-2 ring-blue-500/10"
+                  className="form-input text-xs"
                 />
                 <input
                   type="number"
@@ -1853,7 +1880,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                   value={deployPerNodeCount}
                   onChange={(e) => setDeployPerNodeCount(Math.max(1, Math.min(20, Number(e.target.value || 1))))}
                   placeholder="每节点每模板实例数"
-                  className="px-3 py-2 text-xs border border-theme-border rounded-xl outline-none focus:ring-2 ring-blue-500/10"
+                  className="form-input text-xs"
                 />
               </div>
             )}
@@ -1913,7 +1940,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                       value={deployAgentSearch}
                       onChange={(e) => setDeployAgentSearch(e.target.value)}
                       placeholder="过滤节点: 主机名 / IP / Key"
-                      className="px-3 py-1.5 text-[11px] border border-theme-border rounded-lg outline-none focus:ring-2 ring-blue-500/10"
+                      className="form-input text-[11px]"
                     />
                     <button
                       onClick={toggleAllDeployAgents}

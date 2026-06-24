@@ -386,7 +386,7 @@ export const ProjectPage: React.FC = () => {
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="form-label">项目名称 *</label>
+                <label className="form-label">项目名称 <span className="required"> *</span></label>
                 <input
                   required
 placeholder="Project Name"
@@ -406,7 +406,7 @@ placeholder="Project Name"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="form-label">项目类型 *</label>
+                <label className="form-label">项目类型 <span className="required"> *</span></label>
                 <div className="flex gap-4">
                   <button
                     type="button"
@@ -492,7 +492,7 @@ placeholder="Project Name"
             </div>
             <form onSubmit={handleEdit} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="form-label">项目名称 *</label>
+                <label className="form-label">项目名称 <span className="required"> *</span></label>
                 <input
                   required
 placeholder="Project Name"
@@ -512,7 +512,7 @@ placeholder="Project Name"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="form-label">项目类型 *</label>
+                <label className="form-label">项目类型 <span className="required"> *</span></label>
                 <div className="flex gap-4">
                   <button
                     type="button"

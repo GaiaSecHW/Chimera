@@ -534,19 +534,23 @@ export const AppInstancePage: React.FC<{
         title="应用实例"
         description="管理单应用工作流实例"
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={handleRefreshInstances}
               disabled={loading || isRefreshingList}
-              className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-5 py-3 font-medium text-theme-text-secondary hover:border-blue-500/20 hover:bg-blue-500/15 hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="btn-icon"
               title="刷新"
               aria-label="刷新"
             >
               <RefreshCw size={16} className={isRefreshingList ? 'animate-spin' : ''} />
             </button>
-            <button onClick={openCreateModal} className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 font-medium text-white hover:bg-blue-500">
-              <Plus size={18} />
-              创建实例
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="btn btn-primary"
+            >
+              <Plus size={16} /> 创建实例
             </button>
           </div>
         }
@@ -831,11 +835,11 @@ export const AppInstancePage: React.FC<{
                   )}
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">实例名称 *</label>
+                      <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">实例名称 <span className="required"> *</span></label>
                       <input value={formData.name} onChange={(event) => setFormData({ ...formData, name: event.target.value })} className="form-input w-full" placeholder="例如：demo-nginx" />
                     </div>
                     <div>
-                      <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">Service 名称 *</label>
+                      <label className="mb-2 block text-xs font-medium uppercase text-theme-text-muted">Service 名称 <span className="required"> *</span></label>
                       <input value={formData.service_name} onChange={(event) => setFormData({ ...formData, service_name: event.target.value })} className="form-input w-full" placeholder="例如：nginx-svc" />
                     </div>
                     <div className="md:col-span-2">

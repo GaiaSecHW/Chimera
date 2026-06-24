@@ -210,25 +210,34 @@ export const WorkflowInstancePage: React.FC<{
         title="工作流实例"
         description="实时监控安全评估流水线的执行进度与底层容器负载"
         actions={
-          <div className="flex gap-4">
+          <div className="flex items-center gap-2">
             {selectedIds.length > 0 && (
               <button
+                type="button"
                 onClick={() => {
                   setDeletingId(null);
                   setIsDeleteModalOpen(true);
                 }}
-                className="flex items-center gap-2 px-6 py-4 bg-red-500/15 text-red-400 rounded-xl hover:bg-red-500/15 transition-all font-medium border border-red-500/20"
+                className="btn btn-danger-soft"
               >
-                <Trash2 size={20} />
+                <Trash2 size={14} />
                 批量删除 ({selectedIds.length})
               </button>
             )}
-            <button onClick={() => loadInstances()} className="p-4 bg-theme-elevated border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all">
-              <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+            <button
+              type="button"
+              onClick={() => loadInstances()}
+              className="btn-icon"
+              aria-label="刷新"
+            >
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             </button>
-            <button onClick={() => setIsCreateModalOpen(true)} className="btn-secondary btn-lg">
-              <Plus size={20} />
-              创建实例
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="btn btn-primary"
+            >
+              <Plus size={16} /> 创建实例
             </button>
           </div>
         }

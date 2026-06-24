@@ -2265,7 +2265,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
 
               {/* 任务名称 */}
               <label className="form-label">
-                任务名称 <span className="text-red-500">*</span>
+                任务名称 <span className="required"> *</span>
                 <input
                   className="mt-1 w-full rounded-lg border border-theme-border px-3 py-2 text-sm"
                   value={form.task_name}
@@ -2276,7 +2276,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
 
               {/* 源码路径 */}
               <label className="form-label">
-                源码路径 <span className="text-red-500">*</span>
+                源码路径 <span className="required"> *</span>
                 <span className="ml-1 text-xs text-theme-text-muted">(待分析源代码所在目录)</span>
                 <div className="mt-1 flex gap-1">
                   <input
@@ -2303,7 +2303,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
               {/* 入口清单 (functions.list) */}
               <div className="rounded-xl border border-theme-border bg-theme-surface p-4 space-y-3">
                 <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted flex items-center gap-1">
-                  <List size={12} />入口函数 <span className="text-red-500">*</span>
+                  <List size={12} />入口函数 <span className="required"> *</span>
                 </div>
 
                 {/* functions.list 路径 */}
@@ -2376,7 +2376,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                     />
                   </label>
                   <label className="form-label">
-                    入口函数名 <span className="text-red-500">*</span>
+                    入口函数名 <span className="required"> *</span>
                     <input
                       className="mt-1 w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-mono"
                       value={form.function_name}

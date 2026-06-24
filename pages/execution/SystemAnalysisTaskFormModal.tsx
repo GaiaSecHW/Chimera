@@ -232,7 +232,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
             </div>
 
             <label className="form-label">
-              任务名称 <span className="text-red-500">*</span>
+              任务名称 <span className="required"> *</span>
               <input
                 className="form-input w-full"
                 value={form.task_name}
@@ -242,7 +242,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
             </label>
 
             <label className="form-label">
-              输入路径 <span className="text-red-500">*</span>
+              输入路径 <span className="required"> *</span>
               <div className="mt-1 flex gap-1">
                 <input
                   className="form-input flex-1 w-full font-mono"
@@ -262,7 +262,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
             </label>
 
             <label className="form-label">
-              输出路径 <span className="text-red-500">*</span>
+              输出路径 <span className="required"> *</span>
               <div className="mt-1 flex gap-1">
                 <input
                   className="form-input flex-1 w-full font-mono"

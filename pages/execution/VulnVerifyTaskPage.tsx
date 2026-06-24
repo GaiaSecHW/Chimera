@@ -1124,7 +1124,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
               </div>
 
               <label className="block text-sm font-semibold text-theme-text-secondary">
-                任务名称 <span className="text-rose-500">*</span>
+                任务名称 <span className="required"> *</span>
                 <input className="form-input mt-1 w-full" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
               </label>
               <label className="block text-sm font-semibold text-theme-text-secondary">
@@ -1139,7 +1139,7 @@ export const VulnVerifyTaskPage: React.FC<{ projectId: string }> = ({ projectId 
                 ['model', '模型', DEFAULT_MODEL_HINT],
               ].map(([key, label, help]) => (
                 <label key={key} className="block text-sm font-semibold text-theme-text-secondary">
-                  {label} {key !== 'model' && key !== 'binary_root' && key !== 'threat_path' ? <span className="text-rose-500">*</span> : null}
+                  {label} {key !== 'model' && key !== 'binary_root' && key !== 'threat_path' ? <span className="required"> *</span> : null}
                   <input
                     className="form-input mt-1 w-full font-mono text-xs"
                     value={(form as any)[key]}

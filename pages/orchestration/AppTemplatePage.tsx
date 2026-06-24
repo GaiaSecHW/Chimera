@@ -260,22 +260,37 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
         title="应用模板"
         description="管理常驻安全服务（WAF、蜜罐、流量镜像）的容器编排模版"
         actions={
-          <div className="flex gap-4">
+          <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={loadTemplates}
-              className="p-4 bg-theme-surface border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all active:scale-95 group"
+              className="btn-icon group"
+              aria-label="刷新"
             >
-              <RefreshCw size={20} className={loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
+              <RefreshCw size={16} className={loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
             </button>
-            <div className="flex bg-theme-surface border border-theme-border rounded-xl p-1">
-              <button onClick={() => setScope('project')} className={`px-6 py-2.5 rounded-xl text-xs font-medium uppercase transition-all ${scope === 'project' ? 'bg-blue-600 text-white ' : 'text-theme-text-muted hover:bg-theme-elevated'}`}>当前项目</button>
-              <button onClick={() => setScope('global')} className={`px-6 py-2.5 rounded-xl text-xs font-medium uppercase transition-all ${scope === 'global' ? 'bg-blue-600 text-white ' : 'text-theme-text-muted hover:bg-theme-elevated'}`}>公共资源</button>
+            <div className="inline-flex items-center bg-theme-elevated border border-theme-border rounded-lg p-1">
+              <button
+                type="button"
+                onClick={() => setScope('project')}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium uppercase transition-all ${scope === 'project' ? 'bg-brand-primary text-white' : 'text-theme-text-muted hover:bg-theme-surface'}`}
+              >
+                当前项目
+              </button>
+              <button
+                type="button"
+                onClick={() => setScope('global')}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium uppercase transition-all ${scope === 'global' ? 'bg-brand-primary text-white' : 'text-theme-text-muted hover:bg-theme-surface'}`}
+              >
+                公共资源
+              </button>
             </div>
             <button
+              type="button"
               onClick={() => setIsModalOpen(true)}
-              className="btn-secondary btn-lg"
+              className="btn btn-primary"
             >
-              <Plus size={20} /> 注册应用组件
+              <Plus size={16} /> 注册应用组件
             </button>
           </div>
         }
@@ -549,7 +564,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                {/* Basic Info */}
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">模板名称 *</label>
+                    <label className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest ml-1">模板名称 <span className="required"> *</span></label>
                     <input
                       required placeholder="e.g. security-waf-proxy"
                       className="form-input w-full"
@@ -785,7 +800,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">镜像 (Image) *</label>
+                            <label className="text-[9px] font-medium text-theme-text-muted uppercase ml-1">镜像 (Image) <span className="required"> *</span></label>
                             <input
                               required placeholder="e.g. nginx:latest"
                               className="form-input w-full text-xs font-mono text-blue-400"

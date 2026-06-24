@@ -2703,10 +2703,25 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       <PageHeader
         title="环境模板管理"
         description="标准化、可复用的安全测试沙箱编排模版库"
-        actions={<div className="flex gap-4">
-            <button onClick={loadTemplates} className="p-4 bg-theme-elevated border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all"><RefreshCw size={20} className={loading ? 'animate-spin' : ''} /></button>
-            <button onClick={() => setIsUploadModalOpen(true)} className="btn-primary btn-lg"><Plus size={20} /> 上传新模版</button>
-          </div>}
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={loadTemplates}
+              className="btn-icon"
+              aria-label="刷新"
+            >
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsUploadModalOpen(true)}
+              className="btn btn-primary"
+            >
+              <Plus size={16} /> 上传新模版
+            </button>
+          </div>
+        }
       />
 
       {/* Batch Action Bar */}
@@ -3046,7 +3061,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 {/* Template Name */}
                 <div>
                   <label className="form-label">
-                    模版名称 <span className="text-red-500">*</span>
+                    模版名称 <span className="required"> *</span>
                   </label>
                   <input
                     type="text"
@@ -3280,7 +3295,7 @@ className="form-select col-span-2 text-xs"
                 {uploadTab === 'file' ? (
                   <div>
                     <label className="form-label">
-                      上传文件 <span className="text-red-500">*</span>
+                      上传文件 <span className="required"> *</span>
                     </label>
                     <div
                       onDragOver={(e) => {
@@ -3350,7 +3365,7 @@ className="form-select col-span-2 text-xs"
                 ) : (
                   <div>
                     <label className="form-label">
-                      YAML 内容 <span className="text-red-500">*</span>
+                      YAML 内容 <span className="required"> *</span>
                     </label>
                     <div className="bg-theme-surface rounded-xl p-5 relative">
                       <div className="absolute top-6 left-6 pointer-events-none z-10">

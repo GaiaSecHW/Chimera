@@ -673,9 +673,35 @@ const normalizeDownstreamDetailError = (error: any) => {
   return error?.message || '加载下游任务详情失败';
 };
 
-const fmt = (value?: string | null) => (value ? new Date(value).toLocaleString() : '-');
+const BINARY_SECURITY_TIMEZONE = 'Asia/Shanghai';
 
-const fmtTime = (value?: string | null) => (value ? new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-');
+const normalizeBinarySecurityTime = (value?: string | null) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/[zZ]|[+-]\d{2}:\d{2}$/.test(raw)) return raw;
+  return `${raw}+08:00`;
+};
+
+const formatBinarySecurityDate = (value?: string | null, mode: 'datetime' | 'time' = 'datetime') => {
+  const normalized = normalizeBinarySecurityTime(value);
+  if (!normalized) return '-';
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) return value || '-';
+  return new Intl.DateTimeFormat('zh-CN', {
+    timeZone: BINARY_SECURITY_TIMEZONE,
+    year: mode === 'datetime' ? 'numeric' : undefined,
+    month: mode === 'datetime' ? '2-digit' : undefined,
+    day: mode === 'datetime' ? '2-digit' : undefined,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(parsed);
+};
+
+const fmt = (value?: string | null) => formatBinarySecurityDate(value, 'datetime');
+
+const fmtTime = (value?: string | null) => formatBinarySecurityDate(value, 'time');
 const safeInt = (value: unknown, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? Math.trunc(parsed) : fallback;
@@ -6321,11 +6347,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               </select>
               <select value={syncEventOperationFilter} onChange={(event) => setSyncEventOperationFilter(event.target.value)} className="form-select">
                 <option value="all">全部操作</option>
-                {['downstream_sync', 'downstream_poll', 'readless_reconcile', 'archive_apply', 'reducer_apply', 'binding_recovery', 'transport_error', 'rate_limited'].map((value) => <option key={value} value={value}>{value}</option>)}
+                {['downstream_create', 'downstream_sync', 'downstream_poll', 'readless_reconcile', 'archive_apply', 'reducer_apply', 'binding_recovery', 'retry_control', 'transport_error', 'rate_limited'].map((value) => <option key={value} value={value}>{value}</option>)}
               </select>
               <select value={syncEventTypeFilter} onChange={(event) => setSyncEventTypeFilter(event.target.value)} className="form-select">
                 <option value="all">全部事件</option>
-                {['requested', 'observed', 'applied', 'skipped', 'binding_mismatch', 'ignored', 'transport_error', 'rate_limited', 'retry_scheduled', 'failed'].map((value) => <option key={value} value={value}>{value}</option>)}
+                {['requested', 'observed', 'applied', 'skipped', 'binding_mismatch', 'binding_recovered', 'ignored', 'adopted', 'recreated', 'transport_error', 'rate_limited', 'retry_scheduled', 'failed'].map((value) => <option key={value} value={value}>{value}</option>)}
               </select>
               <input value={syncEventSearch} onChange={(event) => setSyncEventSearch(event.target.value)} placeholder="搜索 item/downstream task" className="form-input" />
               <select value={syncEventStatusFilter} onChange={(event) => setSyncEventStatusFilter(event.target.value)} className="form-select">
@@ -6352,7 +6378,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               {syncEventsLoading ? (
                 <div className="rounded-2xl border border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">正在加载同步记录...</div>
               ) : syncEventItems.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">暂无同步记录</div>
+                <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center text-sm text-theme-text-muted">当前任务尚未产生任何子任务同步审计记录</div>
               ) : (
                 <div className="overflow-hidden rounded-2xl border border-theme-border">
                   <div className="overflow-x-auto">

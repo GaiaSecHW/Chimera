@@ -140,15 +140,26 @@ export const RoleMgmtPage: React.FC = () => {
   return (
     <div className="px-5 py-5 md:px-6 2xl:px-8 space-y-4 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
       <PageHeader
-        title={<><div className="p-3 bg-indigo-600 text-white rounded-lg shadow-indigo-500/20 inline-flex"><Shield size={28} /></div> 角色定义管理</>}
-        actions={<div className="flex gap-4">
-          <button onClick={fetchRoles} className="p-4 bg-theme-surface border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all active:scale-95">
-            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-          </button>
-          <button onClick={() => { setEditingRole(null); setFormData({ name: '', description: '' }); setIsModalOpen(true); }} className="btn-primary btn-lg flex items-center gap-3">
-            <Plus size={20} /> 定义新角色
-          </button>
-        </div>}
+        title={<><div className="p-2 bg-brand-primary text-white rounded-lg inline-flex"><Shield size={20} /></div> 角色定义管理</>}
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={fetchRoles}
+              className="btn-icon"
+              aria-label="刷新"
+            >
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            </button>
+            <button
+              type="button"
+              onClick={() => { setEditingRole(null); setFormData({ name: '', description: '' }); setIsModalOpen(true); }}
+              className="btn btn-primary"
+            >
+              <Plus size={16} /> 定义新角色
+            </button>
+          </div>
+        }
       />
 
       {/* Summary Row */}
@@ -214,7 +225,7 @@ export const RoleMgmtPage: React.FC = () => {
               </div>
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                  <div className="space-y-1.5">
-                    <label className="form-label">角色标识名称 *</label>
+                    <label className="form-label">角色标识名称 <span className="required"> *</span></label>
                     <input
                       required placeholder="e.g. security_auditor"
                       className="form-input w-full"

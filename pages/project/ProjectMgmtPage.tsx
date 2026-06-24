@@ -502,7 +502,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     helperText: string
   ) => (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>归属部门 *</label>
+      <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>归属部门 <span className="required"> *</span></label>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -528,7 +528,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     helperText: string
   ) => (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>产品版本 *</label>
+      <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>产品版本 <span className="required"> *</span></label>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -557,6 +557,27 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       <PageHeader
         title="项目概览"
         description="统一展示用户权限范围内的所有项目"
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRefresh}
+              className="btn-icon"
+              title="刷新列表"
+              aria-label="刷新列表"
+            >
+              <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+            </button>
+            <button
+              type="button"
+              onClick={openCreateModal}
+              disabled={!userPermissions || selectableDepartments.length === 0}
+              className="btn btn-primary"
+            >
+              <Plus size={16} /> 初始化项目
+            </button>
+          </div>
+        }
       />
 
       {/* Batch selection bar */}
@@ -902,7 +923,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 </div>
               )}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>项目名称 *</label>
+                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>项目名称 <span className="required"> *</span></label>
                 <input
                   required
                   placeholder="例如：核心业务 API 渗透测试"
@@ -936,7 +957,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
 
               {/* Product ComboBox */}
               <div className="space-y-1.5" ref={productDropdownRef}>
-                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>产品名称 *</label>
+                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>产品名称 <span className="required"> *</span></label>
                 <div className="relative">
                   <input
                     placeholder="输入产品名称，或从列表选择..."
@@ -991,7 +1012,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
 
               {/* Version ComboBox */}
               <div className="space-y-1.5" ref={versionDropdownRef}>
-                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>版本号 *</label>
+                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>版本号 <span className="required"> *</span></label>
                 <div className="relative">
                   <input
                     placeholder={selectedProductId ? '输入版本号，或从列表选择...' : '请先选择或输入产品名称'}
@@ -1153,7 +1174,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 </div>
               )}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>项目名称 *</label>
+                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>项目名称 <span className="required"> *</span></label>
                 <input
                   required
                   placeholder="例如：核心业务 API 渗透测试"

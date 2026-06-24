@@ -174,10 +174,28 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       <PageHeader
         title="环境模板部署/卸载任务管理"
         description="分布式节点部署任务队列与实时执行审计"
-        actions={<div className="flex gap-4">
-            <button onClick={handleClearAllTasks} disabled={!projectId || clearingAll || tasks.length === 0} className="px-5 py-3 bg-rose-500/15 border border-rose-500/20 text-rose-400 rounded-lg hover:bg-rose-600 hover:text-white transition-all disabled:opacity-50 font-semibold text-xs tracking-wider uppercase flex items-center gap-2">{clearingAll ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}清空记录</button>
-            <button onClick={loadTasks} disabled={!projectId} className="p-4 bg-theme-elevated border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all disabled:opacity-50"><RefreshCw size={20} className={loading ? 'animate-spin' : ''} /></button>
-          </div>}
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleClearAllTasks}
+              disabled={!projectId || clearingAll || tasks.length === 0}
+              className="btn btn-danger-soft"
+            >
+              {clearingAll ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              清空记录
+            </button>
+            <button
+              type="button"
+              onClick={loadTasks}
+              disabled={!projectId}
+              className="btn-icon"
+              aria-label="刷新"
+            >
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            </button>
+          </div>
+        }
       />
 
       <div className="space-y-4">
@@ -191,7 +209,7 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           <input
             type="text"
             placeholder="检索任务 ID、服务名称或目标节点..."
- className="w-full pl-16 pr-8 py-5 bg-theme-elevated border border-theme-border rounded-xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium"
+ className="form-input w-full pl-16 pr-8 py-5 font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />

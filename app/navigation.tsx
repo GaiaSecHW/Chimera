@@ -184,6 +184,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'pentest-vuln-verify',
   'vuln-verify-task',
   'pentest-vuln-verify-v2',
+  'pentest-frama-c',
   'entry-analysis-root',
   'entry-analysis-task',
   'entry-analysis-config',
@@ -281,6 +282,7 @@ const DEVELOPER_ATOMIC_CAPABILITY_VIEWS = new Set<string>([
   'pentest-vuln-verify',
   'vuln-verify-task',
   'pentest-vuln-verify-v2',
+  'pentest-frama-c',
 ]);
 
 const DEVELOPER_TOOL_VIEWS = new Set<string>([
@@ -525,6 +527,7 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
         { id: 'pentest-cfg-guided-explore', label: 'CFG Guided Explore', icon: Zap, aliases: ['cfg-guided-explore-task', 'cfg-guided-explore-detail', 'cfg-guided-explore-config'], requiresProject: true },
         { id: 'pentest-vuln-verify', label: '漏洞验证', icon: Zap, aliases: ['vuln-verify-task'], requiresProject: true },
         { id: 'pentest-vuln-verify-v2', label: '漏洞验证v2', icon: Zap, requiresProject: true },
+        { id: 'pentest-frama-c', label: '形式化验证', icon: ShieldCheck, requiresProject: true },
       ],
     },
   ],

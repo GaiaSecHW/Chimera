@@ -397,7 +397,7 @@ export const DepartmentPage: React.FC = () => {
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="form-label">部门名称 *</label>
+                <label className="form-label">部门名称 <span className="required"> *</span></label>
                 <input
                   required
 placeholder="Department Name"
@@ -453,7 +453,7 @@ placeholder="Department Name"
             </div>
             <form onSubmit={handleEdit} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="form-label">部门名称 *</label>
+                <label className="form-label">部门名称 <span className="required"> *</span></label>
                 <input
                   required
 placeholder="Department Name"

@@ -503,7 +503,7 @@ export const UserMgmtPage: React.FC = () => {
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="form-label">用户名 *</label>
+                <label className="form-label">用户名 <span className="required"> *</span></label>
                 <input
                   required
 placeholder="Username"
@@ -513,7 +513,7 @@ placeholder="Username"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="form-label">初始密码 *</label>
+                <label className="form-label">初始密码 <span className="required"> *</span></label>
                 <input
                   type="password"
                   required
@@ -545,7 +545,7 @@ placeholder="••••••••"
             </div>
             <form onSubmit={handleResetPassword} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="form-label">管理员密码验证 *</label>
+                <label className="form-label">管理员密码验证 <span className="required"> *</span></label>
                 <input
                   type="password"
                   required
@@ -556,7 +556,7 @@ placeholder="Current Password"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="form-label">新密码 *</label>
+                <label className="form-label">新密码 <span className="required"> *</span></label>
                 <input
                   type="password"
                   required

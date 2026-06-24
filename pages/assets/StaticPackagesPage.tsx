@@ -91,21 +91,24 @@ export const StaticPackagesPage: React.FC<StaticPackagesPageProps> = ({
           actions={
             <div className="flex flex-wrap items-center gap-2">
               <button
+                type="button"
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
+                className="btn btn-secondary"
                 title="手动刷新列表"
+                aria-label="刷新列表"
               >
                 <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
                 刷新
               </button>
               <button
+                type="button"
                 onClick={() => assetApi.staticPackages.checkAll().then(fetchStaticPackages)}
-                className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated"
+                className="btn btn-secondary"
               >
                 <CheckCircle2 size={16} /> 全量校验
               </button>
-              <button className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-3 py-2 text-sm font-semibold text-white hover:bg-theme-elevated">
+              <button className="btn btn-primary">
                 <Upload size={16} /> 极速上传
               </button>
             </div>

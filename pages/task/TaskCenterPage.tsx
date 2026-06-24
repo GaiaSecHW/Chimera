@@ -396,6 +396,31 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
       <PageHeader
         title="任务中心"
         description="统一展示当前项目下的所有测试任务，追踪分发、执行与同步状态"
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={openDeleteQueue}
+              className="btn btn-secondary"
+            >
+              <Shield size={16} /> 删除队列
+            </button>
+            <button
+              type="button"
+              onClick={() => void loadData()}
+              className="btn btn-secondary"
+            >
+              <RefreshCw size={16} /> 刷新
+            </button>
+            <button
+              type="button"
+              onClick={openCreateDialog}
+              className="btn btn-primary"
+            >
+              <Plus size={16} /> 创建任务
+            </button>
+          </div>
+        }
       />
 
       <div className="grid gap-3 md:grid-cols-5">

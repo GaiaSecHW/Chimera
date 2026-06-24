@@ -1030,9 +1030,9 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   }, [parentAgentKeys]);
 
   return (
-    <div className="min-h-full bg-theme-elevated px-8 py-8">
+    <div className="min-h-full px-5 py-5 md:px-6 2xl:px-8 space-y-4">
       {feedbackNodes}
-      <div className="mx-auto max-w-7xl space-y-6">
+      <div className="space-y-4">
         <PageHeader
           title="环境管理"
           description="查看当前项目已上线的 Agent、运行状态和最近心跳。该页面为独立入口，不影响现有环境管理页面。"
