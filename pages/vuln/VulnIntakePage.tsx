@@ -25,6 +25,7 @@ import {
   Search,
   Send,
   ShieldAlert,
+  ShieldCheck,
   Sparkles,
   TerminalSquare,
   Trash2,
@@ -2652,11 +2653,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           />
           {rootTab === 'download-center' ? renderDownloadCenter() : (
           <>
-          <div className="grid gap-3 grid-cols-4">
+          <div className={`grid gap-3 ${suspectOnly ? 'grid-cols-3' : 'grid-cols-4'}`}>
             <StatisticCard label={suspectOnly ? '疑似漏洞' : '告警总数'} value={stats.total} />
             <StatisticCard label="确认是漏洞" value={stats.confirmed} tone="danger" />
             <StatisticCard label="确认非漏洞" value={stats.ruledOut} tone="success" />
-            <StatisticCard label="判定中" value={stats.inconclusive} tone="warning" />
+            {!suspectOnly ? <StatisticCard label="判定中" value={stats.inconclusive} tone="warning" /> : null}
           </div>
 
           <div className="table-container">
@@ -2847,6 +2848,21 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       <div className="text-sm text-theme-text-muted">{formatTime(item.created_at)}</div>
                       <div>
                         <div className="flex flex-wrap gap-1.5">
+                          {suspectOnly ? (
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openManualConfirm(item);
+                              }}
+                              disabled={manualConfirmSubmitting}
+                              title={item.finished_reason ? '重新判定' : '确认漏洞'}
+                              aria-label={`确认漏洞 ${item.title}`}
+                              className="btn btn-secondary btn-sm px-2"
+                            >
+                              <ShieldCheck size={14} />
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             onClick={(event) => {
