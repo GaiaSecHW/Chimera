@@ -247,16 +247,17 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     return '请选择一个文件作为测试对象。';
   }, [selectionMode, taskType]);
 
+  const nameValid = name.trim().length > 0;
   const canCreateTask = Boolean(selectedProjectId) && !taskTypeDisabled && mode !== 'lion-head' && (
     taskType === 'cfg_db_vuln'
       // CFG mining runs over an existing, already-ingested code upload (its
       // codemap graph must exist); just need a name + a selected record.
-      ? Boolean(name && selectedInputId)
+      ? Boolean(nameValid && selectedInputId)
       : inputSource === 'upload'
-      ? Boolean(name)
+      ? nameValid
       : (taskType === 'sechps_tool'
-        ? Boolean(name && selectedAgentApp && selectedInputId && isDirectorySelectionValid)
-        : Boolean(name && selectedInputId && (
+        ? Boolean(nameValid && selectedAgentApp && selectedInputId && isDirectorySelectionValid)
+        : Boolean(nameValid && selectedInputId && (
           (selectionMode === 'file' && selectedRelativePath) ||
           (selectionMode === 'file_list' && selectedRelativePaths.length > 0) ||
           (selectionMode === 'directory' && isDirectorySelectionValid)
@@ -790,7 +791,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
               {/* 任务名称 */}
               <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                任务名称
+                任务名称 <span className="required"> *</span>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
