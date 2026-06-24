@@ -27,6 +27,7 @@ export interface TestInputUploaderHandle {
   triggerUpload: () => Promise<{ uploadId: string }>;
   hasFiles: () => boolean;
   reset: () => void;
+  cancel: () => void;
 }
 
 export interface TestInputUploaderProps {
@@ -55,6 +56,7 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
     const [inputType, setInputType] = useState<InputType>('document');
     const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     const addFilesToQueue = (files: FileList | null) => {
       if (!files) return;
@@ -79,12 +81,17 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
         setInputType('document');
         if (fileInputRef.current) fileInputRef.current.value = '';
       },
+      cancel: () => {
+        abortControllerRef.current?.abort();
+      },
       triggerUpload: async () => {
         const readyFiles = uploadQueue.filter((item) => item.status !== 'failed').map((item) => item.file);
         if (!projectId || readyFiles.length === 0) {
           throw new Error('没有可上传的文件');
         }
         onUploadStateChange?.(true);
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
         setUploadQueue((current) =>
           current.map((item) =>
             item.status === 'failed' ? item : { ...item, status: 'uploading', progress: 40, speedBytesPerSec: 0 },
@@ -100,7 +107,7 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
               files: readyFiles,
             },
             {
-              trackGlobal: false,
+              signal: controller.signal,
               onProgress: (progress) => {
                 setUploadQueue((current) =>
                   current.map((item) =>
@@ -133,6 +140,7 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
           if (uploadId) {
             const maxAttempts = 120;
             for (let i = 0; i < maxAttempts; i++) {
+              if (controller.signal.aborted) throw new Error('上传已取消');
               const detail = await fileserverApi.getProjectInputUploadDetail(uploadId);
               if (detail.status === 'succeeded' || detail.status === 'partial_failed') break;
               if (detail.status === 'failed') throw new Error(detail.last_error || '服务器处理上传文件失败');
@@ -157,6 +165,7 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
           throw error;
         } finally {
           onUploadStateChange?.(false);
+          abortControllerRef.current = null;
         }
       },
     }));

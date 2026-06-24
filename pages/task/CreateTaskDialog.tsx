@@ -428,6 +428,12 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     }
   };
 
+  /* --- close (cancel any in-flight upload first) --- */
+  const handleClose = () => {
+    uploaderRef.current?.cancel();
+    onClose();
+  };
+
   /* --- submit --- */
   const createTask = async () => {
     setSaving(true);
@@ -661,7 +667,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="rounded-lg p-2 transition-colors"
             style={{ color: LK.muted }}
             onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }}
@@ -1121,7 +1127,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         {/* footer */}
           <div className="flex items-center justify-end gap-2 px-6 py-4" style={{ borderTop: `1px solid ${LK.border}` }}>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="btn-secondary rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
               style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
             >

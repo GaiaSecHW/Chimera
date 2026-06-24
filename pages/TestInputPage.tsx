@@ -152,6 +152,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   const [openServeError, setOpenServeError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploaderRef = useRef<TestInputUploaderHandle>(null);
+  const appendAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!projectId) return;
@@ -541,12 +542,15 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
       }
       setUploadQueue((current) => current.map((item) => item.status === 'failed' ? item : { ...item, status: 'uploading', progress: 40, speedBytesPerSec: 0 }));
       try {
+        const appendController = new AbortController();
+        appendAbortRef.current = appendController;
         const result = await fileserverApi.appendProjectInputUpload({
           upload_id: activeUploadId,
           keep_original: keepOriginal,
           upload_mode: keepOriginal ? 'raw' : 'archive',
           files: readyFiles,
         }, {
+          signal: appendController.signal,
           onProgress: (progress) => {
             setUploadQueue((current) => current.map((item) => (
               item.status === 'failed'
@@ -575,6 +579,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
         setUploadQueue((current) => current.map((item) => item.status === 'failed' ? item : { ...item, status: 'failed', progress: 0, speedBytesPerSec: 0, error: message }));
         setErrorMessage(message);
       } finally {
+        appendAbortRef.current = null;
         setIsUploading(false);
       }
     } else {
@@ -1255,7 +1260,11 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
               )}
             </div>
             <div className="flex justify-end gap-3 border-t border-theme-border px-6 py-5">
-              <button type="button" onClick={() => setIsUploadModalOpen(false)} className="btn btn-secondary">
+              <button type="button" onClick={() => {
+                uploaderRef.current?.cancel();
+                appendAbortRef.current?.abort();
+                setIsUploadModalOpen(false);
+              }} className="btn btn-secondary">
                 取消
               </button>
               <button
