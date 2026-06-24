@@ -18,16 +18,22 @@ const STATE_TEXT: Record<StageState, string> = {
 };
 
 // 从 manager task 状态派生三段进度。
+// 关键:manager 用单个顶层 status 表示"当前在跑哪个阶段",但 attack / repair 可被
+// 独立重跑(两个独立按钮)。重跑入口分析会把顶层 status 抢成 building_attack_surface,
+// 因此 attack 段与 repair 段都不能依赖顶层 status 判断对方,各自只看自己的权威信号:
 // - 静态分析:到了攻击面/修复/完成都意味着已成功;queued/accepted/building_analyze
 //   进行中;failed 且无攻击面、无修复进度=静态失败。
-// - 入口分析:building_attack_surface 或 attack.status=running 进行中;ok 完成;
-//   failed 失败;静态未完成时不亮。
-// - 调用链修复:building_repair 进行中;completed+有修复进度 完成;failed+有修复
-//   进度 失败(部分成功)。
+// - 入口分析:看 attack.status(权威,重跑只动它);running/building_attack_surface
+//   进行中,ok 完成,failed 失败。
+// - 调用链修复:看 progress 计数(权威),不看顶层 status——否则重跑入口把 status 抢走
+//   时会被误判。building_repair 进行中;有进度时按 completed===total 判 done,
+//   否则若 status 显式 failed 则 failed,其余视为仍在修复(active)。
 function deriveStages(status: CodemapTaskStatus | null): StageState[] {
   if (!status) return ['pending', 'pending', 'pending'];
   const s = status.status;
-  const hasRepair = !!status.progress && status.progress.total > 0;
+  const prog = status.progress;
+  const hasRepair = !!prog && prog.total > 0;
+  const repairDone = hasRepair && (prog!.completed + prog!.failed) >= prog!.total;
   const attack = status.attack?.status ?? null;
 
   let st1: StageState;
@@ -37,23 +43,26 @@ function deriveStages(status: CodemapTaskStatus | null): StageState[] {
 
   let st2: StageState;
   if (st1 !== 'done') st2 = 'pending';
-  // attack.status 是入口分析的权威信号(重跑入口分析只动 attack.status,不动顶层
-  // status),优先信任它——与详情页 KnowledgeGraphPanel 同口径,两处统一。仅当还没有
-  // attack 结果时才回退到 building_attack_surface 顶层 status,避免顶层 status 滞留在
-  // building_attack_surface(重跑后没人推回)时在已完成的入口分析上仍转圈。
+  // attack.status 是入口分析的权威信号(重跑入口分析只动 attack.status,顶层 status
+  // 会被抢成 building_attack_surface)。优先信任它,与详情页 KnowledgeGraphPanel 同口径。
   else if (attack === 'ok') st2 = 'done';
   else if (attack === 'failed') st2 = 'failed';
-  else if (s === 'building_attack_surface' || attack === 'running') st2 = 'active';
+  else if (attack === 'running' || s === 'building_attack_surface') st2 = 'active';
   else st2 = 'pending';
 
   let st3: StageState;
   if (st1 !== 'done') st3 = 'pending';
-  else if (s === 'completed' && hasRepair) st3 = 'done';
-  else if (s === 'failed' && hasRepair) st3 = 'failed';
+  // repair 段只看自己的真实信号,绝不因顶层 status 被入口重跑抢走而误判:
   else if (s === 'building_repair') st3 = 'active';
-  // 顶层 status 滞留在 repair 之前(同上一类陈旧 status)但 repair 已产出进度:计数是
-  // 真实的,按 done/failed 显示而非未开始。
-  else if (hasRepair) st3 = s === 'failed' ? 'failed' : 'done';
+  else if (hasRepair) {
+    // 有修复进度:按计数判定。全部处理完(completed+failed>=total)→ 完成(有失败
+    // 计为部分失败 failed,否则 done);未处理完 → 仍在修复(active),即便顶层 status
+    // 此刻被入口重跑占成 building_attack_surface。
+    if (repairDone) st3 = prog!.failed > 0 ? 'failed' : 'done';
+    else st3 = 'active';
+  }
+  else if (s === 'completed') st3 = 'done';      // completed 但无进度(空图等),不阻塞展示
+  else if (s === 'failed') st3 = 'failed';
   else st3 = 'pending';
 
   return [st1, st2, st3];
