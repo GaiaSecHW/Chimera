@@ -20,6 +20,19 @@ import { SecOctoSkillsPage, SecOctoSkillDetailPage, SecOctoEvolvePage, SecOctoRe
  */
 export const SECOCTO_VIEW_PREFIX = 'secocto-' as const;
 
+/**
+ * "技能" 顶级导航复用 SecOcto 技能库的子前缀。
+ *
+ * 同一份 SecOctoSkillsPage / SecOctoSkillDetailPage 组件，通过前缀区分入口：
+ *   - secocto-skills       → 系统管理 → 技能进化（可编辑，含"发起进化合并"按钮）
+ *   - skill-secocto-skills → 导航"技能" → 技能库（只读，无按钮）
+ *
+ * 顶级导航通过前缀分流（app/navigation.tsx getTopLevelNavForView）：
+ *   - 'skill-secocto-' 前缀 → 顶级 nav = 'skill'
+ *   - 'secocto-'       前缀 → 顶级 nav = 'system-admin'
+ */
+export const SKILL_SECOCTO_VIEW_PREFIX = 'skill-secocto-' as const;
+
 export interface SecOctoViewContext {
   currentView: string;
   setCurrentView: (view: string) => void;
@@ -42,6 +55,14 @@ export const renderSecOctoView = (ctx: SecOctoViewContext): React.ReactNode | nu
       return <SecOctoSkillsPage onNavigateSkill={(fullName) => ctx.setCurrentView(`secocto-skill-${encodeURIComponent(fullName)}`)} onNavigate={(navKey) => ctx.setCurrentView('secocto-skills')} />;
     case 'secocto-memories-compile':
       return <SecOctoCompilePage onBack={() => ctx.setCurrentView('secocto-memories')} />;
+
+    // ===== "技能" 顶级导航下的复用入口（只读） =====
+    // 与上方 secocto-skills 共享同一份 SecOctoSkillsPage 组件，仅前缀和 readOnly 不同。
+    case 'skill-secocto-skills':
+      return <SecOctoSkillsPage
+        onNavigateSkill={(fullName) => ctx.setCurrentView(`skill-secocto-skill-${encodeURIComponent(fullName)}`)}
+        onNavigate={() => ctx.setCurrentView('skill-secocto-skills')}
+      />;
   }
 
   if (ctx.currentView.startsWith('secocto-vuln-detail-')) {
@@ -74,6 +95,22 @@ export const renderSecOctoView = (ctx: SecOctoViewContext): React.ReactNode | nu
         ctx.setCurrentView(`secocto-result-${encodeURIComponent(fn + suffix)}`);
       }}
       onBack={() => ctx.setCurrentView('secocto-skills')}
+    />;
+  }
+  // "技能" 顶级导航下的技能详情：与 secocto-skill-* 同一组件，传 readOnly 隐藏按钮。
+  // 决策行点击仍跳到 secocto-result-*（决策详情视为只读历史记录，跨导航复用）。
+  if (ctx.currentView.startsWith('skill-secocto-skill-')) {
+    const fullName = decodeURIComponent(ctx.currentView.replace('skill-secocto-skill-', ''));
+    return <SecOctoSkillDetailPage
+      fullName={fullName}
+      readOnly
+      onNavigateDecision={(args) => {
+        const fn = typeof args === 'string' ? args : args.fullName;
+        const ids = typeof args === 'string' ? undefined : args.proposalIds;
+        const suffix = ids && ids.length ? `?proposals=${ids.join(',')}` : '';
+        ctx.setCurrentView(`secocto-result-${encodeURIComponent(fn + suffix)}`);
+      }}
+      onBack={() => ctx.setCurrentView('skill-secocto-skills')}
     />;
   }
   if (ctx.currentView.startsWith('secocto-evolve-')) {

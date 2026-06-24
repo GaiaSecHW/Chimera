@@ -230,7 +230,10 @@ const SkillCard: React.FC<{ skill: SecOctoSkill; onClick: () => void }> = ({ ski
 
 interface SkillDetailProps {
   fullName: string;
-  onNavigateEvolve: (fullName: string) => void;
+  /**
+   * 发起进化合并的回调；readOnly=true 时不会被调用，可省略。
+   */
+  onNavigateEvolve?: (fullName: string) => void;
   /**
    * 决策行点击触发 — 由 viewRegistry 把 fullName(+ 可选 proposalIds)encode 后
    * 拼成 view string,避免 URL 把 `/` 切段;支持两种调用形态:
@@ -239,9 +242,15 @@ interface SkillDetailProps {
    */
   onNavigateDecision?: (args: string | { fullName: string; proposalIds?: number[] }) => void;
   onBack: () => void;
+  /**
+   * 只读模式：隐藏"发起进化合并"按钮，阻止本入口发起进化流程。
+   * 用于在导航"技能"等无权限发起合并的入口下复用本页。
+   * 默认 false（保持"系统管理 → 技能进化"的原行为）。
+   */
+  readOnly?: boolean;
 }
 
-export const SecOctoSkillDetailPage: React.FC<SkillDetailProps> = ({ fullName, onNavigateEvolve, onNavigateDecision, onBack }) => {
+export const SecOctoSkillDetailPage: React.FC<SkillDetailProps> = ({ fullName, onNavigateEvolve, onNavigateDecision, onBack, readOnly = false }) => {
   const [skill, setSkill] = useState<SecOctoSkill | null>(null);
   // null = 加载中(对齐 secocto-ui pendingTitle 不显示数字);[] = 加载失败或空
   const [proposals, setProposals] = useState<SecOctoProposal[] | null>(null);
@@ -369,14 +378,16 @@ export const SecOctoSkillDetailPage: React.FC<SkillDetailProps> = ({ fullName, o
       {/* ===================== 待处理提案 ===================== */}
       <div className="flex items-center justify-between gap-3 mb-2 mt-5">
         <h2 className="text-base font-semibold text-theme-text-primary">{pendingTitle}</h2>
-        <button
-          disabled={evolveBtnDisabled}
-          onClick={() => onNavigateEvolve(fullName)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-primary text-theme-text-inverse hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
-        >
-          <Dna size={14} />
-          发起进化合并
-        </button>
+        {!readOnly && (
+          <button
+            disabled={evolveBtnDisabled}
+            onClick={() => onNavigateEvolve?.(fullName)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-primary text-theme-text-inverse hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+          >
+            <Dna size={14} />
+            发起进化合并
+          </button>
+        )}
       </div>
 
       <PendingProposalsTable proposals={proposals} pending={pendingProposals} />

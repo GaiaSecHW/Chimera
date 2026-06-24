@@ -263,9 +263,16 @@ export const SecOctoMemoriesPage: React.FC<Props> = ({ onNavigate }) => {
       />
 
       {modalItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        // items-start + p-* 上下留白：modal 从视口顶部往下流，超长时整体不会跑出视口。
+        // 关键约束：外层 padding 双边总和 必须 = max-h 的"留白预算"，否则 modal 底部
+        // 会伸进 padding 区域，看起来像"被遮挡"。
+        //   p-4   = 1rem * 2 = 2rem 总留白  ← 移动端
+        //   sm:p-6 = 1.5rem * 2 = 3rem 总留白  ← 平板
+        //   md:p-8 = 2rem * 2 = 4rem 总留白  ← 桌面
+        // max-h 对应分级，永远比可用区少 1rem 给视觉呼吸。
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:p-6 md:p-8">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeModal} />
-          <div className="relative w-full max-w-[65.625rem] mx-4 bg-theme-surface rounded-2xl border border-theme-border shadow-xl overflow-hidden">
+          <div className="relative w-full max-w-[65.625rem] bg-theme-surface rounded-2xl border border-theme-border shadow-xl flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)] md:max-h-[calc(100vh-4rem)] overflow-hidden">
             <button
               onClick={closeModal}
               className="absolute top-4 right-4 p-2 rounded-xl bg-theme-bg-elevated text-theme-text-secondary hover:text-theme-text-primary transition-colors z-10"
@@ -273,7 +280,9 @@ export const SecOctoMemoriesPage: React.FC<Props> = ({ onNavigate }) => {
             >
               <X size={18} />
             </button>
-            <div className="p-6 overflow-y-auto max-h-[80vh]">
+            {/* overscroll-contain 防止滚到底时把 body 一起滚；
+                pb-10 比 p-6 默认底部 padding 多 1rem，让最后一行 markdown 不贴底边 */}
+            <div className="px-6 pt-6 pb-10 overflow-y-auto overscroll-contain flex-1">
               <h2 className="text-xl font-bold text-theme-text-primary mb-4 pr-10">{modalItem.title || '—'}</h2>
               <div className="flex flex-col gap-2 mb-4">
                 {modalItem.scope && (
