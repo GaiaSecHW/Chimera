@@ -164,6 +164,10 @@ export interface ViewRegistryContext {
   activeTaskVulnListTaskId: string;
   activeVulnIntakeTaskFilter: string;
   activeTaskReportTaskId: string;
+  openCreateTaskOnNav: boolean;
+  openCreateProjectOnNav: boolean;
+  setOpenCreateTaskOnNav: (v: boolean) => void;
+  setOpenCreateProjectOnNav: (v: boolean) => void;
   selectedStaticPkgIds: Set<string>;
   setCurrentView: (view: string) => void;
   setSelectedProjectId: (id: string) => void;
@@ -253,6 +257,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           setActiveProjectId={ctx.setActiveProjectId}
           setCurrentView={ctx.setCurrentView}
           refreshProjects={ctx.fetchProjects}
+          openCreateProjectOnNav={ctx.openCreateProjectOnNav}
+          onConsumeOpenCreateProject={() => ctx.setOpenCreateProjectOnNav(false)}
         />
       );
     case 'project-detail':
@@ -260,7 +266,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'product-mgmt':
       return <ProductMgmtPage />;
     case 'task-list':
-      return <TaskCenterPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
+      return <TaskCenterPage projectId={ctx.selectedProjectId} projects={ctx.projects} openCreateTaskOnNav={ctx.openCreateTaskOnNav} onConsumeOpenCreateTask={() => ctx.setOpenCreateTaskOnNav(false)} />;
     case 'task-web-end-to-end':
       return <WebEndToEndPage projectId={ctx.selectedProjectId} />;
     case 'task-knowledge-graph':

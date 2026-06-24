@@ -22,6 +22,8 @@ import {
 interface Props {
   projectId: string;
   projects: SecurityProject[];
+  openCreateTaskOnNav?: boolean;
+  onConsumeOpenCreateTask?: () => void;
 }
 
 type TaskTypeOption = {
@@ -110,7 +112,7 @@ const LK = {
 
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
-export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
+export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, openCreateTaskOnNav, onConsumeOpenCreateTask }) => {
   const scheduleApi = api.domains.platform.scheduleCenter;
   const currentUser = useMemo(() => getLocalUserInfo(), []);
   const isAdmin = useMemo(() => {
@@ -255,6 +257,13 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const openCreateDialog = () => {
     setCreateOpen(true);
   };
+
+  useEffect(() => {
+    if (openCreateTaskOnNav) {
+      setCreateOpen(true);
+      onConsumeOpenCreateTask?.();
+    }
+  }, [openCreateTaskOnNav, onConsumeOpenCreateTask]);
 
   const closeCreateDialog = () => {
     setPreSelectedMode(undefined);
@@ -875,6 +884,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         onClose={closeCreateDialog}
         projectId={projectId}
         projectName={projectName}
+        projects={projects}
         preSelectedMode={preSelectedMode}
         onCreated={() => { setPreSelectedMode(undefined); closeCreateDialog(); void loadData(); }}
       />

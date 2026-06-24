@@ -14,6 +14,7 @@ import type {
   ProjectInputUploadRecord,
   ScheduleCenterUserTaskCreatePayload,
   ScheduleCenterUserTaskType,
+  SecurityProject,
   UserInfo,
 } from '../../types/types';
 
@@ -28,6 +29,7 @@ export interface CreateTaskDialogProps {
   onClose: () => void;
   projectId: string;
   projectName: string;
+  projects: SecurityProject[];
   preSelectedInputId?: string;
   preSelectedMode?: HomeCardMode;
   onCreated: () => void;
@@ -149,6 +151,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   onClose,
   projectId,
   projectName,
+  projects,
   preSelectedInputId,
   preSelectedMode,
   onCreated,
@@ -161,6 +164,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [activeCreateTab, setActiveCreateTab] = useState<(typeof CREATE_TABS)[number]['key']>('basic');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId);
   const [taskType, setTaskType] = useState<(typeof TASK_TYPES)[number]['value']>('source_scan_e2e');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -226,7 +230,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     return '请选择一个文件作为测试对象。';
   }, [selectionMode, taskType]);
 
-  const canCreateTask = !taskTypeDisabled && mode !== 'lion-head' && (
+  const canCreateTask = Boolean(selectedProjectId) && !taskTypeDisabled && mode !== 'lion-head' && (
     taskType === 'cfg_db_vuln'
       // CFG mining runs over an existing, already-ingested code upload (its
       // codemap graph must exist); just need a name + a selected record.
@@ -245,10 +249,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   /* --- data loading --- */
   const loadDialogData = async () => {
-    if (!projectId) return;
+    if (!selectedProjectId) return;
     setAgentAppsLoadError('');
     try {
-      const inputResp = await fileserverApi.listProjectInputUploads(projectId, { pageSize: 200 });
+      const inputResp = await fileserverApi.listProjectInputUploads(selectedProjectId, { pageSize: 200 });
       const nextInputs = inputResp.items || [];
       setInputs(nextInputs);
       if (preSelectedInputId && nextInputs.some((item) => item.upload_id === preSelectedInputId)) {
@@ -272,18 +276,25 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   useEffect(() => {
     if (open) {
+      setSelectedProjectId(projectId);
       if (preSelectedMode) setMode(preSelectedMode);
       void loadDialogData();
     }
   }, [open, projectId, preSelectedMode]);
 
+  useEffect(() => {
+    if (open && selectedProjectId) {
+      void loadDialogData();
+    }
+  }, [open, selectedProjectId]);
+
   /* --- browse helpers --- */
   const loadBrowsePath = async (relativePath: string) => {
-    if (!open || !selectedInputId || !projectId) return;
+    if (!open || !selectedInputId || !selectedProjectId) return;
     setInputBrowseLoading(true);
     setInputBrowseError('');
     try {
-      const resp = await fileserverApi.browseProjectInputUpload(projectId, selectedInputId, relativePath);
+      const resp = await fileserverApi.browseProjectInputUpload(selectedProjectId, selectedInputId, relativePath);
       setBrowseCache((current) => ({ ...current, [relativePath]: resp }));
     } catch (err: any) {
       setInputBrowseError(err?.message || '加载输入目录失败');
@@ -293,9 +304,9 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   };
 
   useEffect(() => {
-    if (!open || !selectedInputId || !projectId) return;
+    if (!open || !selectedInputId || !selectedProjectId) return;
     void loadBrowsePath('');
-  }, [open, projectId, selectedInputId, taskType]);
+  }, [open, selectedProjectId, selectedInputId, taskType]);
 
   /* --- keep taskType valid for the selected mode --- */
   useEffect(() => {
@@ -418,9 +429,9 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           return;
         }
         const created = await api.cfgPipeline.createPipeline({
-          project_id: projectId,
+          project_id: selectedProjectId,
           name,
-          input_path: buildManagerTargetDir(projectId, selectedInput.target_path),
+          input_path: buildManagerTargetDir(selectedProjectId, selectedInput.target_path),
           created_by: currentUser?.username,
         });
         setName('');
@@ -491,7 +502,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         agent_harness_path: taskType === 'sechps_tool' ? (selectedAgentApp?.agentHarnessPath || undefined) : undefined,
         instruction: taskType === 'sechps_tool' ? (sechpsInstruction || undefined) : undefined,
       };
-      await scheduleApi.createUserTask(projectId, payload);
+      await scheduleApi.createUserTask(selectedProjectId, payload);
       /* reset form state */
       setName('');
       setDescription('');
@@ -632,7 +643,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               创建任务
             </div>
             <div className="mt-1 text-xs font-semibold" style={{ color: LK.error }}>
-              当前处于「{projectName}」项目下
+              当前处于「{projects.find((item) => item.id === selectedProjectId)?.name || projectName}」项目下
             </div>
           </div>
           <button
@@ -684,6 +695,43 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         >
           {/* =============== TAB: basic =============== */}
             <div className="flex h-full flex-col space-y-3" style={{ display: activeCreateTab === 'basic' ? undefined : 'none' }}>
+              {/* 项目选择 */}
+              <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                项目 <span style={{ color: LK.error }}>*</span>
+                <select
+                  value={selectedProjectId}
+                  onChange={(e) => setSelectedProjectId(e.target.value)}
+                  className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                  style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                >
+                  {projects.map((item) => (
+                    <option key={item.id} value={item.id}>{item.name}</option>
+                  ))}
+                </select>
+              </label>
+              {projects.length === 0 ? (
+                <div
+                  className="rounded-lg px-4 py-3 text-sm"
+                  style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
+                >
+                  当前没有可用项目，请先到
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'project-mgmt', openCreateProject: true } }));
+                    }}
+                    className="mx-1 font-semibold underline underline-offset-2 transition-opacity hover:opacity-80"
+                    style={{ color: LK.warning }}
+                  >
+                    资产管理 → 项目管理
+                  </button>
+                  初始化项目。
+                </div>
+              ) : null}
+
               {/* 任务名称 */}
               <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                 任务名称
@@ -826,7 +874,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 {inputSource === 'upload' ? (
                   <TestInputUploader
                     ref={uploaderRef}
-                    projectId={projectId}
+                    projectId={selectedProjectId}
                     displayName={name}
                     compact={true}
                     onUploadStateChange={setUploading}

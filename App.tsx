@@ -106,6 +106,8 @@ const AppShell: React.FC = () => {
   const [activeTaskVulnListTaskId, setActiveTaskVulnListTaskId] = useState<string>('');
   const [activeVulnIntakeTaskFilter, setActiveVulnIntakeTaskFilter] = useState<string>('');
   const [activeTaskReportTaskId, setActiveTaskReportTaskId] = useState<string>('');
+  const [openCreateTaskOnNav, setOpenCreateTaskOnNav] = useState(false);
+  const [openCreateProjectOnNav, setOpenCreateProjectOnNav] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -355,6 +357,12 @@ const AppShell: React.FC = () => {
         setActiveAppScanTaskId(appScanTaskId);
       }
       const binaryEvolutionTaskId = String(detail?.binaryEvolutionTaskId || '').trim();
+      if (detail?.openCreateTask) {
+        setOpenCreateTaskOnNav(true);
+      }
+      if (detail?.openCreateProject) {
+        setOpenCreateProjectOnNav(true);
+      }
       if (nextView) {
         navigateToView(nextView, {
           ...(requestedPath ? { path: requestedPath } : {}),
@@ -505,11 +513,28 @@ const AppShell: React.FC = () => {
         if (resolvedProjectId && resolvedProjectId !== selectedProjectId) {
           setSelectedProjectId(resolvedProjectId);
         }
+
+        const pendingNavRaw = sessionStorage.getItem('chimera:pendingNav');
+        if (pendingNavRaw) {
+          sessionStorage.removeItem('chimera:pendingNav');
+          try {
+            const pending = JSON.parse(pendingNavRaw);
+            if (pending.projectId && nextProjects.some((p) => p.id === pending.projectId)) {
+              setSelectedProjectId(pending.projectId);
+            }
+            if (pending.view) {
+              navigateToView(pending.view);
+            }
+            if (pending.openCreateTask) {
+              setOpenCreateTaskOnNav(true);
+            }
+          } catch { /* ignore */ }
+        }
       }
     } catch (err) {
       console.error("Failed to fetch projects", err);
     } finally {
-      if (refresh) setIsRefreshing(false);
+      if (refresh) setIsRefreshing(true);
     }
   };
 
@@ -753,6 +778,10 @@ const AppShell: React.FC = () => {
                     activeVulnIntakeTaskFilter,
                     activeTaskReportTaskId,
                     activeRedlineTaskId,
+                    openCreateTaskOnNav,
+                    openCreateProjectOnNav,
+                    setOpenCreateTaskOnNav,
+                    setOpenCreateProjectOnNav,
                     selectedStaticPkgIds,
                     setCurrentView: navigateToView,
                     setSelectedProjectId: (id) => setSelectedProjectId(id),

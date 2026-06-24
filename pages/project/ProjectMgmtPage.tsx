@@ -22,6 +22,7 @@ import { orgApi, UserPermissionInfo } from '../../clients/org';
 import { PageHeader } from '../../design-system';
 import { Department, ProductTreeNode, ProductVersionNode, SecurityProject } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
+import { useUiFeedback } from '../../components/UiFeedback';
 
 interface ProjectMgmtPageProps {
   projects: SecurityProject[];
@@ -29,6 +30,8 @@ interface ProjectMgmtPageProps {
   setActiveProjectId: (id: string) => void;
   setCurrentView: (view: string) => void;
   refreshProjects: (showRefresh?: boolean) => Promise<void>;
+  openCreateProjectOnNav?: boolean;
+  onConsumeOpenCreateProject?: () => void;
 }
 
 interface ProjectFormState {
@@ -76,10 +79,13 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   setActiveProjectId,
   setCurrentView,
   refreshProjects,
+  openCreateProjectOnNav,
+  onConsumeOpenCreateProject,
 }) => {
   const projectApi = api.domains.project;
   const scheduleApi = api.domains.platform.scheduleCenter;
   const vulnApi = api.domains.vuln.vuln;
+  const { confirm, feedbackNodes } = useUiFeedback();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(() => {
@@ -322,6 +328,13 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     setIsCreateModalOpen(true);
   };
 
+  useEffect(() => {
+    if (openCreateProjectOnNav) {
+      openCreateModal();
+      onConsumeOpenCreateProject?.();
+    }
+  }, [openCreateProjectOnNav, onConsumeOpenCreateProject]);
+
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProject.department_id) {
@@ -354,16 +367,31 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       }
       // else: existing product + existing version — selectedVersionId already set
 
-      await projectApi.projects.create({
+      const createdProject = await projectApi.projects.create({
         name: newProject.name,
         description: newProject.description,
         is_public: false, // Always department project
         department_id: Number(newProject.department_id),
         product_version_id: productVersionId!,
       });
+      const createdProjectName = createdProject.name || newProject.name || `${productSearch} / ${versionSearch}`;
       setIsCreateModalOpen(false);
       resetCreateForm();
       await refreshProjects();
+      const goCreateTask = await confirm({
+        title: '项目创建成功',
+        message: `项目「${createdProjectName}」已初始化。是否前往测试任务中心创建测试任务？`,
+        confirmText: '去创建任务',
+        cancelText: '暂不',
+      });
+      if (goCreateTask) {
+        sessionStorage.setItem('chimera:pendingNav', JSON.stringify({
+          view: 'task-list',
+          openCreateTask: true,
+          projectId: createdProject.id,
+        }));
+        window.open(window.location.href, '_blank');
+      }
     } catch (err: any) {
       setError(err.message || '创建项目失败');
     } finally {
@@ -1190,6 +1218,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
           </div>
         </div>
       )}
+      {feedbackNodes}
     </div>
   );
 };
