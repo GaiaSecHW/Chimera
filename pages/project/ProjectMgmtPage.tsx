@@ -557,27 +557,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       <PageHeader
         title="项目概览"
         description="统一展示用户权限范围内的所有项目"
-        actions={
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleRefresh}
-              className="btn-icon"
-              title="刷新列表"
-              aria-label="刷新列表"
-            >
-              <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
-            </button>
-            <button
-              type="button"
-              onClick={openCreateModal}
-              disabled={!userPermissions || selectableDepartments.length === 0}
-              className="btn btn-primary"
-            >
-              <Plus size={16} /> 初始化项目
-            </button>
-          </div>
-        }
       />
 
       {/* Batch selection bar */}
