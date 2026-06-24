@@ -343,16 +343,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
     }));
   };
 
-  const requestSync = async (task: ScheduleCenterUserTask) => {
-    try {
-      await scheduleApi.syncUserTask(projectId, task.id, { force: true });
-      notify('已加入同步队列', 'success');
-      await loadData();
-    } catch (err: any) {
-      notify(err?.message || '加入同步队列失败', 'error');
-    }
-  };
-
   const submitDeleteQueueFilters = async (event: React.FormEvent) => {
     event.preventDefault();
     setDeleteQueuePage(1);
@@ -565,18 +555,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                         onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
                       >
                         查看漏洞 ({taskVulnCounts[task.id] === undefined ? '…' : taskVulnCounts[task.id]})
-                      </button>
-                    ) : null}
-                    {task.sync_required ? (
-                      <button
-                        onClick={() => void requestSync(task)}
-                        className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
-                        style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; e.currentTarget.style.borderColor = LK.primary; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
-                      >
-                        <RefreshCw size={12} />
-                        立即同步
                       </button>
                     ) : null}
                     <button
