@@ -164,13 +164,30 @@ const getToolCallMeta = (toolCall: unknown) => {
     ? fn.name
     : typeof call.name === 'string'
       ? call.name
+      : typeof call.recipient_name === 'string'
+        ? call.recipient_name
+        : typeof call.recipientName === 'string'
+          ? call.recipientName
+          : typeof call.tool_name === 'string'
+            ? call.tool_name
+            : typeof call.toolName === 'string'
+              ? call.toolName
+              : typeof call.server_name === 'string'
+                ? call.server_name
+                : typeof call.serverName === 'string'
+                  ? call.serverName
       : 'Unknown';
   const id = typeof call.id === 'string'
     ? call.id
     : typeof call.tool_use_id === 'string'
       ? call.tool_use_id
       : '';
-  const args = fn?.arguments ?? call.input ?? call.arguments ?? null;
+  const args = fn?.arguments
+    ?? call.input
+    ?? call.arguments
+    ?? call.parameters
+    ?? call.query
+    ?? null;
   return { name, id, args };
 };
 
@@ -191,6 +208,34 @@ const extractToolResultEntries = (content: unknown, source: 'request' | 'respons
       source,
     }];
   });
+};
+
+const extractResponseContentEntries = (
+  content: unknown,
+  source: 'request' | 'response',
+  titlePrefix: string,
+): VisualEntry[] => {
+  if (!Array.isArray(content)) return [];
+
+  const toolCallEntries = content.flatMap((item, index) => {
+    if (!item || typeof item !== 'object') return [];
+    const record = item as Record<string, unknown>;
+    if (record.type !== 'tool_use' && record.type !== 'server_tool_use') return [];
+    const { name, id, args } = getToolCallMeta(record);
+    return [{
+      kind: 'tool-call' as const,
+      role: 'tool-call',
+      title: `${titlePrefix} · Tool Call ${index + 1}${name ? ` · ${name}` : ''}${id ? ` · ${id}` : ''}`,
+      body: formatToolArguments(args),
+      raw: record,
+      source,
+    }];
+  });
+
+  return [
+    ...toolCallEntries,
+    ...extractToolResultEntries(content, source, titlePrefix),
+  ];
 };
 
 const formatToolArguments = (value: unknown) => {
@@ -335,18 +380,71 @@ const extractResponseVisualEntries = (responseJson: unknown): VisualEntry[] => {
       if (!item || typeof item !== 'object') return;
       const outputItem = item as Record<string, unknown>;
       const itemType = typeof outputItem.type === 'string' ? outputItem.type : 'output';
+      const finishReason = typeof outputItem.finish_reason === 'string'
+        ? outputItem.finish_reason
+        : typeof outputItem.finishReason === 'string'
+          ? outputItem.finishReason
+          : '';
+
+      if (Array.isArray(outputItem.content)) {
+        const body = flattenContentText(outputItem.content);
+        entries.push({
+          kind: itemType.includes('tool') ? 'tool-call' : 'message',
+          role: typeof outputItem.role === 'string' ? outputItem.role : itemType,
+          title: `Output ${index + 1} · ${itemType}`,
+          body: body || '(empty)',
+          raw: outputItem,
+          source: 'response',
+          reasoningContent: getNestedString(outputItem, ['reasoning_content', 'reasoningContent']),
+          finishReason,
+          toolCalls: extractToolCallsFromContent(outputItem.content),
+          parts: getContentParts(outputItem.content),
+        });
+        entries.push(...extractResponseContentEntries(outputItem.content, 'response', `Output ${index + 1} · ${itemType}`));
+        return;
+      }
+
+      if (itemType === 'function_call' || itemType === 'custom_tool_call') {
+        const { name, id, args } = getToolCallMeta(outputItem);
+        entries.push({
+          kind: 'tool-call',
+          role: 'tool-call',
+          title: `Output ${index + 1} · ${itemType}${name ? ` · ${name}` : ''}${id ? ` · ${id}` : ''}`,
+          body: formatToolArguments(args),
+          raw: outputItem,
+          source: 'response',
+        });
+        return;
+      }
+
       const body = flattenContentText(outputItem.content ?? outputItem.text ?? outputItem.arguments ?? outputItem.output);
       entries.push({
         kind: itemType.includes('tool') ? 'tool-call' : 'message',
-        role: itemType,
+        role: typeof outputItem.role === 'string' ? outputItem.role : itemType,
         title: `Output ${index + 1} · ${itemType}`,
         body: body || stringifyPretty(outputItem),
         raw: outputItem,
         source: 'response',
         reasoningContent: getNestedString(outputItem, ['reasoning_content', 'reasoningContent']),
+        finishReason,
         parts: getContentParts(outputItem.content ?? outputItem.text ?? outputItem.arguments ?? outputItem.output),
       });
     });
+  }
+
+  if (entries.length === 0 && Array.isArray(response.content)) {
+    entries.push({
+      kind: 'message',
+      role: typeof response.role === 'string' ? response.role : 'assistant',
+      title: 'Response Content',
+      body: flattenContentText(response.content) || '(empty)',
+      raw: response.content,
+      source: 'response',
+      reasoningContent: getNestedString(response, ['reasoning_content', 'reasoningContent']),
+      toolCalls: extractToolCallsFromContent(response.content),
+      parts: getContentParts(response.content),
+    });
+    entries.push(...extractResponseContentEntries(response.content, 'response', 'Response Content'));
   }
 
   if (entries.length === 0 && typeof response.content === 'string') {
