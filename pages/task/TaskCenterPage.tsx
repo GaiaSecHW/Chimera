@@ -422,7 +422,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="搜索任务名、Harness、状态、下游任务 ID"
+            placeholder="搜索任务名、Harness、状态"
             className="form-input w-full pl-10"
           />
         </div>
@@ -623,7 +623,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                   <input
                     value={deleteQueueFilters.search}
                     onChange={(e) => setDeleteQueueFilters((current) => ({ ...current, search: e.target.value }))}
-                    placeholder="任务名 / 任务ID / 下游任务ID / 删除错误"
+                    placeholder="任务名 / 任务ID / 删除错误"
                     className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                     style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
                     onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}

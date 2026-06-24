@@ -659,9 +659,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             <div className="text-lg font-semibold leading-7" style={{ color: LK.ink }}>
               创建任务
             </div>
-            <div className="mt-1 text-xs font-semibold" style={{ color: LK.error }}>
-              当前处于「{projects.find((item) => item.id === selectedProjectId)?.name || projectName}」项目下
-            </div>
           </div>
           <button
             onClick={onClose}
