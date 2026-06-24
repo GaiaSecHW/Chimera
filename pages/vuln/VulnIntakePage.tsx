@@ -314,10 +314,11 @@ const getCaseSortValue = (item: any, field: SortField) => {
   return String(item?.[field] || '').toLowerCase();
 };
 
+const getEffectiveResult = (item: any) => String(item?.finished_reason || item?.validation_result || '').trim();
+
 const matchesFinalResultFilter = (item: any, filters: string[]) => {
   if (!filters || filters.length === 0) return true;
-  const isTerminal = item.current_stage === 'finished' || !!item.finished_reason;
-  const effective = isTerminal ? String(item.finished_reason || item.validation_result || '').trim() : '';
+  const effective = getEffectiveResult(item);
   const isVulnerable = effective === 'vulnerable';
   const isRuledOut = effective === 'not_vulnerable' || effective === 'non_vulnerable';
   return filters.some((f) => {
@@ -817,7 +818,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         if (!suspectOnly) return true;
         const reporterName: string = item?.reporter?.name || '';
         if (reporterName && engineTools.has(reporterName)) {
-          return item?.finished_reason === 'vulnerable';
+          return getEffectiveResult(item) === 'vulnerable';
         }
         return true;
       };
@@ -1768,7 +1769,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         if (!suspectOnly) return true;
         const reporterName: string = item?.reporter?.name || '';
         if (reporterName && engineTools.has(reporterName)) {
-          return item?.finished_reason === 'vulnerable';
+          return getEffectiveResult(item) === 'vulnerable';
         }
         return true;
       };
