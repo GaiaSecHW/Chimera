@@ -2,8 +2,9 @@ import React, { Component, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
-  AlertTriangle, ArrowLeft, BarChart3, CheckCircle2, ChevronDown, ChevronUp, ClipboardCopy,
+  AlertTriangle, ArrowLeft, BarChart3, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ClipboardCopy,
   FolderOpen, Loader2, RefreshCw, RotateCcw, Search, ScrollText, Trash2, XCircle,
+  Bug, TrendingUp,
 } from 'lucide-react';
 
 const LK = {
@@ -492,6 +493,39 @@ function TreeNodeView({ node, defaultExpanded = true }: { node: DfaTreeNode; def
   );
 }
 
+type VulnGraphStats = {
+  totalNodes: number;
+  analyzedNodes: number;
+  pendingNodes: number;
+  skippedNodes: number;
+  cycleNodes: number;
+  maxDepth: number;
+  vulnCount: number;
+};
+
+function computeVulnGraphStats(tree: DataflowVulnTraceTreeNode | null | undefined): VulnGraphStats {
+  if (!tree) return { totalNodes: 0, analyzedNodes: 0, pendingNodes: 0, skippedNodes: 0, cycleNodes: 0, maxDepth: 0, vulnCount: 0 };
+  const stats: VulnGraphStats = { totalNodes: 0, analyzedNodes: 0, pendingNodes: 0, skippedNodes: 0, cycleNodes: 0, maxDepth: 0, vulnCount: 0 };
+  const walk = (node: DataflowVulnTraceTreeNode) => {
+    stats.totalNodes += 1;
+    stats.maxDepth = Math.max(stats.maxDepth, node.depth);
+    stats.vulnCount += node.findings_count || 0;
+    const status = String(node.status || '').toLowerCase();
+    if (status === 'cycle') {
+      stats.cycleNodes += 1;
+    } else if (node.pruned || status === 'skipped' || status === 'depth_limit' || status === 'merged') {
+      stats.skippedNodes += 1;
+    } else if (status === 'passed' || status === 'completed' || status === 'analyzed' || status === 'done') {
+      stats.analyzedNodes += 1;
+    } else {
+      stats.pendingNodes += 1;
+    }
+    (node.children || []).forEach(walk);
+  };
+  walk(tree);
+  return stats;
+}
+
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return <div className="flex gap-3"><span className="w-24 shrink-0 text-xs text-theme-text-muted">{label}</span><span className="text-xs text-theme-text-secondary break-all">{value}</span></div>;
 }
@@ -545,7 +579,7 @@ function pruneReasonTone(reason?: string | null): string {
   return 'bg-theme-bg-app text-theme-text-secondary border-theme-border';
 }
 
-function PrunedBranchBadge({ node, level = 0 }: { node: DataflowVulnTraceTreeNode; level?: number }) {
+function PrunedBranchBadge({ node, level = 0, isLast = false, ancestors = [] }: { node: DataflowVulnTraceTreeNode; level?: number; isLast?: boolean; ancestors?: boolean[] }) {
   const reasonLabel = PRUNE_LABELS[node.prune_reason || ''] || node.prune_reason || node.followup_status;
   const reasonTone = pruneReasonTone(node.prune_reason);
   const tooltipLines: string[] = [];
@@ -559,14 +593,18 @@ function PrunedBranchBadge({ node, level = 0 }: { node: DataflowVulnTraceTreeNod
     }
   }
   return (
-    <div className="group relative" style={{ marginLeft:`${level * 16}px` }}>
-      <div className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs cursor-help ${reasonTone}`}>
-        <span className="font-mono font-semibold">{node.function_name || '-'}</span>
-        <span className="text-[10px] opacity-60">↵</span>
-        <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 ${reasonTone}`}>{reasonLabel}</span>
+    <div className="relative" style={{ marginLeft: `${level * 22}px` }}>
+      {level > 0 && (
+        <>
+          <div className="absolute border-l border-dashed border-theme-border" style={{ left: `${-1 * 22 + 8}px`, top: 0, height: '10px' }} />
+          <div className="absolute border-b border-l border-dashed border-theme-border rounded-bl" style={{ left: `${-1 * 22 + 8}px`, top: '10px', width: '10px', height: '4px' }} />
+        </>
+      )}
+      <div className="group relative inline-flex items-center gap-1.5 rounded-lg border border-dashed px-2.5 py-1.5 text-xs cursor-help opacity-70 hover:opacity-100 transition-opacity" style={{ borderColor: reasonTone.includes('amber') ? '#d5a13a40' : reasonTone.includes('rose') ? '#f15d5d40' : '#72809a40' }}>
+        <span className="font-mono font-semibold text-theme-text-muted line-through">{node.function_name || '-'}</span>
+        <span className={`text-[10px] font-bold rounded px-1.5 py-0.5 ${reasonTone}`}>{reasonLabel}</span>
       </div>
-      {/* Tooltip */}
- <div className="pointer-events-none absolute left-0 top-full z-50 mt-1 min-w-[220px] rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-[11px] leading-relaxed text-slate-100 opacity-0 transition-opacity group-hover:opacity-100 whitespace-pre-wrap">
+      <div className="pointer-events-none absolute left-0 top-full z-50 mt-1 min-w-[220px] rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-[11px] leading-relaxed text-theme-text-secondary opacity-0 transition-opacity group-hover:opacity-100 whitespace-pre-wrap">
         {tooltipLines.join('\n')}
       </div>
     </div>
@@ -578,64 +616,129 @@ function TraceTreeNodeCard({
   selectedRunId,
   onSelect,
   level = 0,
+  isLast = false,
+  ancestors = [],
 }: {
   node: DataflowVulnTraceTreeNode;
   selectedRunId?: string;
   onSelect: (node: DataflowVulnTraceTreeNode) => void;
   level?: number;
+  isLast?: boolean;
+  ancestors?: boolean[];
 }) {
   const selected = selectedRunId === node.run_id || (!selectedRunId && level === 0);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(level === 0);
   const [showAll, setShowAll] = useState(false);
   const safeChildren = Array.isArray(node.children) ? node.children : [];
   const hasMany = safeChildren.length > INITIAL_CHILD_DISPLAY;
   const visibleChildren = hasMany && !showAll ? safeChildren.slice(0, INITIAL_CHILD_DISPLAY) : safeChildren;
   const hiddenCount = hasMany && !showAll ? safeChildren.length - INITIAL_CHILD_DISPLAY : 0;
+
+  const depthColors = [
+    'border-l-cyan-500', 'border-l-emerald-500', 'border-l-violet-500',
+    'border-l-amber-500', 'border-l-rose-500', 'border-l-blue-500',
+  ];
+  const depthBorder = depthColors[level % depthColors.length];
+
   if (node.pruned) {
-    return <PrunedBranchBadge node={node} level={level} />;
+    return <PrunedBranchBadge node={node} level={level} isLast={isLast} ancestors={ancestors} />;
   }
+
   return (
-    <div className="space-y-2">
-      <button
-        type="button"
-        onClick={() => { onSelect(node); if (safeChildren.length > 0) setExpanded((e) => !e); }}
-        className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-surface hover:bg-theme-elevated'}`}
-        style={{ marginLeft:`${level * 16}px` }}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              {safeChildren.length > 0 && (
-                <span className="text-theme-text-muted shrink-0">{expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}</span>
-              )}
-              <div className="truncate font-mono text-sm font-semibold">{node.function_name || '-'}</div>
-            </div>
-            <div className={`mt-1 truncate text-[11px] ${selected ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}>{node.source_file || '-'} {node.line_hint || ''}</div>
-            <div className={`mt-2 text-xs ${selected ? 'text-theme-text-faint' : 'text-theme-text-secondary'}`}>污点: {node.taint_inputs?.length ? node.taint_inputs.map((item) => item.symbol).join(', ') : '未识别'}</div>
-          </div>
-          <div className="flex shrink-0 flex-col items-end gap-2">
- <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${selected ? 'border-theme-border bg-theme-elevated text-white' : traceNodeTone(node.followup_status || node.status)}`}>{node.followup_status || node.status || '-'}</span>
- <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${selected ? 'bg-theme-elevated text-white' : 'bg-theme-elevated text-theme-text-secondary'}`}>漏洞 {node.findings_count || 0} · 子 {safeChildren.length}</span>
-          </div>
-        </div>
-      </button>
-      {expanded && safeChildren.length > 0 && (
-        <div className="space-y-2">
-          {visibleChildren.map((child) => (
-            <TraceTreeNodeCard key={`${child.run_id || child.function_name}-${child.line_hint}-${level + 1}`} node={child} selectedRunId={selectedRunId} onSelect={onSelect} level={level + 1} />
-          ))}
-          {hasMany && !showAll && (
-            <button
-              type="button"
-              onClick={() => setShowAll(true)}
-              className="text-[11px] text-theme-text-muted hover:text-theme-text-secondary transition"
-              style={{ marginLeft: `${(level + 1) * 16}px` }}
-            >
-              展开剩余 {hiddenCount} 个子节点...
-            </button>
-          )}
-        </div>
+    <div className="relative">
+      {/* Ancestor tree lines */}
+      {level > 0 && ancestors.map((hasMore, i) => (
+        hasMore ? (
+          <div
+            key={`line-${i}`}
+            className="absolute border-l border-theme-border"
+            style={{ left: `${i * 22}px`, top: 0, bottom: 0, width: 0 }}
+          />
+        ) : null
+      ))}
+      {/* Current level connector */}
+      {level > 0 && (
+        <>
+          <div
+            className="absolute border-l border-theme-border"
+            style={{ left: `${(level - 1) * 22}px`, top: 0, height: '18px' }}
+          />
+          <div
+            className="absolute border-b border-l border-theme-border rounded-bl-lg"
+            style={{ left: `${(level - 1) * 22}px`, top: '18px', width: '14px', height: '8px' }}
+          />
+        </>
       )}
+      {/* Node card */}
+      <div style={{ marginLeft: `${level * 22}px` }}>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => { onSelect(node); if (safeChildren.length > 0) setExpanded((e) => !e); }}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(node); if (safeChildren.length > 0) setExpanded((e) => !e); } }}
+          className={`w-full rounded-xl border px-3 py-2.5 text-left transition cursor-pointer border-l-2 ${depthBorder} ${selected ? 'bg-theme-elevated/80 border-theme-border' : 'bg-theme-surface hover:bg-theme-elevated/40 border-theme-border'}`}
+        >
+          <div className="flex items-start gap-2">
+            {/* Expand icon */}
+            <div className="mt-0.5 shrink-0">
+              {safeChildren.length > 0 ? (
+                expanded ? <ChevronDown size={14} className="text-theme-text-muted" /> : <ChevronRight size={14} className="text-theme-text-muted" />
+              ) : (
+                <div className="w-3.5 h-3.5" />
+              )}
+            </div>
+            {/* Content */}
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="truncate font-mono text-[13px] font-bold text-theme-text-primary">{node.function_name || '-'}</span>
+                <span className={`shrink-0 rounded-full px-1.5 py-px text-[10px] font-bold ${traceNodeTone(node.followup_status || node.status)}`}>{node.followup_status || node.status || '-'}</span>
+              </div>
+              <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] text-theme-text-muted">
+                <span className="truncate max-w-[240px]">{node.source_file || '-'}</span>
+                {node.line_hint ? <span>{node.line_hint}</span> : null}
+                <span className="text-theme-text-faint">D{node.depth}</span>
+                {node.findings_count > 0 ? <span className="font-bold text-rose-400">🐛{node.findings_count}</span> : null}
+                {node.termination_reasons?.length ? <span className="text-amber-400">⏹</span> : null}
+              </div>
+            </div>
+            {/* Right stats */}
+            <div className="flex shrink-0 items-center gap-1.5 text-[10px] text-theme-text-muted">
+              <span className="rounded bg-theme-elevated px-1.5 py-0.5">{node.taint_inputs?.length || 0} 输入</span>
+              <span className="rounded bg-theme-elevated px-1.5 py-0.5">{node.child_count || safeChildren.length} 子</span>
+            </div>
+          </div>
+        </div>
+        {/* Children */}
+        {expanded && safeChildren.length > 0 && (
+          <div className="mt-1">
+            {visibleChildren.map((child, i) => (
+              <TraceTreeNodeCard
+                key={`${child.run_id || child.function_name}-${child.line_hint}-${level + 1}`}
+                node={child}
+                selectedRunId={selectedRunId}
+                onSelect={onSelect}
+                level={level + 1}
+                isLast={i === visibleChildren.length - 1}
+                ancestors={[...ancestors, !isLast || (hasMany && !showAll)]}
+              />
+            ))}
+            {hasMany && !showAll && (
+              <div style={{ marginLeft: `${(level + 1) * 22}px` }}>
+                <div className="relative">
+                  <div className="absolute border-l border-dashed border-theme-border" style={{ left: '-14px', top: 0, height: '14px' }} />
+                  <button
+                    type="button"
+                    onClick={() => setShowAll(true)}
+                    className="text-[11px] text-theme-text-muted hover:text-amber-400 transition ml-2"
+                  >
+                    + 展开剩余 {hiddenCount} 个子函数
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -894,7 +997,7 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
       resultLoaded.current = true;
       void loadResult();
     }
-    if ((activeTab === 'vuln-graph' || activeTab === 'evaluation') && !vulnGraphLoaded.current && !vulnGraphLoading) {
+    if ((activeTab === 'vuln-graph' || activeTab === 'evaluation' || activeTab === 'overview') && !vulnGraphLoaded.current && !vulnGraphLoading) {
       vulnGraphLoaded.current = true;
       void loadVulnGraph();
     }
@@ -1050,6 +1153,9 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
   const resultRootFsPath = result?.output_root ? extractFsRelPath(result.output_root, projectId) : null;
   const selectedDataflow = result?.dataflow_files?.find((file) => file.relative_path === selectedDataflowFile) || result?.dataflow_files?.[0] || null;
   const traceTreeRoot = vulnGraph?.trace_tree || null;
+  const vulnStats = useMemo(() => computeVulnGraphStats(traceTreeRoot), [traceTreeRoot]);
+  const vulnSummary = vulnGraph?.summary || {};
+  const [expandedFindingIds, setExpandedFindingIds] = useState<Set<string>>(new Set());
   const traceTreeNodes = useMemo(() => flattenTraceTree(traceTreeRoot), [traceTreeRoot]);
   const selectedTraceNode = useMemo(
     () => traceTreeNodes.find((node) => node.run_id === selectedTraceRunId) || traceTreeNodes[0] || null,
@@ -1167,12 +1273,82 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
                 </div>
               </div>
  <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
-                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">阶段进度</h2>
-                <div className="mt-4 space-y-3">{STAGE_STEPS.map((step, index) => {
-                  const state = statusSteps[index];
-                  const artifactPath = detail.output_path ? extractFsRelPath(`${detail.output_path}/${detail.task_id}/${step.artifactSubpath}`, projectId) : null;
-                  return <div key={step.key} className="rounded-xl border border-theme-border bg-slate-50/70 px-4 py-3"><div className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${state === 'completed' ? 'border-emerald-500 bg-emerald-500/15 text-emerald-400' : state === 'running' ? 'border-blue-500 bg-blue-500/15 text-blue-400' : state === 'failed' ? 'border-red-400 bg-red-500/15 text-red-400' : 'border-theme-border bg-theme-surface text-theme-text-muted'}`}>{state === 'completed' ? <CheckCircle2 size={16} /> : state === 'running' ? <Loader2 size={14} className="animate-spin" /> : state === 'failed' ? <XCircle size={16} /> : index + 1}</div><div className="min-w-0 flex-1"><p className="text-sm font-bold text-theme-text-primary">{step.label}</p><p className="mt-1 text-xs text-theme-text-muted">{step.desc}</p>{artifactPath && state !== 'pending' ? <button onClick={() => openInFileExplorer(artifactPath)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-violet-500/20 px-2 py-1 text-[11px] font-semibold text-violet-400 hover:bg-violet-500/15"><FolderOpen size={11} />打开阶段输出</button> : null}</div></div></div>;
-                })}</div>
+                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">分析进度</h2>
+                <div className="mt-4 space-y-4">
+                  {(() => {
+                    const total = vulnStats.totalNodes || (vulnGraph?.available ? (vulnSummary.followups || 0) + (vulnSummary.runs || 0) : 0);
+                    const analyzed = vulnStats.analyzedNodes || (vulnGraph?.available ? (vulnSummary.runs || 0) : 0);
+                    const pct = total > 0 ? Math.round((analyzed / total) * 100) : detail?.status === 'running' ? 0 : detail?.status === 'passed' ? 100 : 0;
+                    const isRunning = detail?.status === 'running';
+                    return (
+                      <>
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-semibold text-theme-text-secondary">函数节点分析进度</span>
+                            <span className="text-xs font-bold text-theme-text-primary">{pct}%</span>
+                          </div>
+                          <div className="h-3 w-full overflow-hidden rounded-full bg-theme-elevated">
+                            <div
+                              className={`h-full rounded-full transition-all duration-700 ${isRunning ? 'animate-pulse' : ''}`}
+                              style={{
+                                width: `${pct}%`,
+                                background: pct === 100
+                                  ? 'linear-gradient(90deg, #45c06f, #34d399)'
+                                  : isRunning
+                                    ? 'linear-gradient(90deg, #4f8cff, #7590ff)'
+                                    : 'linear-gradient(90deg, #4f73ff, #7590ff)',
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/8 px-3 py-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <CheckCircle2 size={13} className="text-emerald-400" />
+                              <span className="text-[11px] font-semibold text-emerald-400">已分析</span>
+                            </div>
+                            <p className="mt-1 text-lg font-bold text-emerald-400">{analyzed}</p>
+                          </div>
+                          <div className="rounded-xl border border-amber-500/15 bg-amber-500/8 px-3 py-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <Loader2 size={13} className={`text-amber-400 ${isRunning ? 'animate-spin' : ''}`} />
+                              <span className="text-[11px] font-semibold text-amber-400">待分析</span>
+                            </div>
+                            <p className="mt-1 text-lg font-bold text-amber-400">{vulnStats.pendingNodes || Math.max(0, total - analyzed)}</p>
+                          </div>
+                          <div className="rounded-xl border border-violet-500/15 bg-violet-500/8 px-3 py-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <TrendingUp size={13} className="text-violet-400" />
+                              <span className="text-[11px] font-semibold text-violet-400">分析深度</span>
+                            </div>
+                            <p className="mt-1 text-lg font-bold text-violet-400">{vulnStats.maxDepth > 0 ? `Lv.${vulnStats.maxDepth}` : '-'}</p>
+                          </div>
+                          <div className="rounded-xl border border-rose-500/15 bg-rose-500/8 px-3 py-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <Bug size={13} className="text-rose-400" />
+                              <span className="text-[11px] font-semibold text-rose-400">漏洞上报</span>
+                            </div>
+                            <p className="mt-1 text-lg font-bold text-rose-400">{vulnStats.vulnCount || vulnSummary.findings || result?.summary?.total_findings || 0}</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-[11px] text-theme-text-muted">
+                          <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1">
+                            总节点: <span className="font-bold text-theme-text-secondary">{total || vulnStats.totalNodes || '-'}</span>
+                          </span>
+                          <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1">
+                            跳过: <span className="font-bold text-theme-text-secondary">{vulnStats.skippedNodes || 0}</span>
+                          </span>
+                          <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1">
+                            环路: <span className="font-bold text-theme-text-secondary">{vulnStats.cycleNodes || 0}</span>
+                          </span>
+                          <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1">
+                            污点边: <span className="font-bold text-theme-text-secondary">{vulnSummary.edges || 0}</span>
+                          </span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
             <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -1439,7 +1615,135 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
               <MetricCard label="漏洞数" value={formatNumber(vulnGraph?.summary?.findings)} icon={<XCircle size={18} />} />
  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">图数据库</div><div className="mt-2 break-all text-xs font-semibold text-theme-text-secondary">{vulnGraph?.run_root || '-'}</div><button onClick={() => void loadVulnGraph()} className="mt-3 inline-flex items-center gap-1 rounded-lg border border-theme-border px-2 py-1 text-[11px] font-semibold text-theme-text-muted hover:bg-theme-elevated"><RefreshCw size={10} className={vulnGraphLoading ? 'animate-spin' : ''} />刷新</button></div>
             </section>
- {vulnGraphLoading ? <section className="rounded-2xl border border-theme-border bg-theme-surface p-10 text-center text-sm text-theme-text-muted">加载漏洞图谱中...</section> : !vulnGraph?.available ? <section className="rounded-2xl border border-dashed border-theme-border bg-theme-surface p-10 text-center text-sm text-theme-text-muted">当前任务尚未生成漏洞图谱。</section> : <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]"><main className="rounded-2xl border border-theme-border bg-theme-surface p-5"><h2 className="border-b border-theme-border pb-4 text-2xl font-semibold tracking-tight text-theme-text-primary">污点传播树 / 图数据库</h2><div className="mt-5 grid gap-4 lg:grid-cols-2"><div><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">传播边</div><div className="mt-3 max-h-[32rem] space-y-2 overflow-auto pr-1">{(vulnGraph.graph?.taint_edges || []).map((edge: any) => <div key={edge.edge_id} className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3"><div className="font-mono text-xs font-bold text-theme-text-primary">{edge.from_symbol} → {edge.to_symbol}</div><div className="mt-1 text-[11px] text-theme-text-muted">{edge.source_file}::{edge.function_name} {edge.line}</div><div className="mt-2 text-xs text-theme-text-secondary">{edge.evidence || '-'}</div><div className="mt-2 flex flex-wrap gap-2 text-[10px]"><span className="rounded-full bg-cyan-500/15 px-2 py-0.5 font-bold text-cyan-400">{edge.operation || 'unknown'}</span><span className="rounded-full bg-amber-500/15 px-2 py-0.5 font-bold text-amber-400">清洗: {edge.sanitizer_effect || 'none'}</span>{edge.termination_reason ? <span className="rounded-full bg-theme-elevated px-2 py-0.5 font-bold text-theme-text-secondary">终止: {edge.termination_reason}</span> : null}</div></div>)}</div></div><div><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">跟入点</div><div className="mt-3 max-h-[32rem] space-y-2 overflow-auto pr-1">{(vulnGraph.graph?.followups || []).map((item: any) => <div key={item.followup_id} className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3"><div className="font-mono text-xs font-bold text-theme-text-primary">{item.callee_function}</div><div className="mt-1 text-[11px] text-theme-text-muted">{item.callee_file} {item.callee_line}</div><div className="mt-2 text-xs text-theme-text-secondary">污点参数: {item.tainted_params_json || '[]'}</div><span className="mt-2 inline-flex rounded-full bg-theme-elevated px-2 py-0.5 text-[10px] font-bold text-theme-text-secondary">{item.status}</span></div>)}</div></div></div></main><aside className="rounded-2xl border border-theme-border bg-theme-surface p-4"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">漏洞发现</div><div className="mt-3 space-y-3">{(vulnGraph.graph?.vulnerability_findings || []).length === 0 ? <div className="rounded-2xl border border-dashed border-theme-border bg-theme-surface px-4 py-8 text-center text-sm text-theme-text-muted">暂无漏洞发现</div> : (vulnGraph.graph?.vulnerability_findings || []).map((finding: any) => <div key={finding.finding_id} className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3"><div className="text-sm font-semibold text-rose-400">{finding.title || finding.finding_id}</div><div className="mt-1 text-xs text-rose-400">{finding.vuln_type} · {finding.severity} · 置信度 {finding.confidence}</div><p className="mt-2 text-xs leading-5 text-theme-text-secondary">{finding.summary}</p><div className="mt-2 break-all font-mono text-[10px] text-theme-text-muted">{finding.output_dir}</div></div>)}</div></aside></section>}
+ {vulnGraphLoading ? <section className="rounded-2xl border border-theme-border bg-theme-surface p-10 text-center text-sm text-theme-text-muted">加载漏洞图谱中...</section> : !vulnGraph?.available ? <section className="rounded-2xl border border-dashed border-theme-border bg-theme-surface p-10 text-center text-sm text-theme-text-muted">当前任务尚未生成漏洞图谱。</section> : (() => {
+                    const findings = (vulnGraph?.graph?.vulnerability_findings || []) as any[];
+                    return findings.length === 0 ? (
+                      <section className="rounded-2xl border border-dashed border-theme-border bg-theme-surface p-10 text-center">
+                        <Bug size={28} className="mx-auto text-theme-text-muted" />
+                        <p className="mt-4 text-sm font-semibold text-theme-text-primary">暂未发现漏洞</p>
+                        <p className="mt-1 text-xs text-theme-text-muted">污点追踪完成后，漏洞挖掘阶段会自动扫描并生成报告。</p>
+                      </section>
+                    ) : (
+                      <section className="rounded-2xl border border-theme-border bg-theme-surface">
+                        <div className="border-b border-theme-border px-5 py-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">漏洞列表</h2>
+                              <p className="mt-1 text-xs text-theme-text-muted">共 {findings.length} 个漏洞发现</p>
+                            </div>
+                            <button onClick={() => void loadVulnGraph()} className="inline-flex items-center gap-1 rounded-xl border border-theme-border px-3 py-1.5 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"><RefreshCw size={12} className={vulnGraphLoading ? 'animate-spin' : ''} />刷新</button>
+                          </div>
+                        </div>
+                        <div className="divide-y divide-theme-border">
+                          {findings.map((finding: any, idx: number) => {
+                            const severityColors: Record<string, string> = {
+                              CRITICAL: 'border-rose-500/30 bg-rose-500/10 text-rose-400',
+                              HIGH: 'border-orange-500/30 bg-orange-500/10 text-orange-400',
+                              MEDIUM: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
+                              LOW: 'border-blue-500/30 bg-blue-500/10 text-blue-400',
+                              INFO: 'border-slate-500/30 bg-slate-500/10 text-slate-400',
+                            };
+                            const sev = String(finding.severity || 'unknown').toUpperCase();
+                            const sevTone = severityColors[sev] || 'border-theme-border bg-theme-elevated text-theme-text-secondary';
+                            const sevLabel: Record<string, string> = { CRITICAL: '严重', HIGH: '高危', MEDIUM: '中危', LOW: '低危', INFO: '信息' };
+                            const fid = finding.finding_id || String(idx);
+                            const expanded = expandedFindingIds.has(fid);
+                            const toggle = () => setExpandedFindingIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(fid)) next.delete(fid); else next.add(fid);
+                              return next;
+                            });
+                            return (
+                              <div key={fid} className="px-5 py-4 hover:bg-theme-elevated/50 transition-colors">
+                                <div
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={toggle}
+                                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}
+                                  className="flex w-full cursor-pointer items-start gap-4 text-left"
+                                >
+                                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-rose-500/20 bg-rose-500/10">
+                                    <Bug size={16} className="text-rose-400" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="text-sm font-bold text-theme-text-primary">{finding.title || finding.finding_id || '-'}</span>
+                                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${sevTone}`}>{sevLabel[sev] || sev}</span>
+                                      {finding.confidence != null ? <span className="rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[10px] font-bold text-theme-text-muted">置信度 {typeof finding.confidence === 'number' ? `${Math.round(finding.confidence * 100)}%` : finding.confidence}</span> : null}
+                                      {expanded ? <ChevronUp size={14} className="ml-auto text-theme-text-muted shrink-0" /> : <ChevronDown size={14} className="ml-auto text-theme-text-muted shrink-0" />}
+                                    </div>
+                                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-theme-text-muted">
+                                      <span className="font-mono">{finding.vuln_type || 'unknown'}</span>
+                                      {finding.source_file ? <span>·</span> : null}
+                                      <span className="font-mono">{finding.source_file || ''}{finding.function_name ? `::${finding.function_name}` : ''}{finding.line ? ` L${finding.line}` : ''}</span>
+                                    </div>
+                                    {!expanded && finding.summary ? <p className="mt-2 text-xs leading-5 text-theme-text-secondary line-clamp-2">{finding.summary}</p> : null}
+                                  </div>
+                                </div>
+                                {expanded && (
+                                  <div className="mt-4 ml-14 space-y-4 rounded-xl border border-theme-border bg-theme-elevated/50 p-4">
+                                    {/* 概览 */}
+                                    {finding.summary ? (
+                                      <div>
+                                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">概述</div>
+                                        <p className="mt-2 text-sm leading-6 text-theme-text-secondary">{finding.summary}</p>
+                                      </div>
+                                    ) : null}
+                                    {/* 入口点 */}
+                                    {finding.entry_point ? (
+                                      <div>
+                                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">最初入口</div>
+                                        <p className="mt-1 font-mono text-sm text-theme-text-primary">{typeof finding.entry_point === 'string' ? finding.entry_point : JSON.stringify(finding.entry_point)}</p>
+                                      </div>
+                                    ) : null}
+                                    {/* 触发路径 */}
+                                    {finding.trigger_path ? (
+                                      <div>
+                                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">触发路径</div>
+                                        <p className="mt-1 font-mono text-xs text-theme-text-secondary">{typeof finding.trigger_path === 'string' ? finding.trigger_path : JSON.stringify(finding.trigger_path)}</p>
+                                      </div>
+                                    ) : null}
+                                    {/* 可利用性 / 影响 */}
+                                    {finding.exploitability || finding.impact ? (
+                                      <div>
+                                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">可利用性与影响</div>
+                                        {finding.exploitability ? (
+                                          <div className="mt-2 rounded-lg border border-amber-500/15 bg-amber-500/5 px-3 py-2 prose prose-slate max-w-none prose-sm text-xs text-theme-text-secondary">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{typeof finding.exploitability === 'string' ? finding.exploitability : JSON.stringify(finding.exploitability, null, 2)}</ReactMarkdown>
+                                          </div>
+                                        ) : null}
+                                        {finding.impact ? (
+                                          <div className="mt-2 rounded-lg border border-rose-500/15 bg-rose-500/5 px-3 py-2">
+                                            <p className="text-xs text-theme-text-secondary">{typeof finding.impact === 'string' ? finding.impact : JSON.stringify(finding.impact)}</p>
+                                          </div>
+                                        ) : null}
+                                      </div>
+                                    ) : null}
+                                    {/* 维度自检 */}
+                                    {finding.dimensions ? (
+                                      <div>
+                                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">四维度自检</div>
+                                        <div className="mt-2 rounded-lg border border-theme-border bg-theme-surface px-3 py-2 prose prose-slate max-w-none prose-sm text-xs text-theme-text-secondary">
+                                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{typeof finding.dimensions === 'string' ? finding.dimensions : JSON.stringify(finding.dimensions, null, 2)}</ReactMarkdown>
+                                        </div>
+                                      </div>
+                                    ) : null}
+                                    {/* 输出目录 */}
+                                    {finding.output_dir ? (
+                                      <div>
+                                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">报告目录</div>
+                                        <p className="mt-1 break-all font-mono text-[10px] text-theme-text-muted">{finding.output_dir}</p>
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </section>
+                    );
+                  })()}
           </section>
         ) : (
           <section className="space-y-4">
