@@ -2654,12 +2654,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           />
           {rootTab === 'download-center' ? renderDownloadCenter() : (
           <>
-          <div className={`grid gap-3 ${suspectOnly ? 'grid-cols-3' : 'grid-cols-4'}`}>
-            <StatisticCard label={suspectOnly ? '疑似漏洞' : '告警总数'} value={stats.total} />
+          {suspectOnly ? (
+          <div className="grid gap-3 grid-cols-3">
+            <StatisticCard label="疑似漏洞" value={stats.total} />
             <StatisticCard label="确认是漏洞" value={stats.confirmed} tone="danger" />
             <StatisticCard label="确认非漏洞" value={stats.ruledOut} tone="success" />
-            {!suspectOnly ? <StatisticCard label="判定中" value={stats.inconclusive} tone="warning" /> : null}
           </div>
+          ) : null}
 
           <div className="table-container">
             <div className="flex items-center gap-3 px-4 py-3 border-b border-theme-border-subtle">
