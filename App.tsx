@@ -684,7 +684,7 @@ const AppShell: React.FC = () => {
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {(() => {
-            const hideSidebarViews = new Set(['project-mgmt', 'test-input-root']);
+            const hideSidebarViews = new Set(['project-mgmt', 'project-detail', 'test-input-root']);
             const hideSidebarNavs = new Set(['home', 'test-task', 'vuln-center']);
             if (hideSidebarNavs.has(activeTopLevelNav) || hideSidebarViews.has(String(currentView))) return null;
             return (
