@@ -131,6 +131,68 @@ const extractRequestTools = (requestJson: unknown): Record<string, unknown>[] =>
   return Array.isArray(tools) ? tools.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object')) : [];
 };
 
+const extractToolCallsFromContent = (content: unknown): Record<string, unknown>[] => {
+  if (!Array.isArray(content)) return [];
+  return content.filter((item): item is Record<string, unknown> => {
+    if (!item || typeof item !== 'object') return false;
+    const record = item as Record<string, unknown>;
+    return record.type === 'tool_use' || record.type === 'server_tool_use';
+  });
+};
+
+const getToolDefinitionMeta = (tool: Record<string, unknown>) => {
+  const fn = tool.function && typeof tool.function === 'object' ? tool.function as Record<string, unknown> : null;
+  const type = typeof tool.type === 'string' ? tool.type : fn ? 'function' : 'tool';
+  const name = typeof fn?.name === 'string'
+    ? fn.name
+    : typeof tool.name === 'string'
+      ? tool.name
+      : 'Unknown';
+  const description = typeof fn?.description === 'string'
+    ? fn.description
+    : typeof tool.description === 'string'
+      ? tool.description
+      : '';
+  const parameters = fn?.parameters ?? tool.input_schema ?? tool.parameters ?? null;
+  return { type, name, description, parameters };
+};
+
+const getToolCallMeta = (toolCall: unknown) => {
+  const call = toolCall && typeof toolCall === 'object' ? toolCall as Record<string, unknown> : {};
+  const fn = call.function && typeof call.function === 'object' ? call.function as Record<string, unknown> : null;
+  const name = typeof fn?.name === 'string'
+    ? fn.name
+    : typeof call.name === 'string'
+      ? call.name
+      : 'Unknown';
+  const id = typeof call.id === 'string'
+    ? call.id
+    : typeof call.tool_use_id === 'string'
+      ? call.tool_use_id
+      : '';
+  const args = fn?.arguments ?? call.input ?? call.arguments ?? null;
+  return { name, id, args };
+};
+
+const extractToolResultEntries = (content: unknown, source: 'request' | 'response', titlePrefix: string): VisualEntry[] => {
+  if (!Array.isArray(content)) return [];
+  return content.flatMap((item, index) => {
+    if (!item || typeof item !== 'object') return [];
+    const record = item as Record<string, unknown>;
+    if (record.type !== 'tool_result') return [];
+    const toolUseId = typeof record.tool_use_id === 'string' ? record.tool_use_id : '';
+    const body = flattenContentText(record.content);
+    return [{
+      kind: 'tool-call' as const,
+      role: 'tool',
+      title: `${titlePrefix} · Tool Result ${index + 1}${toolUseId ? ` · ${toolUseId}` : ''}`,
+      body: body || '(empty tool result)',
+      raw: record,
+      source,
+    }];
+  });
+};
+
 const formatToolArguments = (value: unknown) => {
   if (typeof value === 'string') {
     const parsed = parseJsonMaybe(value);
@@ -157,9 +219,13 @@ const extractRequestVisualEntries = (requestJson: unknown): VisualEntry[] => {
         body: body || '(empty)',
         raw: message,
         source: 'request',
-        toolCalls: Array.isArray(message.tool_calls) ? message.tool_calls : [],
+        toolCalls: [
+          ...(Array.isArray(message.tool_calls) ? message.tool_calls : []),
+          ...extractToolCallsFromContent(message.content),
+        ],
         parts: getContentParts(message.content),
       });
+      entries.push(...extractToolResultEntries(message.content, 'request', `Request · ${role}`));
     });
   }
 
@@ -217,9 +283,13 @@ const extractResponseVisualEntries = (responseJson: unknown): VisualEntry[] => {
           source: 'response',
           reasoningContent: getNestedString(msg, ['reasoning_content', 'reasoningContent']),
           finishReason: typeof choiceRecord.finish_reason === 'string' ? choiceRecord.finish_reason : typeof choiceRecord.finishReason === 'string' ? choiceRecord.finishReason : '',
-          toolCalls: Array.isArray(msg.tool_calls) ? msg.tool_calls : [],
+          toolCalls: [
+            ...(Array.isArray(msg.tool_calls) ? msg.tool_calls : []),
+            ...extractToolCallsFromContent(msg.content),
+          ],
           parts: getContentParts(msg.content),
         });
+        entries.push(...extractToolResultEntries(msg.content, 'response', `Choice ${index + 1}`));
       }
       const delta = choiceRecord.delta;
       if (delta && typeof delta === 'object') {
@@ -236,9 +306,13 @@ const extractResponseVisualEntries = (responseJson: unknown): VisualEntry[] => {
             source: 'response',
             reasoningContent,
             finishReason: typeof choiceRecord.finish_reason === 'string' ? choiceRecord.finish_reason : typeof choiceRecord.finishReason === 'string' ? choiceRecord.finishReason : '',
-            toolCalls: Array.isArray(deltaRecord.tool_calls) ? deltaRecord.tool_calls : [],
+            toolCalls: [
+              ...(Array.isArray(deltaRecord.tool_calls) ? deltaRecord.tool_calls : []),
+              ...extractToolCallsFromContent(deltaRecord.content),
+            ],
             parts: getContentParts(deltaRecord.content),
           });
+          entries.push(...extractToolResultEntries(deltaRecord.content, 'response', `Choice ${index + 1} Delta`));
         }
       }
       if (typeof choiceRecord.text === 'string') {
@@ -662,22 +736,21 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
                   <SectionCard title={`Tools (${requestTools.length})`} icon={<Cpu className="h-4 w-4" />}>
                     <div className="space-y-3">
                       {requestTools.map((tool, index) => {
-                        const fn = tool.function && typeof tool.function === 'object' ? tool.function as Record<string, unknown> : {};
-                        const name = typeof fn.name === 'string' ? fn.name : 'Unknown';
+                        const meta = getToolDefinitionMeta(tool);
                         return (
-                          <details key={`${name}-${index}`} className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
+                          <details key={`${meta.name}-${index}`} className="rounded-xl border border-theme-border bg-theme-bg-app px-4 py-3">
                             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-theme-text-primary marker:hidden">
                               <span className="flex items-center gap-2">
-                                <span className="rounded-lg bg-violet-500/15 px-2 py-1 text-[11px] uppercase tracking-[0.14em] text-violet-400 ring-1 ring-violet-500/20">{String(tool.type || 'function')}</span>
-                                {name}
+                                <span className="rounded-lg bg-violet-500/15 px-2 py-1 text-[11px] uppercase tracking-[0.14em] text-violet-400 ring-1 ring-violet-500/20">{meta.type}</span>
+                                {meta.name}
                               </span>
                               <ChevronDown className="h-4 w-4 text-theme-text-muted" />
                             </summary>
-                            {typeof fn.description === 'string' && fn.description ? (
-                              <p className="mt-3 text-sm leading-6 text-theme-text-secondary">{fn.description}</p>
+                            {meta.description ? (
+                              <p className="mt-3 text-sm leading-6 text-theme-text-secondary">{meta.description}</p>
                             ) : null}
-                            {fn.parameters ? (
-                              <pre className="mt-3 whitespace-pre-wrap break-words rounded-xl border border-theme-border bg-theme-surface p-3 font-mono text-[12px] leading-6 text-theme-text-secondary">{stringifyPretty(fn.parameters)}</pre>
+                            {meta.parameters ? (
+                              <pre className="mt-3 whitespace-pre-wrap break-words rounded-xl border border-theme-border bg-theme-surface p-3 font-mono text-[12px] leading-6 text-theme-text-secondary">{stringifyPretty(meta.parameters)}</pre>
                             ) : null}
                           </details>
                         );
@@ -743,18 +816,17 @@ export const AigwLogDetailsDialog: React.FC<AigwLogDetailsDialogProps> = ({ log,
                                 Tool Calls ({entry.toolCalls.length})
                               </div>
                               {entry.toolCalls.map((toolCall, toolIndex) => {
-                                const call = toolCall && typeof toolCall === 'object' ? toolCall as Record<string, unknown> : {};
-                                const fn = call.function && typeof call.function === 'object' ? call.function as Record<string, unknown> : {};
+                                const meta = getToolCallMeta(toolCall);
                                 return (
                                   <div key={toolIndex} className="rounded-xl border border-theme-border bg-theme-bg-app p-3">
                                     <div className="flex flex-wrap items-center gap-2 text-xs">
-                                      <span className="rounded-lg bg-violet-500/15 px-2 py-1 font-medium text-violet-400">{String(fn.name || 'Unknown')}</span>
-                                      {typeof call.id === 'string' ? <span className="break-all font-mono text-theme-text-muted">ID: {call.id}</span> : null}
+                                      <span className="rounded-lg bg-violet-500/15 px-2 py-1 font-medium text-violet-400">{meta.name}</span>
+                                      {meta.id ? <span className="break-all font-mono text-theme-text-muted">ID: {meta.id}</span> : null}
                                     </div>
-                                    {fn.arguments ? (
+                                    {meta.args ? (
                                       <div className="mt-3 overflow-hidden rounded-xl border border-violet-500/20 bg-theme-surface">
                                         <div className="border-b border-violet-500/20 bg-violet-500/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-400">请求参数</div>
-                                        <pre className="whitespace-pre-wrap break-words p-3 font-mono text-[12px] leading-6 text-theme-text-secondary">{formatToolArguments(fn.arguments)}</pre>
+                                        <pre className="whitespace-pre-wrap break-words p-3 font-mono text-[12px] leading-6 text-theme-text-secondary">{formatToolArguments(meta.args)}</pre>
                                       </div>
                                     ) : null}
                                   </div>
