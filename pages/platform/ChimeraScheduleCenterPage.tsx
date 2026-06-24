@@ -1204,7 +1204,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         if (page !== 1) setPage(1);
                       }}
                       placeholder="任务名 / ID / 创建人"
-                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none placeholder:text-theme-text-muted"
+                      className="form-input w-full"
                     />
                   </div>
 
@@ -1215,7 +1215,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setFilters((current) => ({ ...current, status: event.target.value }));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
+                      className="form-select w-full"
                     >
                       {STATUS_OPTIONS.map((item) => (
                         <option key={item.value} value={item.value}>{item.label}</option>
@@ -1230,7 +1230,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setFilters((current) => ({ ...current, taskType: event.target.value }));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
+                      className="form-select w-full"
                     >
                       {TASK_TYPE_OPTIONS.map((item) => (
                         <option key={item.value} value={item.value}>{item.label}</option>
@@ -1245,7 +1245,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setFilters((current) => ({ ...current, projectId: event.target.value }));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
+                      className="form-select w-full"
                     >
                       {projectOptions.map((item) => (
                         <option key={item.id} value={item.id}>{item.label}</option>
@@ -1590,7 +1590,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setPageSize(Number(event.target.value));
                         setPage(1);
                       }}
-                      className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
+                      className="form-select"
                     >
                       {PAGE_SIZE_OPTIONS.map((value) => (
                         <option key={value} value={value}>{value} / 页</option>
