@@ -636,17 +636,10 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         <input
           type="text"
           placeholder="搜索项目名称、负责人、归属部门、产品路径、版本号..."
-          className="form-input w-full pl-10 pr-10"
+          className="form-input w-full pl-10"
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
         />
-        <button
-          onClick={toggleSelectAll}
-          className="absolute right-3 text-theme-text-muted transition-colors hover:text-theme-primary"
-          title={isAllSelected ? '取消全选可管理项目' : '全选可管理项目'}
-        >
-          {isAllSelected ? <CheckSquare size={16} /> : <Square size={16} />}
-        </button>
       </div>
 
       {/* Unified project table */}
@@ -659,7 +652,16 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
             <table className="min-w-full border-separate border-spacing-0">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-                  <th className="whitespace-nowrap w-12 px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>选择</th>
+                  <th className="whitespace-nowrap w-12 px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                    <button
+                      onClick={toggleSelectAll}
+                      className="p-1 transition-colors"
+                      style={{ color: isAllSelected ? LK.primary : LK.muted }}
+                      title={isAllSelected ? '取消全选可管理项目' : '全选可管理项目'}
+                    >
+                      {isAllSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+                    </button>
+                  </th>
                   <th className="whitespace-nowrap min-w-[180px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>项目</th>
                   <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>归属部门</th>
                   <th className="whitespace-nowrap min-w-[110px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>项目成员</th>

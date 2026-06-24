@@ -14,6 +14,8 @@ import {
   AppDfaTaskEvaluation,
   AppDfaTaskItem,
   AppDfaTaskResult,
+  DataflowVulnTraceTreeNode,
+  DataflowVulnGraphResponse,
 } from '../types/types';
 
 const BASE = `${API_BASE}/api/app/dataflow-vuln-scan`;
@@ -145,6 +147,10 @@ export const appDataflowAnalyseApi = {
       headers: getHeaders(),
       body: JSON.stringify({ input_path: inputPath }),
     })),
+
+  // ── Vuln Graph ───────────────────────────────────────────────────────────
+  getVulnGraph: async (taskId: string): Promise<DataflowVulnGraphResponse> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/vuln-graph`, { headers: getHeaders() })),
 
   // ── Config ────────────────────────────────────────────────────────────────
   getConfig: async (projectId: string): Promise<AppDfaServiceConfig> =>

@@ -4940,6 +4940,56 @@ export interface AppDfaTaskEvaluation {
 }
 
 
+// ─── Vuln Graph Types ────────────────────────────────────────────────────────
+
+export interface DataflowVulnTraceTreeNode {
+  run_id: string;
+  function_name: string;
+  source_file: string;
+  line_hint: string;
+  depth: number;
+  status: string;
+  taint_inputs: Array<{
+    symbol: string;
+    kind: string;
+    line?: string;
+    description?: string;
+  }>;
+  taint_summary: Array<{
+    from_symbol: string;
+    to_symbol: string;
+    line: string;
+    operation: string;
+    evidence: string;
+    termination_reason?: string;
+  }>;
+  child_count: number;
+  followup_status: string;
+  followup_reason?: string;
+  findings_count: number;
+  termination_reasons: string[];
+  children: DataflowVulnTraceTreeNode[];
+  pruned?: boolean;
+  prune_reason?: string;
+  taint_constraints?: Array<{
+    kind: string;
+    target_symbol: string;
+    target_arg_index: number;
+    evidence: string;
+    confidence: string;
+  }>;
+}
+
+export interface DataflowVulnGraphResponse {
+  task_id: string;
+  available: boolean;
+  run_root: string;
+  summary: Record<string, number>;
+  trace_tree?: DataflowVulnTraceTreeNode | null;
+  graph: Record<string, any>;
+}
+
+
 // ─── Dataflow Analysis Config/Models Types ────────────────────────────────────
 
 export interface AppDfaAgentInstance {
