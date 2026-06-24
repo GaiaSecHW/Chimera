@@ -1,5 +1,5 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { Upload } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import { api } from '../clients/api';
 import { formatUploadBytes, isAllowedArchiveFileName } from '../pages/assets/baseResourcePageModel';
 
@@ -72,6 +72,11 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
         };
       });
       setUploadQueue((current) => [...current, ...next]);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const removeFile = (id: string) => {
+      setUploadQueue((current) => current.filter((item) => item.id !== id));
     };
 
     useImperativeHandle(ref, () => ({
@@ -232,8 +237,20 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
                       {formatUploadBytes(item.file.size)} · {formatSpeed(item.speedBytesPerSec)}
                     </div>
                   </div>
-                  <div className="text-xs font-semibold text-theme-text-muted">
-                    {item.error || item.status}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs font-semibold text-theme-text-muted">
+                      {item.error || item.status}
+                    </span>
+                    {(item.status === 'pending' || item.status === 'failed') && (
+                      <button
+                        type="button"
+                        onClick={() => removeFile(item.id)}
+                        className="text-theme-text-muted hover:text-state-danger transition-colors"
+                        aria-label="移除"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="mt-2 h-1.5 rounded-full bg-theme-elevated">
