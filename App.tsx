@@ -665,21 +665,28 @@ const AppShell: React.FC = () => {
         />
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
-          <Sidebar
-            user={user}
-            currentView={currentView}
-            activeTopLevelNav={activeTopLevelNav}
-            hasSelectedProject={!!selectedProjectId}
-            setCurrentView={navigateToView}
-            resourceHealth={resourceServiceHealthy}
-            staticPackageHealth={staticPackageHealthy}
-            projectHealth={projectServiceHealthy}
-            envHealth={envServiceHealthy}
-            codeAuditHealth={codeAuditServiceHealthy}
-            workflowHealth={workflowServiceHealthy}
-            vulnHealth={vulnServiceHealthy}
-            configCenterHealth={configCenterServiceHealthy}
-          />
+          {(() => {
+            const hideSidebarViews = new Set(['project-mgmt', 'test-input-root']);
+            const hideSidebarNavs = new Set(['home', 'test-task', 'vuln-center']);
+            if (hideSidebarNavs.has(activeTopLevelNav) || hideSidebarViews.has(String(currentView))) return null;
+            return (
+              <Sidebar
+                user={user}
+                currentView={currentView}
+                activeTopLevelNav={activeTopLevelNav}
+                hasSelectedProject={!!selectedProjectId}
+                setCurrentView={navigateToView}
+                resourceHealth={resourceServiceHealthy}
+                staticPackageHealth={staticPackageHealthy}
+                projectHealth={projectServiceHealthy}
+                envHealth={envServiceHealthy}
+                codeAuditHealth={codeAuditServiceHealthy}
+                workflowHealth={workflowServiceHealthy}
+                vulnHealth={vulnServiceHealthy}
+                configCenterHealth={configCenterServiceHealthy}
+              />
+            );
+          })()}
 
           <main className="flex-1 flex flex-col min-w-0">
             <div className="flex-1 overflow-y-auto custom-scrollbar relative">
