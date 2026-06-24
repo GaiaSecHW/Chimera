@@ -166,12 +166,6 @@
     color: var(--text-muted);
     -webkit-text-fill-color: var(--text-muted);
   }
-
-  select option {
-    background-color: #18233a;
-    color: #d6def0;
-  }
-
 }
 
 @layer components {
@@ -296,8 +290,8 @@
     box-shadow: 0 0 0 2px var(--brand-soft);
   }
   .form-select option {
-    background-color: #18233a;
-    color: #d6def0;
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
   }
   .form-label {
     @apply text-xs font-medium;
@@ -921,3 +915,9 @@
 .head-tab-hover:hover {
   background-color: var(--background-head-tab-hover);
 }
+
+:root *::-webkit-scrollbar-track {background: none}
+:root[data-theme='dark'] *::-webkit-scrollbar-thumb,
+:root[data-theme='dark'] *::-webkit-scrollbar-thumb:hover {background: rgba(255,255,255,0.22)}
+:root[data-theme='light'] *::-webkit-scrollbar-thumb,
+:root[data-theme='light'] *::-webkit-scrollbar-thumb:hover {background: rgba(0, 0, 0, 0.22)}

@@ -143,7 +143,7 @@ const LK = {
   surfaceRaised: 'var(--bg-app)',
   surfaceGlass: 'rgba(17, 26, 43, 0.84)',
   border: 'var(--border-default)',
-  borderSoft: '#1b2438',
+  borderSoft: 'var(--border-default)',
   ink: 'var(--text-primary)',
   inkSoft: 'var(--text-primary)',
   body: 'var(--text-secondary)',
@@ -712,7 +712,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
         {/* body */}
         <div
-          className="min-h-0 flex-1 overflow-y-auto px-6 py-4 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]"
+          className="min-h-0 flex-1 overflow-y-auto px-6 py-4"
         >
           {/* =============== TAB: basic =============== */}
             <div className="flex h-full flex-col space-y-3" style={{ display: activeCreateTab === 'basic' ? undefined : 'none' }}>

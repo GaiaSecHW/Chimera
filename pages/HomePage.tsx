@@ -14,7 +14,7 @@ const LK = {
   surface: 'var(--bg-surface)',
   surfaceRaised: 'var(--bg-app)',
   border: 'var(--border-default)',
-  borderSoft: '#1b2438',
+  borderSoft: 'var(--border-default)',
   ink: 'var(--text-primary)',
   inkSoft: 'var(--text-primary)',
   body: 'var(--text-secondary)',
@@ -100,7 +100,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
             {MODES.map((mode) => (
               <div
                 key={mode.key}
-                className="group relative flex flex-col rounded-2xl p-6 transition-all hover:-translate-y-1 cursor-pointer"
+                className="group relative flex flex-col rounded-2xl p-6 transition-transform hover:-translate-y-1 cursor-pointer"
                 style={{
                   backgroundColor: LK.surface,
                   border: `1px solid ${LK.border}`,

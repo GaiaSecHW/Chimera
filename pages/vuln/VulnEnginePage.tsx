@@ -14,7 +14,7 @@ const LK = {
   surfaceRaised: 'var(--bg-app)',
   surfaceGlass: 'rgba(17, 26, 43, 0.84)',
   border: 'var(--border-default)',
-  borderSoft: '#1b2438',
+  borderSoft: 'var(--border-default)',
   ink: 'var(--text-primary)',
   inkSoft: 'var(--text-primary)',
   body: 'var(--text-secondary)',

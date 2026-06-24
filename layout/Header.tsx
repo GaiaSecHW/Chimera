@@ -118,7 +118,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="bg-theme-header border-b border-theme-sidebar shadow-brand z-20 sticky top-0">
       <div className="h-14 px-4 flex items-center gap-4">
-        <div className="flex items-center gap-4 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
           <ThemeLogo size="small" showBadge={false} />
         </div>
 
@@ -130,9 +130,6 @@ export const Header: React.FC<HeaderProps> = ({
               if (item.id === 'assets-center') {
                 return (
                   <React.Fragment key={item.id}>
-                    {item.showDividerBefore && (
-                      <div className="w-px h-4 bg-theme-text-faint/20 mx-1.5 shrink-0" />
-                    )}
                     <div
                       className="relative shrink-0"
                       ref={assetsCenterRef}
@@ -141,7 +138,6 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <button
                         onClick={() => setIsAssetsCenterOpen((v) => !v)}
-                        // style={getTabStyle(item, isActive)}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
                           isActive ? 'head-tab-active' : 'head-tab-hover'
                         }`}
@@ -180,9 +176,6 @@ export const Header: React.FC<HeaderProps> = ({
               if (item.id === 'system-admin') {
                 return (
                   <React.Fragment key={item.id}>
-                    {item.showDividerBefore && (
-                      <div className="w-px h-4 bg-theme-text-faint/20 mx-1.5 shrink-0" />
-                    )}
                     <div
                       className="relative shrink-0"
                       ref={systemAdminRef}
@@ -191,9 +184,7 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <button
                         onClick={() => setIsSystemAdminOpen((v) => !v)}
-                        //style={getTabStyle(item, isActive)}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
-                          //isActive ? '' : 'hover:bg-theme-sidebar-muted hover:text-theme-text-inverse'
                             isActive ? 'head-tab-active' : 'head-tab-hover'
                         }`}
                       >
@@ -201,7 +192,7 @@ export const Header: React.FC<HeaderProps> = ({
                         <ChevronDown size={12} className={`transition-transform ${isSystemAdminOpen ? 'rotate-180' : ''}`} />
                       </button>
                       {isSystemAdminOpen && (
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-44 bg-theme-surface border border-theme-border rounded-xl shadow-brand p-2 z-50">
+                        <div className="absolute top-full left-0 mt-2 w-44 bg-theme-surface border border-theme-border rounded-xl shadow-brand p-2 z-50">
                           {SYSTEM_ADMIN_CHILDREN.map((child) => {
                             const childActive = isActive && activeSystemAdminChild === child.key;
                             return (
@@ -230,14 +221,9 @@ export const Header: React.FC<HeaderProps> = ({
 
               return (
                 <React.Fragment key={item.id}>
-                  {item.showDividerBefore && (
-                    <div className="w-px h-4 bg-theme-text-faint/20 mx-1.5 shrink-0" />
-                  )}
                   <button
                     onClick={() => onSelectTopLevelNav(item.id)}
-                    // style={getTabStyle(item, isActive)}
                     className={`px-3 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
-                      // isActive ? '' : 'hover:bg-theme-sidebar-muted hover:text-theme-text-inverse'
                         isActive ? 'head-tab-active' : 'head-tab-hover'
                     }`}
                   >
@@ -253,14 +239,14 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="relative min-w-0 max-w-[18rem]" ref={projectDropdownRef}>
             <button
               onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-              className="flex items-center gap-2.5 px-3.5 py-2.5 theme-shell-muted rounded-lg text-sm font-medium min-w-[12rem] max-w-[18rem]"
+              className="flex items-center gap-2.5 px-1.5 py-1.5 rounded-xl text-sm font-medium head-tab-hover"
             >
               <div className="w-2 h-2 rounded-full bg-brand-primary shrink-0" />
-              <span className="truncate">{currentProject.name}</span>
+              <span className="truncate flex-1 text-left">{currentProject.name}</span>
               <ChevronDown size={14} className="shrink-0 text-theme-text-faint" />
             </button>
             {isProjectDropdownOpen && (
-              <div className="absolute top-full right-0 mt-2 w-72 bg-theme-surface border border-theme-border rounded-lg shadow-overlay p-2 z-50">
+              <div className="absolute top-full right-0 mt-2 w-48 bg-theme-surface border border-theme-border rounded-lg shadow-overlay p-2 z-50">
                 <input
                   placeholder="过滤项目..."
                   className="form-input w-full text-xs placeholder:text-theme-text-faint"
@@ -301,9 +287,9 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="relative shrink-0" ref={userMenuRef}>
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex items-center gap-2.5 px-3.5 py-2.5 theme-shell-muted rounded-lg text-sm font-medium"
+              className="flex items-center gap-2 px-1 py-1 rounded-xl head-tab-hover"
             >
-              <div className="w-8 h-8 rounded-lg bg-brand-soft flex items-center justify-center text-brand-primary font-semibold text-sm shrink-0">
+              <div className="w-6 h-6 bg-brand-soft flex items-center justify-center text-brand-primary text-sm rounded-full shrink-0">
                 {user?.username?.[0]?.toUpperCase()}
               </div>
               <div className="text-left hidden md:block">
@@ -314,7 +300,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             {isUserMenuOpen && (
-              <div className="absolute top-full right-0 mt-2 w-56 bg-theme-surface border border-theme-border rounded-lg shadow-overlay overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50 p-2">
+              <div className="absolute top-full right-0 mt-2 w-48 bg-theme-surface border border-theme-border rounded-lg shadow-overlay overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50 p-2">
                 <div className="px-3 py-3 border-b border-theme-border mb-1">
                   <p className="text-[10px] font-medium text-theme-text-faint uppercase tracking-wider">Current Identity</p>
                   <div className="flex items-center gap-2.5 mt-1.5">

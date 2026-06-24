@@ -21,7 +21,7 @@ const LK = {
   primaryMuted: 'rgba(79, 115, 255, 0.14)',
   canvas: 'var(--bg-app)', surface: 'var(--bg-surface)', surfaceRaised: 'var(--bg-app)',
   surfaceGlass: 'rgba(17, 26, 43, 0.84)',
-  border: 'var(--border-default)', borderSoft: '#1b2438',
+  border: 'var(--border-default)', borderSoft: 'var(--border-default)',
   ink: 'var(--text-primary)', inkSoft: 'var(--text-primary)', body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)', mutedSoft: '#8b95a8',
   success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',

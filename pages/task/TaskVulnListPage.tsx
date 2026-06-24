@@ -19,7 +19,7 @@ const LK = {
   surface: 'var(--bg-surface)',
   surfaceRaised: 'var(--bg-app)',
   border: 'var(--border-default)',
-  borderSoft: '#1b2438',
+  borderSoft: 'var(--border-default)',
   ink: 'var(--text-primary)',
   inkSoft: 'var(--text-primary)',
   body: 'var(--text-secondary)',
