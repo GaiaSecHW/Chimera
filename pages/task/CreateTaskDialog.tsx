@@ -830,54 +830,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 </div>
               ) : (
                 <>
-              {/* sechps Agent Harness specific */}
-              {taskType === 'sechps_tool' ? (
-                <>
-                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                    Agent Harness
-                    <select
-                      value={selectedAgentAppId}
-                      onChange={(e) => setSelectedAgentAppId(e.target.value)}
-                      className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-                    >
-                      <option value="">请选择具体 Harness</option>
-                      {agentApps.map((item) => <option key={item.id} value={item.id}>{`${item.name} / ${item.engine}`}</option>)}
-                    </select>
-                  </label>
-                  {agentAppsLoadError ? (
-                    <div
-                      className="rounded-lg px-4 py-3 text-sm"
-                      style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
-                    >
-                      {agentAppsLoadError}。不影响上传记录加载，但当前无法创建 Agent Harness 任务。
-                    </div>
-                  ) : null}
-                  {selectedAgentApp ? (
-                    <div className="rounded-lg px-4 py-3 text-xs" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}>
-                      <div>Harness: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.name}</span></div>
-                      <div className="mt-1">Engine: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.engine}</span></div>
-                      <div className="mt-1 break-all">Harness Path: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.agentHarnessPath || '—'}</span></div>
-                    </div>
-                  ) : null}
-                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                    执行指令（可选，不填则使用 Agent Harness 注册的启动命令）
-                    <textarea
-                      value={instruction}
-                      onChange={(e) => setInstruction(e.target.value)}
-                      rows={3}
-                      className="mt-1 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-                      placeholder="不填时使用 Agent Harness 的启动命令，例如 /project:xxx"
-                    />
-                  </label>
-                </>
-              ) : null}
-
               {/* binary_module_e2e module name */}
               {taskType === 'binary_module_e2e' ? (
                 <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
@@ -1110,6 +1062,54 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 >
                   {TASK_TYPE_HINTS[taskType]}
                 </div>
+              ) : null}
+
+              {/* sechps Agent Harness specific */}
+              {taskType === 'sechps_tool' ? (
+                <>
+                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                    Agent Harness
+                    <select
+                      value={selectedAgentAppId}
+                      onChange={(e) => setSelectedAgentAppId(e.target.value)}
+                      className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                    >
+                      <option value="">请选择具体 Harness</option>
+                      {agentApps.map((item) => <option key={item.id} value={item.id}>{`${item.name} / ${item.engine}`}</option>)}
+                    </select>
+                  </label>
+                  {agentAppsLoadError ? (
+                    <div
+                      className="rounded-lg px-4 py-3 text-sm"
+                      style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
+                    >
+                      {agentAppsLoadError}。不影响上传记录加载，但当前无法创建 Agent Harness 任务。
+                    </div>
+                  ) : null}
+                  {selectedAgentApp ? (
+                    <div className="rounded-lg px-4 py-3 text-xs" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}>
+                      <div>Harness: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.name}</span></div>
+                      <div className="mt-1">Engine: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.engine}</span></div>
+                      <div className="mt-1 break-all">Harness Path: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.agentHarnessPath || '—'}</span></div>
+                    </div>
+                  ) : null}
+                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                    执行指令（可选，不填则使用 Agent Harness 注册的启动命令）
+                    <textarea
+                      value={instruction}
+                      onChange={(e) => setInstruction(e.target.value)}
+                      rows={3}
+                      className="mt-1 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                      placeholder="不填时使用 Agent Harness 的启动命令，例如 /project:xxx"
+                    />
+                  </label>
+                </>
               ) : null}
 
               {/* 描述 */}
