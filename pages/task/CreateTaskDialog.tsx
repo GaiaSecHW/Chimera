@@ -91,6 +91,20 @@ const MODE_OPTIONS = [
   { value: 'lion-head', label: '狮首' },
 ];
 
+const TASK_TYPE_HINTS: Record<string, string> = {
+  binary_firmware_e2e: '请上传一个二进制固件文件（如 .bin、.img、.fw 等）。',
+  binary_module_e2e: '请上传一个或多个二进制模块文件（如 .so、.o、.elf 等）。',
+  source_scan_e2e: '请上传一个源码目录（包含完整项目源代码）。',
+  cfg_db_vuln: '请选择一个已构建知识图谱的代码目录作为测试对象。',
+  kg_source_vuln_scan_e2e: '请上传一个源码目录作为知识图谱漏洞挖掘的测试对象。',
+  ai4app_fast: '请上传一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包（压缩包将作为源码包处理）。',
+  ai4app_deep: '请上传一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包（压缩包将作为源码包处理）。',
+  ai4web_fast: '请上传一个 Web 源码包（zip/rar/tar.gz/gz 等压缩包）。',
+  ai4web_deep: '请上传一个 Web 源码包（zip/rar/tar.gz/gz 等压缩包）。',
+  ai4red: '请上传一个目录作为红线验证的测试对象。',
+  sechps_tool: '请选择一个已注册的 Agent Harness，并选择一个目录。',
+};
+
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
@@ -1087,6 +1101,14 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
                 >
                   {DISABLED_TASK_TYPE_MESSAGE}
+                </div>
+              ) : null}
+              {!taskTypeDisabled && TASK_TYPE_HINTS[taskType] ? (
+                <div
+                  className="rounded-lg px-3 py-2 text-xs"
+                  style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.body }}
+                >
+                  {TASK_TYPE_HINTS[taskType]}
                 </div>
               ) : null}
 
