@@ -10,13 +10,12 @@ import {
   CheckCircle2,
   Clock,
   HardDrive,
-  Hourglass,
+  HelpCircle,
   Layers,
   ListChecks,
   Loader,
   Monitor,
   Package,
-  RefreshCw,
   Server,
   ShieldCheck,
   Workflow,
@@ -264,11 +263,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [taskRunning, setTaskRunning] = useState<number | null>(null);
   const [taskFailed, setTaskFailed] = useState<number | null>(null);
   const [envCount, setEnvCount] = useState<number | null>(null);
-  const [vulnCount, setVulnCount] = useState<number | null>(null);
   const [vulnTotal, setVulnTotal] = useState<number | null>(null);
-  const [vulnPendingVerify, setVulnPendingVerify] = useState<number | null>(null);
-  const [vulnValidating, setVulnValidating] = useState<number | null>(null);
-  const [vulnVerified, setVulnVerified] = useState<number | null>(null);
+  const [vulnSuspect, setVulnSuspect] = useState<number | null>(null);
+  const [vulnSuspectLoading, setVulnSuspectLoading] = useState(true);
+  const [algoHover, setAlgoHover] = useState<string | null>(null);
   const [vulnConfirmed, setVulnConfirmed] = useState<number | null>(null);
   const [vulnRuledOut, setVulnRuledOut] = useState<number | null>(null);
 
@@ -294,6 +292,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     const scheduleApi = api.domains.platform.scheduleCenter;
     const vulnApi = api.domains.vuln.vuln;
     const loadStats = async () => {
+      if (mounted) setVulnSuspectLoading(true);
       const perProject = (projects || []).map((p) =>
         Promise.allSettled([
           scheduleApi.listUserTasks(p.id, { page_size: 1 }),
@@ -335,17 +334,47 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       setTaskFailed(anyTaskOk ? taskFailedSum : null);
       setEnvCount(anyEnvOk ? envTotal : null);
       const vulnOverview = vulnRes.status === 'fulfilled' ? vulnRes.value : null;
-      setVulnCount(vulnOverview ? Number(vulnOverview?.metrics?.total_cases || 0) : null);
       setVulnTotal(vulnOverview ? Number(vulnOverview?.metrics?.total_cases || 0) : null);
-      setVulnPendingVerify(
-        vulnOverview
-          ? Number(vulnOverview?.stage_counts?.receive || 0) + Number(vulnOverview?.stage_counts?.triage || 0)
-          : null,
-      );
-      setVulnValidating(vulnOverview ? Number(vulnOverview?.stage_counts?.validation || 0) : null);
-      setVulnVerified(vulnOverview ? Number(vulnOverview?.metrics?.finished_cases || 0) : null);
-      setVulnConfirmed(vulnOverview ? Number(vulnOverview?.finished_reason_counts?.vulnerable || 0) : null);
-      setVulnRuledOut(vulnOverview ? Number(vulnOverview?.finished_reason_counts?.non_vulnerable || 0) : null);
+      setVulnConfirmed(vulnOverview ? Number(vulnOverview?.human_finished_reason_counts?.vulnerable || 0) : null);
+      setVulnRuledOut(vulnOverview ? Number(vulnOverview?.human_finished_reason_counts?.not_vulnerable || 0) : null);
+
+      // 疑似漏洞 = A (引擎工具且 finished_reason=vulnerable) + B (无引擎工具的所有上报)
+      // engines 拉取失败时按"无引擎"降级：所有 case 都计入 B
+      const engineTools = new Set<string>();
+      try {
+        const enginesRes = await vulnApi.listConfirmEngines();
+        (enginesRes?.engines || []).forEach((eng: any) => {
+          (eng?.bind_tools || []).forEach((t: string) => engineTools.add(t));
+        });
+      } catch (e) {
+        console.error('[Dashboard] listConfirmEngines failed, fallback to no-engines', e);
+      }
+      try {
+        let aCount = 0;
+        let bCount = 0;
+        let page = 1;
+        const pageSize = 200;
+        while (true) {
+          const resp = await vulnApi.listCases({ page, page_size: pageSize });
+          const items: any[] = resp?.items || [];
+          for (const c of items) {
+            const reporterName: string = c?.reporter?.name || c?.source_meta?.reporter?.name || '';
+            if (reporterName && engineTools.has(reporterName)) {
+              if (c?.finished_reason === 'vulnerable') aCount += 1;
+            } else {
+              bCount += 1;
+            }
+          }
+          if (items.length < pageSize || page * pageSize >= (resp?.total || 0)) break;
+          page += 1;
+        }
+        if (mounted) setVulnSuspect(aCount + bCount);
+      } catch (e) {
+        console.error('[Dashboard] listCases failed', e);
+        if (mounted) setVulnSuspect(null);
+      } finally {
+        if (mounted) setVulnSuspectLoading(false);
+      }
     };
     void loadStats();
     return () => {
@@ -439,12 +468,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         }
         />
 
-        <section className="grid grid-cols-4 gap-3">
+        <section className="grid grid-cols-3 gap-3">
           {[
             { label: '项目', value: projects.length, icon: Building2, color: LK.primary },
             { label: '任务', value: taskCount !== null ? taskCount : '-', icon: Layers, color: LK.success },
             { label: '环境', value: envCount !== null ? envCount : '-', icon: Server, color: LK.warning },
-            { label: '漏洞', value: vulnCount !== null ? vulnCount : '-', icon: AlertTriangle, color: LK.error },
           ].map((stat) => (
             <div
               key={stat.label}
@@ -499,23 +527,57 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           ))}
         </section>
 
-        <section className="grid grid-cols-6 gap-3">
+        <section className="grid grid-cols-4 gap-3">
           {[
-            { label: '漏洞总数', value: vulnTotal !== null ? vulnTotal : '-', icon: Bug, color: LK.primary },
-            { label: '待验证', value: vulnPendingVerify !== null ? vulnPendingVerify : '-', icon: Hourglass, color: LK.warning },
-            { label: '验证中', value: vulnValidating !== null ? vulnValidating : '-', icon: RefreshCw, color: LK.info },
-            { label: '已验证', value: vulnVerified !== null ? vulnVerified : '-', icon: CheckCircle2, color: LK.primaryDeep },
-            { label: '漏洞', value: vulnConfirmed !== null ? vulnConfirmed : '-', icon: AlertTriangle, color: LK.error },
-            { label: '非漏洞', value: vulnRuledOut !== null ? vulnRuledOut : '-', icon: ShieldCheck, color: LK.success },
+            {
+              label: '告警总数',
+              value: vulnTotal !== null ? vulnTotal : '-',
+              icon: Bug,
+              color: LK.primary,
+              algorithm: '漏洞中心接收到的全部 case 数量，包含所有阶段（receive / triage / validation / finished）。',
+            },
+            {
+              label: '疑似漏洞',
+              value: vulnSuspectLoading ? '加载中' : (vulnSuspect !== null ? vulnSuspect : '-'),
+              icon: CheckCircle2,
+              color: LK.primaryDeep,
+              algorithm: 'A + B\n\nA：上报工具（reporter.name）被任一漏洞确认引擎的 bind_tools 包含，且 finished_reason="vulnerable" 的 case 数。\nB：上报工具未被任何引擎 bind_tools 包含的全部 case 数（任意阶段都计入）。',
+            },
+            {
+              label: '确认是漏洞',
+              value: vulnConfirmed !== null ? vulnConfirmed : '-',
+              icon: AlertTriangle,
+              color: LK.error,
+              algorithm: '经过人工终审且判定为漏洞的 case 数。\n\n人工终审指 StageHistory 中存在 to_stage="finished" 且 source_type="human" 的记录；判定取 finished_reason="vulnerable"。',
+            },
+            {
+              label: '确认非漏洞',
+              value: vulnRuledOut !== null ? vulnRuledOut : '-',
+              icon: ShieldCheck,
+              color: LK.success,
+              algorithm: '经过人工终审且判定为非漏洞的 case 数。\n\n人工终审指 StageHistory 中存在 to_stage="finished" 且 source_type="human" 的记录；判定取 finished_reason="not_vulnerable"。',
+            },
           ].map((stat) => (
             <div
               key={stat.label}
-              className="flex flex-col rounded-xl px-3 py-3"
+              className="flex flex-col rounded-xl px-3 py-3 relative"
               style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
             >
               <div className="flex items-center justify-between">
-                <div className="text-[11px]" style={{ color: LK.muted }}>
-                  {stat.label}
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px]" style={{ color: LK.muted }}>
+                    {stat.label}
+                  </span>
+                  <button
+                    type="button"
+                    onMouseEnter={() => setAlgoHover(stat.label)}
+                    onMouseLeave={() => setAlgoHover(null)}
+                    className="p-0.5 rounded transition-colors hover:bg-white/5"
+                    style={{ color: LK.mutedSoft }}
+                    aria-label="查看统计算法"
+                  >
+                    <HelpCircle size={11} />
+                  </button>
                 </div>
                 <div
                   className="flex h-7 w-7 items-center justify-center rounded-md"
@@ -527,6 +589,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               <div className="mt-2 text-2xl font-semibold leading-7 tabular-nums" style={{ color: stat.color }}>
                 {stat.value}
               </div>
+              {algoHover === stat.label && (
+                <div
+                  className="absolute z-50 top-full right-0 mt-1 p-3 rounded-lg max-w-[300px] shadow-xl"
+                  style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+                >
+                  <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: LK.mutedSoft }}>
+                    统计算法
+                  </div>
+                  <div className="text-[11px] leading-relaxed whitespace-pre-line" style={{ color: LK.body }}>
+                    {stat.algorithm}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </section>

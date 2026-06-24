@@ -870,7 +870,9 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'vuln-overview':
       return <VulnOverviewPage projectId={ctx.selectedProjectId} />;
     case 'vuln-intake':
-      return <VulnIntakePage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
+      return <VulnIntakePage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} pageTitle="告警中心" />;
+    case 'vuln-list':
+      return <VulnIntakePage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} pageTitle="漏洞中心" suspectOnly />;
     case 'vuln-analysis':
       return <VulnAnalysisPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
     case 'vuln-analysis-detail':

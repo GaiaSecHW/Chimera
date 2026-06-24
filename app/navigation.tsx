@@ -56,6 +56,7 @@ export type TopLevelNavKey =
   | 'test-task'
   | 'vuln-center'
   | 'assets'
+  | 'alert-center'
   | 'assessment'
   | 'observe'
   | 'skill'
@@ -119,6 +120,7 @@ export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
   { id: 'test-object', label: '测试对象', role: null },
   { id: 'test-env', label: '测试环境', role: null },
   { id: 'assets', label: '资产', role: 'developer', showDividerBefore: true },
+  { id: 'alert-center', label: '告警中心', role: 'developer' },
   { id: 'assessment', label: '评测', role: 'developer' },
   { id: 'observe', label: '观测', role: 'developer' },
   { id: 'skill', label: '技能', role: 'developer' },
@@ -234,6 +236,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'vuln-engine',
   'vuln-overview',
   'vuln-intake',
+  'vuln-list',
   'vuln-analysis',
   'vuln-analysis-detail',
   'vuln-verification',
@@ -401,6 +404,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (view.startsWith('test-input-')) return 'test-object';
   if (view === 'env-access' || view === 'env-management') return 'test-env';
   if (view.startsWith('task-') || view === 'task-list' || view === 'task-center-timeline') return 'test-task';
+  if (view === 'vuln-intake' || view === 'vuln-overview' || view === 'vuln-engine') return 'alert-center';
   if (view === 'vuln-engine' || view.startsWith('vuln-')) return 'vuln-center';
   if (
     view === 'project-file-explorer' ||
@@ -439,7 +443,8 @@ export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | nul
     case 'test-object': return 'test-input-root';
     case 'test-env': return 'env-access';
     case 'test-task': return 'task-list';
-    case 'vuln-center': return 'vuln-intake';
+    case 'vuln-center': return 'vuln-list';
+    case 'alert-center': return 'vuln-intake';
     case 'assets': return 'public-resource-pvc-management';
     case 'assessment': return 'assessment-coming-soon';
     case 'observe': return 'observe-coming-soon';
@@ -512,7 +517,15 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
     {
       title: '漏洞中心',
       items: [
-        { id: 'vuln-intake', label: '漏洞中心', icon: Shield, aliases: ['vuln-overview', 'vuln-engine'], requiresProject: true, healthKey: 'vulnHealth' },
+        { id: 'vuln-list', label: '漏洞中心', icon: Shield, requiresProject: true, healthKey: 'vulnHealth' },
+      ],
+    },
+  ],
+  'alert-center': [
+    {
+      title: '告警中心',
+      items: [
+        { id: 'vuln-intake', label: '告警中心', icon: ShieldAlert, aliases: ['vuln-overview', 'vuln-engine'], requiresProject: true, healthKey: 'vulnHealth' },
       ],
     },
   ],
