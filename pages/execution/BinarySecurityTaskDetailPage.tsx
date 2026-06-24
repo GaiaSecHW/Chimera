@@ -856,6 +856,7 @@ const ARCHIVE_EVENT_LABELS: Record<string, string> = {
 };
 
 const TIMELINE_EVENT_LABELS: Record<string, string> = {
+  parent_task_state_transition: '父任务状态变更',
   task_created: '任务创建',
   task_upload_pending: '等待上传',
   task_upload_started: '上传校验开始',
@@ -1193,6 +1194,11 @@ const formatTimelineDetailValue = (value: unknown): string => {
 const timelineDetailRows = (payload: Record<string, any> | null) => {
   if (!payload || Object.keys(payload).length === 0) return [];
   const labels: Record<string, string> = {
+    changed_fields: '变更字段',
+    before: '变更前',
+    after: '变更后',
+    reason: '变更原因',
+    source: '变更来源',
     target_stage: '目标阶段',
     last_success_stage: '最后成功阶段',
     cleared_stages: '清理阶段',
@@ -1225,6 +1231,7 @@ const timelineDetailRows = (payload: Record<string, any> | null) => {
     message: '消息',
   };
   const priority = [
+    'changed_fields', 'before', 'after', 'reason', 'source',
     'target_stage', 'last_success_stage', 'cleared_stages', 'retry_semantics',
     'archive_job_id', 'archive_status', 'downstream_service', 'downstream_task_id',
     'downstream_status', 'status_raw', 'mapped_status', 'http_status', 'error_type', 'state_applied', 'deferred_mode', 'operation', 'outcome', 'selected_module_keys', 'stage_name',
@@ -3580,6 +3587,13 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       _sourceLabel: event.recorder_pod_name || event.recorder_hostname || event.item_key || event.item_id || event.payload?.item_key || event.payload?.downstream_task_id || '-',
       _repeatCount: Math.max(1, Number(event.repeat_count || 1)),
       _isCompressed: Boolean(event.compressed),
+      _displayMessage: event.event_type === 'parent_task_state_transition'
+        ? (
+            Array.isArray(event.payload?.changed_fields) && event.payload.changed_fields.length > 0
+              ? `父任务主状态已更新: ${event.payload.changed_fields.join(', ')}`
+              : (event.message || '父任务主状态已更新')
+          )
+        : (event.message || '系统事件'),
     }));
   }, [timeline, timelinePage, timelinePageSize]);
   const timelineTotalPages = useMemo(
@@ -6231,8 +6245,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                   </span>
                                 </td>
                                 <td className="max-w-[360px] px-3 py-2">
-                                  <div className="truncate font-bold text-theme-text-primary" title={event.message || '系统事件'}>
-                                    {event.message || '系统事件'}
+                                  <div className="truncate font-bold text-theme-text-primary" title={event._displayMessage || '系统事件'}>
+                                    {event._displayMessage || '系统事件'}
                                     {event._isCompressed ? (
                                       <span className="ml-2 rounded-full border border-amber-500/20 bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-400">
                                         x{event._repeatCount}
