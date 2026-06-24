@@ -545,9 +545,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                     {task.task_type !== 'sechps_tool' ? (
                       <button
                         onClick={() => {
-                          window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
-                            detail: { view: 'vuln-intake', vulnIntakeTaskFilter: task.id },
-                          }));
+                          window.open(`#/vuln-intake?task=${encodeURIComponent(task.id)}`, '_blank', 'noopener,noreferrer');
                         }}
                         className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
                         style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}

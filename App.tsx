@@ -106,7 +106,13 @@ const AppShell: React.FC = () => {
   const [activeTaskCenterTimelineTaskId, setActiveTaskCenterTimelineTaskId] = useState<string>('');
   const [activeTaskCenterTimelineBackView, setActiveTaskCenterTimelineBackView] = useState<string>('task-list');
   const [activeTaskVulnListTaskId, setActiveTaskVulnListTaskId] = useState<string>('');
-  const [activeVulnIntakeTaskFilter, setActiveVulnIntakeTaskFilter] = useState<string>('');
+  const [activeVulnIntakeTaskFilter, setActiveVulnIntakeTaskFilter] = useState<string>(() => {
+    if (routeView === 'vuln-intake') {
+      const task = new URLSearchParams(location.search).get('task');
+      if (task) return task;
+    }
+    return '';
+  });
   const [activeTaskReportTaskId, setActiveTaskReportTaskId] = useState<string>('');
   const [openCreateTaskOnNav, setOpenCreateTaskOnNav] = useState(false);
   const [openCreateProjectOnNav, setOpenCreateProjectOnNav] = useState(false);
