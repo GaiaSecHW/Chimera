@@ -1134,17 +1134,16 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     void loadOverview();
   }, [projectId]);
 
-  const pendingInitialTaskFilter = useRef(initialTaskFilter);
+  const prevProjectIdRef = useRef(projectId);
   useEffect(() => {
+    const prevProjectId = prevProjectIdRef.current;
+    prevProjectIdRef.current = projectId;
+    if (prevProjectId && projectId && prevProjectId !== projectId) {
+      setTaskFilter([]);
+    }
     if (!projectId) {
       setTaskOptions([]);
       return;
-    }
-    if (pendingInitialTaskFilter.current) {
-      setTaskFilter([pendingInitialTaskFilter.current]);
-      pendingInitialTaskFilter.current = '';
-    } else {
-      setTaskFilter([]);
     }
     let cancelled = false;
     api.domains.platform.scheduleCenter
