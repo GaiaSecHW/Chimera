@@ -200,21 +200,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     return departments.filter((department) => allowedSet.has(department.id));
   }, [allowedDepartmentIds, departments, userPermissions]);
 
-  const productVersionOptions = useMemo(() => {
-    const flatNodes = (nodes: ProductTreeNode[]): ProductTreeNode[] =>
-      nodes.flatMap((node) => [node, ...flatNodes(node.children || [])]);
-
-    return flatNodes(productTree)
-      .filter((node) => node.is_leaf)
-      .flatMap((node) =>
-        (node.versions || []).map((version: ProductVersionNode) => ({
-          product: node,
-          version,
-          label: `${node.name} / ${version.version}${version.name ? ` · ${version.name}` : ''}`,
-        }))
-      );
-  }, [productTree]);
-
   // ComboBox derived data
   const leafProducts = useMemo(() => {
     const flat = (nodes: ProductTreeNode[]): ProductTreeNode[] =>
@@ -406,16 +391,38 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       setError('请选择项目归属部门');
       return;
     }
+    if (!productSearch.trim()) {
+      setError('请输入或选择产品名称');
+      return;
+    }
+    if (!versionSearch.trim()) {
+      setError('请输入或选择版本号');
+      return;
+    }
 
     setIsSubmitting(true);
     setError(null);
     try {
+      let productVersionId = selectedVersionId;
+
+      if (!selectedProductId) {
+        // New product + new version
+        const newProd = await projectApi.products.create({ name: productSearch, code: productSearch });
+        const newVer = await projectApi.products.createVersion(String(newProd.id), { version: versionSearch, name: versionSearch });
+        productVersionId = newVer.id;
+      } else if (!selectedVersionId) {
+        // Existing product + new version
+        const newVer = await projectApi.products.createVersion(selectedProductId, { version: versionSearch, name: versionSearch });
+        productVersionId = newVer.id;
+      }
+      // else: existing product + existing version — selectedVersionId already set
+
       await projectApi.projects.update(editingProject.id, {
         name: editForm.name,
         description: editForm.description,
         is_public: editForm.is_public,
         department_id: Number(editForm.department_id),
-        product_version_id: editForm.product_version_id || null,
+        product_version_id: productVersionId || null,
       });
       setIsEditModalOpen(false);
       setEditingProject(null);
@@ -440,6 +447,12 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       department_id: project.department_id ? String(project.department_id) : getDefaultDepartmentId(),
       product_version_id: project.product_version_id || '',
     });
+    setProductSearch(project.product_name || '');
+    setSelectedProductId(project.product_id || null);
+    setVersionSearch(project.product_version_name || '');
+    setSelectedVersionId(project.product_version_id || null);
+    setShowProductDropdown(false);
+    setShowVersionDropdown(false);
     setError(null);
     setIsEditModalOpen(true);
   };
@@ -522,29 +535,111 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     </div>
   );
 
-  const renderProductVersionSelect = (
-    value: string,
-    onChange: (productVersionId: string) => void,
-    helperText: string
-  ) => (
-    <div className="space-y-1.5">
-      <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>产品版本 <span className="required"> *</span></label>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
-        style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-        onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-        onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-      >
-        <option value="">请选择产品版本</option>
-        {productVersionOptions.map((option) => (
-          <option key={option.version.id} value={option.version.id}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <p className="text-[11px]" style={{ color: LK.muted }}>{helperText}</p>
+  const renderProductComboBox = () => (
+    <div className="space-y-1.5" ref={productDropdownRef}>
+      <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>产品名称 <span className="required"> *</span></label>
+      <div className="relative">
+        <input
+          placeholder="输入产品名称，或从列表选择..."
+          className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+          style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = LK.primary;
+            setShowProductDropdown(true);
+          }}
+          onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+          value={productSearch}
+          onChange={(e) => {
+            setProductSearch(e.target.value);
+            setSelectedProductId(null);
+            setVersionSearch('');
+            setSelectedVersionId(null);
+            setShowProductDropdown(true);
+          }}
+        />
+        {showProductDropdown && filteredProducts.length > 0 && (
+          <div
+            className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-lg py-1"
+            style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}
+          >
+            {filteredProducts.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className="w-full px-3 py-2 text-left text-sm transition-colors"
+                style={{ color: LK.inkSoft }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = LK.primaryMuted)}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setProductSearch(p.name);
+                  setSelectedProductId(String(p.id));
+                  setVersionSearch('');
+                  setSelectedVersionId(null);
+                  setShowProductDropdown(false);
+                }}
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <p className="text-[11px]" style={{ color: LK.muted }}>
+        {selectedProductId ? '已选择现有产品' : productSearch.trim() ? '将创建新产品' : '从产品树叶子节点选择，或输入新产品名称'}
+      </p>
+    </div>
+  );
+
+  const renderVersionComboBox = () => (
+    <div className="space-y-1.5" ref={versionDropdownRef}>
+      <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>版本号 <span className="required"> *</span></label>
+      <div className="relative">
+        <input
+          placeholder={selectedProductId ? '输入版本号，或从列表选择...' : '请先选择或输入产品名称'}
+          className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+          style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = LK.primary;
+            setShowVersionDropdown(true);
+          }}
+          onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+          value={versionSearch}
+          onChange={(e) => {
+            setVersionSearch(e.target.value);
+            setSelectedVersionId(null);
+            setShowVersionDropdown(true);
+          }}
+        />
+        {showVersionDropdown && filteredVersions.length > 0 && (
+          <div
+            className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-lg py-1"
+            style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}
+          >
+            {filteredVersions.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                className="w-full px-3 py-2 text-left text-sm transition-colors"
+                style={{ color: LK.inkSoft }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = LK.primaryMuted)}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setVersionSearch(v.name);
+                  setSelectedVersionId(v.id);
+                  setShowVersionDropdown(false);
+                }}
+              >
+                {v.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <p className="text-[11px]" style={{ color: LK.muted }}>
+        {selectedVersionId ? '已选择现有版本' : versionSearch.trim() ? '将创建新版本' : '选择已有版本或输入新版本号'}
+      </p>
     </div>
   );
 
@@ -934,111 +1029,9 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 '项目仅对该部门及其上级部门可见；归属部门管理员负责维护。'
               )}
 
-              {/* Product ComboBox */}
-              <div className="space-y-1.5" ref={productDropdownRef}>
-                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>产品名称 <span className="required"> *</span></label>
-                <div className="relative">
-                  <input
-                    placeholder="输入产品名称，或从列表选择..."
-                    className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
-                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = LK.primary;
-                      setShowProductDropdown(true);
-                    }}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-                    value={productSearch}
-                    onChange={(e) => {
-                      setProductSearch(e.target.value);
-                      setSelectedProductId(null);
-                      setVersionSearch('');
-                      setSelectedVersionId(null);
-                      setShowProductDropdown(true);
-                    }}
-                  />
-                  {showProductDropdown && filteredProducts.length > 0 && (
-                    <div
-                      className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-lg py-1"
-                      style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}
-                    >
-                      {filteredProducts.map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          className="w-full px-3 py-2 text-left text-sm transition-colors"
-                          style={{ color: LK.inkSoft }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = LK.primaryMuted)}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setProductSearch(p.name);
-                            setSelectedProductId(String(p.id));
-                            setVersionSearch('');
-                            setSelectedVersionId(null);
-                            setShowProductDropdown(false);
-                          }}
-                        >
-                          {p.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <p className="text-[11px]" style={{ color: LK.muted }}>
-                  {selectedProductId ? '已选择现有产品' : productSearch.trim() ? '将创建新产品' : '从产品树叶子节点选择，或输入新产品名称'}
-                </p>
-              </div>
+              {renderProductComboBox()}
 
-              {/* Version ComboBox */}
-              <div className="space-y-1.5" ref={versionDropdownRef}>
-                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>版本号 <span className="required"> *</span></label>
-                <div className="relative">
-                  <input
-                    placeholder={selectedProductId ? '输入版本号，或从列表选择...' : '请先选择或输入产品名称'}
-                    className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
-                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = LK.primary;
-                      setShowVersionDropdown(true);
-                    }}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-                    value={versionSearch}
-                    onChange={(e) => {
-                      setVersionSearch(e.target.value);
-                      setSelectedVersionId(null);
-                      setShowVersionDropdown(true);
-                    }}
-                  />
-                  {showVersionDropdown && filteredVersions.length > 0 && (
-                    <div
-                      className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-lg py-1"
-                      style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}
-                    >
-                      {filteredVersions.map((v) => (
-                        <button
-                          key={v.id}
-                          type="button"
-                          className="w-full px-3 py-2 text-left text-sm transition-colors"
-                          style={{ color: LK.inkSoft }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = LK.primaryMuted)}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setVersionSearch(v.version + (v.name ? ` · ${v.name}` : ''));
-                            setSelectedVersionId(v.id);
-                            setShowVersionDropdown(false);
-                          }}
-                        >
-                          {v.version}{v.name ? ` · ${v.name}` : ''}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <p className="text-[11px]" style={{ color: LK.muted }}>
-                  {selectedVersionId ? '已选择现有版本' : versionSearch.trim() ? '将创建新版本' : '选择已有版本或输入新版本号'}
-                </p>
-              </div>
+              {renderVersionComboBox()}
 
               <div className="flex gap-2 pt-2">
                 <button
@@ -1185,11 +1178,9 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 '归属部门决定私有项目的可见范围，同时决定哪些部门管理员可编辑和删除项目。'
               )}
 
-              {renderProductVersionSelect(
-                editForm.product_version_id,
-                (product_version_id) => setEditForm({ ...editForm, product_version_id }),
-                '可切换到其他产品版本；历史项目允许暂时为空，但建议尽快补齐。'
-              )}
+              {renderProductComboBox()}
+
+              {renderVersionComboBox()}
 
               <div className="flex gap-2 pt-2">
                 <button
