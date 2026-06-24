@@ -65,13 +65,13 @@ import { buildUnifiedAgentRuntimeViewModel, type UnifiedAgentPodCard } from './a
 import { StatisticCard, PageHeader } from '../../design-system';
 
 const LK = {
-  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primary: 'var(--brand-primary)', primarySoft: '#7590ff', primaryDeep: 'var(--brand-primary-hover)',
   primaryMuted: 'rgba(79, 115, 255, 0.14)',
-  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  canvas: 'var(--bg-app)', surface: 'var(--bg-surface)', surfaceRaised: 'var(--bg-app)',
   surfaceGlass: 'rgba(17, 26, 43, 0.84)',
-  border: '#26324a', borderSoft: '#1b2438',
-  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
-  muted: '#72809a', mutedSoft: '#8b95a8',
+  border: 'var(--border-default)', borderSoft: '#1b2438',
+  ink: 'var(--text-primary)', inkSoft: 'var(--text-primary)', body: 'var(--text-secondary)',
+  muted: 'var(--text-secondary)', mutedSoft: '#8b95a8',
   success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
   critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
 } as const;
@@ -518,7 +518,7 @@ const GROUP_BADGE: Record<BinarySecurityMetricsGroup, { backgroundColor: string;
   http: { backgroundColor: LK.info, borderColor: LK.info, color: LK.ink },
   task: { backgroundColor: LK.surfaceRaised, borderColor: LK.border, color: LK.ink },
   queue: { backgroundColor: LK.warning, borderColor: LK.warning, color: LK.ink },
-  worker: { backgroundColor: '#6366f1', borderColor: '#6366f1', color: LK.ink },
+  worker: { backgroundColor: '#2563EB', borderColor: '#2563EB', color: LK.ink },
   duration: { backgroundColor: '#06b6d4', borderColor: '#06b6d4', color: LK.ink },
   'error-retry-timeout': { backgroundColor: LK.error, borderColor: LK.error, color: LK.ink },
   'llm-token-cost': { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6', color: LK.ink },
@@ -555,7 +555,7 @@ const toneToColor = (tone: string): string => {
   if (tone.includes('fuchsia')) return '#a855f7';
   if (tone.includes('teal')) return '#14b8a6';
   if (tone.includes('cyan')) return '#06b6d4';
-  if (tone.includes('indigo')) return '#6366f1';
+  if (tone.includes('indigo')) return '#2563EB';
   if (tone.includes('slate-900')) return LK.ink;
   if (tone.includes('slate-800')) return LK.inkSoft;
   if (tone.includes('slate-700')) return LK.inkSoft;
@@ -1658,7 +1658,7 @@ const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisV
     checkpointChart: [
       { name: 'partial', value: checkpointPartialTasks, fill: '#0ea5e9' },
       { name: 'overall_done', value: checkpointOverallDoneTasks, fill: '#10b981' },
-      { name: 's2 modules', value: checkpointS2Modules, fill: '#6366f1' },
+      { name: 's2 modules', value: checkpointS2Modules, fill: '#2563EB' },
       { name: 's3 modules', value: checkpointS3Modules, fill: '#7c3aed' },
     ],
     concurrencyChart: [
@@ -1877,13 +1877,13 @@ const buildFirmwareUnpackerViewModel = (rows: DisplayMetricRow[]): FirmwareUnpac
       'firmware_unpacker_tasks_by_status',
       'status',
       { pending: 'Pending', claimed: 'Claimed', running: 'Running', archiving: 'Archiving', success: 'Success', failed: 'Failed', cancelled: 'Cancelled' },
-      { pending: '#f59e0b', claimed: '#0ea5e9', running: '#14b8a6', archiving: '#6366f1', success: '#10b981', failed: '#ef4444', cancelled: '#64748b' },
+      { pending: '#f59e0b', claimed: '#0ea5e9', running: '#14b8a6', archiving: '#2563EB', success: '#10b981', failed: '#ef4444', cancelled: '#64748b' },
     ),
     queueChart: [
       { name: 'pending', value: queuePending, fill: '#f59e0b' },
       { name: 'queued', value: queueQueued, fill: '#0ea5e9' },
       { name: 'running', value: queueRunning, fill: '#14b8a6' },
-      { name: 'leased', value: queueLeased, fill: '#6366f1' },
+      { name: 'leased', value: queueLeased, fill: '#2563EB' },
       { name: 'cleanup', value: cleanupPending, fill: '#a855f7' },
     ],
     workerChart: [
@@ -1891,7 +1891,7 @@ const buildFirmwareUnpackerViewModel = (rows: DisplayMetricRow[]): FirmwareUnpac
       { name: 'dead', value: workerDead, fill: '#f97316' },
       { name: 'slot usage', value: slotUsage, fill: '#14b8a6' },
       { name: 'slot capacity', value: valueOrZero(slotCapacity), fill: '#0f766e' },
-      { name: 'executor', value: valueOrZero(executorCapacity), fill: '#6366f1' },
+      { name: 'executor', value: valueOrZero(executorCapacity), fill: '#2563EB' },
     ],
     httpTop: rows
       .filter((row) => row.name === 'firmware_unpacker_api_requests_total')
@@ -4260,7 +4260,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               </div>
 
               <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: '1.05fr 0.95fr' }}>
-                <div style={{ borderRadius: '12px', border: `1px solid #6366f1`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
+                <div style={{ borderRadius: '12px', border: `1px solid #2563EB`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
                   <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>角色与吞吐</div>
                   <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>Worker / Judge / Session 负载</h3>
                   <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -4274,7 +4274,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   </div>
                 </div>
 
-                <div style={{ borderRadius: '12px', border: `1px solid #6366f1`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
+                <div style={{ borderRadius: '12px', border: `1px solid #2563EB`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
                   <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>失败与模块</div>
                   <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>异常归因 / Top Modules</h3>
                   <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -4306,7 +4306,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 </div>
               </div>
 
-              <div style={{ borderRadius: '12px', border: `1px solid #6366f1`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
+              <div style={{ borderRadius: '12px', border: `1px solid #2563EB`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
                     <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>执行槽位明细</h3>
@@ -4438,7 +4438,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 ))}
               </div>
 
-              <div style={{ borderRadius: '12px', border: `1px solid #6366f1`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
+              <div style={{ borderRadius: '12px', border: `1px solid #2563EB`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>阶段聚焦</div>
@@ -4532,7 +4532,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               </div>
 
               <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-                <div style={{ borderRadius: '12px', border: `1px solid #6366f1`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
+                <div style={{ borderRadius: '12px', border: `1px solid #2563EB`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
                   <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>阶段状态图</div>
                   <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>R1 / R2 / R3 / R4 运行态</h3>
                   <div style={{ marginTop: '16px', height: '288px' }}>
@@ -4555,7 +4555,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   </div>
                 </div>
 
-                <div style={{ borderRadius: '12px', border: `1px solid #6366f1`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
+                <div style={{ borderRadius: '12px', border: `1px solid #2563EB`, backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '16px' }}>
                   <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>阶段健康矩阵</div>
                   <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>阶段级诊断明细</h3>
                   <div style={{ marginTop: '16px', overflow: 'auto', borderRadius: '12px', border: `1px solid ${LK.border}` }}>

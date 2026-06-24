@@ -60,13 +60,13 @@ import { navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../.
 import { StatisticCard } from '../../design-system';
 
 const LK = {
-  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primary: 'var(--brand-primary)', primarySoft: '#7590ff', primaryDeep: 'var(--brand-primary-hover)',
   primaryMuted: 'rgba(79, 115, 255, 0.14)',
-  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  canvas: 'var(--bg-app)', surface: 'var(--bg-surface)', surfaceRaised: 'var(--bg-app)',
   surfaceGlass: 'rgba(17, 26, 43, 0.84)',
-  border: '#26324a', borderSoft: '#1b2438',
-  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
-  muted: '#72809a', mutedSoft: '#8b95a8',
+  border: 'var(--border-default)', borderSoft: '#1b2438',
+  ink: 'var(--text-primary)', inkSoft: 'var(--text-primary)', body: 'var(--text-secondary)',
+  muted: 'var(--text-secondary)', mutedSoft: '#8b95a8',
   success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
   critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
 } as const;

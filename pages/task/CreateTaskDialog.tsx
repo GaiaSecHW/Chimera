@@ -134,20 +134,20 @@ const getLocalUserInfo = (): UserInfo | null => {
 /* ------------------------------------------------------------------ */
 
 const LK = {
-  primary: '#4f73ff',
+  primary: 'var(--brand-primary)',
   primarySoft: '#7590ff',
-  primaryDeep: '#3f63f1',
+  primaryDeep: 'var(--brand-primary-hover)',
   primaryMuted: 'rgba(79, 115, 255, 0.14)',
-  canvas: '#070d18',
-  surface: '#111a2b',
-  surfaceRaised: '#18233a',
+  canvas: 'var(--bg-app)',
+  surface: 'var(--bg-surface)',
+  surfaceRaised: 'var(--bg-app)',
   surfaceGlass: 'rgba(17, 26, 43, 0.84)',
-  border: '#26324a',
+  border: 'var(--border-default)',
   borderSoft: '#1b2438',
-  ink: '#f5f7ff',
-  inkSoft: '#d6def0',
-  body: '#a4aec4',
-  muted: '#72809a',
+  ink: 'var(--text-primary)',
+  inkSoft: 'var(--text-primary)',
+  body: 'var(--text-secondary)',
+  muted: 'var(--text-secondary)',
   mutedSoft: '#8b95a8',
   success: '#45c06f',
   warning: '#d5a13a',
@@ -718,10 +718,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   <select
                     value={selectedProjectId}
                     onChange={(e) => setSelectedProjectId(e.target.value)}
-                    className="flex-1 rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                    className="form-select flex-1 rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                   >
                     {projects.map((item) => (
                       <option key={item.id} value={item.id}>{item.name}</option>
@@ -791,10 +788,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                  style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                  className="form-input mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                 />
               </label>
 
@@ -834,10 +828,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   <input
                     value={moduleName}
                     onChange={(e) => setModuleName(e.target.value)}
-                    className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                    className="form-input mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                   />
                 </label>
               ) : null}
@@ -903,10 +894,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       <select
                         value={selectedInputId}
                         onChange={(e) => setSelectedInputId(e.target.value)}
-                        className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                        style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                        onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                        onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                        className="form-select mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                       >
                         {selectableInputs.map((item) => <option key={item.upload_id} value={item.upload_id}>{`${getUploadRecordDisplayName(item)} · ${item.status}`}</option>)}
                       </select>
@@ -1032,10 +1020,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 <select
                   value={taskType}
                   onChange={(e) => setTaskType(e.target.value as any)}
-                  className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                  style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                  className="form-select mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                 >
                   {availableTaskTypes.map((item) => (
                     <option key={item.value} value={item.value} disabled={item.disabled}>
@@ -1069,10 +1054,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     <select
                       value={selectedAgentAppId}
                       onChange={(e) => setSelectedAgentAppId(e.target.value)}
-                      className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                      className="form-select mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                     >
                       <option value="">请选择具体 Harness</option>
                       {agentApps.map((item) => <option key={item.id} value={item.id}>{`${item.name} / ${item.engine}`}</option>)}
@@ -1099,10 +1081,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       value={instruction}
                       onChange={(e) => setInstruction(e.target.value)}
                       rows={3}
-                      className="mt-1 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                      className="form-textarea mt-1 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                       placeholder="不填时使用 Agent Harness 的启动命令，例如 /project:xxx"
                     />
                   </label>
@@ -1115,10 +1094,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="mt-1 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                  style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                  className="form-textarea mt-1 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                   rows={2}
                 />
               </label>

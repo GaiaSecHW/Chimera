@@ -56,7 +56,7 @@ Chimera 是面向企业的一体化安全平台，融合四重定位：
 
 ### 1.1 设计基调
 
-近黑的**蓝调深色**（navy）为底，**indigo (#6366f1)** 为品牌强调色。背景靠 4 级明度层叠制造纵深，而非阴影。语义色统一走"暗底 + 高亮文字"的低饱和暗色徽章模式。
+近黑的**蓝调深色**（navy）为底，**indigo (#2563EB)** 为品牌强调色。背景靠 4 级明度层叠制造纵深，而非阴影。语义色统一走"暗底 + 高亮文字"的低饱和暗色徽章模式。
 
 ### 1.2 背景层级（Surface Hierarchy）
 
@@ -97,8 +97,8 @@ Chimera 是面向企业的一体化安全平台，融合四重定位：
 
 | Token | 变量 | 值 | 用途 |
 |---|---|---|---|
-| Primary | `--brand-primary` | `#6366f1` | 主操作、激活态、链接、焦点环 |
-| Hover | `--brand-primary-hover` | `#818cf8` | 主色悬浮 |
+| Primary | `--brand-primary` | `#2563EB` | 主操作、激活态、链接、焦点环 |
+| Hover | `--brand-primary-hover` | `#3B82F6` | 主色悬浮 |
 | Secondary | `--brand-secondary` | `#4f46e5` | 主按钮按下/次强调 |
 | Soft | `--brand-soft` | `rgba(99,102,241,0.15)` | 品牌色浅底（chip、focus ring）|
 | Border | `--brand-border` | `rgba(99,102,241,0.4)` | 品牌色边框 |
@@ -726,7 +726,7 @@ Timeline / Logs
 背景:  app #070d18 · surface #111a2b · elevated #18233a · sidebar #0d1526
 文本:  primary #f5f7ff · secondary #d6def0 · muted #a4aec4 · faint #72809a
 边框:  default #26324a · strong #33415c · subtle #1b2438
-品牌:  primary #6366f1 · hover #818cf8 · secondary #4f46e5
+品牌:  primary #2563EB · hover #3B82F6 · secondary #4f46e5
 语义:  success #10b981 · warning #f59e0b · danger #f43f5e · info #3b82f6
 圆角:  控件 8px(lg) · 卡片 12px(xl) · 弹窗 16px(2xl)
 阴影:  默认 none · 卡片轻抬 panel · 浮层 overlay（禁 glow）
