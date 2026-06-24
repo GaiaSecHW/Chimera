@@ -1,7 +1,7 @@
 
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { HashRouter, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Loader2, AlertCircle, Lock } from 'lucide-react';
+import { Loader2, AlertCircle, Lock, Sun, Moon } from 'lucide-react';
 import { ViewType, SecurityProject, UserInfo, Agent, EnvTemplate, StaticPackage, PackageStats, AdminDashboardStats } from './types/types';
 import { api } from './clients/api';
 import { getTopLevelDefaultView, getTopLevelNavForView, PROJECT_REQUIRED_VIEWS } from './app/navigation';
@@ -15,6 +15,7 @@ import { ServiceTerminalWindowPage } from './pages/environment/ServiceTerminalWi
 import { canAccessView, getUserAccess } from './utils/rbac';
 import { AggregatedServiceHealth, MenuServiceHealthSummary } from './clients/menu';
 import { ThemeLogo } from './components/ThemeLogo';
+import { useTheme } from './theme/ThemeProvider';
 
 const DEFAULT_VIEW = 'home';
 
@@ -60,6 +61,7 @@ const parseDeepLinkPath = (pathname: string): DeepLinkTarget | null => {
 const AppShell: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme, setTheme } = useTheme();
   const { view } = useParams<{ view?: string }>();
   const deepLinkTarget = parseDeepLinkPath(location.pathname);
   const routeView = deepLinkTarget?.view || view || DEFAULT_VIEW;
@@ -603,6 +605,13 @@ const AppShell: React.FC = () => {
   if (!token) return (
     <>
       <div className="h-screen w-full flex items-center justify-center bg-theme-login relative overflow-hidden">
+        <button
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="absolute top-4 right-4 z-20 p-2.5 text-theme-text-faint hover:text-brand-primary transition-all"
+          aria-label={theme === 'dark' ? '切换浅色主题' : '切换深色主题'}
+        >
+          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
         <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
           <div
             className="absolute inset-0"
