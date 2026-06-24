@@ -54,6 +54,7 @@ export type TopLevelNavKey =
   | 'vuln-center'
   | 'assets-center'
   | 'asset-supply'
+  | 'alert-center'
   | 'assessment'
   | 'observe'
   | 'skill'
@@ -115,6 +116,7 @@ export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
   { id: 'vuln-center', label: '漏洞中心', role: null },
   { id: 'assets-center', label: '资产管理', role: null },
   { id: 'asset-supply', label: '资产', role: 'developer' },
+  { id: 'alert-center', label: '告警中心', role: 'developer', showDividerBefore: true },
   { id: 'assessment', label: '评测', role: 'developer' },
   { id: 'observe', label: '观测', role: 'developer' },
   { id: 'skill', label: '技能', role: 'developer' },
@@ -230,6 +232,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'vuln-engine',
   'vuln-overview',
   'vuln-intake',
+  'vuln-list',
   'vuln-analysis',
   'vuln-analysis-detail',
   'vuln-verification',
@@ -394,6 +397,7 @@ const SYSTEM_ADMIN_ENVIRONMENT_VIEWS = new Set([
 export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (view === 'home') return 'home';
   if (view.startsWith('task-') || view === 'task-list' || view === 'task-center-timeline') return 'test-task';
+  if (view === 'vuln-intake' || view === 'vuln-overview' || view === 'vuln-engine') return 'alert-center';
   if (view === 'vuln-engine' || view.startsWith('vuln-')) return 'vuln-center';
   if (view === 'project-mgmt' || view === 'project-detail' || view === 'product-mgmt') return 'assets-center';
   if (view.startsWith('test-input-')) return 'assets-center';
@@ -431,9 +435,10 @@ export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | nul
   switch (nav) {
     case 'home': return 'home';
     case 'test-task': return 'task-list';
-    case 'vuln-center': return 'vuln-intake';
+    case 'vuln-center': return 'vuln-list';
     case 'assets-center': return 'project-mgmt';
     case 'asset-supply': return 'public-resource-pvc-management';
+    case 'alert-center': return 'vuln-intake';
     case 'assessment': return 'assessment-coming-soon';
     case 'observe': return 'observe-coming-soon';
     case 'skill': return 'skill-secocto-skills';
@@ -480,7 +485,15 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
     {
       title: '漏洞中心',
       items: [
-        { id: 'vuln-intake', label: '漏洞中心', icon: Shield, aliases: ['vuln-overview', 'vuln-engine'], requiresProject: true, healthKey: 'vulnHealth' },
+        { id: 'vuln-list', label: '漏洞中心', icon: Shield, requiresProject: true, healthKey: 'vulnHealth' },
+      ],
+    },
+  ],
+  'alert-center': [
+    {
+      title: '告警中心',
+      items: [
+        { id: 'vuln-intake', label: '告警中心', icon: ShieldAlert, aliases: ['vuln-overview', 'vuln-engine'], requiresProject: true, healthKey: 'vulnHealth' },
       ],
     },
   ],

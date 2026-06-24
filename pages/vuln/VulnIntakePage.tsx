@@ -46,7 +46,8 @@ const assetApi = api.domains.assets;
 interface VulnPageProps {
   projectId: string;
   onNavigateToView?: (view: string) => void;
-  initialTaskFilter?: string;
+  pageTitle?: string;
+  suspectOnly?: boolean;
 }
 
 type PublicKind = 'cli' | 'plugin' | 'skill' | 'openapi';
@@ -313,16 +314,30 @@ const getCaseSortValue = (item: any, field: SortField) => {
   return String(item?.[field] || '').toLowerCase();
 };
 
+const getEffectiveResult = (item: any) => String(item?.finished_reason || item?.validation_result || '').trim();
+
 const matchesFinalResultFilter = (item: any, filters: string[]) => {
   if (!filters || filters.length === 0) return true;
-  const isTerminal = item.current_stage === 'finished' || !!item.finished_reason;
-  const effective = isTerminal ? String(item.finished_reason || item.validation_result || '').trim() : '';
+  const effective = getEffectiveResult(item);
+  const isVulnerable = effective === 'vulnerable';
+  const isRuledOut = effective === 'not_vulnerable' || effective === 'non_vulnerable';
   return filters.some((f) => {
-    if (f === 'analyzing') return !isTerminal;
-    if (f === 'not_vulnerable') return effective === 'not_vulnerable' || effective === 'non_vulnerable';
-    if (f === 'inconclusive') return effective === 'inconclusive' || effective === 'manual_terminated';
-    return effective === f;
+    if (f === 'vulnerable') return isVulnerable;
+    if (f === 'not_vulnerable') return isRuledOut;
+    if (f === 'pending') return !isVulnerable && !isRuledOut;
+    return false;
   });
+};
+
+const getCaseListStats = (items: any[]) => {
+  const confirmed = items.filter((item) => item.finished_reason === 'vulnerable').length;
+  const ruledOut = items.filter((item) => item.finished_reason === 'not_vulnerable' || item.finished_reason === 'non_vulnerable').length;
+  return {
+    total: items.length,
+    confirmed,
+    ruledOut,
+    inconclusive: Math.max(0, items.length - confirmed - ruledOut),
+  };
 };
 
 const sortCases = (items: any[], field: SortField, direction: SortDirection) => {
@@ -569,7 +584,7 @@ const DetailSectionCard: React.FC<{
   </PageSection>
 );
 
-export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateToView, initialTaskFilter }) => {
+export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateToView, pageTitle = '漏洞中心', suspectOnly = false }) => {
   const [rootTab, setRootTab] = useState<IntakeRootTab>('cases');
   const buildVersion = useServiceBuildVersion(vulnApi.vuln.getHealth);
   const { confirm, feedbackNodes } = useUiFeedback();
@@ -580,6 +595,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [suspicions, setSuspicions] = useState<any[]>([]);
   const [overview, setOverview] = useState<any | null>(null);
   const [listTotal, setListTotal] = useState(0);
+  const [listStats, setListStats] = useState({ total: 0, confirmed: 0, ruledOut: 0, inconclusive: 0 });
   const [selectedSuspicionId, setSelectedSuspicionId] = useState('');
   const [selectedDetail, setSelectedDetail] = useState<any | null>(null);
   const [selectedTimeline, setSelectedTimeline] = useState<any[]>([]);
@@ -597,7 +613,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [stageFilter, setStageFilter] = useState('all');
   const [cvssBandFilter, setCvssBandFilter] = useState('all');
   const [reporterTypeFilter, setReporterTypeFilter] = useState('all');
-  const [taskFilter, setTaskFilter] = useState<string[]>(() => (initialTaskFilter ? [initialTaskFilter] : []));
+  const [taskFilter, setTaskFilter] = useState<string[]>([]);
   const [taskOptions, setTaskOptions] = useState<Array<{ id: string; name?: string }>>([]);
   const [taskFilterOpen, setTaskFilterOpen] = useState(false);
   const [finalResultFilter, setFinalResultFilter] = useState<string[]>([]);
@@ -634,6 +650,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [manualConfirmReason, setManualConfirmReason] = useState('');
   const [manualConfirmError, setManualConfirmError] = useState('');
   const [manualConfirmSubmitting, setManualConfirmSubmitting] = useState(false);
+  const [engineTools, setEngineTools] = useState<Set<string>>(new Set());
+  const [enginesLoaded, setEnginesLoaded] = useState(!suspectOnly);
   const [downloadJobs, setDownloadJobs] = useState<any[]>([]);
   const [downloadStats, setDownloadStats] = useState<any>({
     total: 0,
@@ -693,17 +711,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     const openTasks = (selectedDetail?.manual_tasks || []).filter(
       (item: any) => !['completed', 'closed'].includes(item.status),
     ).length;
-    const confirmed = Number(overview?.finished_reason_counts?.vulnerable || 0);
-    const ruledOut = Number(overview?.finished_reason_counts?.not_vulnerable ?? overview?.finished_reason_counts?.non_vulnerable ?? 0);
-    const total = Number(overview?.metrics?.total_cases || 0);
     return {
-      total,
-      confirmed,
-      ruledOut,
-      inconclusive: Math.max(0, total - confirmed - ruledOut),
+      total: listStats.total,
+      confirmed: listStats.confirmed,
+      ruledOut: listStats.ruledOut,
+      inconclusive: listStats.inconclusive,
       openTasks,
     };
-  }, [overview, selectedDetail]);
+  }, [listStats, selectedDetail]);
 
   const displaySummary = selectedDetail?.display_summary || {};
   const evidenceSummary = selectedDetail?.evidence_summary || {};
@@ -772,6 +787,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       setSuspicions([]);
       setOverview(null);
       setListTotal(0);
+      setListStats({ total: 0, confirmed: 0, ruledOut: 0, inconclusive: 0 });
       setSelectedSuspicionIds([]);
       setSelectedSuspicionId('');
       setSelectedDetail(null);
@@ -784,6 +800,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     const requestSeq = ++suspicionRequestSeq.current;
     setLoading(true);
     setError(null);
+    if (suspectOnly && !enginesLoaded) {
+      return;
+    }
     try {
       const baseParams = {
         project_id: projectId,
@@ -795,60 +814,52 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         sort_direction: sortDirection,
       };
       const matchesFinalResult = (item: any) => matchesFinalResultFilter(item, finalResultFilter);
-      const needsClientFilter = finalResultFilter.length > 0;
-      const needsClientSort = sortField === 'conclusion';
-      if (taskFilter.length <= 1 && !needsClientFilter && !needsClientSort) {
-        const response = await vulnApi.vuln.listCases({
-          ...baseParams,
-          source_task_id: taskFilter[0],
-          page: pageOverride ?? currentPage,
-          page_size: pageSize,
-        });
-        if (requestSeq !== suspicionRequestSeq.current) return;
-        setSuspicions(response.items || []);
-        setListTotal(Number(response.total || 0));
-        if (response.page && response.page !== currentPage) {
-          setCurrentPage(response.page);
+      const matchesSuspect = (item: any): boolean => {
+        if (!suspectOnly) return true;
+        const reporterName: string = item?.reporter?.name || '';
+        if (reporterName && engineTools.has(reporterName)) {
+          return getEffectiveResult(item) === 'vulnerable';
         }
-      } else {
-        const fetchAllForTask = async (taskId: string | undefined): Promise<any[]> => {
-          const first = await vulnApi.vuln.listCases({
+        return true;
+      };
+      const fetchAllForTask = async (taskId: string | undefined): Promise<any[]> => {
+        const first = await vulnApi.vuln.listCases({
+          ...baseParams,
+          source_task_id: taskId,
+          page: 1,
+          page_size: 500,
+        });
+        const total = Number(first.total || 0);
+        const items = [...(first.items || [])];
+        const pages = Math.ceil(total / 500);
+        for (let page = 2; page <= pages; page += 1) {
+          const next = await vulnApi.vuln.listCases({
             ...baseParams,
             source_task_id: taskId,
-            page: 1,
+            page,
             page_size: 500,
           });
-          const total = Number(first.total || 0);
-          const items = [...(first.items || [])];
-          const pages = Math.ceil(total / 500);
-          for (let page = 2; page <= pages; page += 1) {
-            const next = await vulnApi.vuln.listCases({
-              ...baseParams,
-              source_task_id: taskId,
-              page,
-              page_size: 500,
-            });
-            items.push(...(next.items || []));
-          }
-          return items;
-        };
-        const taskIds = taskFilter.length > 0 ? taskFilter : [undefined];
-        const chunks: any[][] = [];
-        for (const taskId of taskIds) {
-          if (requestSeq !== suspicionRequestSeq.current) return;
-          chunks.push(await fetchAllForTask(taskId));
+          items.push(...(next.items || []));
         }
+        return items;
+      };
+      const taskIds = taskFilter.length > 0 ? taskFilter : [undefined];
+      const chunks: any[][] = [];
+      for (const taskId of taskIds) {
         if (requestSeq !== suspicionRequestSeq.current) return;
-        const merged = sortCases(
-          Array.from(new Map(chunks.flat().map((item: any) => [item.id, item])).values()),
-          sortField,
-          sortDirection,
-        );
-        const filtered = needsClientFilter ? merged.filter(matchesFinalResult) : merged;
-        const nextPage = pageOverride ?? currentPage;
-        setSuspicions(filtered.slice((nextPage - 1) * pageSize, nextPage * pageSize));
-        setListTotal(filtered.length);
+        chunks.push(await fetchAllForTask(taskId));
       }
+      if (requestSeq !== suspicionRequestSeq.current) return;
+      const merged = sortCases(
+        Array.from(new Map(chunks.flat().map((item: any) => [item.id, item])).values()),
+        sortField,
+        sortDirection,
+      );
+      const filtered = merged.filter(matchesSuspect).filter(matchesFinalResult);
+      const nextPage = pageOverride ?? currentPage;
+      setSuspicions(filtered.slice((nextPage - 1) * pageSize, nextPage * pageSize));
+      setListTotal(filtered.length);
+      setListStats(getCaseListStats(filtered));
     } catch (err: any) {
       setError(err?.message || '加载漏洞列表失败');
     } finally {
@@ -1145,7 +1156,32 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   useEffect(() => {
     void loadSuspicions();
-  }, [projectId, currentPage, pageSize, search, stageFilter, reporterTypeFilter, cvssBandFilter, taskFilter, finalResultFilter, sortField, sortDirection]);
+  }, [projectId, currentPage, pageSize, search, stageFilter, reporterTypeFilter, cvssBandFilter, taskFilter, finalResultFilter, sortField, sortDirection, suspectOnly, enginesLoaded, engineTools]);
+
+  useEffect(() => {
+    if (!suspectOnly) {
+      setEngineTools(new Set());
+      setEnginesLoaded(true);
+      return;
+    }
+    let mounted = true;
+    setEnginesLoaded(false);
+    vulnApi.vuln
+      .listConfirmEngines()
+      .then((res) => {
+        if (!mounted) return;
+        const tools = new Set<string>();
+        (res?.engines || []).forEach((eng: any) => {
+          (eng?.bind_tools || []).forEach((t: string) => tools.add(t));
+        });
+        setEngineTools(tools);
+      })
+      .catch((e) => console.error('Failed to load confirm engines for suspect filter', e))
+      .finally(() => {
+        if (mounted) setEnginesLoaded(true);
+      });
+    return () => { mounted = false; };
+  }, [suspectOnly]);
 
   useEffect(() => {
     if (rootTab !== 'download-center') return;
@@ -1729,15 +1765,23 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         sort_direction: sortDirection,
       };
       const matchesFinalResult = (item: any) => matchesFinalResultFilter(item, finalResultFilter);
+      const matchesSuspect = (item: any): boolean => {
+        if (!suspectOnly) return true;
+        const reporterName: string = item?.reporter?.name || '';
+        if (reporterName && engineTools.has(reporterName)) {
+          return getEffectiveResult(item) === 'vulnerable';
+        }
+        return true;
+      };
       const ids: string[] = [];
       const taskIds = taskFilter.length > 0 ? taskFilter : [undefined];
       for (const taskId of taskIds) {
         const first = await vulnApi.vuln.listCases({ ...baseParams, source_task_id: taskId, page: 1, page_size: 500 });
-        ids.push(...(first.items || []).filter(matchesFinalResult).map((item: any) => item.id).filter(Boolean));
+        ids.push(...(first.items || []).filter(matchesSuspect).filter(matchesFinalResult).map((item: any) => item.id).filter(Boolean));
         const pages = Math.ceil(Number(first.total || 0) / 500);
         for (let page = 2; page <= pages; page += 1) {
           const next = await vulnApi.vuln.listCases({ ...baseParams, source_task_id: taskId, page, page_size: 500 });
-          ids.push(...(next.items || []).filter(matchesFinalResult).map((item: any) => item.id).filter(Boolean));
+          ids.push(...(next.items || []).filter(matchesSuspect).filter(matchesFinalResult).map((item: any) => item.id).filter(Boolean));
         }
       }
       const reportIds = Array.from(new Set(ids));
@@ -1825,10 +1869,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       : `已选 ${taskFilter.length} 个任务`;
 
   const FINAL_RESULT_OPTIONS: Array<{ value: string; label: string }> = [
-    { value: 'vulnerable', label: '是漏洞' },
-    { value: 'not_vulnerable', label: '不是漏洞' },
-    { value: 'inconclusive', label: '无法判定' },
-    { value: 'analyzing', label: '分析中' },
+    { value: 'vulnerable', label: '确认是漏洞' },
+    { value: 'not_vulnerable', label: '确认非漏洞' },
+    { value: 'pending', label: '判定中' },
   ];
   const selectedFinalResultLabel = finalResultFilter.length === 0
     ? '全部结果'
@@ -2582,7 +2625,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           <PageHeader
             title={(
               <span className="inline-flex flex-wrap items-center gap-3">
-                <span>漏洞中心</span>
+                <span>{pageTitle}</span>
                 <ServiceBuildVersionBadge version={buildVersion} />
               </span>
             )}
@@ -2595,7 +2638,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-surface px-3 py-1.5 text-sm font-medium text-theme-text-secondary transition-colors hover:text-theme-text-primary"
                 >
                   <ArrowLeft size={14} />
-                  返回漏洞中心
+                  返回{pageTitle}
                 </button>
               ) : (
                 <button
@@ -2611,11 +2654,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           />
           {rootTab === 'download-center' ? renderDownloadCenter() : (
           <>
-          <div className="grid gap-3 grid-cols-4">
-            <StatisticCard label="漏洞总数" value={stats.total} />
-            <StatisticCard label="漏洞" value={stats.confirmed} tone="danger" />
-            <StatisticCard label="不是漏洞" value={stats.ruledOut} tone="success" />
-            <StatisticCard label="无法判定" value={stats.inconclusive} tone="warning" />
+          <div className={`grid gap-3 ${suspectOnly ? 'grid-cols-3' : 'grid-cols-4'}`}>
+            <StatisticCard label={suspectOnly ? '疑似漏洞' : '告警总数'} value={stats.total} />
+            <StatisticCard label="确认是漏洞" value={stats.confirmed} tone="danger" />
+            <StatisticCard label="确认非漏洞" value={stats.ruledOut} tone="success" />
+            {!suspectOnly ? <StatisticCard label="判定中" value={stats.inconclusive} tone="warning" /> : null}
           </div>
 
           <div className="table-container">
@@ -2721,7 +2764,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
             <div className="space-y-4 px-5 py-4 xl:px-6">
               <div className="overflow-hidden rounded-xl border border-theme-border">
-                  <div className="grid grid-cols-[1.5fr_2.2fr_0.9fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr] gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2.5">
+                  <div className={`grid ${suspectOnly ? 'grid-cols-[1.5fr_2.2fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr]' : 'grid-cols-[1.5fr_2.2fr_0.9fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr]'} gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2.5`}>
                   <div className="flex items-center justify-center hidden">
                     <input
                       type="checkbox"
@@ -2733,7 +2776,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   </div>
                   <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">任务名称</div>
                   {renderSortHeader('标题 / 摘要', 'title')}
-                  {renderSortHeader('阶段 / 状态', 'current_stage')}
+                  {!suspectOnly ? renderSortHeader('阶段 / 状态', 'current_stage') : null}
                   {renderSortHeader('漏洞确认状态', 'conclusion')}
                   {renderSortHeader('工具', 'reporter')}
                   {renderSortHeader('更新时间', 'updated_at')}
@@ -2757,7 +2800,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           setSelectedSuspicionId(item.id);
                         }
                       }}
-                      className="grid cursor-pointer grid-cols-[1.5fr_2.2fr_0.9fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr] gap-3 border-b border-theme-border-subtle bg-theme-surface px-4 py-3.5 text-left transition hover:bg-theme-elevated last:border-b-0"
+                      className={`grid cursor-pointer ${suspectOnly ? 'grid-cols-[1.5fr_2.2fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr]' : 'grid-cols-[1.5fr_2.2fr_0.9fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr]'} gap-3 border-b border-theme-border-subtle bg-theme-surface px-4 py-3.5 text-left transition hover:bg-theme-elevated last:border-b-0`}
                     >
                       <div className="flex items-center justify-center hidden">
                         <input
@@ -2777,27 +2820,22 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         <div className="mt-1 font-mono text-[11px] text-theme-text-faint">{item.id}</div>
                         <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-theme-text-muted">{item.summary || '暂无摘要'}</div>
                       </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-theme-text-secondary">{toUserVulnStatusText(item)}</div>
-                        {item.confirm_engine_name && !(item.current_stage === 'finished' || item.finished_reason) ? (
-                          <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
-                            已派发: {item.confirm_engine_name}
-                          </div>
-                        ) : null}
-                      </div>
+                      {!suspectOnly ? (
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-theme-text-secondary">{toUserVulnStatusText(item)}</div>
+                          {item.confirm_engine_name && !(item.current_stage === 'finished' || item.finished_reason) ? (
+                            <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
+                              已派发: {item.confirm_engine_name}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
                       <div className="min-w-0">
                         {(item.current_stage === 'finished' || item.finished_reason) ? (
                           <>
                             <div className={`text-sm font-semibold ${(item.finished_reason || item.validation_result) === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-secondary'}`}>
                               {toConclusionText(item.finished_reason || item.validation_result)}
                             </div>
-                            {(item.finished_reason || item.confirm_engine_name) ? (
-                              <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
-                                来源: {item.finished_reason
-                                  ? '人工判定'
-                                  : `${item.confirm_engine_name}判定`}
-                              </div>
-                            ) : null}
                           </>
                         ) : (
                           <span className="text-sm text-theme-text-faint">—</span>
@@ -2811,19 +2849,21 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       <div className="text-sm text-theme-text-muted">{formatTime(item.created_at)}</div>
                       <div>
                         <div className="flex flex-wrap gap-1.5">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              openManualConfirm(item);
-                            }}
-                            disabled={manualConfirmSubmitting}
-                            title={item.finished_reason ? '重新判定' : '确认漏洞'}
-                            aria-label={`确认漏洞 ${item.title}`}
-                            className="btn btn-secondary btn-sm px-2"
-                          >
-                            <ShieldCheck size={14} />
-                          </button>
+                          {suspectOnly ? (
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openManualConfirm(item);
+                              }}
+                              disabled={manualConfirmSubmitting}
+                              title={item.finished_reason ? '重新判定' : '确认漏洞'}
+                              aria-label={`确认漏洞 ${item.title}`}
+                              className="btn btn-secondary btn-sm px-2"
+                            >
+                              <ShieldCheck size={14} />
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             onClick={(event) => {

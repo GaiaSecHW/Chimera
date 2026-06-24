@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ExternalLink, Loader2, Network, RefreshCw, RotateCw, ShieldCheck, Wrench } from 'lucide-react';
+import { ChevronRight, ExternalLink, Loader2, Network, RefreshCw, RotateCw, ShieldCheck, Wrench } from 'lucide-react';
 import { api } from '../clients/api';
 import {
   IN_PROGRESS_STATUSES,
@@ -59,6 +59,37 @@ const Pill: React.FC<{ tone: string; children: React.ReactNode; title?: string }
   <span title={title} className={`${pillBase} ${tone}`}>
     {children}
   </span>
+);
+
+// 三阶段卡片:状态色 Pill(顶) + 主指标大字(中) + 次要指标小字(底),
+// 三张等宽并排,卡片间用箭头连接(见 StageArrow)。done 态描边高亮。
+const StageCard: React.FC<{
+  label: string;
+  done?: boolean;
+  badge: React.ReactNode;
+  primary?: React.ReactNode;
+  secondary?: React.ReactNode;
+}> = ({ label, done, badge, primary, secondary }) => (
+  <div
+    className={`flex flex-1 flex-col gap-2 rounded-xl border p-3 ${
+      done ? 'border-emerald-500/25 bg-emerald-500/[0.04]' : 'border-theme-border bg-theme-elevated'
+    }`}
+  >
+    <div className={labelCls}>{label}</div>
+    <div className="flex flex-wrap items-center gap-2">{badge}</div>
+    {primary ? (
+      <div className="text-lg font-semibold leading-tight text-theme-text-primary tabular-nums">
+        {primary}
+      </div>
+    ) : null}
+    {secondary ? (
+      <div className="text-xs text-theme-text-muted">{secondary}</div>
+    ) : null}
+  </div>
+);
+
+const StageArrow: React.FC = () => (
+  <ChevronRight size={16} className="hidden shrink-0 self-center text-theme-text-muted md:block" />
 );
 
 export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
@@ -229,16 +260,20 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
   const progress = effective.progress;
   const hasRepairProgress = !!progress && progress.total > 0;
   const analysis = audit?.analysis;
+  const scale = audit?.scale;
 
   // ① 静态分析:building_analyze=进行中;到了攻击面/修复/完成都意味着静态已成功;
-  //    failed 且无任何 repair 进度=静态分析失败。
+  //    failed 且无任何 repair 进度=静态分析失败。规模以 scale 为准(真实 Function/
+  //    File 数);旧版误用 audit.total(SourcePoint 条数)当函数数,与入口识别的
+  //    identified 同源——多数 SP 判为入口时两数相等,故彻底改读 scale.functions。
   const staticDone =
     s === 'building_attack_surface' ||
     s === 'building_repair' ||
     s === 'completed' ||
     hasRepairProgress;
   const staticFailed = s === 'failed' && !hasRepairProgress;
-  const funcCount = audit?.total ?? 0;
+  const funcCount = scale?.functions ?? 0;
+  const fileCount = scale?.files ?? 0;
 
   // ② 入口分析:attack.status 为主,但「已识别数」以图为准(audit.analysis.identified
   //    优先,回退 attack.entries)。failed 但 identified>0 → 友好文案。
@@ -246,11 +281,13 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
   const identified = analysis?.identified ?? effective.attack?.entries ?? 0;
   const attackRecoverable = attackStatus === 'failed' && identified > 0;
 
-  // ③ 调用链修复:有 progress 即展示进度条。
+  // ③ 调用链修复:有 progress 即展示进度条。repairedEdges=本次修复 LLM 新建的
+  //    CALLS 边数(scale.repaired_edges),与 source 完成度并列展示修复产物。
   const repairTotal = progress?.total ?? 0;
   const repairDone = progress?.completed ?? 0;
   const repairFailed = progress?.failed ?? 0;
   const repairPct = repairTotal > 0 ? Math.round((repairDone / repairTotal) * 100) : 0;
+  const repairedEdges = scale?.repaired_edges ?? 0;
 
   // 重跑按钮在任一构建阶段进行中时禁用(后端也会 409 兜底)。
   const busy = IN_PROGRESS_STATUSES.has(s);
@@ -266,12 +303,13 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
         <Network size={16} /> 知识图谱
       </div>
 
-      <div className="mt-4 space-y-4">
+      <div className="mt-4 flex flex-col gap-2 md:flex-row md:items-stretch">
         {/* ① 静态分析 */}
-        <div className="grid gap-2 md:grid-cols-[8rem_1fr] md:items-center">
-          <div className={labelCls}>静态分析</div>
-          <div className="flex flex-wrap items-center gap-3">
-            {s === 'building_analyze' || s === 'queued' || s === 'accepted' ? (
+        <StageCard
+          label="静态分析"
+          done={staticDone}
+          badge={
+            s === 'building_analyze' || s === 'queued' || s === 'accepted' ? (
               <Pill tone={toneProgress}>
                 <Loader2 size={12} className="animate-spin" /> 分析中
               </Pill>
@@ -283,29 +321,26 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
               <Pill tone={toneSuccess}>成功</Pill>
             ) : (
               <Pill tone={toneNeutral}>{s}</Pill>
-            )}
-            {funcCount > 0 ? (
-              <span className="text-sm font-semibold text-theme-text-secondary">
-                函数 {funcCount}
-              </span>
-            ) : null}
-          </div>
-        </div>
+            )
+          }
+          primary={funcCount > 0 ? `函数 ${funcCount}` : null}
+          secondary={funcCount > 0 ? `文件 ${fileCount}` : null}
+        />
+
+        <StageArrow />
 
         {/* ② 入口分析 */}
-        <div className="grid gap-2 md:grid-cols-[8rem_1fr] md:items-center">
-          <div className={labelCls}>入口分析</div>
-          <div className="flex flex-wrap items-center gap-3">
-            {attackStatus === 'running' ? (
+        <StageCard
+          label="入口分析"
+          done={attackStatus === 'ok'}
+          badge={
+            attackStatus === 'running' ? (
               <Pill tone={toneProgress}>
                 <Loader2 size={12} className="animate-spin" /> 识别中
               </Pill>
             ) : attackRecoverable ? (
-              <Pill
-                tone={toneWarn}
-                title="上次自动识别报错,以下为当前图中最新结果"
-              >
-                已识别 {identified}（上次识别报错）
+              <Pill tone={toneWarn} title="上次自动识别报错,以下为当前图中最新结果">
+                结果可用（上次识别报错）
               </Pill>
             ) : attackStatus === 'failed' ? (
               <Pill tone={toneFail}>识别失败</Pill>
@@ -313,53 +348,64 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
               <Pill tone={toneSuccess}>识别结束</Pill>
             ) : (
               <Pill tone={toneNeutral}>未开始</Pill>
-            )}
-            {analysis ? (
-              <span className="text-sm font-semibold text-theme-text-secondary">
-                已识别 {analysis.identified} · 待判 {analysis.pending}
+            )
+          }
+          primary={
+            analysis || identified > 0 ? `已识别 ${analysis?.identified ?? identified}` : null
+          }
+          secondary={
+            analysis ? (
+              <>
+                待判 {analysis.pending}
                 {analysis.confirmed > 0 ? ` · 人工确认 ${analysis.confirmed}` : ''}
                 {analysis.rejected > 0 ? ` · 已否决 ${analysis.rejected}` : ''}
-              </span>
-            ) : identified > 0 ? (
-              <span className="text-sm font-semibold text-theme-text-secondary">
-                已识别 {identified}
-              </span>
-            ) : null}
-          </div>
-        </div>
+              </>
+            ) : null
+          }
+        />
+
+        <StageArrow />
 
         {/* ③ 调用链修复 */}
-        <div className="grid gap-2 md:grid-cols-[8rem_1fr] md:items-start">
-          <div className={`${labelCls} md:pt-1.5`}>调用链修复</div>
-          <div>
-            {hasRepairProgress ? (
-              <>
-                <div className="flex items-center justify-between text-sm font-semibold text-theme-text-secondary">
-                  <span>
-                    修复 {repairDone}/{repairTotal}
-                    {repairFailed > 0 ? ` · 失败 ${repairFailed}` : ''}
-                  </span>
-                  <span className="text-theme-text-muted">{repairPct}%</span>
-                </div>
-                <div className="mt-2 h-2 rounded-full bg-theme-elevated">
-                  <div
-                    className={`h-2 rounded-full ${
-                      s === 'failed' ? 'bg-amber-400' : 'bg-sky-400'
-                    }`}
-                    style={{ width: `${repairPct}%` }}
-                  />
-                </div>
-              </>
+        <StageCard
+          label="调用链修复"
+          done={hasRepairProgress && repairPct === 100}
+          badge={
+            hasRepairProgress ? (
+              <Pill tone={s === 'failed' ? toneWarn : repairPct === 100 ? toneSuccess : toneProgress}>
+                {repairPct}%
+              </Pill>
             ) : s === 'building_repair' ? (
               <Pill tone={toneProgress}>
                 <Loader2 size={12} className="animate-spin" /> 修复启动中
               </Pill>
             ) : (
-              <span className="text-sm text-theme-text-muted">暂无修复进度</span>
-            )}
-          </div>
-        </div>
+              <Pill tone={toneNeutral}>暂无进度</Pill>
+            )
+          }
+          primary={hasRepairProgress ? `修复 ${repairDone}/${repairTotal}` : null}
+          secondary={
+            hasRepairProgress ? (
+              <>
+                {repairedEdges > 0 ? `已修复 ${repairedEdges} 条边` : '已修复 0 条边'}
+                {repairFailed > 0 ? ` · 失败 ${repairFailed}` : ''}
+              </>
+            ) : null
+          }
+        />
       </div>
+
+      {/* 调用链修复进度条(有进度时贯穿底部) */}
+      {hasRepairProgress ? (
+        <div className="mt-3 h-1.5 rounded-full bg-theme-elevated">
+          <div
+            className={`h-1.5 rounded-full transition-[width] ${
+              s === 'failed' ? 'bg-amber-400' : 'bg-sky-400'
+            }`}
+            style={{ width: `${repairPct}%` }}
+          />
+        </div>
+      ) : null}
 
       {/* 操作区:打开知识图谱(主) + 两个独立重跑 + 恢复动作(重新构建/更正) */}
       <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-theme-border pt-4">

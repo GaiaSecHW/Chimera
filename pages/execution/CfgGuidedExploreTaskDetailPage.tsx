@@ -321,7 +321,7 @@ interface CallEdge { from: string; to: string; kind: 'call' | 'flow' }
 /** Build the call graph. Real callee edges from the manager (walkFns[fid].callees)
  *  are authoritative. Review-order 'flow' edges are added ONLY to connect nodes
  *  the real graph left isolated, so the canvas isn't a cloud of dots. */
-function buildCallEdges(walk: WalkFn[], walkFns: Record<string, CfgWalkFunction>): { edges: CallEdge[]; realCount: number } {
+function buildCallEdges(walk: WalkFn[], walkFns: Record<string, CfgWalkFunction>, session?: CfgCparserSession | null): { edges: CallEdge[]; realCount: number } {
   const known = new Set(walk.map((w) => w.fid));
   const seen = new Set<string>();
   const edges: CallEdge[] = [];
@@ -332,9 +332,22 @@ function buildCallEdges(walk: WalkFn[], walkFns: Record<string, CfgWalkFunction>
     seen.add(k); edges.push({ from, to, kind });
   };
   let realCount = 0;
-  // real callee edges only (manager-resolved). Disconnected trees are conveyed
-  // by vertical band stacking in layoutGraph — NO synthetic connectors, so no
-  // line crosses an unrelated subtree.
+  // Real callee edges. Two sources, merged (dedup by push):
+  //  1) session.codemap_queries getcallee results — already loaded with the
+  //     session (fast, complete), so edges appear immediately.
+  //  2) walkFns[fid].callees — the manager-resolved walk-functions response,
+  //     which arrives later (slower endpoint). Using BOTH means the graph isn't
+  //     left edgeless while walk-functions is still in flight (the cause of the
+  //     "nodes shown but not connected" bug).
+  for (const q of session?.codemap_queries || []) {
+    if (q.command !== 'getcallee') continue;
+    const from = q.function_id;
+    if (!known.has(from)) continue;
+    for (const c of q.result?.callees || []) {
+      const to = c.id || c.function_id;
+      if (to && known.has(to)) { push(from, to, 'call'); realCount++; }
+    }
+  }
   for (const w of walk) {
     const callees = walkFns[w.fid]?.callees || [];
     for (const c of callees) {
@@ -650,7 +663,7 @@ export const CfgGuidedExploreTaskDetailPage: React.FC<{ projectId: string; taskI
     return idx;
   }, [session, walkFns]);
   const walk = useMemo(() => mergeWalk(session, nameIdx, walkFns), [session, nameIdx, walkFns]);
-  const { edges: callEdges, realCount } = useMemo(() => buildCallEdges(walk, walkFns), [walk, walkFns]);
+  const { edges: callEdges, realCount } = useMemo(() => buildCallEdges(walk, walkFns, session), [walk, walkFns, session]);
   const selectedFn = useMemo(() => walk.find((w) => w.fid === selectedFid) || walk[0] || null, [walk, selectedFid]);
   const queriesForSelected = useMemo(
     () => (session?.codemap_queries || []).filter((q) => q.function_id === (selectedFn?.fid)),

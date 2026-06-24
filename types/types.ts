@@ -2619,7 +2619,7 @@ export type ViewType =
   // | 'binary-evolution-dataflow-vuln'
   | 'binary-evolution-center' | 'binary-evolution-firmware-unpacker'
   | 'pentest-report'
-  | 'security-assessment' | 'vuln-engine' | 'vuln-overview' | 'vuln-intake' | 'vuln-analysis' | 'vuln-analysis-detail' | 'vuln-analysis-verify-create' | 'vuln-verification' | 'vuln-verification-detail' | 'vuln-decision' | 'vuln-decision-detail' | 'vuln-queue' | 'vuln-services' | 'vuln-repro-config' | 'vuln-parameter-config'
+  | 'security-assessment' | 'vuln-engine' | 'vuln-overview' | 'vuln-intake' | 'vuln-list' | 'vuln-analysis' | 'vuln-analysis-detail' | 'vuln-analysis-verify-create' | 'vuln-verification' | 'vuln-verification-detail' | 'vuln-decision' | 'vuln-decision-detail' | 'vuln-queue' | 'vuln-services' | 'vuln-repro-config' | 'vuln-parameter-config'
   | 'sys-settings' | 'change-password'
   | 'user-mgmt-users' | 'user-mgmt-roles' | 'user-mgmt-perms' | 'user-mgmt-access' | 'user-mgmt-online' | 'user-mgmt-machine'
   | 'org-mgmt-departments' | 'org-mgmt-members' | 'org-mgmt-projects';
@@ -4937,6 +4937,56 @@ export interface AppDfaTaskEvaluation {
   summary: AppDfaTaskResult['summary'];
   rounds: AppDfaEvaluationRound[];
   warnings: string[];
+}
+
+
+// ─── Vuln Graph Types ────────────────────────────────────────────────────────
+
+export interface DataflowVulnTraceTreeNode {
+  run_id: string;
+  function_name: string;
+  source_file: string;
+  line_hint: string;
+  depth: number;
+  status: string;
+  taint_inputs: Array<{
+    symbol: string;
+    kind: string;
+    line?: string;
+    description?: string;
+  }>;
+  taint_summary: Array<{
+    from_symbol: string;
+    to_symbol: string;
+    line: string;
+    operation: string;
+    evidence: string;
+    termination_reason?: string;
+  }>;
+  child_count: number;
+  followup_status: string;
+  followup_reason?: string;
+  findings_count: number;
+  termination_reasons: string[];
+  children: DataflowVulnTraceTreeNode[];
+  pruned?: boolean;
+  prune_reason?: string;
+  taint_constraints?: Array<{
+    kind: string;
+    target_symbol: string;
+    target_arg_index: number;
+    evidence: string;
+    confidence: string;
+  }>;
+}
+
+export interface DataflowVulnGraphResponse {
+  task_id: string;
+  available: boolean;
+  run_root: string;
+  summary: Record<string, number>;
+  trace_tree?: DataflowVulnTraceTreeNode | null;
+  graph: Record<string, any>;
 }
 
 

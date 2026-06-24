@@ -2156,6 +2156,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [detailRefreshing, setDetailRefreshing] = useState(false);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [syncEventsLoading, setSyncEventsLoading] = useState(false);
+  const [syncEventsClearing, setSyncEventsClearing] = useState(false);
   const [timelineClearing, setTimelineClearing] = useState(false);
   const [overviewNodes, setOverviewNodes] = useState<BinarySecurityOverviewNode[]>([]);
   const [overviewLoading, setOverviewLoading] = useState(false);
@@ -2571,6 +2572,30 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       setError(e?.message || '清空事件时间线失败');
     } finally {
       setTimelineClearing(false);
+    }
+  };
+
+  const clearSyncEvents = async () => {
+    if (!projectId || !taskId || syncEventsClearing) return;
+    const confirmed = await showConfirm({
+      title: '清空同步记录',
+      message: '将删除当前任务在同步记录 Tab 中的全部下游同步审计记录。该操作不影响任务状态、阶段结果和条目当前同步观测，删除后不可恢复，是否继续？',
+      confirmText: '确认清空',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setSyncEventsClearing(true);
+    setError(null);
+    try {
+      await executionApi.binarySecurity.clearSyncEvents(projectId, taskId);
+      setSyncEvents([]);
+      setSyncEventsTotal(0);
+      setExpandedSyncEventId(null);
+    } catch (e: any) {
+      setError(e?.message || '清空同步记录失败');
+    } finally {
+      setSyncEventsClearing(false);
     }
   };
 
@@ -6321,11 +6346,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 <button
                   type="button"
                   onClick={() => void loadSyncEvents(syncEventsPage, syncEventsPageSize)}
-                  disabled={syncEventsLoading}
+                  disabled={syncEventsLoading || syncEventsClearing}
                   className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary transition hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {syncEventsLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
                   刷新同步记录
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void clearSyncEvents()}
+                  disabled={syncEventsClearing || syncEventsLoading || syncEventsTotal === 0}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {syncEventsClearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  清空同步记录
                 </button>
               </div>
             </div>

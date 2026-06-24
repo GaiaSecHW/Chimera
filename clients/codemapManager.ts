@@ -51,7 +51,9 @@ export interface CodemapServeResponse {
 // 的状态分桶 + 规模,供详情「知识图谱」框展示。graph_status:图生命周期
 // (building/active/superseded/failed)。analysis:入口识别分桶(NOT repair):
 // identified 已判为入口 / pending 有 SP 未判 / confirmed|rejected 人工裁决。
-// total:当前 kind/module 过滤下的源点条数(默认全量)。
+// total:当前 kind/module 过滤下的源点条数(默认全量)。scale:图规模指标
+// (静态分析/修复阶段的真实产物,与入口数无关):functions 函数节点数 /
+// files 文件节点数 / repaired_edges LLM 修复新建的 CALLS 边数。
 export interface CodemapAuditSources {
   db_name: string;
   graph_status: string;
@@ -61,6 +63,11 @@ export interface CodemapAuditSources {
     pending: number;
     confirmed: number;
     rejected: number;
+  };
+  scale?: {
+    functions: number;
+    files: number;
+    repaired_edges: number;
   };
   total: number;
 }
