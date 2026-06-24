@@ -238,13 +238,46 @@ const normalizeTaskTypeLabel = (taskType?: string | null) => {
   return taskType || '-';
 };
 
-const formatMainSyncQueue = (queue?: string | null) => {
-  if (queue === 'dispatching') return '分发队列';
-  if (queue === 'running') return '运行队列';
-  if (queue === 'paused') return '暂停队列';
-  if (queue === 'retry_wait') return '重试等待队列';
-  if (queue === 'terminal_verify') return '终态校验队列';
-  return queue || null;
+const syncHealthTone = (label?: string | null) => {
+  if (label === '同步正常') return 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400';
+  if (label === '同步中' || label === '等待同步') return 'border-sky-500/20 bg-sky-500/15 text-sky-400';
+  if (label === '重试等待' || label === '待恢复') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
+  if (label === '同步异常') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
+  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
+};
+
+const resolveSyncHealth = (task: ScheduleCenterUserTask): { label: string; tone: string; title?: string } => {
+  const syncRequired = Boolean(task.sync_required);
+  const syncStatus = String(task.sync_status || '').trim();
+  const lastSyncError = String(task.last_sync_error || '').trim();
+  const nextSyncAt = task.next_sync_at || null;
+
+  if (!syncRequired || syncStatus === 'none') {
+    return { label: '无需同步', tone: syncHealthTone('无需同步') };
+  }
+  if (syncStatus === 'syncing') {
+    return { label: '同步中', tone: syncHealthTone('同步中') };
+  }
+  if (syncStatus === 'queued') {
+    return { label: '等待同步', tone: syncHealthTone('等待同步'), title: nextSyncAt ? `next_sync_at: ${nextSyncAt}` : undefined };
+  }
+  if (syncStatus === 'retry_wait') {
+    return {
+      label: lastSyncError ? '同步异常' : '重试等待',
+      tone: syncHealthTone(lastSyncError ? '同步异常' : '重试等待'),
+      title: lastSyncError || (nextSyncAt ? `next_sync_at: ${nextSyncAt}` : undefined),
+    };
+  }
+  if (syncStatus === 'stale') {
+    return { label: '待恢复', tone: syncHealthTone('待恢复') };
+  }
+  if (syncStatus === 'failed') {
+    return { label: '同步异常', tone: syncHealthTone('同步异常'), title: lastSyncError || undefined };
+  }
+  if (syncStatus === 'idle') {
+    return { label: task.display_status && ['success', 'partial_success', 'failed', 'cancelled'].includes(task.display_status) ? '同步正常' : '已停止', tone: syncHealthTone(task.display_status && ['success', 'partial_success', 'failed', 'cancelled'].includes(task.display_status) ? '同步正常' : '已停止') };
+  }
+  return { label: syncStatus || '未知', tone: syncHealthTone(syncStatus || '未知') };
 };
 
 const mapUserTaskToGlobalTaskItem = (
@@ -262,7 +295,9 @@ const mapUserTaskToGlobalTaskItem = (
   create_status: task.create_status,
   dispatch_status: task.dispatch_status,
   business_status: task.business_status,
-  queue_state: formatMainSyncQueue(task.sync_queue),
+  queue_state: resolveSyncHealth(task).label,
+  queue_state_tone: resolveSyncHealth(task).tone,
+  last_synced_at: task.last_synced_at || null,
   current_status: task.display_status || task.downstream_status_mapped || task.business_status || task.dispatch_status || task.create_status,
   display_status_group: task.display_status || task.downstream_status_mapped || task.business_status || task.dispatch_status || task.create_status,
   retry_count: 0,
@@ -1169,7 +1204,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         if (page !== 1) setPage(1);
                       }}
                       placeholder="任务名 / ID / 创建人"
-                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none placeholder:text-theme-text-muted"
+                      className="form-input w-full"
                     />
                   </div>
 
@@ -1180,7 +1215,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setFilters((current) => ({ ...current, status: event.target.value }));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
+                      className="form-select w-full"
                     >
                       {STATUS_OPTIONS.map((item) => (
                         <option key={item.value} value={item.value}>{item.label}</option>
@@ -1195,7 +1230,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setFilters((current) => ({ ...current, taskType: event.target.value }));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
+                      className="form-select w-full"
                     >
                       {TASK_TYPE_OPTIONS.map((item) => (
                         <option key={item.value} value={item.value}>{item.label}</option>
@@ -1210,7 +1245,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setFilters((current) => ({ ...current, projectId: event.target.value }));
                         setPage(1);
                       }}
-                      className="w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
+                      className="form-select w-full"
                     >
                       {projectOptions.map((item) => (
                         <option key={item.id} value={item.id}>{item.label}</option>
@@ -1355,7 +1390,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                       {visibleColumns.has('queueState') ? (
                         <th className="px-4 py-2">
                           <button type="button" onClick={() => handleSortChange('business_status')} className="inline-flex items-center gap-2">
-                            队列状态
+                            同步健康
                             {sortIndicator('business_status', sortField, sortDirection)}
                           </button>
                         </th>
@@ -1449,8 +1484,15 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                           ) : null}
                           {visibleColumns.has('project') ? <td className="px-4 py-3 align-top text-sm font-medium text-theme-text-secondary">{item.project_name || item.project_id || '-'}</td> : null}
                           {visibleColumns.has('queueState') ? (
-                            <td className="px-4 py-3 align-top text-sm font-medium text-theme-text-secondary" title={item.queue_state || undefined}>
-                              {item.queue_state || '-'}
+                            <td className="px-4 py-3 align-top">
+                              <div className="space-y-1">
+                                <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${item.queue_state_tone || 'border-theme-border bg-theme-elevated text-theme-text-secondary'}`} title={item.queue_state || undefined}>
+                                  {item.queue_state || '-'}
+                                </span>
+                                <div className="text-xs font-medium text-theme-text-muted">
+                                  最近同步：{formatTime(item.last_synced_at)}
+                                </div>
+                              </div>
                             </td>
                           ) : null}
                           {visibleColumns.has('retryCount') ? <td className="px-4 py-3 align-top text-sm font-medium text-theme-text-secondary">{item.retry_count ?? 0}</td> : null}
@@ -1548,7 +1590,7 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                         setPageSize(Number(event.target.value));
                         setPage(1);
                       }}
-                      className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-primary outline-none"
+                      className="form-select"
                     >
                       {PAGE_SIZE_OPTIONS.map((value) => (
                         <option key={value} value={value}>{value} / 页</option>

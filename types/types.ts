@@ -2190,6 +2190,8 @@ export interface ScheduleGlobalTaskListItem {
   dispatch_status?: string | null;
   business_status?: string | null;
   queue_state?: string | null;
+  queue_state_tone?: string | null;
+  last_synced_at?: string | null;
   current_status?: string | null;
   display_status_group?: string | null;
   attempt_no?: number | null;

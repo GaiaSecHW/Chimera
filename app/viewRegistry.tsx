@@ -123,7 +123,7 @@ import { AdminDashboardPage } from '../pages/platform/AdminDashboardPage';
 import { AiGatewayDashboardPage } from '../pages/platform/AiGatewayDashboardPage';
 import { AiGatewayPage } from '../pages/platform/AiGatewayPage';
 import { ChangePasswordPage } from '../pages/platform/ChangePasswordPage';
-import { SECOCTO_VIEW_PREFIX, renderSecOctoView } from '../pages/secocto/viewRegistry';
+import { SECOCTO_VIEW_PREFIX, SKILL_SECOCTO_VIEW_PREFIX, renderSecOctoView } from '../pages/secocto/viewRegistry';
 import { Agent, AdminDashboardStats, EnvTemplate, SecurityProject, StaticPackage, PackageStats, UserInfo } from '../types/types';
 
 export interface ViewRegistryContext {
@@ -212,7 +212,11 @@ const EmptyPlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
 export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => {
   // SecOcto 模块自治调度:命中前缀且能处理时返回组件;返回 null 则落回下面的 switch
   // (最终走 default 的"开发中"占位)。模块内部所有 view 形态在 pages/secocto/viewRegistry.tsx 维护。
-  if (ctx.currentView.startsWith(SECOCTO_VIEW_PREFIX)) {
+  // 同时识别 'skill-secocto-' 前缀（"技能"顶级导航复用 SecOcto 技能库的只读入口）。
+  if (
+    ctx.currentView.startsWith(SECOCTO_VIEW_PREFIX) ||
+    ctx.currentView.startsWith(SKILL_SECOCTO_VIEW_PREFIX)
+  ) {
     const node = renderSecOctoView({ currentView: ctx.currentView, setCurrentView: ctx.setCurrentView });
     if (node) return node;
   }

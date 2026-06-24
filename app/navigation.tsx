@@ -314,6 +314,9 @@ const SKILL_VIEWS = new Set([
   'mobile-security-ipc-vuln',
   'kernel-scan',
   'pentest-exec-work',
+  // "技能" 顶级导航复用 SecOcto 技能库（只读模式）
+  // 详情 view 'skill-secocto-skill-*' 由 getTopLevelNavForView 的前缀分支处理
+  'skill-secocto-skills',
 ]);
 
 const OBSERVE_VIEWS = new Set([
@@ -405,6 +408,9 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (view === 'assessment-coming-soon') return 'assessment';
   if (view === 'observe-coming-soon') return 'observe';
   if (view === 'skill-coming-soon') return 'skill';
+  // 'skill-secocto-' 前缀必须在 secocto- 判定之前匹配，否则会被下面的 secocto- 规则
+  // 抢去归入 system-admin（'skill-secocto-' 不以 'secocto-' 开头，但要早判定保持语义清晰）。
+  if (view.startsWith('skill-secocto-')) return 'skill';
   if (ASSESSMENT_VIEWS.has(view)) return 'assessment';
   if (OBSERVE_VIEWS.has(view) || view.startsWith('workflow-')) return 'observe';
   if (SKILL_VIEWS.has(view)) return 'skill';
@@ -430,7 +436,7 @@ export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | nul
     case 'asset-supply': return 'public-resource-pvc-management';
     case 'assessment': return 'assessment-coming-soon';
     case 'observe': return 'observe-coming-soon';
-    case 'skill': return 'skill-coming-soon';
+    case 'skill': return 'skill-secocto-skills';
     case 'tools': return 'developer-tools-overview';
     case 'atomic': return 'developer-atomic-capability-overview';
     case 'system-admin': return 'dashboard';
@@ -498,7 +504,16 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
     },
   ],
   observe: [],
-  skill: [],
+  skill: [
+    {
+      title: '技能',
+      items: [
+        // 复用 pages/secocto/GatePages.tsx 的 SecOctoSkillsPage，只读模式。
+        // 详情页隐藏"发起进化合并"按钮（readOnly=true 由 pages/secocto/viewRegistry.tsx 注入）。
+        { id: 'skill-secocto-skills', label: '技能库', icon: GraduationCap },
+      ],
+    },
+  ],
   tools: [
     {
       title: '开发者工具',
@@ -576,7 +591,7 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
       ],
     },
     {
-      title: 'SecOcto',
+      title: '进化中心',
       items: [
         { id: 'secocto-overview', label: '总览', icon: LayoutDashboard },
         { id: 'secocto-skills', label: '技能进化', icon: GraduationCap },

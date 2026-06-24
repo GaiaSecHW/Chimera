@@ -652,6 +652,27 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       <PageHeader
         title="项目概览"
         description="统一展示用户权限范围内的所有项目"
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRefresh}
+              className="btn-icon"
+              title="刷新列表"
+              aria-label="刷新列表"
+            >
+              <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+            </button>
+            <button
+              type="button"
+              onClick={openCreateModal}
+              disabled={!userPermissions || selectableDepartments.length === 0}
+              className="btn btn-primary"
+            >
+              <Plus size={16} /> 初始化项目
+            </button>
+          </div>
+        }
       />
 
       {/* Batch selection bar */}
@@ -732,45 +753,16 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         </div>
       )}
 
-      {/* Action bar: 初始化项目 -> 搜索框 -> 刷新 */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={openCreateModal}
-          disabled={!userPermissions || selectableDepartments.length === 0}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ backgroundColor: LK.primary, color: '#ffffff' }}
-          onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-          onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
-        >
-          <Plus size={16} /> 初始化项目
-        </button>
-        <div className="relative flex flex-1 items-center">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
-          <input
-            type="text"
-            placeholder="搜索项目名称、负责人、归属部门、产品路径、版本号..."
-            className="form-input w-full pl-10 pr-10"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-          />
-          <button
-            onClick={toggleSelectAll}
-            className="absolute right-3 text-theme-text-muted transition-colors hover:text-theme-primary"
-            title={isAllSelected ? '取消全选可管理项目' : '全选可管理项目'}
-          >
-            {isAllSelected ? <CheckSquare size={16} /> : <Square size={16} />}
-          </button>
-        </div>
-        <button
-          onClick={handleRefresh}
-          className="shrink-0 rounded-lg p-2.5 transition-colors"
-          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
-          title="刷新列表"
-        >
-          <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
-        </button>
+      {/* Search bar */}
+      <div className="relative flex items-center">
+        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
+        <input
+          type="text"
+          placeholder="搜索项目名称、负责人、归属部门、产品路径、版本号..."
+          className="form-input w-full pl-10"
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+        />
       </div>
 
       {/* Unified project table */}
@@ -783,7 +775,16 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
             <table className="min-w-full border-separate border-spacing-0">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-                  <th className="whitespace-nowrap w-12 px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>选择</th>
+                  <th className="whitespace-nowrap w-12 px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                    <button
+                      onClick={toggleSelectAll}
+                      className="p-1 transition-colors"
+                      style={{ color: isAllSelected ? LK.primary : LK.muted }}
+                      title={isAllSelected ? '取消全选可管理项目' : '全选可管理项目'}
+                    >
+                      {isAllSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+                    </button>
+                  </th>
                   <th className="whitespace-nowrap min-w-[180px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>项目</th>
                   <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>归属部门</th>
                   <th className="whitespace-nowrap min-w-[110px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>项目成员</th>

@@ -49,7 +49,7 @@ export const ServiceBuildVersionBadge: React.FC<{
   if (!normalized) return null;
   return (
     <span
-      className={`inline-flex items-center rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-secondary ${className}`.trim()}
+      className={`inline-flex items-center rounded-full border border-theme-border bg-theme-elevated px-2.5 py-0.5 text-[11px] font-bold text-theme-text-secondary ${className}`.trim()}
     >
       {normalized}
     </span>

@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { Component, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
-  ArrowLeft, BarChart3, CheckCircle2, ChevronDown, ChevronUp, ClipboardCopy,
+  AlertTriangle, ArrowLeft, BarChart3, CheckCircle2, ChevronDown, ChevronUp, ClipboardCopy,
   FolderOpen, Loader2, RefreshCw, RotateCcw, Search, ScrollText, Trash2, XCircle,
 } from 'lucide-react';
 
@@ -18,6 +18,14 @@ const LK = {
   critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
 } as const;
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
+/** Safety cap for synchronous event processing to prevent browser freeze.
+ *  Does NOT truncate data - larger datasets use virtualized rendering. */
+const MAX_EVENTS_BUDGET = 20000;
+/** Child nodes to show before "show more" button */
+const INITIAL_CHILD_DISPLAY = 50;
+/** Maximum size for JSON.stringify targets (approximate chars) */
+const MAX_JSON_STRINGIFY_SIZE = 500_000;
 
 import { api } from '../../clients/api';
 import type { DataflowVulnTraceTreeNode } from '../../clients/appDataflowVulnScan';
@@ -88,6 +96,58 @@ const EVT_STAGE: Record<string, number> = {
 type DetailTab = 'overview' | 'timeline' | 'task-config' | 'session' | 'relationship' | 'result' | 'vuln-graph' | 'evaluation';
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
 
+/** Error boundary to prevent a single render error from crashing the entire page. */
+class DetailErrorBoundary extends Component<{ children: React.ReactNode; taskName?: string }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: React.ReactNode; taskName?: string }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('[DataflowVulnScanDetail] render error:', error, info.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="px-8 pt-8 pb-10 space-y-6">
+          <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 p-8 text-center">
+            <AlertTriangle size={40} className="mx-auto mb-4 text-rose-400" />
+            <h2 className="text-xl font-bold text-rose-400">页面渲染异常</h2>
+            <p className="mt-2 text-sm text-theme-text-secondary">
+              任务「{this.props.taskName || '-'}」的详情页渲染时发生错误，数据可能过大或格式异常。
+            </p>
+            <p className="mt-2 text-xs text-theme-text-muted font-mono break-all">
+              {this.state.error?.message || 'Unknown error'}
+            </p>
+            <button
+              onClick={() => this.setState({ hasError: false, error: null })}
+              className="mt-4 inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated"
+            >
+              <RefreshCw size={15} /> 重试渲染
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/** Safe JSON.stringify with size limit to prevent browser freeze. */
+function safeJsonStringify(value: unknown, space = 2): string {
+  try {
+    const raw = JSON.stringify(value, null, space);
+    if (raw.length > MAX_JSON_STRINGIFY_SIZE) {
+      return JSON.stringify({ _truncated: true, _original_size: raw.length, _preview: raw.slice(0, MAX_JSON_STRINGIFY_SIZE) }, null, space);
+    }
+    return raw;
+  } catch (e) {
+    return `{"error": "JSON.stringify failed: ${(e as Error).message}"}`;
+  }
+}
+
 function extractFsRelPath(path: string, projectId: string): string | null {
   const prefix =`/data/files/${projectId}`;
   if (!path.startsWith(prefix)) return null;
@@ -156,7 +216,7 @@ function sessionRoleTone(role?: string) {
   if (role === 'judge') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
   if (role === 'sub_worker') return 'border-violet-500/20 bg-violet-500/15 text-violet-400';
   if (role === 'master' || role === 'master_worker') return 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400';
-  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
+  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
 }
 
 function stageLabel(stage?: string): string {
@@ -175,7 +235,7 @@ function timelineLevelTone(level?: string | null) {
   if (normalized === 'error') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
   if (normalized === 'warning' || normalized === 'warn') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
   if (normalized === 'success') return 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400';
-  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
+  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
 }
 
 function isAgentKillTimelineEvent(eventType?: string | null) {
@@ -204,14 +264,14 @@ function timelineEventCategoryTone(eventType?: string | null) {
   if (category === 'task_mutation') return 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400';
   if (category === 'failure') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
   if (category === 'stage_progress') return 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400';
-  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
+  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
 }
 
 function timelineEventTypeTone(eventType?: string | null) {
   const normalized = String(eventType || '').trim();
   if (normalized === 'agent_process_manual_kill') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
   if (normalized === 'agent_process_bulk_manual_kill') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
-  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
+  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
 }
 
 function formatTimelineEventTypeLabel(eventType?: string | null) {
@@ -276,6 +336,7 @@ function timelineOriginLabel(event: AppDfaTaskEvent) {
 }
 
 function deriveStepStatuses(taskStatus: string, events: AppDfaStageEvent[]): StepStatus[] {
+  try {
   const statuses: StepStatus[] = STAGE_STEPS.map(() => 'pending');
   if (taskStatus === 'pending') return statuses;
   if (taskStatus === 'passed') return STAGE_STEPS.map(() => 'completed');
@@ -297,6 +358,10 @@ function deriveStepStatuses(taskStatus: string, events: AppDfaStageEvent[]): Ste
     else if (i === stage) statuses[i] = ['error', 'failed', 'cancelled'].includes(taskStatus) ? 'failed' : 'running';
   }
   return statuses;
+  } catch (e) {
+    console.error('[deriveStepStatuses] error:', e);
+    return STAGE_STEPS.map((): StepStatus => 'pending');
+  }
 }
 
 function formatEventLog(evt: AppDfaStageEvent): string {
@@ -330,11 +395,12 @@ interface DfaTreeNode {
 }
 
 function buildDfaTree(events: AppDfaStageEvent[], taskStatus: string): DfaTreeNode | null {
-  const calleesMap = new Map<string, string[]>();
-  const nodeDepth = new Map<string, number>();
-  const nodeStatus = new Map<string, 'running' | 'done'>();
-  let rootName: string | null = null;
-  for (const evt of events) {
+  try {
+    const calleesMap = new Map<string, string[]>();
+    const nodeDepth = new Map<string, number>();
+    const nodeStatus = new Map<string, 'running' | 'done'>();
+    let rootName: string | null = null;
+    for (const evt of events) {
     const d = evt.data || {};
     if (evt.type === 'trace_start') {
       const fn = String(d.function || d.task || '').trim();
@@ -360,28 +426,68 @@ function buildDfaTree(events: AppDfaStageEvent[], taskStatus: string): DfaTreeNo
     nodeStatus.forEach((status, fn) => { if (status === 'running') nodeStatus.set(fn, 'done'); });
   }
   if (!rootName) return null;
-  const build = (name: string, inheritDepth: number, visited = new Set<string>()): DfaTreeNode => {
-    if (visited.has(name)) return { name, depth: inheritDepth, status: 'done', children: [] };
-    visited.add(name);
+  // Global visited set: each function appears at most ONCE in the full tree.
+  // This prevents exponential DAG→tree expansion (e.g. 103 functions → 901K nodes).
+  const globallyVisited = new Set<string>();
+  const build = (name: string, inheritDepth: number): DfaTreeNode | null => {
+    if (globallyVisited.has(name)) return null;
+    globallyVisited.add(name);
     const depth = nodeDepth.get(name) ?? inheritDepth;
+    const children: DfaTreeNode[] = [];
+    for (const childName of (calleesMap.get(name) || [])) {
+      const child = build(childName, depth + 1);
+      if (child) children.push(child);
+    }
     return {
       name,
       depth,
       status: nodeStatus.get(name) || 'pending',
-      children: (calleesMap.get(name) || []).map((child) => build(child, depth + 1, new Set(visited))),
+      children,
     };
   };
-  return build(rootName, 0);
+  const root = build(rootName, 0);
+  return root;
+  } catch (e) {
+    console.error('[buildDfaTree] error:', e);
+    return null;
+  }
 }
 
-function TreeNodeView({ node }: { node: DfaTreeNode }) {
+function TreeNodeView({ node, defaultExpanded = true }: { node: DfaTreeNode; defaultExpanded?: boolean }) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const [showAll, setShowAll] = useState(false);
+  const hasManyChildren = node.children.length > INITIAL_CHILD_DISPLAY;
+  const visibleChildren = hasManyChildren && !showAll ? node.children.slice(0, INITIAL_CHILD_DISPLAY) : node.children;
+  const hiddenCount = hasManyChildren && !showAll ? node.children.length - INITIAL_CHILD_DISPLAY : 0;
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs">
-        <span className={`h-2 w-2 rounded-full ${node.status === 'done' ? 'bg-emerald-500' : node.status === 'running' ? 'bg-blue-500' : 'bg-slate-300'}`} />
-        <span className="font-mono text-theme-text-secondary">{node.name}</span>
-      </div>
-      {node.children.length ? <div className="ml-5 border-l border-theme-border pl-3 space-y-2">{node.children.map((child) => <TreeNodeView key={`${node.name}-${child.name}-${child.depth}`} node={child} />)}</div> : null}
+      <button
+        type="button"
+        onClick={() => node.children.length > 0 && setExpanded((e) => !e)}
+        className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs hover:bg-theme-elevated transition w-full text-left"
+      >
+        <span className={`h-2 w-2 rounded-full shrink-0 ${node.status === 'done' ? 'bg-emerald-500' : node.status === 'running' ? 'bg-blue-500' : 'bg-slate-300'}`} />
+        <span className="font-mono text-theme-text-secondary truncate flex-1">{node.name}</span>
+        {node.children.length > 0 && (
+          <span className="text-theme-text-muted shrink-0 ml-2">{expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}{node.children.length > 0 && <span className="ml-1 text-[10px]">{node.children.length}</span>}</span>
+        )}
+      </button>
+      {expanded && node.children.length > 0 && (
+        <div className="ml-5 border-l border-theme-border pl-3 space-y-2">
+          {visibleChildren.map((child) => (
+            <TreeNodeView key={`${node.name}-${child.name}-${child.depth}`} node={child} defaultExpanded={false} />
+          ))}
+          {hasManyChildren && !showAll && (
+            <button
+              type="button"
+              onClick={() => setShowAll(true)}
+              className="text-[11px] text-theme-text-muted hover:text-theme-text-secondary pl-2 py-1"
+            >
+              展开剩余 {hiddenCount} 个子函数...
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -399,12 +505,22 @@ function traceNodeTone(status?: string) {
   if (status === 'running' || status === 'queued') return 'border-blue-500/20 bg-blue-500/15 text-blue-400';
   if (status === 'failed' || status === 'error') return 'border-rose-500/20 bg-rose-500/15 text-rose-400';
   if (status === 'depth_limit' || status === 'cycle' || status === 'skipped') return 'border-amber-500/20 bg-amber-500/15 text-amber-400';
-  return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
+  return 'border-theme-border bg-theme-bg-app text-theme-text-secondary';
 }
 
 function flattenTraceTree(node?: DataflowVulnTraceTreeNode | null): DataflowVulnTraceTreeNode[] {
   if (!node) return [];
-  return [node, ...node.children.flatMap((child) => flattenTraceTree(child))];
+  const result: DataflowVulnTraceTreeNode[] = [];
+  const stack: DataflowVulnTraceTreeNode[] = [node];
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    result.push(current);
+    const kids = Array.isArray(current.children) ? current.children : [];
+    for (let i = kids.length - 1; i >= 0; i--) {
+      stack.push(kids[i]);
+    }
+  }
+  return result;
 }
 
 const PRUNE_LABELS: Record<string, string> = {
@@ -426,7 +542,7 @@ function pruneReasonTone(reason?: string | null): string {
   if (r === 'merged_equivalent_taint_validation' || r === 'already_analyzed') return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20';
   if (r === 'invalid_name') return 'bg-rose-500/15 text-rose-400 border-rose-500/20';
   if (r === 'not_in_source_root_funcdb' || r === 'external' || r.startsWith('external') || r === 'stdlib skip') return 'bg-amber-500/15 text-amber-400 border-amber-500/20';
-  return 'bg-theme-elevated text-theme-text-secondary border-theme-border';
+  return 'bg-theme-bg-app text-theme-text-secondary border-theme-border';
 }
 
 function PrunedBranchBadge({ node, level = 0 }: { node: DataflowVulnTraceTreeNode; level?: number }) {
@@ -450,7 +566,7 @@ function PrunedBranchBadge({ node, level = 0 }: { node: DataflowVulnTraceTreeNod
         <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 ${reasonTone}`}>{reasonLabel}</span>
       </div>
       {/* Tooltip */}
- <div className="pointer-events-none absolute left-0 top-full z-50 mt-1 min-w-[220px] rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-[11px] leading-relaxed text-white opacity-0 transition-opacity group-hover:opacity-100 whitespace-pre-wrap">
+ <div className="pointer-events-none absolute left-0 top-full z-50 mt-1 min-w-[220px] rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-[11px] leading-relaxed text-slate-100 opacity-0 transition-opacity group-hover:opacity-100 whitespace-pre-wrap">
         {tooltipLines.join('\n')}
       </div>
     </div>
@@ -469,6 +585,12 @@ function TraceTreeNodeCard({
   level?: number;
 }) {
   const selected = selectedRunId === node.run_id || (!selectedRunId && level === 0);
+  const [expanded, setExpanded] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const safeChildren = Array.isArray(node.children) ? node.children : [];
+  const hasMany = safeChildren.length > INITIAL_CHILD_DISPLAY;
+  const visibleChildren = hasMany && !showAll ? safeChildren.slice(0, INITIAL_CHILD_DISPLAY) : safeChildren;
+  const hiddenCount = hasMany && !showAll ? safeChildren.length - INITIAL_CHILD_DISPLAY : 0;
   if (node.pruned) {
     return <PrunedBranchBadge node={node} level={level} />;
   }
@@ -476,38 +598,77 @@ function TraceTreeNodeCard({
     <div className="space-y-2">
       <button
         type="button"
-        onClick={() => onSelect(node)}
+        onClick={() => { onSelect(node); if (safeChildren.length > 0) setExpanded((e) => !e); }}
         className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-surface hover:bg-theme-elevated'}`}
         style={{ marginLeft:`${level * 16}px` }}
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="truncate font-mono text-sm font-semibold">{node.function_name || '-'}</div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              {safeChildren.length > 0 && (
+                <span className="text-theme-text-muted shrink-0">{expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}</span>
+              )}
+              <div className="truncate font-mono text-sm font-semibold">{node.function_name || '-'}</div>
+            </div>
             <div className={`mt-1 truncate text-[11px] ${selected ? 'text-theme-text-faint' : 'text-theme-text-muted'}`}>{node.source_file || '-'} {node.line_hint || ''}</div>
             <div className={`mt-2 text-xs ${selected ? 'text-theme-text-faint' : 'text-theme-text-secondary'}`}>污点: {node.taint_inputs?.length ? node.taint_inputs.map((item) => item.symbol).join(', ') : '未识别'}</div>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
  <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${selected ? 'border-theme-border bg-theme-elevated text-white' : traceNodeTone(node.followup_status || node.status)}`}>{node.followup_status || node.status || '-'}</span>
- <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${selected ? 'bg-theme-elevated text-white' : 'bg-theme-elevated text-theme-text-secondary'}`}>漏洞 {node.findings_count || 0}</span>
+ <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${selected ? 'bg-theme-elevated text-white' : 'bg-theme-elevated text-theme-text-secondary'}`}>漏洞 {node.findings_count || 0} · 子 {safeChildren.length}</span>
           </div>
         </div>
       </button>
-      {node.children?.length ? (
+      {expanded && safeChildren.length > 0 && (
         <div className="space-y-2">
-          {node.children.map((child) => (
+          {visibleChildren.map((child) => (
             <TraceTreeNodeCard key={`${child.run_id || child.function_name}-${child.line_hint}-${level + 1}`} node={child} selectedRunId={selectedRunId} onSelect={onSelect} level={level + 1} />
           ))}
+          {hasMany && !showAll && (
+            <button
+              type="button"
+              onClick={() => setShowAll(true)}
+              className="text-[11px] text-theme-text-muted hover:text-theme-text-secondary transition"
+              style={{ marginLeft: `${(level + 1) * 16}px` }}
+            >
+              展开剩余 {hiddenCount} 个子节点...
+            </button>
+          )}
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
 
+const MARKDOWN_LAZY_THRESHOLD = 100_000; // characters, above which content is collapsed by default
+
 function MarkdownContent({ content }: { content: string }) {
-  return <article className="prose prose-slate max-w-none prose-headings:font-semibold prose-pre:border prose-pre:border-theme-border prose-pre:bg-theme-elevated prose-pre:text-theme-text-primary prose-code:text-rose-400"><ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown></article>;
+  const [showFull, setShowFull] = useState(false);
+  const isLarge = content.length > MARKDOWN_LAZY_THRESHOLD;
+  const displayContent = isLarge && !showFull ? content.slice(0, MARKDOWN_LAZY_THRESHOLD) + '\n\n*(内容较长，已截断预览...)*' : content;
+  return (
+    <div>
+      {isLarge && (
+        <div className="mb-3 flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/15 px-4 py-2 text-xs">
+          <AlertTriangle size={14} className="text-amber-400" />
+          <span className="text-amber-400">报告内容较长 ({(content.length / 1024).toFixed(0)} KB)，默认折叠以提升性能。</span>
+          <button
+            type="button"
+            onClick={() => setShowFull((v) => !v)}
+            className="ml-auto rounded-lg border border-amber-500/30 px-3 py-1 text-xs font-semibold text-amber-400 hover:bg-amber-500/20"
+          >
+            {showFull ? '收起' : '展开全部'}
+          </button>
+        </div>
+      )}
+      <article className="prose prose-slate max-w-none prose-headings:font-semibold prose-pre:border prose-pre:border-theme-border prose-pre:bg-theme-bg-app prose-pre:text-theme-text-primary prose-code:text-rose-400">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayContent}</ReactMarkdown>
+      </article>
+    </div>
+  );
 }
 
-export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskId: string; onBack: () => void }> = ({ projectId, taskId, onBack }) => {
+const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId: string; onBack: () => void; onTaskNameReady?: (name: string) => void }> = ({ projectId, taskId, onBack, onTaskNameReady }) => {
   const appApi = api.domains.execution.appDataflowVulnScan;
   const fileserverApi = api.domains.assets.fileserver;
   const { notify, feedbackNodes } = useUiFeedback();
@@ -562,7 +723,9 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
     if (!taskId) return;
     setLoading(true);
     try {
-      setDetail(await appApi.getTask(taskId));
+      const d = await appApi.getTask(taskId);
+      setDetail(d);
+      onTaskNameReady?.(d?.task_name || taskId);
     } catch (err: any) {
       notify(`加载任务详情失败: ${err?.message || err}`, 'error');
     } finally {
@@ -703,18 +866,43 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
     setActiveAgentSessionPath(path);
   };
 
+  // ── Data loading effects ──────────────────────────────────────────────────
   useEffect(() => { void loadDetail(); }, [taskId]);
   useEffect(() => {
     const timer = setInterval(() => setClockNow(Math.floor(Date.now() / 1000)), 1000);
     return () => clearInterval(timer);
   }, []);
+  
+  // Load tab-specific data with proper dependency guards
+  const timelineLoaded = useRef(false);
+  const resultLoaded = useRef(false);
+  const vulnGraphLoaded = useRef(false);
+  const sessionsLoaded = useRef(false);
   useEffect(() => {
-    if (activeTab === 'timeline' && timeline.length === 0 && !timelineLoading) void loadTimeline();
-    if (activeTab === 'result' && !result && !resultLoading) void loadResult();
-    if (activeTab === 'vuln-graph' && !vulnGraph && !vulnGraphLoading) void loadVulnGraph();
-    if (activeTab === 'evaluation' && !vulnGraph && !vulnGraphLoading) void loadVulnGraph();
-    if ((activeTab === 'overview' || activeTab === 'session' || activeTab === 'relationship' || Boolean(activeAgentSessionPath)) && sessions.length === 0 && !sessionsLoading) void loadSessions();
-  }, [activeTab, activeAgentSessionPath]);
+    timelineLoaded.current = false;
+    resultLoaded.current = false;
+    vulnGraphLoaded.current = false;
+    sessionsLoaded.current = false;
+  }, [taskId]);
+  
+  useEffect(() => {
+    if (activeTab === 'timeline' && !timelineLoaded.current && !timelineLoading) {
+      timelineLoaded.current = true;
+      void loadTimeline();
+    }
+    if (activeTab === 'result' && !resultLoaded.current && !resultLoading) {
+      resultLoaded.current = true;
+      void loadResult();
+    }
+    if ((activeTab === 'vuln-graph' || activeTab === 'evaluation') && !vulnGraphLoaded.current && !vulnGraphLoading) {
+      vulnGraphLoaded.current = true;
+      void loadVulnGraph();
+    }
+    if ((activeTab === 'overview' || activeTab === 'session' || activeTab === 'relationship') && !sessionsLoaded.current && !sessionsLoading) {
+      sessionsLoaded.current = true;
+      void loadSessions();
+    }
+  }, [activeTab]);
   useEffect(() => {
     if (activeTab !== 'timeline' || !detail || !['pending', 'running'].includes(detail.status)) return;
     const timer = window.setInterval(() => void loadTimeline(), 12000);
@@ -873,7 +1061,7 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
       ? result?.run_report_markdown || ''
       : resultView === 'dataflow'
         ? selectedDataflow?.markdown || ''
-        : JSON.stringify(result?.result_json || {}, null, 2);
+        : safeJsonStringify(result?.result_json || {});
   const hasReturnContext = hasExecutionReturnContext() || hasBinarySecurityReturnTarget(detail);
 
   useEffect(() => {
@@ -983,7 +1171,7 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                 <div className="mt-4 space-y-3">{STAGE_STEPS.map((step, index) => {
                   const state = statusSteps[index];
                   const artifactPath = detail.output_path ? extractFsRelPath(`${detail.output_path}/${detail.task_id}/${step.artifactSubpath}`, projectId) : null;
-                  return <div key={step.key} className="rounded-xl border border-theme-border bg-theme-elevated px-4 py-3"><div className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${state === 'completed' ? 'border-emerald-500 bg-emerald-500/15 text-emerald-400' : state === 'running' ? 'border-blue-500 bg-blue-500/15 text-blue-400' : state === 'failed' ? 'border-red-400 bg-red-500/15 text-red-400' : 'border-theme-border bg-theme-surface text-theme-text-muted'}`}>{state === 'completed' ? <CheckCircle2 size={16} /> : state === 'running' ? <Loader2 size={14} className="animate-spin" /> : state === 'failed' ? <XCircle size={16} /> : index + 1}</div><div className="min-w-0 flex-1"><p className="text-sm font-bold text-theme-text-primary">{step.label}</p><p className="mt-1 text-xs text-theme-text-muted">{step.desc}</p>{artifactPath && state !== 'pending' ? <button onClick={() => openInFileExplorer(artifactPath)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-violet-500/20 px-2 py-1 text-[11px] font-semibold text-violet-400 hover:bg-violet-500/15"><FolderOpen size={11} />打开阶段输出</button> : null}</div></div></div>;
+                  return <div key={step.key} className="rounded-xl border border-theme-border bg-slate-50/70 px-4 py-3"><div className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${state === 'completed' ? 'border-emerald-500 bg-emerald-500/15 text-emerald-400' : state === 'running' ? 'border-blue-500 bg-blue-500/15 text-blue-400' : state === 'failed' ? 'border-red-400 bg-red-500/15 text-red-400' : 'border-theme-border bg-theme-surface text-theme-text-muted'}`}>{state === 'completed' ? <CheckCircle2 size={16} /> : state === 'running' ? <Loader2 size={14} className="animate-spin" /> : state === 'failed' ? <XCircle size={16} /> : index + 1}</div><div className="min-w-0 flex-1"><p className="text-sm font-bold text-theme-text-primary">{step.label}</p><p className="mt-1 text-xs text-theme-text-muted">{step.desc}</p>{artifactPath && state !== 'pending' ? <button onClick={() => openInFileExplorer(artifactPath)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-violet-500/20 px-2 py-1 text-[11px] font-semibold text-violet-400 hover:bg-violet-500/15"><FolderOpen size={11} />打开阶段输出</button> : null}</div></div></div>;
                 })}</div>
               </div>
             </div>
@@ -1004,8 +1192,8 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                   <p className="mt-1 text-xs text-theme-text-muted">展示当前任务仍处于活跃状态的智能体会话与角色，点击可查看实时会话。</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-secondary">{activeSessions.length} 个活跃会话</span>
-                  <span className="rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
+                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">{activeSessions.length} 个活跃会话</span>
+                  <span className="rounded-full border border-theme-border bg-theme-bg-app px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
                     展示 {activeAgentRangeStart}-{activeAgentRangeEnd} / {filteredActiveSessions.length}
                   </span>
                 </div>
@@ -1029,7 +1217,7 @@ export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskI
                       <select
                         value={activeAgentPageSize}
                         onChange={(event) => setActiveAgentPageSize(Math.max(1, Number(event.target.value) || 10))}
-className="form-select ml-2 text-xs"
+                        className="ml-2 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-xs font-bold text-theme-text-secondary"
                       >
                         {[10, 20, 50].map((size) => <option key={size} value={size}>{size}</option>)}
                       </select>
@@ -1037,7 +1225,7 @@ className="form-select ml-2 text-xs"
                   </div>
                   {filteredActiveSessions.length > 0 ? (
                     <div className="mt-4 overflow-hidden rounded-2xl border border-theme-border">
-                      <div className="divide-y divide-theme-border bg-theme-elevated">
+                      <div className="divide-y divide-theme-border bg-theme-bg-app">
                         {pagedActiveSessions.map((session) => (
                           <button key={session.relative_path} type="button" onClick={() => openActiveAgentSession(session.relative_path)} className="w-full px-4 py-4 text-left transition hover:bg-theme-elevated">
                             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1114,7 +1302,7 @@ className="form-select ml-2 text-xs"
                   </div>
                   <label className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-xs font-semibold text-theme-text-muted">
                     每页
-                    <select value={timelinePageSize} onChange={(event) => setTimelinePageSize(Math.min(2000, Math.max(50, Number(event.target.value) || 200)))} className="form-select text-xs ml-2">
+                    <select value={timelinePageSize} onChange={(event) => setTimelinePageSize(Math.min(2000, Math.max(50, Number(event.target.value) || 200)))} className="ml-2 rounded-lg border border-theme-border bg-theme-bg-app px-2 py-1 text-xs font-bold text-theme-text-secondary">
                       {[50, 100, 200, 500].map((size) => <option key={size} value={size}>{size}</option>)}
                     </select>
                   </label>
@@ -1129,15 +1317,15 @@ className="form-select ml-2 text-xs"
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="form-select">
+                <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
                   <option value="__all__">全部事件</option>
                   {timelineEventTypeOptions.map((value) => <option key={value} value={value}>{formatTimelineEventTypeLabel(value)}</option>)}
                 </select>
-                <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="form-select">
+                <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
                   <option value="__all__">全部级别</option>
                   {timelineLevelOptions.map((value) => <option key={value} value={value}>{value}</option>)}
                 </select>
-                <select value={timelineStatusFilter} onChange={(event) => setTimelineStatusFilter(event.target.value)} className="form-select">
+                <select value={timelineStatusFilter} onChange={(event) => setTimelineStatusFilter(event.target.value)} className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-semibold text-theme-text-secondary">
                   <option value="__all__">全部状态</option>
                   {timelineStatusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
                 </select>
@@ -1152,7 +1340,7 @@ className="form-select ml-2 text-xs"
                 <div className="overflow-hidden rounded-2xl border border-theme-border">
                   <div className="overflow-x-auto">
                     <table className="min-w-[1180px] w-full divide-y divide-theme-border text-left text-xs">
-                      <thead className="bg-theme-elevated text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
+                      <thead className="bg-theme-bg-app text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                         <tr>
                           <th className="w-14 px-3 py-2">#</th>
                           <th className="w-44 px-3 py-2">时间</th>
@@ -1165,7 +1353,7 @@ className="form-select ml-2 text-xs"
                           <th className="w-36 px-3 py-2 text-right">操作</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-theme-border bg-theme-elevated">
+                      <tbody className="divide-y divide-theme-border bg-theme-bg-app">
                         {pagedTimelineItems.map((event, index) => {
                           const expanded = expandedTimelineEventId === event.id;
                           const payload = event.payload || {};
@@ -1204,11 +1392,11 @@ className="form-select ml-2 text-xs"
                                 </td>
                               </tr>
                               {expanded ? (
-                                <tr className="bg-theme-elevated">
+                                <tr className="bg-slate-50/60">
                                   <td colSpan={9} className="px-3 py-3">
                                     <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                                       {timelinePayloadRows(payload).slice(0, 12).map((row) => (
-                                        <div key={row.key} className="min-w-0 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-xs">
+                                        <div key={row.key} className="min-w-0 rounded-lg border border-theme-border bg-theme-bg-app px-3 py-2 text-xs">
                                           <div className="font-bold capitalize text-theme-text-muted">{row.label}</div>
                                           <div className="mt-1 break-all font-mono text-theme-text-secondary">{row.value}</div>
                                         </div>
@@ -1374,5 +1562,19 @@ className="form-select ml-2 text-xs"
         </div>
       ) : null}
     </div>
+  );
+};
+
+export const DataflowVulnScanTaskDetailPage: React.FC<{ projectId: string; taskId: string; onBack: () => void }> = ({ projectId, taskId, onBack }) => {
+  const [taskName, setTaskName] = useState<string>('');
+  return (
+    <DetailErrorBoundary taskName={taskName}>
+      <DataflowVulnScanTaskDetailPageInner
+        projectId={projectId}
+        taskId={taskId}
+        onBack={onBack}
+        onTaskNameReady={setTaskName}
+      />
+    </DetailErrorBoundary>
   );
 };
