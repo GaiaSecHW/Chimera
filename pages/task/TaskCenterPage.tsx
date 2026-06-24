@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle2, Loader2, Plus, RefreshCw, Rocket, Search, Shi
 import { api } from '../../clients/api';
 import { getAuthHeaders, handleResponse } from '../../clients/base';
 import { agentManageApiPath } from '../../clients/agentManage';
+import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { saveTaskCenterReturnContext } from '../../utils/executionReturnContext';
 import { getPlatformRole } from '../../utils/rbac';
@@ -112,6 +113,7 @@ const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
 export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const scheduleApi = api.domains.platform.scheduleCenter;
+  const buildVersion = useServiceBuildVersion(scheduleApi.getHealth);
   const currentUser = useMemo(() => getLocalUserInfo(), []);
   const isAdmin = useMemo(() => {
     const role = getPlatformRole(currentUser);
@@ -374,7 +376,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
       <PageHeader
-        title="任务中心"
+        title={<ServicePageTitle title="任务中心" version={buildVersion} className="" titleClassName="text-2xl font-semibold tracking-tight text-theme-text-primary" />}
         description="统一展示当前项目下的所有测试任务，追踪分发、执行与同步状态"
         actions={
           <div className="flex items-center gap-2">

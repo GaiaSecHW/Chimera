@@ -208,9 +208,12 @@ const statusTone = (status: string): { backgroundColor: string; color: string; b
     case 'partial_success':
       return { backgroundColor: 'rgba(213, 161, 58, 0.1)', color: LK.warning, borderColor: LK.warning };
     case 'failed':
+    case 'cancel_failed':
     case 'delete_failed':
       return { backgroundColor: 'rgba(241, 93, 93, 0.1)', color: LK.error, borderColor: LK.error };
     case 'downstream_missing':
+      return { backgroundColor: 'rgba(249, 115, 22, 0.1)', color: '#f97316', borderColor: '#f97316' };
+    case 'cancelling':
       return { backgroundColor: 'rgba(249, 115, 22, 0.1)', color: '#f97316', borderColor: '#f97316' };
     case 'cancelled':
       return { backgroundColor: LK.surfaceRaised, color: LK.muted, borderColor: LK.border };
@@ -223,8 +226,6 @@ const statusTone = (status: string): { backgroundColor: string; color: string; b
     case 'uploading':
     case 'dispatching':
       return { backgroundColor: 'rgba(14, 165, 233, 0.1)', color: LK.info, borderColor: LK.info };
-    case 'ready_to_start':
-      return { backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#6366f1', borderColor: '#6366f1' };
     case 'running':
       return { backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', borderColor: '#3b82f6' };
     case 'continue_in_progress':
@@ -437,8 +438,15 @@ const formatBinarySecurityStatus = (status?: string | null) => {
   const normalized = String(status || '').trim().toLowerCase();
   const labels: Record<string, string> = {
     downstream_missing: '子任务不存在',
+    cancel_failed: '取消失败',
+    cancelling: '取消中',
     delete_failed: '删除失败',
     passed: '通过',
+    pending: '待调度',
+    dispatching: '调度中',
+    running: '运行中',
+    continue_in_progress: '继续中',
+    retry_in_progress: '重试中',
   };
   return labels[normalized] || status || '-';
 };
@@ -1635,27 +1643,11 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
     };
   }
 
-  if (detail.queue_state === 'tail_reconciling' || detail.tail_reconcile_state === 'handoff_waiting') {
-    const owner = taskRuntimeOwnerSummary(detail);
+  if (detail.status === 'pending') {
     return {
       tone: 'info',
-      title: '任务正在收口切换',
-      description: '当前任务处于 tail reconcile handoff 阶段，编排器正在等待新的 owner 接管或完成下游状态同步。',
-      evidence: [
-        { label: owner.label, value: owner.value },
-        { label: '收口状态', value: detail.tail_reconcile_state || '-' },
-        { label: '恢复原因', value: detail.recoverable_reason || '-' },
-      ],
-    };
-  }
-
-  if (detail.status === 'ready_to_start' || detail.status === 'pending') {
-    return {
-      tone: 'info',
-      title: detail.status === 'ready_to_start' ? '任务已就绪' : '任务等待启动',
-      description: detail.status === 'ready_to_start'
-        ? '输入文件已准备完成，等待启动请求或调度器领取。'
-        : '任务尚未进入实际执行阶段，后续阶段保持等待状态。',
+      title: '任务等待调度',
+      description: '输入已完成准备后，任务会自动进入编排队列；当前仍在等待 owner 领取并开始执行。',
       evidence: [
         { label: '待执行阶段', value: summarizeCount(pendingStages.length, '个') },
         { label: '阶段序列', value: detail.stage_sequence.map((stage) => STAGE_LABELS[stage] || stage).join(' -> ') || '-' },

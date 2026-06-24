@@ -52,17 +52,17 @@ const statusTone = (status: string) => {
     case 'partial_success':
       return 'bg-amber-500/15 text-amber-400 border-amber-500/20';
     case 'failed':
-      return 'bg-rose-500/15 text-rose-400 border-rose-500/20';
+    case 'cancel_failed':
     case 'delete_failed':
       return 'bg-rose-500/15 text-rose-400 border-rose-500/20';
+    case 'cancelling':
+      return 'bg-orange-500/15 text-orange-400 border-orange-500/20';
     case 'cancelled':
       return 'bg-theme-elevated text-theme-text-muted border-theme-border';
     case 'pending_upload':
       return 'bg-violet-500/15 text-violet-400 border-violet-500/20';
     case 'uploading':
       return 'bg-sky-500/15 text-sky-400 border-sky-500/20';
-    case 'ready_to_start':
-      return 'bg-indigo-500/15 text-indigo-400 border-indigo-500/20';
     case 'dispatching':
       return 'bg-sky-500/15 text-sky-400 border-sky-500/20';
     case 'continue_in_progress':
@@ -70,11 +70,49 @@ const statusTone = (status: string) => {
     case 'retry_in_progress':
       return 'bg-orange-500/15 text-orange-400 border-orange-500/20';
     case 'pending_module_confirmation':
-      return 'bg-amber-500/15 text-amber-400 border-amber-500/20';
     case 'waiting_confirmation':
       return 'bg-amber-500/15 text-amber-400 border-amber-500/20';
     default:
       return 'bg-blue-500/15 text-blue-400 border-blue-500/20';
+  }
+};
+
+const formatTaskStatusLabel = (status?: string | null) => {
+  switch (String(status || '').trim().toLowerCase()) {
+    case 'success':
+      return '成功';
+    case 'partial_success':
+      return '部分成功';
+    case 'failed':
+      return '失败';
+    case 'cancel_failed':
+      return '取消失败';
+    case 'delete_failed':
+      return '删除失败';
+    case 'cancelling':
+      return '取消中';
+    case 'cancelled':
+      return '已取消';
+    case 'pending_upload':
+      return '待上传';
+    case 'uploading':
+      return '上传中';
+    case 'pending':
+      return '待调度';
+    case 'dispatching':
+      return '调度中';
+    case 'running':
+      return '运行中';
+    case 'continue_in_progress':
+      return '继续中';
+    case 'retry_in_progress':
+      return '重试中';
+    case 'pending_module_confirmation':
+      return '待模块确认';
+    case 'waiting_confirmation':
+      return '待确认';
+    default:
+      return status || '-';
   }
 };
 
@@ -1099,7 +1137,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                           title={statusFilter === item.status ? '再次点击取消状态筛选' : '点击按状态快速筛选'}
                           className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(taskDisplayStatus(item.status, item.manual_operation_state))}`}
                         >
-                          {taskDisplayStatus(item.status, item.manual_operation_state)}
+                          {formatTaskStatusLabel(taskDisplayStatus(item.status, item.manual_operation_state))}
                         </button>
                         {item.manual_operation_state ? (
                           <span
