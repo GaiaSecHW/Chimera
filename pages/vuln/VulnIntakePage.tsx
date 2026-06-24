@@ -820,64 +820,44 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         }
         return true;
       };
-      const needsClientFilter = finalResultFilter.length > 0;
-      const needsClientSort = sortField === 'conclusion';
-      const needsSuspectFilter = suspectOnly;
-      if (taskFilter.length <= 1 && !needsClientFilter && !needsClientSort && !needsSuspectFilter) {
-        const response = await vulnApi.vuln.listCases({
+      const fetchAllForTask = async (taskId: string | undefined): Promise<any[]> => {
+        const first = await vulnApi.vuln.listCases({
           ...baseParams,
-          source_task_id: taskFilter[0],
-          page: pageOverride ?? currentPage,
-          page_size: pageSize,
+          source_task_id: taskId,
+          page: 1,
+          page_size: 500,
         });
-        if (requestSeq !== suspicionRequestSeq.current) return;
-        const items = response.items || [];
-        setSuspicions(items);
-        setListTotal(Number(response.total || 0));
-        setListStats(getCaseListStats(items));
-        if (response.page && response.page !== currentPage) {
-          setCurrentPage(response.page);
-        }
-      } else {
-        const fetchAllForTask = async (taskId: string | undefined): Promise<any[]> => {
-          const first = await vulnApi.vuln.listCases({
+        const total = Number(first.total || 0);
+        const items = [...(first.items || [])];
+        const pages = Math.ceil(total / 500);
+        for (let page = 2; page <= pages; page += 1) {
+          const next = await vulnApi.vuln.listCases({
             ...baseParams,
             source_task_id: taskId,
-            page: 1,
+            page,
             page_size: 500,
           });
-          const total = Number(first.total || 0);
-          const items = [...(first.items || [])];
-          const pages = Math.ceil(total / 500);
-          for (let page = 2; page <= pages; page += 1) {
-            const next = await vulnApi.vuln.listCases({
-              ...baseParams,
-              source_task_id: taskId,
-              page,
-              page_size: 500,
-            });
-            items.push(...(next.items || []));
-          }
-          return items;
-        };
-        const taskIds = taskFilter.length > 0 ? taskFilter : [undefined];
-        const chunks: any[][] = [];
-        for (const taskId of taskIds) {
-          if (requestSeq !== suspicionRequestSeq.current) return;
-          chunks.push(await fetchAllForTask(taskId));
+          items.push(...(next.items || []));
         }
+        return items;
+      };
+      const taskIds = taskFilter.length > 0 ? taskFilter : [undefined];
+      const chunks: any[][] = [];
+      for (const taskId of taskIds) {
         if (requestSeq !== suspicionRequestSeq.current) return;
-        const merged = sortCases(
-          Array.from(new Map(chunks.flat().map((item: any) => [item.id, item])).values()),
-          sortField,
-          sortDirection,
-        );
-        const filtered = merged.filter(matchesSuspect).filter(matchesFinalResult);
-        const nextPage = pageOverride ?? currentPage;
-        setSuspicions(filtered.slice((nextPage - 1) * pageSize, nextPage * pageSize));
-        setListTotal(filtered.length);
-        setListStats(getCaseListStats(filtered));
+        chunks.push(await fetchAllForTask(taskId));
       }
+      if (requestSeq !== suspicionRequestSeq.current) return;
+      const merged = sortCases(
+        Array.from(new Map(chunks.flat().map((item: any) => [item.id, item])).values()),
+        sortField,
+        sortDirection,
+      );
+      const filtered = merged.filter(matchesSuspect).filter(matchesFinalResult);
+      const nextPage = pageOverride ?? currentPage;
+      setSuspicions(filtered.slice((nextPage - 1) * pageSize, nextPage * pageSize));
+      setListTotal(filtered.length);
+      setListStats(getCaseListStats(filtered));
     } catch (err: any) {
       setError(err?.message || '加载漏洞列表失败');
     } finally {
@@ -2782,7 +2762,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
             <div className="space-y-4 px-5 py-4 xl:px-6">
               <div className="overflow-hidden rounded-xl border border-theme-border">
-                  <div className="grid grid-cols-[1.5fr_2.2fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr] gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2.5">
+                  <div className={`grid ${suspectOnly ? 'grid-cols-[1.5fr_2.2fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr]' : 'grid-cols-[1.5fr_2.2fr_0.9fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr]'} gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2.5`}>
                   <div className="flex items-center justify-center hidden">
                     <input
                       type="checkbox"
@@ -2794,6 +2774,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   </div>
                   <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">任务名称</div>
                   {renderSortHeader('标题 / 摘要', 'title')}
+                  {!suspectOnly ? renderSortHeader('阶段 / 状态', 'current_stage') : null}
                   {renderSortHeader('漏洞确认状态', 'conclusion')}
                   {renderSortHeader('工具', 'reporter')}
                   {renderSortHeader('更新时间', 'updated_at')}
@@ -2817,7 +2798,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           setSelectedSuspicionId(item.id);
                         }
                       }}
-                      className="grid cursor-pointer grid-cols-[1.5fr_2.2fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr] gap-3 border-b border-theme-border-subtle bg-theme-surface px-4 py-3.5 text-left transition hover:bg-theme-elevated last:border-b-0"
+                      className={`grid cursor-pointer ${suspectOnly ? 'grid-cols-[1.5fr_2.2fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr]' : 'grid-cols-[1.5fr_2.2fr_0.9fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr]'} gap-3 border-b border-theme-border-subtle bg-theme-surface px-4 py-3.5 text-left transition hover:bg-theme-elevated last:border-b-0`}
                     >
                       <div className="flex items-center justify-center hidden">
                         <input
@@ -2837,6 +2818,16 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         <div className="mt-1 font-mono text-[11px] text-theme-text-faint">{item.id}</div>
                         <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-theme-text-muted">{item.summary || '暂无摘要'}</div>
                       </div>
+                      {!suspectOnly ? (
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-theme-text-secondary">{toUserVulnStatusText(item)}</div>
+                          {item.confirm_engine_name && !(item.current_stage === 'finished' || item.finished_reason) ? (
+                            <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
+                              已派发: {item.confirm_engine_name}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
                       <div className="min-w-0">
                         {(item.current_stage === 'finished' || item.finished_reason) ? (
                           <>
