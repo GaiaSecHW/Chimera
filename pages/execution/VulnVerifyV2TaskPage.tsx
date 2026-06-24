@@ -488,7 +488,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                       className={`grid w-full gap-2 px-4 py-3 text-left transition-colors hover:bg-theme-elevated lg:grid-cols-[minmax(180px,1.1fr)_120px_minmax(220px,1.3fr)_80px] lg:items-center lg:gap-4 ${isSel ? 'bg-theme-elevated/70' : ''}`.trim()}
                     >
                       <div className="min-w-0">
-                        <div className="truncate text-[15px] font-medium text-theme-text-primary" title={task.name}>{task.name}</div>
+                        <div className="truncate text-[15px] font-normal text-theme-text-primary" title={task.name}>{task.name}</div>
                         <div className="mt-1 font-mono text-xs text-theme-text-muted">{task.vuln_id || task.case_id || '-'}</div>
                       </div>
                       <div className="flex items-center">
@@ -562,6 +562,14 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                     </button>
                   </div>
 
+                  {/* 根因摘要 */}
+                  <div>
+                    <div className="mb-2 text-[15px] font-medium text-theme-text-primary">根因摘要</div>
+                    <p className="whitespace-pre-wrap rounded-lg border border-theme-border bg-theme-elevated p-3 text-[13px] font-normal text-theme-text-secondary">
+                      {String(detailRaw.root_cause_summary || '-')}
+                    </p>
+                  </div>
+
                   {/* 四维判定 */}
                   <div>
                     <div className="mb-2 text-[15px] font-medium text-theme-text-primary">四维判定</div>
@@ -571,15 +579,6 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                         return <DimensionCard key={key} dimKey={key} status={dim?.status} detail={dim?.detail} />;
                       })}
                     </div>
-                  </div>
-
-                  {/* 根因摘要 */}
-                  <div>
-                    <div className="mb-2 text-[15px] font-medium text-theme-text-primary">根因摘要</div>
-                    <p className="whitespace-pre-wrap rounded-lg border border-theme-border bg-theme-elevated p-3 text-[13px] font-normal text-theme-text-secondary">
-                      {String(detailRaw.root_cause_summary || '-')}
-                    </p>
-
                   </div>
 
                   {/* 时间线 */}
