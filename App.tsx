@@ -528,6 +528,9 @@ const AppShell: React.FC = () => {
             if (pending.openCreateTask) {
               setOpenCreateTaskOnNav(true);
             }
+            if (pending.openCreateProject) {
+              setOpenCreateProjectOnNav(true);
+            }
           } catch { /* ignore */ }
         }
       }

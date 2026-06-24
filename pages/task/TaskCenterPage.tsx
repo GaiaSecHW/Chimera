@@ -22,6 +22,7 @@ import {
 interface Props {
   projectId: string;
   projects: SecurityProject[];
+  onRefreshProjects?: () => Promise<void> | void;
   openCreateTaskOnNav?: boolean;
   onConsumeOpenCreateTask?: () => void;
 }
@@ -112,7 +113,7 @@ const LK = {
 
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
-export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, openCreateTaskOnNav, onConsumeOpenCreateTask }) => {
+export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefreshProjects, openCreateTaskOnNav, onConsumeOpenCreateTask }) => {
   const scheduleApi = api.domains.platform.scheduleCenter;
   const currentUser = useMemo(() => getLocalUserInfo(), []);
   const isAdmin = useMemo(() => {
@@ -885,6 +886,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, openCreat
         projectId={projectId}
         projectName={projectName}
         projects={projects}
+        onRefreshProjects={onRefreshProjects}
         preSelectedMode={preSelectedMode}
         onCreated={() => { setPreSelectedMode(undefined); closeCreateDialog(); void loadData(); }}
       />

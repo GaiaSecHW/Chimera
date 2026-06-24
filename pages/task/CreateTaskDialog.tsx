@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, Folder, FolderOpen, Loader2, Square, SquareCheck, X } from 'lucide-react';
+import { ChevronRight, Folder, FolderOpen, Loader2, Plus, RefreshCw, Square, SquareCheck, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { TestInputUploader, TestInputUploaderHandle } from '../../components/TestInputUploader';
 import { getAuthHeaders, handleResponse } from '../../clients/base';
@@ -30,6 +30,7 @@ export interface CreateTaskDialogProps {
   projectId: string;
   projectName: string;
   projects: SecurityProject[];
+  onRefreshProjects?: () => Promise<void> | void;
   preSelectedInputId?: string;
   preSelectedMode?: HomeCardMode;
   onCreated: () => void;
@@ -152,6 +153,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   projectId,
   projectName,
   projects,
+  onRefreshProjects,
   preSelectedInputId,
   preSelectedMode,
   onCreated,
@@ -165,6 +167,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [error, setError] = useState('');
   const [activeCreateTab, setActiveCreateTab] = useState<(typeof CREATE_TABS)[number]['key']>('basic');
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId);
+  const [projectsRefreshing, setProjectsRefreshing] = useState(false);
   const [taskType, setTaskType] = useState<(typeof TASK_TYPES)[number]['value']>('source_scan_e2e');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -696,21 +699,57 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           {/* =============== TAB: basic =============== */}
             <div className="flex h-full flex-col space-y-3" style={{ display: activeCreateTab === 'basic' ? undefined : 'none' }}>
               {/* 项目选择 */}
-              <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                项目 <span style={{ color: LK.error }}>*</span>
-                <select
-                  value={selectedProjectId}
-                  onChange={(e) => setSelectedProjectId(e.target.value)}
-                  className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                  style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-                >
-                  {projects.map((item) => (
-                    <option key={item.id} value={item.id}>{item.name}</option>
-                  ))}
-                </select>
-              </label>
+              <div>
+                <div className="text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                  项目 <span style={{ color: LK.error }}>*</span>
+                </div>
+                <div className="mt-1 flex items-center gap-2">
+                  <select
+                    value={selectedProjectId}
+                    onChange={(e) => setSelectedProjectId(e.target.value)}
+                    className="flex-1 rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                  >
+                    {projects.map((item) => (
+                      <option key={item.id} value={item.id}>{item.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    title="新增项目"
+                    onClick={() => {
+                      sessionStorage.setItem('chimera:pendingNav', JSON.stringify({
+                        view: 'project-mgmt',
+                        openCreateProject: true,
+                      }));
+                      window.open(window.location.href, '_blank');
+                    }}
+                    className="shrink-0 rounded-lg p-2 transition-colors"
+                    style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, color: LK.body }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
+                  >
+                    <Plus size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    title="刷新项目列表"
+                    disabled={projectsRefreshing}
+                    onClick={async () => {
+                      setProjectsRefreshing(true);
+                      try { await onRefreshProjects?.(); } catch { /* ignore */ } finally { setProjectsRefreshing(false); }
+                    }}
+                    className="shrink-0 rounded-lg p-2 transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, color: LK.body }}
+                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; } }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
+                  >
+                    <RefreshCw size={16} className={projectsRefreshing ? 'animate-spin' : ''} />
+                  </button>
+                </div>
+              </div>
               {projects.length === 0 ? (
                 <div
                   className="rounded-lg px-4 py-3 text-sm"
@@ -720,8 +759,11 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      onClose();
-                      window.dispatchEvent(new CustomEvent('chimera-navigate-view', { detail: { view: 'project-mgmt', openCreateProject: true } }));
+                      sessionStorage.setItem('chimera:pendingNav', JSON.stringify({
+                        view: 'project-mgmt',
+                        openCreateProject: true,
+                      }));
+                      window.open(window.location.href, '_blank');
                     }}
                     className="mx-1 font-semibold underline underline-offset-2 transition-opacity hover:opacity-80"
                     style={{ color: LK.warning }}

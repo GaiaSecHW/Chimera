@@ -266,7 +266,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'product-mgmt':
       return <ProductMgmtPage />;
     case 'task-list':
-      return <TaskCenterPage projectId={ctx.selectedProjectId} projects={ctx.projects} openCreateTaskOnNav={ctx.openCreateTaskOnNav} onConsumeOpenCreateTask={() => ctx.setOpenCreateTaskOnNav(false)} />;
+      return <TaskCenterPage projectId={ctx.selectedProjectId} projects={ctx.projects} onRefreshProjects={ctx.fetchProjects} openCreateTaskOnNav={ctx.openCreateTaskOnNav} onConsumeOpenCreateTask={() => ctx.setOpenCreateTaskOnNav(false)} />;
     case 'task-web-end-to-end':
       return <WebEndToEndPage projectId={ctx.selectedProjectId} />;
     case 'task-knowledge-graph':
