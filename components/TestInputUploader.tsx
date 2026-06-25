@@ -221,7 +221,7 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
         {/* 上传队列 */}
         <div className="space-y-2">
           {uploadQueue.length === 0 ? (
-            <div className="rounded-lg border border-theme-border bg-theme-surface px-3 py-3 text-sm text-theme-text-muted">
+            <div className="rounded-xl border border-state-warning-border bg-state-warning-soft px-4 py-2 text-sm text-state-warning">
               还没有选择上传文件。
             </div>
           ) : (

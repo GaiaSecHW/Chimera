@@ -1270,7 +1270,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
           <form onSubmit={(event) => {
             event.preventDefault();
             void submitUpload();
- }} className="w-full max-w-2xl overflow-hidden rounded-2xl bg-theme-elevated">
+ }} className="w-full max-w-2xl overflow-hidden rounded-2xl bg-theme-surface">
             <div className="border-b border-theme-border px-6 py-5">
               <div className="text-sm font-medium uppercase tracking-[0.2em] text-theme-text-muted">{isAppendMode ? '追加上传' : '新建上传'}</div>
               <div className="mt-2 text-2xl font-bold text-theme-text-primary">{INPUT_TYPE_META[activeInputType].label}测试对象</div>
@@ -1324,7 +1324,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
 
                   <div className="space-y-3">
                     {uploadQueue.length === 0 ? (
-                      <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-4 text-sm text-theme-text-muted">还没有选择上传文件。</div>
+                      <div className="rounded-xl border border-state-warning-border bg-state-warning-soft px-4 py-2 text-sm text-state-warning">还没有选择上传文件。</div>
                     ) : uploadQueue.map((item) => (
                       <div key={item.id} className="rounded-xl border border-theme-border px-4 py-4">
                         <div className="flex items-center justify-between gap-3">

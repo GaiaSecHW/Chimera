@@ -2019,16 +2019,19 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 <div className="text-theme-text-faint">{formatTime(job.finished_at)}</div>
                 <div className="text-theme-text-faint">{formatTime(job.expires_at)}</div>
                 <div className="truncate text-xs text-state-danger">{job.last_error || '-'}</div>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-1">
                   {job.downloadable ? (
                     <button
                       type="button"
                       onClick={() => handleDownloadJobFile(job)}
                       disabled={downloadActionJobId === job.job_id}
                       title="下载"
-                      className="btn btn-sm bg-state-success-soft text-state-success border-state-success-border inline-flex items-center gap-1 rounded-lg border px-2"
+                      className="rounded-md p-1.5 transition-colors"
+                      style={{ color: 'var(--text-secondary)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--brand-primary-mask)'; e.currentTarget.style.color = 'var(--brand-primary)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                     >
-                      <Download size={12} />
+                      <Download size={16} />
                     </button>
                   ) : null}
                   {job.status === 'failed' ? (
@@ -2037,9 +2040,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       onClick={() => handleRetryDownloadJob(job.job_id)}
                       disabled={downloadActionJobId === job.job_id}
                       title="重试"
-                      className="btn btn-sm bg-state-warning-soft text-state-warning border-state-warning-border inline-flex items-center gap-1 rounded-lg border px-2"
+                      className="rounded-md p-1.5 transition-colors"
+                      style={{ color: 'var(--text-secondary)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--brand-primary-mask)'; e.currentTarget.style.color = 'var(--brand-primary)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                     >
-                      <RefreshCw size={12} />
+                      <RefreshCw size={16} />
                     </button>
                   ) : null}
                   {['succeeded', 'failed', 'expired'].includes(job.status) ? (
@@ -2048,9 +2054,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       onClick={() => handleDeleteDownloadJob(job.job_id)}
                       disabled={downloadActionJobId === job.job_id}
                       title="删除"
-                      className="btn btn-sm bg-state-danger-soft text-state-danger border-state-danger-border inline-flex items-center gap-1 rounded-lg border px-2"
+                      className="rounded-md p-1.5 transition-colors"
+                      style={{ color: 'var(--text-secondary)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--danger-soft)'; e.currentTarget.style.color = 'var(--danger)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                     >
-                      <Trash2 size={12} />
+                      <Trash2 size={16} />
                     </button>
                   ) : null}
                 </div>

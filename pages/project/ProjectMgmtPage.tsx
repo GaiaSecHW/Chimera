@@ -23,7 +23,7 @@ import {
 import { api } from '../../clients/api';
 import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
 import { orgApi, UserPermissionInfo } from '../../clients/org';
-import { PageHeader } from '../../design-system';
+import { DropdownSelect, PageHeader } from '../../design-system';
 import { Department, ProductTreeNode, ProductVersionNode, SecurityProject } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -585,21 +585,16 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   ) => (
     <div className="space-y-1.5">
       <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>归属部门 <span className="required"> *</span></label>
-      <select
+      <DropdownSelect
         value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
-        style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-        onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-        onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-      >
-        <option value="">请选择归属部门</option>
-        {selectableDepartments.map((department) => (
-          <option key={department.id} value={department.id}>
-            {department.name}
-          </option>
-        ))}
-      </select>
+        onChange={onChange}
+        options={[
+          { value: '', label: '请选择归属部门' },
+          ...selectableDepartments.map((department) => ({ value: String(department.id), label: department.name })),
+        ]}
+        placeholder="请选择归属部门"
+        emptyText="暂无可用部门"
+      />
       <p className="text-[11px]" style={{ color: LK.muted }}>{helperText}</p>
     </div>
   );
@@ -792,45 +787,44 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         </div>
       )}
 
-      {/* Action bar: 初始化项目 -> 搜索框 -> 刷新 */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={openCreateModal}
-          disabled={!userPermissions || selectableDepartments.length === 0}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ backgroundColor: LK.primary, color: '#ffffff' }}
-          onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-          onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
-        >
-          <Plus size={16} /> 初始化项目
-        </button>
-        <div className="relative flex flex-1 items-center">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
-          <input
-            type="text"
-            placeholder="搜索项目名称、负责人、归属部门、产品路径、版本号..."
-            className="form-input w-full pl-10"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-          />
-        </div>
-        <button
-          onClick={handleRefresh}
-          className="shrink-0 rounded-lg p-2.5 transition-colors"
-          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
-          title="刷新列表"
-        >
-          <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
-        </button>
-      </div>
 
       {/* Unified project table */}
       <section
         className="overflow-hidden rounded-xl"
         style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
       >
+        <div className="flex items-center gap-2 px-4 py-3">
+          <button
+            onClick={openCreateModal}
+            disabled={!userPermissions || selectableDepartments.length === 0}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+            onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+            onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
+          >
+            <Plus size={16} /> 初始化项目
+          </button>
+          <div className="relative flex flex-1 items-center">
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
+            <input
+              type="text"
+              placeholder="搜索项目名称、负责人、归属部门、产品路径、版本号..."
+              className="form-input w-full pl-10"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </div>
+          <button
+            onClick={handleRefresh}
+            className="shrink-0 rounded-lg px-4 py-2.5 transition-colors"
+            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
+            title="刷新列表"
+          >
+            <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+          </button>
+        </div>
         {filteredProjects.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full border-separate border-spacing-0">
@@ -1253,10 +1247,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 <input
                   required
                   placeholder="例如：核心业务 API 渗透测试"
-                  className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
-                  style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                  className="form-input w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
                   value={editForm.name}
                   onChange={(event) => setEditForm({ ...editForm, name: event.target.value })}
                 />
@@ -1266,10 +1257,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 <textarea
                   rows={3}
                   placeholder="描述该项目的评估目标与范围..."
-                  className="w-full resize-none rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
-                  style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                  className="form-textarea w-full resize-none rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
                   value={editForm.description}
                   onChange={(event) => setEditForm({ ...editForm, description: event.target.value })}
                 />
