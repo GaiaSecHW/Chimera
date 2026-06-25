@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Plus, RefreshCw, Loader2, Trash2, Edit3, Activity, ServerCog, Hash, Clock, X, Link as LinkIcon, Wrench } from 'lucide-react';
-import { vulnApi } from '../../clients/vuln';
+import { ShieldCheck, Plus, RefreshCw, Loader2, Trash2, Edit3, Activity, ServerCog, Hash, Clock, X, Link as LinkIcon, Wrench, Bell, Save, Send } from 'lucide-react';
+import { vulnApi, NotifyConfig, NotifyTestResult } from '../../clients/vuln';
 import { showConfirm } from '../../components/DialogService';
 import { Modal, DataTable, DataTableColumn, PageHeader } from '../../design-system';
 
@@ -37,6 +37,21 @@ export const VulnConfirmEnginesPage: React.FC = () => {
   const [editingEngine, setEditingEngine] = useState<VulnConfirmEngine | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formData, setFormData] = useState<EngineFormData>(EMPTY_FORM);
+
+  const [notifyModalOpen, setNotifyModalOpen] = useState(false);
+  const [notifyConfig, setNotifyConfig] = useState<NotifyConfig | null>(null);
+  const [notifyForm, setNotifyForm] = useState<NotifyConfig>({
+    webhook_url: '',
+    auth: '',
+    receiver: '',
+    sender: '',
+    timeout_seconds: 10,
+    enabled: true,
+  });
+  const [notifyLoading, setNotifyLoading] = useState(false);
+  const [notifySaving, setNotifySaving] = useState(false);
+  const [notifyTesting, setNotifyTesting] = useState(false);
+  const [notifyTestResult, setNotifyTestResult] = useState<NotifyTestResult | null>(null);
 
   useEffect(() => { fetchEngines(); }, []);
 
@@ -119,6 +134,58 @@ export const VulnConfirmEnginesPage: React.FC = () => {
       await fetchEngines();
     } catch (err: any) {
       alert(err.message || '删除失败');
+    }
+  };
+
+  const openNotifyModal = async () => {
+    setNotifyModalOpen(true);
+    setNotifyLoading(true);
+    setNotifyTestResult(null);
+    try {
+      const cfg = await vulnApi.getNotifyConfig();
+      setNotifyConfig(cfg);
+      setNotifyForm(cfg);
+    } catch (e) {
+      console.error('[VulnConfirmEnginesPage] load notify config failed:', e);
+      setNotifyForm({
+        webhook_url: 'http://xiaoluban.rnd.huawei.com:80/',
+        auth: '',
+        receiver: '',
+        sender: '',
+        timeout_seconds: 10,
+        enabled: true,
+      });
+    } finally {
+      setNotifyLoading(false);
+    }
+  };
+
+  const handleNotifySave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNotifySaving(true);
+    setNotifyTestResult(null);
+    try {
+      const updated = await vulnApi.updateNotifyConfig(notifyForm);
+      setNotifyConfig(updated);
+      setNotifyForm(updated);
+    } catch (err: any) {
+      console.error('[VulnConfirmEnginesPage] save notify config failed:', err);
+      alert('保存失败: ' + (err?.message || '未知错误'));
+    } finally {
+      setNotifySaving(false);
+    }
+  };
+
+  const handleNotifyTest = async () => {
+    setNotifyTesting(true);
+    setNotifyTestResult(null);
+    try {
+      const result = await vulnApi.testNotify(notifyForm);
+      setNotifyTestResult(result);
+    } catch (err: any) {
+      setNotifyTestResult({ success: false, status_code: null, detail: err?.message || '请求失败' });
+    } finally {
+      setNotifyTesting(false);
     }
   };
 
@@ -222,6 +289,12 @@ export const VulnConfirmEnginesPage: React.FC = () => {
         actions={<div className="flex gap-4">
           <button onClick={fetchEngines} className="p-4 bg-theme-surface border border-theme-border text-theme-text-muted rounded-lg hover:bg-theme-elevated transition-all active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+          </button>
+          <button
+            onClick={openNotifyModal}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded-lg hover:bg-indigo-500/20 transition-all text-sm font-medium"
+          >
+            <Bell size={16} /> 通知配置
           </button>
           <button onClick={openCreate} className="btn-primary btn-lg flex items-center gap-3">
             <Plus size={20} /> 注册新引擎
@@ -327,6 +400,128 @@ export const VulnConfirmEnginesPage: React.FC = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={notifyModalOpen} onClose={() => setNotifyModalOpen(false)} className="max-w-lg">
+        <div className="p-6 pb-4 border-b border-theme-border flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-indigo-500/20">
+              <Bell size={24} />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-theme-text-primary">小鲁班通知配置</h3>
+              <p className="text-[10px] text-theme-text-muted font-bold uppercase mt-0.5">Webhook Notify Config</p>
+            </div>
+          </div>
+          <button onClick={() => setNotifyModalOpen(false)} className="p-3 text-theme-text-faint hover:text-theme-text-secondary"><X size={28} /></button>
+        </div>
+        {notifyLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="animate-spin text-indigo-400" size={28} />
+          </div>
+        ) : (
+          <form onSubmit={handleNotifySave} className="p-6 space-y-4">
+            <div className="space-y-1.5">
+              <label className="form-label">Webhook URL <span className="required"> *</span></label>
+              <input
+                required
+                type="text"
+                placeholder="http://xiaoluban.rnd.huawei.com:80/"
+                className="form-input w-full font-mono"
+                value={notifyForm.webhook_url}
+                onChange={(e) => setNotifyForm({ ...notifyForm, webhook_url: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="form-label">Auth Token</label>
+              <input
+                type="password"
+                placeholder="auth token"
+                className="form-input w-full font-mono"
+                value={notifyForm.auth}
+                onChange={(e) => setNotifyForm({ ...notifyForm, auth: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="form-label">Receiver <span className="required"> *</span></label>
+              <input
+                required
+                type="text"
+                placeholder="接收者 ID"
+                className="form-input w-full font-mono"
+                value={notifyForm.receiver}
+                onChange={(e) => setNotifyForm({ ...notifyForm, receiver: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="form-label">Sender (可选)</label>
+              <input
+                type="text"
+                placeholder="发送者 ID（可留空）"
+                className="form-input w-full font-mono"
+                value={notifyForm.sender || ''}
+                onChange={(e) => setNotifyForm({ ...notifyForm, sender: e.target.value || null })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="form-label">超时 (秒)</label>
+                <input
+                  type="number"
+                  min={1}
+                  className="form-input w-full font-mono"
+                  value={notifyForm.timeout_seconds}
+                  onChange={(e) => setNotifyForm({ ...notifyForm, timeout_seconds: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="form-label">启用</label>
+                <button
+                  type="button"
+                  onClick={() => setNotifyForm({ ...notifyForm, enabled: !notifyForm.enabled })}
+                  className={`w-full px-3 py-2 rounded-lg text-sm font-medium border transition-all ${notifyForm.enabled ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-theme-surface text-theme-text-muted border-theme-border'}`}
+                >
+                  {notifyForm.enabled ? '已启用' : '已停用'}
+                </button>
+              </div>
+            </div>
+
+            {notifyTestResult && (
+              <div className={`px-3 py-2 rounded-lg text-xs border ${notifyTestResult.success ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+                {notifyTestResult.success
+                  ? `✓ 发送成功 (HTTP ${notifyTestResult.status_code})`
+                  : `✗ 发送失败${notifyTestResult.status_code ? ` (HTTP ${notifyTestResult.status_code})` : ''}: ${notifyTestResult.detail || '未知错误'}`}
+              </div>
+            )}
+
+            <div className="flex items-center gap-4">
+              <button
+                type="submit"
+                disabled={notifySaving}
+                className="btn-primary btn-lg flex items-center justify-center gap-3"
+              >
+                {notifySaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                保存配置
+              </button>
+              <button
+                type="button"
+                onClick={handleNotifyTest}
+                disabled={notifyTesting}
+                className="btn-secondary btn-lg flex items-center justify-center gap-3"
+              >
+                {notifyTesting ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
+                发送测试
+              </button>
+              <button
+                type="button"
+                onClick={() => setNotifyModalOpen(false)}
+                className="ml-auto px-4 py-2 text-theme-text-muted hover:text-theme-text text-sm"
+              >
+                关闭
+              </button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );

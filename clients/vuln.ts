@@ -301,6 +301,21 @@ export interface VulnBreakdownResponse {
   projects: VulnBreakdownProjectItem[];
 }
 
+export interface NotifyConfig {
+  webhook_url: string;
+  auth: string;
+  receiver: string;
+  sender: string | null;
+  timeout_seconds: number;
+  enabled: boolean;
+}
+
+export interface NotifyTestResult {
+  success: boolean;
+  status_code: number | null;
+  detail: string | null;
+}
+
 export const vulnApi = {
   getHealth: async (): Promise<VulnHealthResponse> =>
     normalizeHealth(await handleResponse(await fetch(`${API_BASE}/api/vuln/health`, { headers: getHeaders() }))),
@@ -371,6 +386,23 @@ export const vulnApi = {
     });
     if (resp.status !== 204) await handleResponse(resp);
   },
+
+  getNotifyConfig: async (): Promise<NotifyConfig> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/admin/vuln-confirm/notify-config`, { headers: getHeaders() })),
+
+  updateNotifyConfig: async (payload: NotifyConfig): Promise<NotifyConfig> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/admin/vuln-confirm/notify-config`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  testNotify: async (payload: NotifyConfig): Promise<NotifyTestResult> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/admin/vuln-confirm/notify-test`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
 
   createCase: async (payload: any): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases`, {
