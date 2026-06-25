@@ -2623,6 +2623,23 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                 value={<ProjectDirectoryOverviewValue path={overviewOutputPath} projectId={projectId} openInExplorer={openInFileExplorer} />}
               />
               <InfoRow label="最近事件时间" value={timeline[0]?.created_at ? new Date(timeline[0].created_at).toLocaleString('zh-CN') : '-'} />
+              <InfoRow
+                label="当前 Key"
+                value={(() => {
+                  const k = detail.resolved_key_info;
+                  if (!k) return <span className="text-theme-text-muted">-</span>;
+                  const sourceLabel = k.source === 'gateway' ? '网关(WSK)' : k.source === 'config_center' ? '模型配置中心(SK)' : (k.source || '-');
+                  const sourceTone = k.source === 'gateway' ? 'text-cyan-400' : k.source === 'config_center' ? 'text-emerald-400' : 'text-theme-text-secondary';
+                  return (
+                    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs">
+                      <span className={`rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 font-bold ${sourceTone}`}>{sourceLabel}</span>
+                      <span className="text-theme-text-secondary">模型 {k.model || '-'}</span>
+                      {k.key_masked ? <span className="text-theme-text-muted">密钥 {k.key_prefix ? `${k.key_prefix}_` : ''}{k.key_masked}</span> : <span className="text-theme-text-muted">密钥 -</span>}
+                      {k.key_source ? <span className="text-theme-text-muted">来源 {k.key_source}</span> : null}
+                    </span>
+                  );
+                })()}
+              />
             </div>
           </section>
           {/* ─ 流水线阶段进度（全宽水平卡片流） */}

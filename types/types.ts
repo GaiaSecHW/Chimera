@@ -4327,6 +4327,17 @@ export interface AppEaFunctionDetail {
   callees: Array<{ name: string; func_hash: string }>;
 }
 
+export interface AppEaResolvedKeyInfo {
+  source: 'gateway' | 'config_center' | string;
+  model: string;
+  dispatched_model?: string | null;
+  key_prefix?: string | null;
+  key_masked?: string | null;
+  key_source?: string | null;
+  task_origin_type?: string | null;
+  gateway_available_models?: string[] | null;
+}
+
 export interface AppEaTaskDetail extends AppEaTaskItem {
   prompt_template_id?: string | null;
   prompt_content: string;
@@ -4337,6 +4348,7 @@ export interface AppEaTaskDetail extends AppEaTaskItem {
   role_config_snapshot?: Record<string, any> | null;
   provider_runtime_summary?: Record<string, any> | null;
   llm_binding_snapshot?: Record<string, any> | null;
+  resolved_key_info?: AppEaResolvedKeyInfo | null;
   function_catalog?: AppEaFunctionCatalogItem[] | null;
   lean_mode?: boolean | null;
   task_root?: string | null;
@@ -4499,6 +4511,7 @@ export interface AppEaTaskCreateRequest {
   parent_stage_name?: string;
   parent_stage_item_id?: string;
   parent_stage_item_key?: string;
+  model?: string | null;               // 任务级模型（手动任务从模型配置中心选；非手动由编排器下发，缺省 auto）
 }
 
 export interface EntryAnalysisPromptTemplate {

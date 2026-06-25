@@ -282,10 +282,14 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
   const identified = analysis?.attack_entries ?? effective.attack?.entries ?? 0;
   const attackRecoverable = attackStatus === 'failed' && identified > 0;
 
-  // ③ 调用链修复:有 progress 即展示进度条。repairedEdges=本次修复 LLM 新建的
-  //    CALLS 边数(scale.repaired_edges),与 source 完成度并列展示修复产物。
-  const repairTotal = progress?.total ?? 0;
-  const repairDone = progress?.completed ?? 0;
+  // ③ 调用链修复:展示 repair 进度。口径以 T1-T5 函数为准(scale.repair_total /
+  //    repair_done,与 serve「函数分类」角标 + cli repair 取数统一):分母=repair
+  //    入队全集(T1-T5,排除 T6/excluded),分子=已完成修复=complete+partial_complete
+  //    (都至少跑过一轮)。后端旧版无此字段时回退 progress 的 per-source 口径。
+  //    hasRepairProgress 仍以 progress 为准——repair 真正跑起来才展示,避免静态分析
+  //    刚完成(已有 T1-T5 候选但 repair 未启动)时就亮出进度。
+  const repairTotal = scale?.repair_total ?? progress?.total ?? 0;
+  const repairDone = scale?.repair_done ?? progress?.completed ?? 0;
   const repairFailed = progress?.failed ?? 0;
   const repairPct = repairTotal > 0 ? Math.round((repairDone / repairTotal) * 100) : 0;
   const repairedEdges = scale?.repaired_edges ?? 0;
