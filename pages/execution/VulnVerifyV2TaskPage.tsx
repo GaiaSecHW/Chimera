@@ -88,9 +88,9 @@ const VerdictBadge: React.FC<{ verdict?: string | null }> = ({ verdict }) => {
   const item = outcomeBadge(undefined, verdict);
   const Icon = item.Icon;
   return (
-    <span className={`inline-flex w-[128px] items-center ${item.iconOnly ? 'justify-center px-3 py-1.5' : `gap-2 rounded-full border px-3 py-1.5 ${item.boxCls}`} text-[15px] ${item.fontCls || 'font-bold'}`}>
+    <span className={`inline-flex w-auto items-center gap-1.5 rounded-full border py-1.5 pl-3 pr-4 text-[13px] ${item.fontCls || 'font-semibold'} ${item.boxCls}`}>
       {Icon ? <Icon size={16} strokeWidth={2.2} className={`shrink-0 ${item.iconCls}`} /> : null}
-      {item.iconOnly ? null : <span className={`truncate ${item.iconCls}`}>{item.label}</span>}
+      <span className={item.iconCls}>{item.label}</span>
     </span>
   );
 };
@@ -103,13 +103,13 @@ const StatusBadge: React.FC<{ status?: string }> = ({ status }) => (
 );
 
 function outcomeBadge(status?: string, verdict?: string | null): { label: string; iconCls: string; boxCls: string; fontCls?: string; plain?: boolean; iconOnly?: boolean; Icon?: React.ElementType; loading?: boolean } {
-  if (status === 'running') return { label: '验证中', iconCls: 'text-emerald-300 drop-shadow-[0_0_8px_rgba(110,231,183,0.75)]', boxCls: '', iconOnly: true, loading: true };
+  if (status === 'running') return { label: '验证中', iconCls: 'text-emerald-300', boxCls: '', iconOnly: true, loading: true };
   if (status === 'pending') return { label: '等待中', iconCls: 'text-theme-text-faint', boxCls: '', fontCls: 'font-normal', plain: true, iconOnly: true, Icon: Clock3 };
-  if (status === 'failed') return { label: '验证失败', iconCls: 'text-rose-400', boxCls: 'border-rose-500/30 bg-rose-500/20', Icon: XCircle };
-  if (status === 'cancelled') return { label: '已取消', iconCls: 'text-amber-400', boxCls: 'border-amber-500/30 bg-amber-500/20', Icon: Ban };
-  if (verdict === 'confirmed') return { label: '确认漏洞', iconCls: 'text-rose-400', boxCls: 'border-rose-500/30 bg-rose-500/20', Icon: AlertTriangle };
-  if (verdict === 'ruled_out') return { label: '排除漏洞', iconCls: 'text-sky-400', boxCls: 'border-sky-500/30 bg-sky-500/20', Icon: CheckCircle2 };
-  if (verdict === 'unresolved') return { label: '不可证', iconCls: 'text-amber-400', boxCls: 'border-amber-500/30 bg-amber-500/20', Icon: CircleHelp };
+  if (status === 'failed') return { label: '验证失败', iconCls: 'text-rose-400', boxCls: 'border-rose-500/10 bg-rose-500/20', Icon: XCircle };
+  if (status === 'cancelled') return { label: '已取消', iconCls: 'text-amber-400', boxCls: 'border-amber-500/10 bg-amber-500/20', Icon: Ban };
+  if (verdict === 'confirmed') return { label: '已确认', iconCls: 'text-rose-400', boxCls: 'border-rose-500/10 bg-rose-500/20', Icon: AlertTriangle };
+  if (verdict === 'ruled_out') return { label: '已排除', iconCls: 'text-sky-400', boxCls: 'border-sky-500/10 bg-sky-500/20', Icon: CheckCircle2 };
+  if (verdict === 'unresolved') return { label: '不可证', iconCls: 'text-amber-400', boxCls: 'border-amber-500/10 bg-amber-500/20', Icon: CircleHelp };
   return { label: '未产出结果', iconCls: 'text-theme-text-muted', boxCls: 'border-theme-border bg-theme-elevated', Icon: CircleHelp };
 }
 
@@ -117,7 +117,7 @@ const OutcomePill: React.FC<{ item: ReturnType<typeof outcomeBadge>; size?: 'nor
   const Icon = item.Icon;
   const isSm = size === 'sm';
   return (
-    <span className={`inline-flex ${isSm ? 'w-[86px]' : 'w-[128px]'} items-center ${item.iconOnly ? `justify-center ${isSm ? 'px-2 py-1' : 'px-3 py-1.5'}` : `${isSm ? 'gap-1.5 px-2 py-1' : 'gap-2 px-3 py-1.5'} rounded-full border ${item.boxCls}`} ${isSm ? 'text-xs' : 'text-[15px]'} ${item.fontCls || 'font-bold'}`}>
+    <span className={`inline-flex w-auto items-center ${item.iconOnly ? `justify-center ${isSm ? 'px-2 py-1' : 'px-2.5 py-1.5'}` : `${isSm ? 'gap-1.5 py-1 pl-2 pr-3' : 'gap-1.5 pl-3 pr-4 py-1.5'} rounded-full border ${item.boxCls}`} ${isSm ? 'text-xs' : 'text-[13px]'} ${item.fontCls || 'font-semibold'}`}>
       {item.loading ? (
         <Loader2 size={isSm ? 14 : 18} strokeWidth={isSm ? 2.5 : 2.8} className={`shrink-0 animate-spin ${item.iconCls}`} />
       ) : Icon ? (
@@ -134,7 +134,7 @@ const TaskOutcomeBadge: React.FC<{ status?: string; verdict?: string | null }> =
 
 const AttemptStatusBadge: React.FC<{ status?: string }> = ({ status }) => {
   if (status === 'success') {
-    return <OutcomePill size="sm" item={{ label: '成功', iconCls: 'text-emerald-400', boxCls: 'border-emerald-500/30 bg-emerald-500/20', Icon: CheckCircle2 }} />;
+    return <OutcomePill size="sm" item={{ label: '成功', iconCls: 'text-emerald-400', boxCls: 'border-emerald-500/10 bg-emerald-500/20', Icon: CheckCircle2 }} />;
   }
   return <OutcomePill size="sm" item={outcomeBadge(status, null)} />;
 };
@@ -189,11 +189,14 @@ const TaskDecisionEvidence: React.FC<{ task: VulnVerifyV2Task }> = ({ task }) =>
   return <EvidencePill>未产出判定</EvidencePill>;
 };
 
-const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'emerald' | 'sky' | 'rose' | 'amber' | 'slate' }> = ({ label, value, hint, accent = 'slate' }) => {
+const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'emerald' | 'sky' | 'rose' | 'amber' | 'slate'; Icon?: React.ElementType }> = ({ label, value, hint, accent = 'slate', Icon }) => {
   const color = accent === 'emerald' ? 'text-emerald-400' : accent === 'sky' ? 'text-sky-400' : accent === 'rose' ? 'text-rose-400' : accent === 'amber' ? 'text-amber-400' : 'text-theme-text-primary';
   return (
     <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
-      <div className="text-xs font-medium text-theme-text-muted">{label}</div>
+      <div className={`inline-flex items-center gap-1.5 text-[13px] font-medium ${color}`}>
+        {Icon ? <Icon size={13} strokeWidth={2.1} className="shrink-0" /> : null}
+        <span>{label}</span>
+      </div>
       <div className={`mt-2 text-2xl font-semibold ${color}`}>{value}</div>
       {hint ? <div className="mt-1 text-xs text-theme-text-muted">{hint}</div> : null}
     </div>
@@ -424,11 +427,11 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
   return (
     <div className="min-h-full bg-theme-bg-app text-theme-text-primary">
-      <div className="w-full space-y-6">
+      <div className="w-full space-y-8 px-4 lg:px-6 xl:px-8">
         {feedbackNodes}
         <PageHeader
           title={<ServicePageTitle title="漏洞验证 v2" version={buildVersion} />}
-          description="原子能力 / 漏洞验证v2：查看与管理 v2 验证任务的执行状态与验证结论。v2 只负责执行验证任务，不在这里推进漏洞中心阶段。"
+          description="基于漏洞报告、代码上下文与威胁模型，由 AI 围绕代码定位、路径可达性、缓解措施和安全影响进行四维判定，产出确认漏洞、排除漏洞或不可证结论。"
           actions={
             <button type="button" onClick={() => void loadOverview()} className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-3.5 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />刷新
@@ -438,17 +441,20 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
         {message ? <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">{message}</div> : null}
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <SummaryCard label="已确认" value={confirmedVulns} accent="rose" hint="verdict = confirmed" />
-          <SummaryCard label="已排除" value={ruledOutVulns} accent="sky" hint="verdict = ruled_out" />
-          <SummaryCard label="不可证" value={unresolvedVulns} accent="amber" hint="verdict = unresolved" />
-        </div>
+        <section>
+          <div className="grid gap-5 md:grid-cols-3">
+            <SummaryCard label="已确认" value={confirmedVulns} accent="rose" Icon={AlertTriangle} hint="确认存在真实漏洞风险" />
+            <SummaryCard label="已排除" value={ruledOutVulns} accent="sky" Icon={CheckCircle2} hint="验证后排除漏洞风险" />
+            <SummaryCard label="不可证" value={unresolvedVulns} accent="amber" Icon={CircleHelp} hint="现有证据不足以判定" />
+          </div>
+        </section>
 
         <div className="grid grid-cols-1 gap-4">
           {/* 列表 */}
-          <section className="rounded-xl border border-theme-border bg-theme-surface p-4">
-            <div className="mb-4 flex flex-wrap items-center gap-3">
-              <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="form-select">
+          <section>
+            <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+              <div className="mb-5 flex flex-wrap items-center gap-3">
+                <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="form-select">
                 <option value="">全部状态</option>
                 <option value="pending">等待中</option>
                 <option value="running">执行中</option>
@@ -479,14 +485,14 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               </label>
               <div className="relative min-w-[220px] flex-1">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" />
-                <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索 vuln_id / 任务名" className="form-input w-full py-2 pl-9 pr-3 text-sm text-theme-text-primary" />
+                <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索漏洞 ID / 任务名" className="form-input w-full py-2 pl-9 pr-3 text-sm text-theme-text-primary" />
               </div>
             </div>
 
             <div className="overflow-hidden rounded-xl border border-theme-border bg-theme-surface">
-              <div className="hidden border-b border-theme-border bg-theme-elevated/80 px-4 py-3 text-xs font-medium text-theme-text-muted lg:grid lg:grid-cols-[minmax(240px,1.55fr)_120px_minmax(160px,0.9fr)_80px] lg:gap-4">
+              <div className="hidden border-b border-theme-border bg-theme-elevated/80 px-4 py-3 text-xs font-medium text-theme-text-muted lg:grid lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px] lg:gap-4">
                 <div>漏洞标题 / ID</div>
-                <div>结果</div>
+                <div className="text-center">验证结果</div>
                 <div className="lg:pl-5">判定依据</div>
                 <div>耗时</div>
               </div>
@@ -499,14 +505,14 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                       key={task.id}
                       type="button"
                       onClick={() => void loadDetail(task.id)}
-                      className={`relative grid w-full gap-2 px-4 py-3 text-left transition-colors hover:bg-theme-elevated lg:grid-cols-[minmax(240px,1.55fr)_120px_minmax(160px,0.9fr)_80px] lg:items-center lg:gap-4 ${isSel ? 'bg-blue-500/15' : ''}`.trim()}
+                      className={`relative grid w-full gap-2 px-4 py-3 text-left transition-colors hover:bg-theme-elevated lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px] lg:items-center lg:gap-4 ${isSel ? 'bg-blue-500/15' : ''}`.trim()}
                     >
                       {isSel ? <span aria-hidden="true" className="absolute bottom-3 left-0 top-3 w-1.5 rounded-r-full bg-blue-300" /> : null}
                       <div className="min-w-0">
                         <div className="truncate text-[15px] font-normal text-theme-text-primary" title={task.name}>{task.name}</div>
-                        <div className="mt-1 font-mono text-xs text-theme-text-muted">{task.vuln_id || task.case_id || '-'}</div>
+                        <div className="mt-1 font-mono text-xs text-theme-text-faint">{task.vuln_id || task.case_id || '-'}</div>
                       </div>
-                      <div className="flex items-center">
+                      <div className="flex items-center justify-center">
                         <TaskOutcomeBadge status={task.status} verdict={task.verdict} />
                       </div>
                       <div className="min-w-0 lg:flex lg:items-center lg:pl-5">
@@ -526,11 +532,12 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               </div>
             </div>
 
-            <div className="mt-4 flex items-center justify-between text-sm text-theme-text-muted">
-              <span>第 {page}/{totalPages} 页 · 每页 {perPage} 条 · {pageStart}-{pageEnd} / {total}</span>
-              <div className="flex gap-2">
-                <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="rounded-lg border border-theme-border px-3 py-1 disabled:opacity-40">上一页</button>
-                <button disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="rounded-lg border border-theme-border px-3 py-1 disabled:opacity-40">下一页</button>
+              <div className="mt-4 flex items-center justify-between text-sm text-theme-text-muted">
+                <span>第 {page}/{totalPages} 页 · 每页 {perPage} 条 · {pageStart}-{pageEnd} / {total}</span>
+                <div className="flex gap-2">
+                  <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="rounded-lg border border-theme-border px-3 py-1 disabled:opacity-40">上一页</button>
+                  <button disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="rounded-lg border border-theme-border px-3 py-1 disabled:opacity-40">下一页</button>
+                </div>
               </div>
             </div>
           </section>
@@ -567,29 +574,27 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               ) : detail ? (
                 <div className="space-y-7">
                   {/* 头部：标题 + 结论 + 重试 */}
-                  <div className="px-1 pb-1">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="truncate text-[17px] font-bold text-theme-text-primary" title={detail.name}>{detail.name}</div>
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <VerdictBadge verdict={detail.verdict} />
-                        </div>
-                        <div className="mt-4 text-xs font-normal">
-                          {[
-                            ['漏洞ID', detail.vuln_id || detail.case_id, true],
-                            ['AI模型', detail.runtime?.resolved_model || detail.model || '-', false],
-                            ['创建时间', fmtTime(detail.created_at), false],
-                          ].map(([label, value, mono]) => (
-                            <div key={String(label)} className="grid grid-cols-[88px_minmax(0,1fr)] gap-4 border-b border-theme-border/70 py-2">
-                              <span className="text-theme-text-muted">{label}</span>
-                              <span className={`${mono ? 'font-mono' : ''} truncate text-theme-text-secondary`} title={String(value)}>{String(value)}</span>
-                            </div>
-                          ))}
-                        </div>
+                  <div className="px-1 pb-2 pt-4">
+                    <div className="min-w-0">
+                      <div className="whitespace-normal break-words text-[17px] font-bold leading-6 text-theme-text-primary" title={detail.name}>{detail.name}</div>
+                      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                        <VerdictBadge verdict={detail.verdict} />
+                        <button onClick={() => void handleRerun(detail.id)} aria-label="重新执行" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-[13px] font-medium text-theme-text-secondary hover:bg-theme-elevated">
+                          <RotateCcw size={13} />重试
+                        </button>
                       </div>
-                      <button onClick={() => void handleRerun(detail.id)} aria-label="重新执行" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-[13px] font-medium text-theme-text-secondary hover:bg-theme-elevated">
-                        <RotateCcw size={13} />重试
-                      </button>
+                      <div className="mt-4 text-xs font-normal">
+                        {[
+                          ['漏洞ID', detail.vuln_id || detail.case_id, true],
+                          ['AI模型', detail.runtime?.resolved_model || detail.model || '-', false],
+                          ['创建时间', fmtTime(detail.created_at), false],
+                        ].map(([label, value, mono]) => (
+                          <div key={String(label)} className="grid grid-cols-[88px_minmax(0,1fr)] gap-4 border-b border-theme-border/70 py-2">
+                            <span className="text-theme-text-muted">{label}</span>
+                            <span className={`${mono ? 'font-mono' : ''} truncate text-theme-text-secondary`} title={String(value)}>{String(value)}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
