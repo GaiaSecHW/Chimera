@@ -316,9 +316,11 @@ const getCaseSortValue = (item: any, field: SortField) => {
 
 const getEffectiveResult = (item: any) => String(item?.finished_reason || item?.validation_result || '').trim();
 
+const isTerminalCase = (item: any) => item?.current_stage === 'finished' || !!item?.finished_reason;
+
 const matchesFinalResultFilter = (item: any, filters: string[]) => {
   if (!filters || filters.length === 0) return true;
-  const effective = getEffectiveResult(item);
+  const effective = isTerminalCase(item) ? getEffectiveResult(item) : '';
   const isVulnerable = effective === 'vulnerable';
   const isRuledOut = effective === 'not_vulnerable' || effective === 'non_vulnerable';
   return filters.some((f) => {
@@ -330,8 +332,9 @@ const matchesFinalResultFilter = (item: any, filters: string[]) => {
 };
 
 const getCaseListStats = (items: any[]) => {
-  const confirmed = items.filter((item) => getEffectiveResult(item) === 'vulnerable').length;
+  const confirmed = items.filter((item) => isTerminalCase(item) && getEffectiveResult(item) === 'vulnerable').length;
   const ruledOut = items.filter((item) => {
+    if (!isTerminalCase(item)) return false;
     const effective = getEffectiveResult(item);
     return effective === 'not_vulnerable' || effective === 'non_vulnerable';
   }).length;
@@ -1876,9 +1879,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       : `已选 ${taskFilter.length} 个任务`;
 
   const FINAL_RESULT_OPTIONS: Array<{ value: string; label: string }> = [
-    { value: 'vulnerable', label: '确认是漏洞' },
-    { value: 'not_vulnerable', label: '确认非漏洞' },
-    { value: 'pending', label: '判定中' },
+    { value: 'vulnerable', label: '是漏洞' },
+    { value: 'not_vulnerable', label: '非漏洞' },
   ];
   const selectedFinalResultLabel = finalResultFilter.length === 0
     ? '全部结果'
