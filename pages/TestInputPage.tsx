@@ -19,7 +19,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { api } from '../clients/api';
 import type { ScheduleCenterUploadTask } from '../clients/scheduleCenter';
-import { PageHeader } from '../design-system';
+import { DropdownSelect, PageHeader } from '../design-system';
 import {
   IN_PROGRESS_STATUSES,
   USABLE_UPLOAD_STATUSES,
@@ -757,34 +757,38 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   className="form-input w-full pl-11 pr-4"
                 />
               </div>
-              <select
-                value={selectedType}
-                onChange={(event) => {
-                  setSelectedType(event.target.value as InputType | 'all');
-                  setPage(1);
-                }}
-                className="form-select w-full sm:w-auto"
-              >
-                <option value="all">全部类型</option>
-                {INPUT_TYPE_ORDER.map((type) => (
-                  <option key={type} value={type}>{INPUT_TYPE_META[type].label}</option>
-                ))}
-              </select>
-              <select
-                value={selectedStatus}
-                onChange={(event) => {
-                  setSelectedStatus(event.target.value);
-                  setPage(1);
-                }}
-                className="form-select w-full sm:w-auto"
-              >
-                <option value="all">全部状态</option>
-                <option value="pending">pending</option>
-                <option value="processing">processing</option>
-                <option value="succeeded">succeeded</option>
-                <option value="partial_failed">partial_failed</option>
-                <option value="failed">failed</option>
-              </select>
+              <div style={{ width: "180px" }}>
+                <DropdownSelect
+                  value={selectedType}
+                  onChange={(v) => {
+                    setSelectedType(v as InputType | 'all');
+                    setPage(1);
+                  }}
+                  options={[
+                    { value: 'all', label: '全部类型' },
+                    ...INPUT_TYPE_ORDER.map((type) => ({ value: type, label: INPUT_TYPE_META[type].label })),
+                  ]}
+                  containerClassName="w-full sm:w-auto"
+                />
+              </div>
+              <div style={{ width: "180px" }}>
+                <DropdownSelect
+                  value={selectedStatus}
+                  onChange={(v) => {
+                    setSelectedStatus(v);
+                    setPage(1);
+                  }}
+                  options={[
+                    { value: 'all', label: '全部状态' },
+                    { value: 'pending', label: 'pending' },
+                    { value: 'processing', label: 'processing' },
+                    { value: 'succeeded', label: 'succeeded' },
+                    { value: 'partial_failed', label: 'partial_failed' },
+                    { value: 'failed', label: 'failed' },
+                  ]}
+                  containerClassName="w-full sm:w-auto"
+                />
+              </div>
               <button
                 onClick={() => {
                   void Promise.all([loadOverview(), loadRecords()]);

@@ -4,7 +4,7 @@ import { api } from '../../clients/api';
 import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { Agent } from '../../types/types';
-import { PageHeader } from '../../design-system';
+import { DropdownSelect, PageHeader } from '../../design-system';
 
 const TEST_ENV_API_BASE = `${API_BASE}/api/app/web-e2e`;
 
@@ -1050,8 +1050,8 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
           <StatCard label="最近心跳" value={<span className="text-lg">{formatTime(latestSeen)}</span>} hint="按 Agent last_seen 汇总" />
         </div>
 
-        <section className="overflow-hidden rounded-xl border border-theme-border bg-theme-surface shadow-sm">
-          <div className="flex flex-col gap-4 border-b border-theme-border px-6 py-4">
+        <section className="rounded-xl border border-theme-border bg-theme-surface shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-theme-border px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold text-theme-text-primary">上线 Agent</h2>
@@ -1076,18 +1076,8 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 </button>
               </div>
             </div>
-            <div className="grid gap-3 lg:grid-cols-[180px_180px_minmax(0,1fr)_auto]">
-              <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="form-select">
-                <option value="">全部类型</option>
-                {agentTypes.map((type) => <option key={type} value={type}>{getAgentTypeLabel(type)}</option>)}
-              </select>
-              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="form-select">
-                <option value="">全部状态</option>
-                <option value="online">在线</option>
-                <option value="offline">离线/异常</option>
-                <option value="unknown">未知</option>
-              </select>
-              <div className="relative">
+            <div className="flex items-center gap-3">
+              <div className="relative max-w-[420px] flex-1">
                 <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" />
                 <input
                   value={searchText}
@@ -1096,10 +1086,32 @@ export const EnvManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                   className="form-input w-full pl-9"
                 />
               </div>
+              <div style={{ width: "180px" }}>
+                <DropdownSelect
+                    value={typeFilter}
+                    onChange={setTypeFilter}
+                    options={[
+                      { value: '', label: '全部类型' },
+                      ...agentTypes.map((type) => ({ value: type, label: getAgentTypeLabel(type) })),
+                    ]}
+                />
+              </div>
+              <div style={{ width: "180px" }}>
+                <DropdownSelect
+                    value={statusFilter}
+                    onChange={setStatusFilter}
+                    options={[
+                      { value: '', label: '全部状态' },
+                      { value: 'online', label: '在线' },
+                      { value: 'offline', label: '离线/异常' },
+                      { value: 'unknown', label: '未知' },
+                    ]}
+                />
+              </div>
               <button
                 type="button"
                 onClick={() => { setTypeFilter(''); setStatusFilter(''); setSearchText(''); }}
-                className="rounded-lg border border-theme-border bg-theme-surface px-4 py-2 text-sm font-medium text-theme-text-secondary transition hover:bg-theme-elevated"
+                className="rounded-lg border border-theme-border bg-theme-surface px-4 py-2 text-sm font-medium text-theme-text-secondary transition hover:bg-theme-elevated ml-auto"
               >
                 重置
               </button>
