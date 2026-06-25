@@ -13,7 +13,7 @@ const LK = {
   canvas: 'var(--bg-app)', surface: 'var(--bg-surface)', surfaceRaised: 'var(--bg-app)',
   surfaceGlass: 'rgba(17, 26, 43, 0.84)',
   border: 'var(--border-default)', borderSoft: 'var(--border-default)',
-  ink: 'var(--text-primary)', inkSoft: 'var(--text-primary)', body: 'var(--text-secondary)',
+  ink: 'var(--text-primary)', inkSoft: 'var(--text-secondary)', body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)', mutedSoft: '#8b95a8',
   success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
   critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
@@ -1270,6 +1270,16 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
                   <InfoRow label="最近事件时间" value={timeline[0]?.created_at ? new Date(timeline[0].created_at).toLocaleString('zh-CN') : '-'} />
                   <InfoRow label="耗时" value={detail.finished_at ? formatDuration(detail.started_at, detail.finished_at) : formatLiveDuration(detail.started_at, clockNow)} />
                   <InfoRow label="描述" value={detail.task_description || '-'} />
+                  <InfoRow label="触发方式" value={
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${detail.task_origin_type === 'binary_security' ? 'bg-violet-500/15 text-violet-400' : 'bg-cyan-500/15 text-cyan-400'}`}>
+                      {detail.task_origin_type === 'binary_security' ? '自动触发' : '手动触发'}
+                    </span>
+                  } />
+                  <InfoRow label="模型" value={<span className="font-mono">{detail.task_config_json?.model || (detail.task_origin_type === 'binary_security' ? 'gaiasec/auto (网关自动路由)' : 'auto')}</span>} />
+                  <InfoRow label="Key ID" value={<span className="font-mono">{detail.agent_auth_json?.agent_task_key_id || (detail.task_origin_type === 'binary_security' ? '(WSK 未下发)' : '(中心配置)')}</span>} />
+                  <InfoRow label="Key 名称" value={detail.agent_auth_json?.agent_task_key_name || '-'} />
+                  <InfoRow label="Key 前缀" value={<span className="font-mono">{detail.agent_auth_json?.agent_task_key_prefix || '-'}</span>} />
+                  <InfoRow label="Key 来源" value={detail.agent_auth_json?.agent_task_key_source || '-'} />
                 </div>
               </div>
  <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">

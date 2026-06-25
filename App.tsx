@@ -548,7 +548,7 @@ const AppShell: React.FC = () => {
     } catch (err) {
       console.error("Failed to fetch projects", err);
     } finally {
-      if (refresh) setIsRefreshing(true);
+      if (refresh) setIsRefreshing(false);
     }
   };
 

@@ -32,7 +32,7 @@ const LK = {
   canvas: 'var(--bg-app)', surface: 'var(--bg-surface)', surfaceRaised: 'var(--bg-app)',
   surfaceGlass: 'rgba(17, 26, 43, 0.84)',
   border: 'var(--border-default)', borderSoft: 'var(--border-default)',
-  ink: 'var(--text-primary)', inkSoft: 'var(--text-primary)', body: 'var(--text-secondary)',
+  ink: 'var(--text-primary)', inkSoft: 'var(--text-secondary)', body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)', mutedSoft: '#8b95a8',
   success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
   critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
@@ -448,6 +448,71 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
             <ConfigRow label="Secret"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(agentAuthJson.agent_task_key_secret || '-')}</span></ConfigRow>
           </div>
         )}
+      </SectionCard>
+
+      <SectionCard title="当前使用 Key">
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <ConfigRow label="Key 类型">
+            <span style={{ fontFamily: MONO, fontSize: '12px' }}>
+              {String((detail as any).key_type || (Object.keys(agentAuthJson).length > 0 ? 'wsk' : 'sk') || '-')}
+            </span>
+          </ConfigRow>
+          <Divider />
+          <ConfigRow label="模型来源">
+            <span style={{ fontFamily: MONO, fontSize: '12px' }}>
+              {String((detail as any).model_source || (Object.keys(agentAuthJson).length > 0 ? 'gateway' : 'config_center') || '-')}
+            </span>
+          </ConfigRow>
+          {(() => {
+            const sm = (detail as any).selected_models;
+            if (!sm) return null;
+            return (<>
+              <Divider />
+              <ConfigRow label="选定模型">
+                <span style={{ fontFamily: MONO, fontSize: '12px' }}>
+                  {['worker', 'reader', 'judge'].map((r) => sm[r] ? `${r}=${sm[r]}` : null).filter(Boolean).join('  ') || '-'}
+                </span>
+              </ConfigRow>
+            </>);
+          })()}
+          {(() => {
+            // 完整 key 信息：wsk 显示 id/name/prefix/secret/source；sk 显示模型配置中心解析的实际 apiKey
+            const ki = (detail as any).key_info;
+            if (!ki) return null;
+            if (ki.type === 'wsk' || ki.secret) {
+              return (<>
+                <Divider />
+                <ConfigRow label="Key ID"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(ki.id || '-')}</span></ConfigRow>
+                <Divider />
+                <ConfigRow label="名称">{String(ki.name || '-')}</ConfigRow>
+                <Divider />
+                <ConfigRow label="前缀">{String(ki.prefix || '-')}</ConfigRow>
+                <Divider />
+                <ConfigRow label="来源">{String(ki.source || '-')}</ConfigRow>
+                <Divider />
+                <ConfigRow label="Secret"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(ki.secret || '-')}</span></ConfigRow>
+              </>);
+            }
+            const sks: any[] = Array.isArray(ki.sk_keys) ? ki.sk_keys : [];
+            if (sks.length === 0) return null;
+            return (<>
+              {sks.map((sk, idx) => (
+                <React.Fragment key={idx}>
+                  <Divider />
+                  <ConfigRow label={`Provider (${sk.provider})`}>
+                    <span style={{ fontFamily: MONO, fontSize: '12px' }}>
+                      baseUrl={String(sk.base_url || '-')} models={(sk.models || []).join(',')}
+                    </span>
+                  </ConfigRow>
+                  <Divider />
+                  <ConfigRow label={`API Key (${sk.provider})`}>
+                    <span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(sk.api_key || '-')}</span>
+                  </ConfigRow>
+                </React.Fragment>
+              ))}
+            </>);
+          })()}
+        </div>
       </SectionCard>
 
       <SectionCard title="角色配置">

@@ -354,6 +354,7 @@ const emptyForm = {
   source_path: '',   // 源码根目录
   output_path: '',
   task_description: '',
+  model: '',         // 任务级模型（从模型配置中心选；缺省继承全局 auto）
 };
 
 const SORT_OPTIONS = [
@@ -453,6 +454,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
 
   const [form, setForm] = useState(emptyForm);
   const [availableModules, setAvailableModules] = useState<string[]>([]);
+  const [availableProviders, setAvailableProviders] = useState<Array<{ provider_key: string; model: string; id?: string; name?: string }>>([]);
+  const [loadingProviders, setLoadingProviders] = useState(false);
   const [loadingModules, setLoadingModules] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<'input' | 'source' | 'output'>('input');
@@ -712,6 +715,21 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     }
   };
 
+  const loadProviders = useCallback(async () => {
+    setLoadingProviders(true);
+    try {
+      const resp = await appApi.listProviders();
+      const items = (resp.items || []).filter((p) => p.enabled !== false && p.model);
+      setAvailableProviders(items.map((p) => ({ provider_key: p.provider_key, model: p.model, id: p.id, name: p.name })));
+    } catch {
+      setAvailableProviders([]);
+    } finally {
+      setLoadingProviders(false);
+    }
+  }, [appApi]);
+
+  useEffect(() => { if (createModalOpen) void loadProviders(); }, [createModalOpen, loadProviders]);
+
   const handleSaPathChange = (value: string) => {
     setForm((prev) => ({ ...prev, input_path: value, module_name: '' }));
     void loadModulesForPath(value);
@@ -734,6 +752,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
         source_path: form.source_path.trim() || undefined,
         output_path: form.output_path.trim() || undefined,
         task_description: form.task_description.trim() || undefined,
+        model: form.model.trim() || undefined,
       });
       notify(`任务创建成功: ${resp.task_id}`, 'success');
       setForm({ ...emptyForm });
@@ -1800,7 +1819,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               <RefreshCw size={14} />
             </button>
             <button
-              onClick={() => { setCreateModalOpen(true); setAvailableModules([]); setForm({ ...emptyForm, output_path: `/data/files/${projectId}/app/chimera-app-entry-analyse` }); }}
+              onClick={() => { setCreateModalOpen(true); setAvailableModules([]); setForm({ ...emptyForm, output_path: `/data/files/${projectId}/app/chimera-app-entry-analyse` }); void loadProviders(); }}
               className="inline-flex items-center gap-1.5 rounded-lg bg-theme-surface px-3 py-1.5 text-xs font-semibold text-white hover:bg-theme-elevated"
             >
               <Plus size={13} />新建任务
@@ -2249,6 +2268,28 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                   onChange={(e) => setForm((p) => ({ ...p, task_description: e.target.value }))}
                   placeholder="简要说明分析目标或背景"
                 />
+              </label>
+
+              {/* 模型选择（手动任务：模型配置中心的模型，SK 自动取 provider apiKey，无需输入） */}
+              <label className="form-label">
+                <span className="flex items-center gap-2">
+                  分析模型 <span className="text-theme-text-muted text-xs">(可选，缺省继承全局 gaiasec/auto；手动任务只能使用模型配置中心的模型)</span>
+                  {loadingProviders ? <Loader2 size={12} className="animate-spin text-violet-500" /> : null}
+                </span>
+                <select
+                  className="form-select mt-1 w-full font-mono disabled:opacity-50"
+                  value={form.model}
+                  onChange={(e) => setForm((p) => ({ ...p, model: e.target.value }))}
+                  disabled={loadingProviders || availableProviders.length === 0}
+                >
+                  <option value="">-- 继承全局默认 (gaiasec/auto) --</option>
+                  {availableProviders.map((p) => (
+                    <option key={`${p.provider_key}/${p.model}`} value={`${p.provider_key}/${p.model}`}>
+                      {p.provider_key}/{p.model}
+                    </option>
+                  ))}
+                </select>
+                <span className="mt-1 block text-xs text-theme-text-muted">密钥(SK)由模型配置中心自动匹配所选 Provider，无需手动输入。</span>
               </label>
 
               <button

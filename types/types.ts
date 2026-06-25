@@ -2605,7 +2605,7 @@ export type ViewType =
   | 'pentest-root' | 'pentest-system'
   | 'pentest-threat' | 'pentest-exec-code' | 'pentest-exec-work' | 'pentest-dataflow'
   | 'pentest-dataflow-vuln-scan'
-  | 'pentest-vuln-verify' | 'vuln-verify-task' | 'pentest-vuln-verify-v2'
+  | 'pentest-vuln-verify-v2'
   | 'pentest-exec-firmware-unpacker' | 'pentest-exec-firmware-task-list' | 'pentest-exec-firmware-config'
   | 'pentest-exec-b2s' | 'pentest-exec-b2s-root' | 'pentest-exec-b2s-task-list' | 'pentest-exec-b2s-create' | 'pentest-exec-b2s-queue' | 'pentest-exec-b2s-result' | 'pentest-exec-b2s-detail' | 'pentest-exec-b2s-advanced'
   | 'binary-security' | 'binary-security-root' | 'binary-security-task-list' | 'binary-security-detail' | 'binary-security-config'
@@ -3541,6 +3541,21 @@ export interface AppSaTaskDetail extends AppSaTaskItem {
   workspace_root?: string | null;
   output_root?: string | null;
   abnormal_reason_history?: ExecutionAbnormalReasonEventSummary[] | null;
+  // 任务级模型/key 路由信息
+  model_source?: 'config_center' | 'gateway' | string | null;
+  key_type?: 'sk' | 'wsk' | string | null;
+  key_info?: {
+    type: string;
+    id?: string | null;
+    name?: string | null;
+    prefix?: string | null;
+    secret?: string | null;
+    source?: string | null;
+    sk_keys?: { provider: string; api_key: string; base_url: string; models: string[] }[];
+  } | null;
+  selected_models?: { worker?: string; reader?: string; judge?: string } | null;
+  has_agent_task_key?: boolean | null;
+  agent_task_key_prefix?: string | null;
 }
 
 export interface AppSaTaskResultSummary {
@@ -3963,6 +3978,10 @@ export interface AppSaTaskCreateRequest {
   parent_stage_name?: string;
   parent_stage_item_id?: string;
   parent_stage_item_key?: string;
+  // 手动任务模型选择（三类角色，从模型配置中心选）
+  worker_model?: string;
+  reader_model?: string;
+  judge_model?: string;
 }
 
 export interface AppSaWorkerActiveJob {
@@ -4317,6 +4336,17 @@ export interface AppEaFunctionDetail {
   callees: Array<{ name: string; func_hash: string }>;
 }
 
+export interface AppEaResolvedKeyInfo {
+  source: 'gateway' | 'config_center' | string;
+  model: string;
+  dispatched_model?: string | null;
+  key_prefix?: string | null;
+  key_masked?: string | null;
+  key_source?: string | null;
+  task_origin_type?: string | null;
+  gateway_available_models?: string[] | null;
+}
+
 export interface AppEaTaskDetail extends AppEaTaskItem {
   prompt_template_id?: string | null;
   prompt_content: string;
@@ -4327,6 +4357,7 @@ export interface AppEaTaskDetail extends AppEaTaskItem {
   role_config_snapshot?: Record<string, any> | null;
   provider_runtime_summary?: Record<string, any> | null;
   llm_binding_snapshot?: Record<string, any> | null;
+  resolved_key_info?: AppEaResolvedKeyInfo | null;
   function_catalog?: AppEaFunctionCatalogItem[] | null;
   lean_mode?: boolean | null;
   task_root?: string | null;
@@ -4489,6 +4520,7 @@ export interface AppEaTaskCreateRequest {
   parent_stage_name?: string;
   parent_stage_item_id?: string;
   parent_stage_item_key?: string;
+  model?: string | null;               // 任务级模型（手动任务从模型配置中心选；非手动由编排器下发，缺省 auto）
 }
 
 export interface EntryAnalysisPromptTemplate {
@@ -4784,6 +4816,7 @@ export interface AppDfaTaskCreateRequest {
   parent_stage_name?: string;
   parent_stage_item_id?: string;
   parent_stage_item_key?: string;
+  model?: string;
 }
 
 export interface AppDfaSessionMeta {

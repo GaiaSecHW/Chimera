@@ -84,6 +84,7 @@ export interface BinarySecurityRootTaskKeySnapshot {
   name?: string | null;
   prefix?: string | null;
   source?: string | null;
+  value?: string | null;
   has_secret: boolean;
   used: boolean;
 }
@@ -98,6 +99,7 @@ export interface BinarySecurityWorkKeySnapshot {
   agent_task_key_name?: string | null;
   agent_task_key_prefix?: string | null;
   agent_task_key_source?: string | null;
+  value?: string | null;
   has_secret: boolean;
   created_at?: string | null;
 }

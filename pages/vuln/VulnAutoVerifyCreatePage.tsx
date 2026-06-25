@@ -38,7 +38,7 @@ const LK = {
   border: 'var(--border-default)',
   borderSoft: 'var(--border-default)',
   ink: 'var(--text-primary)',
-  inkSoft: 'var(--text-primary)',
+  inkSoft: 'var(--text-secondary)',
   body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)',
   mutedSoft: '#8b95a8',
@@ -217,7 +217,7 @@ export const VulnAutoVerifyCreatePage: React.FC<VulnAutoVerifyCreatePageProps> =
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => onNavigateToView?.('pentest-vuln-verify')}
+                onClick={() => onNavigateToView?.('pentest-vuln-verify-v2')}
                 className="rounded-lg px-4 py-2 text-xs font-semibold transition-colors"
                 style={{ backgroundColor: LK.success, color: '#ffffff' }}
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3aa060')}

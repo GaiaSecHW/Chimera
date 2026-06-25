@@ -19,6 +19,14 @@ export interface SystemAnalysisTaskFormState {
   filter_engine: 'script' | 'agent';
   enable_final_check_mode: 'inherit' | 'enabled' | 'disabled';
   continue_on_module_failure_mode: 'inherit' | 'enabled' | 'disabled';
+  worker_model: string;
+  reader_model: string;
+  judge_model: string;
+}
+
+export interface SystemAnalysisModelOption {
+  value: string;   // "provider_key/model_id"
+  label: string;
 }
 
 const SOURCE_MODE_DEFAULT_TARGETS = ['source', 'script', 'config'];
@@ -64,6 +72,9 @@ export function buildDefaultSystemAnalysisTaskForm(projectId: string): SystemAna
     filter_engine: 'script',
     enable_final_check_mode: 'inherit',
     continue_on_module_failure_mode: 'inherit',
+    worker_model: '',
+    reader_model: '',
+    judge_model: '',
   };
 }
 
@@ -88,6 +99,9 @@ export function buildCloneFormFromTask(detail: AppSaTaskDetail, projectId: strin
     continue_on_module_failure_mode: typeof config.continue_on_module_failure === 'boolean'
       ? (config.continue_on_module_failure ? 'enabled' : 'disabled')
       : 'inherit',
+    worker_model: detail.selected_models?.worker || '',
+    reader_model: detail.selected_models?.reader || '',
+    judge_model: detail.selected_models?.judge || '',
   };
 }
 
@@ -155,6 +169,29 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
     };
   }, [appApi, isOpen, loadProjectDefaultsOnOpen, projectId]);
 
+  // 拉取模型配置中心可选模型（手动任务用，sk）
+  const [modelOptions, setModelOptions] = useState<SystemAnalysisModelOption[]>([]);
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    appApi.getModels()
+      .then((cfg) => {
+        if (cancelled) return;
+        const opts: SystemAnalysisModelOption[] = [];
+        const providers = cfg.providers || {};
+        for (const [pkey, pcfg] of Object.entries(providers)) {
+          for (const m of (pcfg.models || [])) {
+            const mid = String(m.id || '').trim();
+            if (!mid) continue;
+            opts.push({ value: `${pkey}/${mid}`, label: `${pkey}/${mid}` });
+          }
+        }
+        setModelOptions(opts);
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [appApi, isOpen]);
+
   const canSubmit = useMemo(
     () => Boolean(form.task_name.trim() && form.input_path.trim() && form.output_path.trim()),
     [form.input_path, form.output_path, form.task_name],
@@ -194,6 +231,9 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
         continue_on_module_failure: form.continue_on_module_failure_mode === 'inherit'
           ? undefined
           : form.continue_on_module_failure_mode === 'enabled',
+        worker_model: form.worker_model.trim() || undefined,
+        reader_model: form.reader_model.trim() || undefined,
+        judge_model: form.judge_model.trim() || undefined,
       });
       await onCreated(resp);
     } catch (err: any) {
@@ -454,6 +494,33 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
               <p className="mt-1.5 text-xs leading-relaxed text-theme-text-muted">
                 智能体驱动会直接替代脚本过滤与 S1 粗分类，复用 classify 模型，失败后自动回退脚本路径。
               </p>
+            </div>
+
+            <div>
+              <p className="mb-1.5 text-xs text-theme-text-muted">
+                模型选择 <span className="text-theme-text-muted">(手动任务使用模型配置中心，sk 认证；不选则继承服务默认)</span>
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { key: 'worker_model', label: 'Worker' },
+                  { key: 'reader_model', label: 'Reader' },
+                  { key: 'judge_model', label: 'Judge' },
+                ] as const).map(({ key, label }) => (
+                  <div key={key}>
+                    <label className="mb-1 block text-[11px] font-semibold text-theme-text-muted">{label}</label>
+                    <select
+                      value={form[key]}
+                      onChange={(e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))}
+                      className="w-full rounded-lg border border-theme-border bg-theme-elevated px-2.5 py-1.5 text-xs text-theme-text focus:border-rose-400 focus:outline-none"
+                    >
+                      <option value="">继承默认</option>
+                      {modelOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div>

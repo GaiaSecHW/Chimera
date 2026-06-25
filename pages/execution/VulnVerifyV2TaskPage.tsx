@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Ban, CheckCircle2, CircleHelp, Clock3, Loader2, PanelRightClose, RefreshCw, RotateCcw, Search, XCircle } from 'lucide-react';
+import { AlertTriangle, Ban, CheckCircle2, CircleHelp, Clock3, Loader2, PanelRightClose, RefreshCw, RotateCcw, Search, X, XCircle } from 'lucide-react';
 import { vulnVerifyV2Api, VulnVerifyV2Attempt, VulnVerifyV2ProjectStats, VulnVerifyV2Result, VulnVerifyV2Task, VulnVerifyV2TaskDetail } from '../../clients/vulnVerifyV2';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { PageHeader } from '../../design-system';
@@ -57,8 +57,9 @@ function fmtDurationMs(ms: number): string {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  if (hours > 0) return `${hours}小时${minutes}分${seconds}秒`;
-  if (minutes > 0) return `${minutes}分${seconds}秒`;
+  const pad2 = (n: number) => String(n).padStart(2, '0');
+  if (hours > 0) return `${hours}小时${pad2(minutes)}分`;
+  if (minutes > 0) return `${minutes}分${pad2(seconds)}秒`;
   return `${seconds}秒`;
 }
 
@@ -88,7 +89,7 @@ const VerdictBadge: React.FC<{ verdict?: string | null }> = ({ verdict }) => {
   const item = outcomeBadge(undefined, verdict);
   const Icon = item.Icon;
   return (
-    <span className={`inline-flex w-auto items-center gap-1.5 rounded-full border py-1.5 pl-3 pr-4 text-[13px] ${item.fontCls || 'font-semibold'} ${item.boxCls}`}>
+    <span className={`inline-flex w-auto items-center gap-1.5 rounded-full py-1.5 pl-3 pr-4 text-[13px] ${item.fontCls || 'font-semibold'} ${item.boxCls}`}>
       {Icon ? <Icon size={16} strokeWidth={2.2} className={`shrink-0 ${item.iconCls}`} /> : null}
       <span className={item.iconCls}>{item.label}</span>
     </span>
@@ -105,19 +106,20 @@ const StatusBadge: React.FC<{ status?: string }> = ({ status }) => (
 function outcomeBadge(status?: string, verdict?: string | null): { label: string; iconCls: string; boxCls: string; fontCls?: string; plain?: boolean; iconOnly?: boolean; Icon?: React.ElementType; loading?: boolean } {
   if (status === 'running') return { label: '验证中', iconCls: 'text-emerald-300', boxCls: '', iconOnly: true, loading: true };
   if (status === 'pending') return { label: '等待中', iconCls: 'text-theme-text-faint', boxCls: '', fontCls: 'font-normal', plain: true, iconOnly: true, Icon: Clock3 };
-  if (status === 'failed') return { label: '验证失败', iconCls: 'text-rose-400', boxCls: 'border-rose-500/10 bg-rose-500/20', Icon: XCircle };
-  if (status === 'cancelled') return { label: '已取消', iconCls: 'text-amber-400', boxCls: 'border-amber-500/10 bg-amber-500/20', Icon: Ban };
-  if (verdict === 'confirmed') return { label: '已确认', iconCls: 'text-rose-400', boxCls: 'border-rose-500/10 bg-rose-500/20', Icon: AlertTriangle };
-  if (verdict === 'ruled_out') return { label: '已排除', iconCls: 'text-sky-400', boxCls: 'border-sky-500/10 bg-sky-500/20', Icon: CheckCircle2 };
-  if (verdict === 'unresolved') return { label: '不可证', iconCls: 'text-amber-400', boxCls: 'border-amber-500/10 bg-amber-500/20', Icon: CircleHelp };
+  if (status === 'failed') return { label: '验证失败', iconCls: 'text-rose-400', boxCls: 'border border-white/5 bg-rose-500/20', Icon: XCircle };
+  if (status === 'cancelled') return { label: '已取消', iconCls: 'text-amber-400', boxCls: 'border border-white/5 bg-amber-500/20', Icon: Ban };
+  if (verdict === 'confirmed') return { label: '已确认', iconCls: 'text-rose-400', boxCls: 'border border-white/5 bg-rose-500/20', Icon: AlertTriangle };
+  if (verdict === 'ruled_out') return { label: '已排除', iconCls: 'text-sky-400', boxCls: 'border border-white/5 bg-sky-500/20', Icon: CheckCircle2 };
+  if (verdict === 'unresolved') return { label: '不可证', iconCls: 'text-amber-400', boxCls: 'border border-white/5 bg-amber-500/20', Icon: CircleHelp };
   return { label: '未产出结果', iconCls: 'text-theme-text-muted', boxCls: 'border-theme-border bg-theme-elevated', Icon: CircleHelp };
 }
 
 const OutcomePill: React.FC<{ item: ReturnType<typeof outcomeBadge>; size?: 'normal' | 'sm' }> = ({ item, size = 'normal' }) => {
   const Icon = item.Icon;
   const isSm = size === 'sm';
+  const boxCls = item.boxCls;
   return (
-    <span className={`inline-flex w-auto items-center ${item.iconOnly ? `justify-center ${isSm ? 'px-2 py-1' : 'px-2.5 py-1.5'}` : `${isSm ? 'gap-1.5 py-1 pl-2 pr-3' : 'gap-1.5 pl-3 pr-4 py-1.5'} rounded-full border ${item.boxCls}`} ${isSm ? 'text-xs' : 'text-[13px]'} ${item.fontCls || 'font-semibold'}`}>
+    <span className={`inline-flex w-auto items-center ${item.iconOnly ? `justify-center ${isSm ? 'px-2 py-1' : 'px-2.5 py-1.5'}` : `${isSm ? 'gap-1.5 py-1 pl-2 pr-3' : 'gap-1.5 pl-3 pr-4 py-1.5'} rounded-full ${boxCls}`} ${isSm ? 'text-xs' : 'text-[13px]'} ${item.fontCls || 'font-semibold'}`}>
       {item.loading ? (
         <Loader2 size={isSm ? 14 : 18} strokeWidth={isSm ? 2.5 : 2.8} className={`shrink-0 animate-spin ${item.iconCls}`} />
       ) : Icon ? (
@@ -134,7 +136,7 @@ const TaskOutcomeBadge: React.FC<{ status?: string; verdict?: string | null }> =
 
 const AttemptStatusBadge: React.FC<{ status?: string }> = ({ status }) => {
   if (status === 'success') {
-    return <OutcomePill size="sm" item={{ label: '成功', iconCls: 'text-emerald-400', boxCls: 'border-emerald-500/10 bg-emerald-500/20', Icon: CheckCircle2 }} />;
+    return <OutcomePill size="sm" item={{ label: '成功', iconCls: 'text-emerald-400', boxCls: 'border border-white/5 bg-emerald-500/20', Icon: CheckCircle2 }} />;
   }
   return <OutcomePill size="sm" item={outcomeBadge(status, null)} />;
 };
@@ -192,7 +194,7 @@ const TaskDecisionEvidence: React.FC<{ task: VulnVerifyV2Task }> = ({ task }) =>
 const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'emerald' | 'sky' | 'rose' | 'amber' | 'slate'; Icon?: React.ElementType }> = ({ label, value, hint, accent = 'slate', Icon }) => {
   const color = accent === 'emerald' ? 'text-emerald-400' : accent === 'sky' ? 'text-sky-400' : accent === 'rose' ? 'text-rose-400' : accent === 'amber' ? 'text-amber-400' : 'text-theme-text-primary';
   return (
-    <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
+    <div className="border border-theme-border bg-theme-elevated p-4">
       <div className={`inline-flex items-center gap-1.5 text-[13px] font-medium ${color}`}>
         {Icon ? <Icon size={13} strokeWidth={2.1} className="shrink-0" /> : null}
         <span>{label}</span>
@@ -230,9 +232,9 @@ const DimensionCard: React.FC<{ dimKey: string; status?: boolean | null; detail?
   const statusCls = statusTone.cls;
   const StatusIcon = statusTone.Icon;
   return (
-    <div className="grid grid-cols-[minmax(124px,148px)_minmax(0,1fr)] items-start gap-2 py-3">
+    <div className="grid grid-cols-[minmax(156px,188px)_minmax(0,1fr)] items-start gap-3 py-3">
       <div className="flex min-w-0 items-start gap-2">
-        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-theme-surface ${statusCls}`} title={statusTone.label}>
+        <div className={`flex h-8 w-8 shrink-0 items-center justify-center ${statusCls}`} title={statusTone.label}>
           <StatusIcon size={16} strokeWidth={2.1} />
         </div>
         <div className={`min-w-0 truncate pt-1 text-[15px] font-semibold leading-6 ${statusCls}`}>{conclusion}</div>
@@ -301,6 +303,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const [message, setMessage] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [verdictFilter, setVerdictFilter] = useState('');
+  const [resultFilter, setResultFilter] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState<number>(50);
@@ -316,16 +319,44 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const pageStart = total === 0 ? 0 : offset + 1;
   const pageEnd = total === 0 ? 0 : Math.min(total, offset + tasks.length);
+  const resultFilterValue = resultFilter;
+
+  const handleResultFilterChange = useCallback((value: string) => {
+    setPage(1);
+    setResultFilter(value);
+    if (!value) {
+      setStatusFilter('');
+      setVerdictFilter('');
+      return;
+    }
+    if (value === 'other') {
+      setStatusFilter('failed');
+      setVerdictFilter('');
+      return;
+    }
+    const [kind, actualValue] = value.split(':', 2);
+    if (kind === 'status') {
+      setStatusFilter(actualValue || '');
+      setVerdictFilter('');
+      return;
+    }
+    if (kind === 'verdict') {
+      setStatusFilter('');
+      setVerdictFilter(actualValue || '');
+    }
+  }, []);
+
 
   const loadOverview = useCallback(async () => {
     if (!projectId) return;
     setLoading(true);
     try {
+      const searchText = search.trim() || undefined;
       const [list, stat] = await Promise.all([
         vulnVerifyV2Api.listTasks(projectId, {
           status: statusFilter || undefined,
           verdict: verdictFilter || undefined,
-          search: search.trim() || undefined,
+          search: searchText,
           limit: perPage,
           offset,
         }),
@@ -340,7 +371,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
     } finally {
       setLoading(false);
     }
-  }, [projectId, statusFilter, verdictFilter, search, perPage, offset]);
+  }, [projectId, resultFilter, statusFilter, verdictFilter, search, perPage, offset]);
 
   useEffect(() => { void loadOverview(); }, [loadOverview]);
 
@@ -427,79 +458,86 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
   return (
     <div className="min-h-full bg-theme-bg-app text-theme-text-primary">
-      <div className="w-full space-y-8 px-4 lg:px-6 xl:px-8">
+      <div className="w-full space-y-8 px-4 pt-8 pb-10 lg:px-6 xl:px-8">
         {feedbackNodes}
-        <PageHeader
-          title={<ServicePageTitle title="漏洞验证 v2" version={buildVersion} />}
-          description="基于漏洞报告、代码上下文与威胁模型，由 AI 围绕代码定位、路径可达性、缓解措施和安全影响进行四维判定，产出确认漏洞、排除漏洞或不可证结论。"
-          actions={
-            <button type="button" onClick={() => void loadOverview()} className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-3.5 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">
-              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />刷新
-            </button>
-          }
-        />
-
-        {message ? <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">{message}</div> : null}
-
-        <section>
-          <div className="grid gap-5 md:grid-cols-3">
+        <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+          <PageHeader
+            className="border-b-0 pb-0"
+            title={<ServicePageTitle title={<span className="inline-flex items-baseline gap-1.5">漏洞验证<span className="text-xs font-medium text-theme-text-muted">v2</span></span>} version={buildVersion} />}
+            description="基于漏洞报告、代码上下文与威胁模型，由 AI 围绕代码定位、路径可达性、缓解措施和安全影响进行四维判定，产出确认漏洞、排除漏洞或不可证结论。"
+            actions={
+              <button type="button" onClick={() => void loadOverview()} className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-3.5 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">
+                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />刷新
+              </button>
+            }
+          />
+          <div className="mt-6 grid gap-5 md:grid-cols-3">
             <SummaryCard label="已确认" value={confirmedVulns} accent="rose" Icon={AlertTriangle} hint="确认存在真实漏洞风险" />
             <SummaryCard label="已排除" value={ruledOutVulns} accent="sky" Icon={CheckCircle2} hint="验证后排除漏洞风险" />
             <SummaryCard label="不可证" value={unresolvedVulns} accent="amber" Icon={CircleHelp} hint="现有证据不足以判定" />
           </div>
         </section>
 
+        {message ? <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">{message}</div> : null}
+
         <div className="grid grid-cols-1 gap-4">
           {/* 列表 */}
           <section>
             <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
-              <div className="mb-5 flex flex-wrap items-center gap-3">
-                <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="form-select">
-                <option value="">全部状态</option>
-                <option value="pending">等待中</option>
-                <option value="running">执行中</option>
-                <option value="success">成功</option>
-                <option value="failed">失败</option>
-                <option value="cancelled">已取消</option>
-              </select>
-              <select value={verdictFilter} onChange={(e) => { setVerdictFilter(e.target.value); setPage(1); }} className="form-select">
-                <option value="">全部结果</option>
-                <option value="confirmed">确认漏洞</option>
-                <option value="ruled_out">排除漏洞</option>
-                <option value="unresolved">不可证</option>
-                <option value="no_result">未产出结果</option>
-              </select>
-              <label className="flex items-center gap-2 text-xs text-theme-text-muted">
-                <span>每页</span>
-                <select
-                  value={perPage}
-                  onChange={(e) => {
-                    const next = Number(e.target.value) || 50;
-                    setPerPage(next);
-                    setPage(1);
-                  }}
-                  className="form-select"
-                >
-                  {PAGE_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}
-                </select>
-              </label>
-              <div className="relative min-w-[220px] flex-1">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" />
-                <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索漏洞 ID / 任务名" className="form-input w-full py-2 pl-9 pr-3 text-sm text-theme-text-primary" />
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative min-w-[260px] flex-1">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" />
+                  <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索标题 / ID" className="form-input h-10 w-full py-2 pl-9 pr-9 text-sm text-theme-text-primary" />
+                  {search ? (
+                    <button
+                      type="button"
+                      onClick={() => { setSearch(''); setPage(1); }}
+                      className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-primary"
+                      aria-label="清空搜索"
+                      title="清空搜索"
+                    >
+                      <X size={14} strokeWidth={2.2} />
+                    </button>
+                  ) : null}
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0" role="group" aria-label="验证结果筛选">
+                  {[
+                    { label: '全部', value: '' },
+                    { label: '已确认', value: 'verdict:confirmed' },
+                    { label: '已排除', value: 'verdict:ruled_out' },
+                    { label: '不可证', value: 'verdict:unresolved' },
+                    { label: '执行中', value: 'status:running' },
+                    { label: '等待中', value: 'status:pending' },
+                    { label: '其他', value: 'other' },
+                  ].map((option) => {
+                    const active = resultFilterValue === option.value;
+                    const activeCls = 'border-blue-600 bg-blue-600 text-white';
+                    return (
+                      <button
+                        key={option.value || 'all'}
+                        type="button"
+                        onClick={() => handleResultFilterChange(option.value)}
+                        className={`shrink-0 rounded-lg border px-3 py-1.5 text-[13px] font-medium transition ${active ? activeCls : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated hover:text-theme-text-primary'}`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            <div className="overflow-hidden rounded-xl border border-theme-border bg-theme-surface">
+            <div className="overflow-hidden bg-theme-surface">
               <div className="hidden border-b border-theme-border bg-theme-elevated/80 px-4 py-3 text-xs font-medium text-theme-text-muted lg:grid lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px] lg:gap-4">
                 <div>漏洞标题 / ID</div>
                 <div className="text-center">验证结果</div>
                 <div className="lg:pl-5">判定依据</div>
-                <div>耗时</div>
+                <div className="text-center">耗时</div>
               </div>
               <div className="divide-y divide-theme-border">
                 {tasks.map((task) => {
                   const runtime = task.runtime;
                   const isSel = selectedTaskId === task.id;
+                  const showRuntime = task.verdict === 'confirmed' || task.verdict === 'ruled_out' || task.verdict === 'unresolved';
                   return (
                     <button
                       key={task.id}
@@ -519,9 +557,9 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                         <div className="mb-1 text-xs font-medium text-theme-text-muted lg:hidden">判定依据</div>
                         <TaskDecisionEvidence task={task} />
                       </div>
-                      <div className="flex items-center gap-2 text-xs">
+                      <div className="flex items-center gap-2 text-xs lg:justify-end">
                         <span className="text-xs font-medium text-theme-text-muted lg:hidden">耗时</span>
-                        <span className="font-mono text-[13px] font-normal text-theme-text-secondary">{fmtRuntime(runtime)}</span>
+                        <span className="text-[13px] font-normal text-theme-text-secondary lg:text-right">{showRuntime ? fmtRuntime(runtime) : '-'}</span>
                       </div>
                     </button>
                   );
@@ -532,9 +570,23 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               </div>
             </div>
 
-              <div className="mt-4 flex items-center justify-between text-sm text-theme-text-muted">
-                <span>第 {page}/{totalPages} 页 · 每页 {perPage} 条 · {pageStart}-{pageEnd} / {total}</span>
-                <div className="flex gap-2">
+              <div className="mt-4 flex flex-col gap-3 text-xs text-theme-text-muted sm:flex-row sm:items-center sm:justify-between">
+                <span>第 {page}/{totalPages} 页 · {pageStart}-{pageEnd} / {total}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="flex items-center gap-2">
+                    <span>每页</span>
+                    <select
+                      value={perPage}
+                      onChange={(e) => {
+                        const next = Number(e.target.value) || 50;
+                        setPerPage(next);
+                        setPage(1);
+                      }}
+                      className="form-select h-8 py-1 text-xs"
+                    >
+                      {PAGE_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}
+                    </select>
+                  </label>
                   <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="rounded-lg border border-theme-border px-3 py-1 disabled:opacity-40">上一页</button>
                   <button disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="rounded-lg border border-theme-border px-3 py-1 disabled:opacity-40">下一页</button>
                 </div>
@@ -600,7 +652,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
                   {/* 根因摘要 */}
                   <section>
-                    <div className="mb-3 text-[15px] font-medium text-theme-text-muted">根因摘要</div>
+                    <div className="mb-3 text-[15px] font-medium text-theme-text-primary">根因摘要</div>
                     <div className="rounded-2xl border border-theme-border bg-theme-elevated p-5">
                       <p className="whitespace-pre-wrap text-[13px] font-normal leading-6 text-theme-text-primary">
                         {String(detailRaw.root_cause_summary || '-')}
@@ -610,7 +662,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
                   {/* 四维判定 */}
                   <section>
-                    <div className="mb-3 text-[15px] font-medium text-theme-text-muted">四维判定</div>
+                    <div className="mb-3 text-[15px] font-medium text-theme-text-primary">四维判定</div>
                     <div className="rounded-2xl border border-theme-border bg-theme-elevated px-7 py-3 lg:px-8">
                       <div className="divide-y divide-theme-border/70">
                         {DIMENSION_KEYS.map((key) => {
@@ -623,7 +675,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
                   {/* 时间线 */}
                   <section>
-                    <div className="mb-3 text-[15px] font-medium text-theme-text-muted">时间线</div>
+                    <div className="mb-3 text-[15px] font-medium text-theme-text-primary">时间线</div>
                     <div className="rounded-2xl border border-theme-border bg-theme-elevated p-5">
                       <AttemptTimeline attempts={detailAttempts} />
                     </div>

@@ -53,7 +53,9 @@ export interface CodemapServeResponse {
 // 待办不计算):total 当前 kind/module 过滤下的源点条数 / attack_entries 攻击入口数
 // (basic 判 YES 或拓扑提升顶,减折叠/人工否决,加人工确认)。scale:图规模指标
 // (静态分析/修复阶段的真实产物,与入口数无关):functions 函数节点数 /
-// files 文件节点数 / repaired_edges LLM 修复新建的 CALLS 边数。
+// files 文件节点数 / repaired_edges LLM 修复新建的 CALLS 边数 /
+// repair_total 调用链修复进度分母(T1-T5 函数全集,排除 T6/excluded)/
+// repair_done 已完成修复函数(complete + partial_complete,至少跑过一轮)。
 export interface CodemapAuditSources {
   db_name: string;
   graph_status: string;
@@ -65,6 +67,8 @@ export interface CodemapAuditSources {
     functions: number;
     files: number;
     repaired_edges: number;
+    repair_total?: number;
+    repair_done?: number;
   };
   total: number;
 }

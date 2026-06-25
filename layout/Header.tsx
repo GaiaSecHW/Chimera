@@ -236,13 +236,16 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex items-center justify-end gap-3 min-w-0">
-          <div className="relative min-w-0 max-w-[18rem]" ref={projectDropdownRef}>
+          <div className="relative min-w-0 max-w-[15rem]" ref={projectDropdownRef}>
             <button
               onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-              className="flex items-center gap-2.5 px-1.5 py-1.5 rounded-xl text-sm font-medium head-tab-hover"
+              className="flex items-center gap-2 px-1.5 py-1.5 max-w-[15rem] rounded-xl text-sm font-medium head-tab-hover"
             >
               <div className="w-2 h-2 rounded-full bg-brand-primary shrink-0" />
               <span className="truncate flex-1 text-left">{currentProject.name}</span>
+              <button onClick={(e) => { e.stopPropagation(); fetchProjects(true); }} className="shrink-0 text-theme-text-faint text-theme-text-primary-hover transition-all">
+                <RotateCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
+              </button>
               <ChevronDown size={14} className="shrink-0 text-theme-text-faint" />
             </button>
             {isProjectDropdownOpen && (
@@ -271,10 +274,6 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
           </div>
-
-          <button onClick={() => fetchProjects(true)} className="p-3 text-theme-text-faint hover:text-brand-primary transition-all shrink-0">
-            <RotateCw size={20} className={isRefreshing ? 'animate-spin' : ''} />
-          </button>
 
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

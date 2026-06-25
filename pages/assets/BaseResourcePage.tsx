@@ -384,7 +384,7 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
           <table className="w-full text-left">
             <thead className="bg-theme-elevated border-b border-theme-border font-semibold text-[10px] text-theme-text-muted uppercase tracking-widest">
               <tr>
-                <th className="px-6 py-5 w-12 text-center">
+                <th className="px-6 py-5 w-12 text-theme-text-primary font-semibold text-center">
                   <button onClick={toggleSelectAll} className="p-2 hover:bg-theme-elevated rounded-lg transition-colors">
                     {selectedIds.size === filteredRecords.length && filteredRecords.length > 0 ? (
                       <CheckSquare size={18} className="text-blue-400" />
@@ -393,12 +393,12 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
                     )}
                   </button>
                 </th>
-                <th className="px-4 py-5">上传记录 / 创建时间</th>
-                <th className="px-4 py-5">状态</th>
-                <th className="px-4 py-5">上传模式 / 最近批次</th>
-                <th className="px-4 py-5">文件数 / 大小</th>
-                <th className="px-4 py-5">错误摘要</th>
-                <th className="px-8 py-5 text-right">操作</th>
+                <th className="px-4 py-5 text-theme-text-primary font-semibold">上传记录 / 创建时间</th>
+                <th className="px-4 py-5 text-theme-text-primary font-semibold">状态</th>
+                <th className="px-4 py-5 text-theme-text-primary font-semibold">上传模式 / 最近批次</th>
+                <th className="px-4 py-5 text-theme-text-primary font-semibold">文件数 / 大小</th>
+                <th className="px-4 py-5 text-theme-text-primary font-semibold">错误摘要</th>
+                <th className="px-8 py-5 text-theme-text-primary font-semibold text-right">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-theme-border">

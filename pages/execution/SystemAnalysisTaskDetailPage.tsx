@@ -12,7 +12,6 @@ import {
   GitFork,
   FolderOpen,
   Loader2,
-  PlayCircle,
   RefreshCw,
   RotateCcw,
   Search,
@@ -793,7 +792,6 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const [judgeSessionLive, setJudgeSessionLive] = useState(false);
   const judgeSessionSocketRef = useRef<WebSocket | null>(null);
   const [restarting, setRestarting] = useState(false);
-  const [resuming, setResuming] = useState(false);
   const [repairingOrigin, setRepairingOrigin] = useState(false);
   const [originEditMode, setOriginEditMode] = useState<'binary' | 'source' | null>(null);
   const [cloneModalOpen, setCloneModalOpen] = useState(false);
@@ -1470,21 +1468,6 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     }
   };
 
-  const handleResume = async () => {
-    if (!detail) return;
-    setResuming(true);
-    try {
-      await appApi.resumeTask(detail.task_id);
-      notify('已从断点继续', 'success');
-      await loadDetail();
-      if (activeTab === 'result') await loadResult();
-    } catch (err: any) {
-      notify(`断点续跑失败: ${err?.message || err}`, 'error');
-    } finally {
-      setResuming(false);
-    }
-  };
-
   const handleRepairOrigin = async () => {
     if (!detail || !originEditMode) return;
     setRepairingOrigin(true);
@@ -1958,16 +1941,6 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
               >
                 {restarting ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}
                 重新运行
-              </button>
-            ) : null}
-            {detail && detail.started_at && !['pending', 'running'].includes(detail.status) ? (
-              <button
-                onClick={() => void handleResume()}
-                disabled={resuming}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/20 bg-amber-500/15 px-3 py-2 text-xs font-semibold text-amber-400 hover:bg-amber-500/15 disabled:opacity-50"
-              >
-                {resuming ? <Loader2 size={13} className="animate-spin" /> : <PlayCircle size={13} />}
-                断点续跑
               </button>
             ) : null}
             {detail ? <DownstreamTaskCreator projectId={projectId} sourceKind="system_analysis" task={detail} /> : null}

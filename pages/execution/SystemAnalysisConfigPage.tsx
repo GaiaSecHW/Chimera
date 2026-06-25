@@ -24,7 +24,7 @@ const LK = {
   canvas: 'var(--bg-app)', surface: 'var(--bg-surface)', surfaceRaised: 'var(--bg-app)',
   surfaceGlass: 'rgba(17, 26, 43, 0.84)',
   border: 'var(--border-default)', borderSoft: 'var(--border-default)',
-  ink: 'var(--text-primary)', inkSoft: 'var(--text-primary)', body: 'var(--text-secondary)',
+  ink: 'var(--text-primary)', inkSoft: 'var(--text-secondary)', body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)', mutedSoft: '#8b95a8',
   success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
   critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
@@ -473,6 +473,76 @@ const RoleConfigBlock: React.FC<{
   </SectionCard>
 );
 
+// 三类角色模型配置（Worker/Reader/Judge），作为手动任务创建的默认模型。
+// 映射到底层 workers/judges 的 stage_models + agents[0].model。
+const WORKER_ROLE_STAGES = ['explore', 'classify', 'refine', 'analyse', 'report'];
+const READER_ROLE_STAGES = ['sub_read'];
+const JUDGE_ROLE_STAGES = ['classify', 'refine', 'analyse', 'completeness', 'report'];
+
+const ThreeRoleModelBlock: React.FC<{
+  modelOptions: string[];
+  workers: SystemAnalysisRoleConfig;
+  judges: SystemAnalysisRoleConfig;
+  saving: boolean;
+  onSave: () => void;
+  onReset: () => void;
+  onWorkersChange: (v: SystemAnalysisRoleConfig) => void;
+  onJudgesChange: (v: SystemAnalysisRoleConfig) => void;
+}> = ({ modelOptions, workers, judges, saving, onSave, onReset, onWorkersChange, onJudgesChange }) => {
+  // 从现有 stage_models 推断当前三类模型值
+  const workerModel = workers.stage_models?.explore || workers.agents?.[0]?.model || '';
+  const readerModel = workers.stage_models?.sub_read || '';
+  const judgeModel = judges.stage_models?.analyse || judges.agents?.[0]?.model || '';
+
+  const setWorker = (m: string) => {
+    const stage_models = { ...(workers.stage_models || {}) };
+    for (const s of WORKER_ROLE_STAGES) { if (m) stage_models[s] = m; else delete stage_models[s]; }
+    const agents = (workers.agents && workers.agents.length > 0)
+      ? workers.agents.map((a, i) => i === 0 ? { ...a, model: m || a.model } : a)
+      : [{ model: m, tools: null, thinking_level: null }];
+    onWorkersChange({ ...workers, stage_models, agents, default_model: m || workers.default_model });
+  };
+  const setReader = (m: string) => {
+    const stage_models = { ...(workers.stage_models || {}) };
+    if (m) stage_models.sub_read = m; else delete stage_models.sub_read;
+    onWorkersChange({ ...workers, stage_models });
+  };
+  const setJudge = (m: string) => {
+    const stage_models = { ...(judges.stage_models || {}) };
+    for (const s of JUDGE_ROLE_STAGES) { if (m) stage_models[s] = m; else delete stage_models[s]; }
+    const agents = (judges.agents && judges.agents.length > 0)
+      ? judges.agents.map((a, i) => i === 0 ? { ...a, model: m || a.model } : a)
+      : [{ model: m, tools: null, thinking_level: null }];
+    onJudgesChange({ ...judges, stage_models, agents, default_model: m || judges.default_model });
+  };
+
+  const roles: { key: string; label: string; value: string; desc: string; set: (m: string) => void }[] = [
+    { key: 'worker', label: 'Worker', value: workerModel, desc: '探索/分类/细分/分析/报告 阶段模型（核心分析）', set: setWorker },
+    { key: 'reader', label: 'Reader', value: readerModel, desc: '大文件预读 sub_read 阶段模型（信息提取）', set: setReader },
+    { key: 'judge', label: 'Judge', value: judgeModel, desc: '各阶段评审模型（复核质量）', set: setJudge },
+  ];
+
+  return (
+    <SectionCard
+      title="模型配置（三类角色）"
+      subtitle="手动任务创建的默认模型，使用模型配置中心(sk)。建任务时可选具体模型覆盖此默认。"
+      actions={(<PanelActions saving={saving} onSave={onSave} onReset={onReset} />)}
+    >
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
+        {roles.map(({ key, label, value, desc, set }) => (
+          <div key={key} style={{ borderRadius: '8px', border: `1px solid ${LK.borderSoft}`, backgroundColor: LK.surfaceRaised, padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: LK.ink }}>{label}</p>
+              <p style={{ fontSize: '12px', color: LK.muted, lineHeight: '1.5' }}>{desc}</p>
+            </div>
+            <ModelSelect value={value} options={modelOptions} allowEmpty emptyLabel="继承服务默认" onChange={set} />
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  );
+};
+
 const PanelActions: React.FC<{
   saving: boolean;
   onSave: () => void;
@@ -633,12 +703,17 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
   };
 
   useEffect(() => {
-    api.configCenter.listLlmProviders()
-      .then((res: { items?: LlmProviderSummary[] }) => {
-        const items = Array.isArray(res?.items) ? res.items : [];
-        const opts = items
-          .filter((p) => p.enabled && p.provider_key && p.model)
-          .map((p) =>`${p.provider_key}/${p.model}`);
+    // 模型选项来自模型配置中心（手动任务默认用 sk，与建任务表单一致）
+    api.domains.execution.appSystemAnalyse.getModels()
+      .then((cfg) => {
+        const providers = cfg?.providers || {};
+        const opts: string[] = [];
+        for (const [pkey, pcfg] of Object.entries(providers)) {
+          for (const m of (pcfg?.models || [])) {
+            const mid = String(m?.id || '').trim();
+            if (mid) opts.push(`${pkey}/${mid}`);
+          }
+        }
         setModelOptions(opts);
       })
       .catch(() => { /* 静默忽略，手动输入仍可用 */ });
@@ -1123,7 +1198,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                 <NumberInput value={config.agent_timeout_seconds} min={60} step={1} onChange={(v) => patch({ agent_timeout_seconds: v })} />
               </FieldRow>
               <FieldRow label="pi_max_retries" hint="-1=无限重启"
-                desc="pi Agent 进程因非 API 原因崩溃（如内存不足、信号中断）后的最大重启次数。通常设为 -1，系统会自动恢复并从上次 checkpoint 继续执行。">
+                desc="pi Agent 进程因非 API 原因崩溃（如内存不足、信号中断）后的最大重启次数。通常设为 -1，pi 进程崩溃后会自动重启并继续当前会话。">
                 <NumberInput value={config.pi_max_retries} min={-1} onChange={(v) => patch({ pi_max_retries: v })} />
               </FieldRow>
               <FieldRow label="pi_retry_delay（秒）" hint="进程崩溃后等待时间"
@@ -1293,42 +1368,22 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
             </FieldRow>
           </SectionCard>
 
-          {/* 4. Workers */}
-          <RoleConfigBlock
-            title="Workers 配置"
-            subtitle="负责执行分析任务的 Agent 角色。Worker 在每轮中调用工具（读文件、执行命令等）完成实际分析工作，结果提交给 Judge 评审。"
-            stageNames={WORKER_STAGES}
-            stageDescs={WORKER_STAGE_DESCS}
+          {/* 4. 模型配置（三类角色） */}
+          <ThreeRoleModelBlock
             modelOptions={modelOptions}
-            value={config.workers}
-            agentDesc="Worker 默认模型实例。agents[0] 的模型将作为所有未在「各阶段模型配置」中指定阶段的回退模型。通常只需配置一个实例。"
-            onChange={(v) => patch({ workers: v })}
-            actions={(
-              <PanelActions
-                saving={savingPanel === 'workers'}
-                onSave={() => { void handlePanelSave('workers', 'Workers 配置'); }}
-                onReset={() => handlePanelReset('workers', 'Workers 配置')}
-              />
-            )}
-          />
-
-          {/* 5. Judges */}
-          <RoleConfigBlock
-            title="Judges 配置"
-            subtitle="负责评审 Worker 输出质量的 Agent 角色。多个 Judge 实例会并行独立评审同一内容，按「阶段配置」中的 pass_mode 决定是否通过。"
-            stageNames={JUDGE_STAGES}
-            stageDescs={JUDGE_STAGE_DESCS}
-            modelOptions={modelOptions}
-            value={config.judges}
-            agentDesc="配置参与评审的 Judge 实例。多个实例会并行独立评审同一内容并投票；建议配置 2–3 个实例以获得稳定的多数投票效果。单实例时 majority / all 效果相同。"
-            onChange={(v) => patch({ judges: v })}
-            actions={(
-              <PanelActions
-                saving={savingPanel === 'judges'}
-                onSave={() => { void handlePanelSave('judges', 'Judges 配置'); }}
-                onReset={() => handlePanelReset('judges', 'Judges 配置')}
-              />
-            )}
+            workers={config.workers}
+            judges={config.judges}
+            saving={savingPanel === 'workers' || savingPanel === 'judges'}
+            onSave={async () => {
+              await handlePanelSave('workers', 'Worker/Reader 模型');
+              await handlePanelSave('judges', 'Judge 模型');
+            }}
+            onReset={() => {
+              handlePanelReset('workers', 'Worker/Reader 模型');
+              handlePanelReset('judges', 'Judge 模型');
+            }}
+            onWorkersChange={(v) => patch({ workers: v })}
+            onJudgesChange={(v) => patch({ judges: v })}
           />
 
           {SHOW_SYSTEM_ANALYSIS_PROMPT_CONFIG ? (

@@ -1,6 +1,5 @@
 import React from 'react';
 import { saveHomeCreateTaskMode } from '../utils/executionReturnContext';
-import '../css/homePage.css'
 
 interface HomePageProps {
   setCurrentView: (view: string) => void;
@@ -17,7 +16,7 @@ const LK = {
   border: 'var(--border-default)',
   borderSoft: 'var(--border-default)',
   ink: 'var(--text-primary)',
-  inkSoft: 'var(--text-primary)',
+  inkSoft: 'var(--text-secondary)',
   body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)',
 } as const;

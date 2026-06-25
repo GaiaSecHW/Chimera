@@ -330,8 +330,11 @@ const matchesFinalResultFilter = (item: any, filters: string[]) => {
 };
 
 const getCaseListStats = (items: any[]) => {
-  const confirmed = items.filter((item) => item.finished_reason === 'vulnerable').length;
-  const ruledOut = items.filter((item) => item.finished_reason === 'not_vulnerable' || item.finished_reason === 'non_vulnerable').length;
+  const confirmed = items.filter((item) => getEffectiveResult(item) === 'vulnerable').length;
+  const ruledOut = items.filter((item) => {
+    const effective = getEffectiveResult(item);
+    return effective === 'not_vulnerable' || effective === 'non_vulnerable';
+  }).length;
   return {
     total: items.length,
     confirmed,
@@ -1534,7 +1537,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       if (latestAutoVerifyTask?.taskId) {
         localStorage.setItem(VERIFY_OPEN_TASK_ID_KEY, latestAutoVerifyTask.taskId);
         localStorage.setItem(VERIFY_OPEN_PROJECT_ID_KEY, latestAutoVerifyTask.projectId || selectedDetail.project_id || projectId);
-        onNavigateToView?.('pentest-vuln-verify');
+        onNavigateToView?.('pentest-vuln-verify-v2');
         return;
       }
       localStorage.setItem(AUTO_VERIFY_CASE_TARGET_KEY, selectedDetail.id);
@@ -1932,7 +1935,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       <button
         type="button"
         onClick={() => handleSortChange(field)}
-        className="inline-flex items-center gap-2 text-left text-xs font-semibold uppercase tracking-wider text-theme-text-muted hover:text-theme-text-primary"
+        className="inline-flex items-center gap-2 text-left text-sm uppercase tracking-wider font-semibold text-theme-text-primary"
       >
         {label}
         <span className="inline-flex items-center gap-0.5 leading-none">
@@ -2663,7 +2666,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           ) : null}
 
           <div className="table-container">
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-theme-border-subtle">
+            <div className="flex items-center gap-3 px-4 py-3">
               <div className="relative max-w-[420px] flex-1">
                 <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" />
                 <input
@@ -2685,8 +2688,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     <ChevronDown size={14} />
                   </button>
                   {taskFilterOpen && (
-                    <div className="absolute left-0 top-full z-50 mt-2 max-h-72 w-72 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
-                      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
+                    <div className="absolute left-0 top-full z-50 mt-2 max-h-72 w-full overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
+                      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
                         <input
                           type="checkbox"
                           checked={taskFilter.length === 0}
@@ -2698,7 +2701,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       {taskOptions.map((task) => {
                         const checked = taskFilter.includes(task.id);
                         return (
-                          <label key={task.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
+                          <label key={task.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
                             <input
                               type="checkbox"
                               checked={checked}
@@ -2717,14 +2720,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     type="button"
                     onClick={() => setFinalResultFilterOpen((open) => !open)}
                     className="form-select flex items-center justify-between gap-2 text-left"
-                    style={{ width: '140px' }}
+                    style={{ width: '180px' }}
                   >
                     <span className="truncate">{selectedFinalResultLabel}</span>
                     <ChevronDown size={14} />
                   </button>
                   {finalResultFilterOpen ? (
-                    <div className="absolute left-0 top-full z-50 mt-2 max-h-72 w-56 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
-                      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
+                    <div className="absolute left-0 top-full z-50 mt-2 max-h-72 w-full overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
+                      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
                         <input
                           type="checkbox"
                           checked={finalResultFilter.length === 0}
@@ -2736,7 +2739,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       {FINAL_RESULT_OPTIONS.map((opt) => {
                         const checked = finalResultFilter.includes(opt.value);
                         return (
-                          <label key={opt.value} className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
+                          <label key={opt.value} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
                             <input
                               type="checkbox"
                               checked={checked}
@@ -2763,8 +2766,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               </button>
             </div>
 
-            <div className="space-y-4 px-5 py-4 xl:px-6">
-              <div className="overflow-hidden rounded-xl border border-theme-border">
+            <div>
+              <div className="overflow-hidden">
                   <div className={`grid ${suspectOnly ? 'grid-cols-[1.5fr_2.2fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr]' : 'grid-cols-[1.5fr_2.2fr_0.9fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr]'} gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2.5`}>
                   <div className="flex items-center justify-center hidden">
                     <input
@@ -2775,14 +2778,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       className="hidden"
                     />
                   </div>
-                  <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">任务名称</div>
+                  <div className="text-sm uppercase tracking-wider font-semibold text-theme-text-primary">任务名称</div>
                   {renderSortHeader('标题 / 摘要', 'title')}
                   {!suspectOnly ? renderSortHeader('阶段 / 状态', 'current_stage') : null}
                   {renderSortHeader('漏洞确认状态', 'conclusion')}
                   {renderSortHeader('工具', 'reporter')}
                   {renderSortHeader('更新时间', 'updated_at')}
                   {renderSortHeader('创建时间', 'created_at')}
-                  <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">操作</div>
+                  <div className="text-sm uppercase tracking-wider font-semibold text-theme-text-primary">操作</div>
                 </div>
                 {loading ? (
                   <div className="bg-theme-surface px-4 py-8 text-sm text-theme-text-faint">正在加载漏洞列表...</div>
@@ -2898,7 +2901,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-theme-border bg-theme-surface px-3 py-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-theme-border px-3 py-2.5">
                 <div className="text-xs font-semibold text-theme-text-muted">
                   当前显示 {totalFiltered === 0 ? 0 : pageStart + 1} - {Math.min(pageStart + pageSize, totalFiltered)} / {totalFiltered}
                 </div>

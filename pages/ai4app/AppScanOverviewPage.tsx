@@ -363,11 +363,11 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-theme-border text-left text-xs font-medium uppercase tracking-wider text-theme-text-muted">
-                  <th className="px-3 py-3">任务 ID</th>
-                  <th className="px-3 py-3">类型</th>
-                  <th className="px-3 py-3">状态</th>
-                  <th className="px-3 py-3">创建时间</th>
-                  <th className="px-3 py-3 text-right">操作</th>
+                  <th className="px-3 py-3 text-theme-text-primary font-semibold">任务 ID</th>
+                  <th className="px-3 py-3 text-theme-text-primary font-semibold">类型</th>
+                  <th className="px-3 py-3 text-theme-text-primary font-semibold">状态</th>
+                  <th className="px-3 py-3 text-theme-text-primary font-semibold">创建时间</th>
+                  <th className="px-3 py-3 text-theme-text-primary font-semibold text-right">操作</th>
                 </tr>
               </thead>
               <tbody>
