@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, Network, Plus, RefreshCw, X } from 'lucide-react';
+import { Loader2, Network, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { DropdownSelect } from '../../design-system';
 import { TestInputUploader, TestInputUploaderHandle } from '../../components/TestInputUploader';
@@ -164,7 +164,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId);
-  const [projectsRefreshing, setProjectsRefreshing] = useState(false);
   const [taskType, setTaskType] = useState<(typeof TASK_TYPES)[number]['value']>('source_scan_e2e');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -555,77 +554,49 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           className="min-h-0 flex-1 overflow-y-auto px-6 py-4"
         >
             <div className="flex h-full flex-col space-y-3">
-              {/* 项目选择 */}
+              {/* 项目 */}
               <div>
-                <div className="text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                  项目 <span style={{ color: LK.error }}>*</span>
-                </div>
-                <div className="mt-1 flex items-center gap-2">
-                  <DropdownSelect
-                    value={selectedProjectId}
-                    onChange={setSelectedProjectId}
-                    options={projects.map((item) => ({ value: item.id, label: item.name }))}
-                    placeholder="请选择项目"
-                    emptyText="暂无可用项目"
-                    containerClassName="flex-1"
-                  />
-                  <button
-                    type="button"
-                    title="新增项目"
-                    onClick={() => {
-                      sessionStorage.setItem('chimera:pendingNav', JSON.stringify({
-                        view: 'project-mgmt',
-                        openCreateProject: true,
-                      }));
-                      window.open(window.location.href, '_blank');
-                    }}
-                    className="shrink-0 rounded-lg p-2 transition-colors"
-                    style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primary; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
-                  >
-                    <Plus size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    title="刷新项目列表"
-                    disabled={projectsRefreshing}
-                    onClick={async () => {
-                      setProjectsRefreshing(true);
-                      try { await onRefreshProjects?.(); } catch { /* ignore */ } finally { setProjectsRefreshing(false); }
-                    }}
-                    className="shrink-0 rounded-lg p-2 transition-colors disabled:opacity-50"
-                    style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
-                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primary; } }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
-                  >
-                    <RefreshCw size={16} className={projectsRefreshing ? 'animate-spin' : ''} />
-                  </button>
-                </div>
+                {projects.length === 0 ? (
+                  <>
+                    <div className="text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                      项目 <span style={{ color: LK.error }}>*</span>
+                    </div>
+                    <div
+                      className="mt-1 rounded-lg px-4 py-3 text-sm"
+                      style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
+                    >
+                      当前没有可用项目，请先到
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sessionStorage.setItem('chimera:pendingNav', JSON.stringify({
+                            view: 'project-mgmt',
+                            openCreateProject: true,
+                          }));
+                          window.open(window.location.href, '_blank');
+                        }}
+                        className="mx-1 font-semibold underline underline-offset-2 transition-opacity hover:opacity-80"
+                        style={{ color: LK.warning }}
+                      >
+                        资产管理 → 项目管理
+                      </button>
+                      初始化项目。
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className="shrink-0 text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                      项目 <span style={{ color: LK.error }}>*</span>
+                    </div>
+                    <div className="rounded-lg px-3 py-2 text-sm font-semibold" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.ink }}>
+                      {projectName || selectedProjectId || '—'}
+                    </div>
+                    <div className="text-xs" style={{ color: LK.muted }}>
+                      如需为其他项目创建任务，请在右上角切换项目空间。
+                    </div>
+                  </div>
+                )}
               </div>
-              {projects.length === 0 ? (
-                <div
-                  className="rounded-lg px-4 py-3 text-sm"
-                  style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
-                >
-                  当前没有可用项目，请先到
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sessionStorage.setItem('chimera:pendingNav', JSON.stringify({
-                        view: 'project-mgmt',
-                        openCreateProject: true,
-                      }));
-                      window.open(window.location.href, '_blank');
-                    }}
-                    className="mx-1 font-semibold underline underline-offset-2 transition-opacity hover:opacity-80"
-                    style={{ color: LK.warning }}
-                  >
-                    资产管理 → 项目管理
-                  </button>
-                  初始化项目。
-                </div>
-              ) : null}
 
               {/* 任务名称 */}
               <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
