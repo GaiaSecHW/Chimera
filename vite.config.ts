@@ -35,6 +35,7 @@ export default defineConfig(({ mode }) => {
     // 此处不做 rewrite——剥前缀的工作交给 secocto-ui 的 serve.py / nginx 统一处理。
     const secoctoTarget = String(env.VITE_SECOCTO_TARGET || 'http://secflow.ai.icsl.huawei.com').trim();
     const secoctoAgent = new http.Agent({ keepAlive: true, maxSockets: 20, keepAliveMsecs: 3000 });
+    const cairnTarget = String(env.VITE_CAIRN_TARGET || 'http://cairn.secflow.ai.icsl.huawei.com').trim();
     return {
       // Use an absolute base in dev so HMR/module requests stay rooted at the
       // Vite server, while production builds keep relative assets for static hosting.
@@ -115,6 +116,13 @@ export default defineConfig(({ mode }) => {
             agent: secoctoAgent,
             // 不 rewrite：完整保留 /api/secocto/v1/<svc>/<path> 透传给 secocto-ui，
             // 由 secocto-ui 的 serve.py / nginx 负责按 <svc> 前缀分发到对应后端。
+          },
+          '/cairn-api': {
+            target: cairnTarget,
+            changeOrigin: true,
+            secure: false,
+            agent: keepAliveHttpAgent,
+            rewrite: (path) => path.replace(/^\/cairn-api/, ''),
           },
           '/api': {
             target: 'http://secflow.ai.icsl.huawei.com',

@@ -4,6 +4,7 @@ import { api } from '../clients/api';
 import { WorkflowPlaceholder } from '../components/WorkflowPlaceholder';
 import { AssessmentLeaderboardPage } from '../pages/assessment/AssessmentLeaderboardPage';
 import { AgentTraceObserverPage } from '../pages/observe/AgentTraceObserverPage';
+import BlackboardPage from '../pages/cairn/BlackboardPage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { HomePage } from '../pages/HomePage';
 import { ProjectMgmtPage } from '../pages/project/ProjectMgmtPage';
@@ -289,6 +290,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'developer-tools':
     case 'developer-tools-overview':
       return <ToolOverviewPage projectId={ctx.selectedProjectId} user={ctx.user} onNavigate={ctx.setCurrentView} />;
+    case 'cairn-blackboard':
+      return <BlackboardPage />;
     case 'static-packages':
       return (
         <StaticPackagesPage

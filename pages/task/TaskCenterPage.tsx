@@ -300,6 +300,14 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
     if (!confirmed) return;
     setDeleteSubmitting(true);
     try {
+      for (const taskId of taskIds) {
+        const task = filteredTasks.find((t) => t.id === taskId);
+        const desc = task?.description || '';
+        const match = desc.match(/\[黑板:cairn:([^\]]+)\]/);
+        if (match) {
+          try { await api.domains.cairn.deleteProject(match[1]); } catch { /* cairn 项目可能已删,忽略 */ }
+        }
+      }
       await scheduleApi.bulkDeleteUserTasks(projectId, { task_ids: taskIds, select_all_matching: false });
       notify('已加入删除队列', 'success');
       setSelectedTaskIds([]);

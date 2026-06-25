@@ -304,6 +304,7 @@ const DEVELOPER_TOOL_VIEWS = new Set<string>([
   'app-security-scan-monitor',
   'redline-verification',
   'redline-verification-detail',
+  'cairn-blackboard',
 ]);
 const ASSESSMENT_VIEWS = new Set([
   'pentest-exec-code',
@@ -537,6 +538,7 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
         { id: 'binary-module-security', label: '盖亚-二进制模块', icon: Settings, aliases: ['binary-module-security-detail'], requiresProject: true },
         { id: 'app-security-scan', label: 'turing 扫描工具', icon: Smartphone, aliases: ['app-security-scan-detail', 'app-security-scan-monitor'], requiresProject: true },
         { id: 'redline-verification', label: '红线验证', icon: ShieldCheck, aliases: ['redline-verification-detail'], requiresProject: true },
+        { id: 'cairn-blackboard', label: '黑板', icon: Network },
       ],
     },
   ],

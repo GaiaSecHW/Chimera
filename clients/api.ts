@@ -3,6 +3,7 @@ import { assessmentClients } from './assessment-domain';
 import { codemapManagerApi } from './codemapManager';
 import { environmentClients } from './environment-domain';
 import { executionClients } from './execution';
+import { cairnApi } from './cairn';
 import { orchestrationClients } from './orchestration';
 import { platformClients } from './platform';
 import { projectClients } from './project';
@@ -21,6 +22,7 @@ export const api = {
     platform: platformClients,
     assessment: assessmentClients,
     secocto: secoctoClients,
+    cairn: cairnApi,
   },
 
   // Legacy flat entrypoints kept for compatibility during migration.

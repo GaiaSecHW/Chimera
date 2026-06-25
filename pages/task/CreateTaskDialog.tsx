@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, Folder, FolderOpen, Loader2, Plus, RefreshCw, Square, SquareCheck, X } from 'lucide-react';
+import { ChevronRight, Folder, FolderOpen, Loader2, Network, Plus, RefreshCw, Square, SquareCheck, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { DropdownSelect } from '../../design-system';
 import { TestInputUploader, TestInputUploaderHandle } from '../../components/TestInputUploader';
@@ -189,6 +189,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [taskType, setTaskType] = useState<(typeof TASK_TYPES)[number]['value']>('source_scan_e2e');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [goalText, setGoalText] = useState('');
   const [mode, setMode] = useState('dragon-tail');
   const [selectedInputId, setSelectedInputId] = useState('');
   const [inputs, setInputs] = useState<ProjectInputUploadRecord[]>([]);
@@ -219,8 +220,9 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [uploading, setUploading] = useState(false);
 
   /* --- derived --- */
-  const isKgSourceTask = taskType === 'kg_source_vuln_scan_e2e';
-  const selectionMode = useMemo(() => INPUT_MODES[taskType] || 'file', [taskType]);
+  const isLionHead = mode === 'lion-head';
+  const isKgSourceTask = !isLionHead && taskType === 'kg_source_vuln_scan_e2e';
+  const selectionMode = useMemo(() => isLionHead ? 'directory' : (INPUT_MODES[taskType] || 'file'), [isLionHead, taskType]);
   const selectedAgentApp = useMemo(() => agentApps.find((item) => item.id === selectedAgentAppId) || null, [agentApps, selectedAgentAppId]);
   const codeInputs = useMemo(
     () => inputs.filter((item) => String(item.input_type || '').trim().toLowerCase() === 'code'),
@@ -266,6 +268,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   }, [isDirectorySelectionValid, isKgSourceTask, selectedInput, selectedRelativePath, selectedRelativePaths, selectionMode]);
 
   const inputSelectionHint = useMemo(() => {
+    if (isLionHead) return '请选择一个源码目录作为黑板漏洞挖掘的测试对象。';
     if (taskType === 'sechps_tool') return '请选择一个已注册的 Agent Harness，并选择一个目录。调度中心会在分发时自动申请 Task Key，并把所选目录直接传给下游。';
     if (taskType === 'ai4app_fast' || taskType === 'ai4app_deep') return '请选择一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包作为测试对象；压缩包将作为 APK/HAP 的源码包处理。';
     if (taskType === 'ai4web_fast' || taskType === 'ai4web_deep') return '请选择一个 Web 源码包（zip/rar/tar.gz/gz 等压缩包）作为测试对象。';
@@ -273,10 +276,16 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     if (selectionMode === 'directory') return '请选择一个目录作为测试对象。';
     if (selectionMode === 'file_list') return '请选择一个或多个文件作为测试对象。';
     return '请选择一个文件作为测试对象。';
-  }, [selectionMode, taskType]);
+  }, [isLionHead, selectionMode, taskType]);
 
   const nameValid = name.trim().length > 0;
-  const canCreateTask = Boolean(selectedProjectId) && !taskTypeDisabled && mode !== 'lion-head' && (
+  const lionHeadInputReady = inputSource === 'upload'
+    ? nameValid && !uploading
+    : Boolean(nameValid && selectedInputId && isDirectorySelectionValid);
+  const canCreateTask = Boolean(selectedProjectId) && !taskTypeDisabled && (
+    mode === 'lion-head'
+      ? Boolean(lionHeadInputReady && goalText.trim().length > 0)
+      : (
     inputSource === 'upload'
       ? nameValid
       : (taskType === 'sechps_tool'
@@ -288,7 +297,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             (selectionMode === 'directory' && isDirectorySelectionValid)
           )
         ) && (taskType !== 'binary_module_e2e' || moduleName.trim()) && (!isKgSourceTask || selectedKgEligibility?.allowed === true)))
-  );
+  ));
 
   const loadKgEligibilityState = async (records: ProjectInputUploadRecord[]) => {
     if (!isKgSourceTask) {
@@ -508,6 +517,63 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         setError(DISABLED_TASK_TYPE_MESSAGE);
         return;
       }
+
+      /* ---- 狮首 (lion-head): 直接走 Cairn 黑板，不经过调度中心 ---- */
+      if (mode === 'lion-head') {
+        let lionUploadId = selectedInputId;
+        let lionRelativePath = selectionMode === 'directory'
+          ? (selectedRelativePath !== null ? selectedRelativePath : '')
+          : (selectedRelativePath || '');
+        if (inputSource === 'upload') {
+          if (!uploaderRef.current?.hasFiles()) {
+            setError('请先选择要上传的文件');
+            setSaving(false);
+            return;
+          }
+          const uploadResult = await uploaderRef.current.triggerUpload();
+          lionUploadId = uploadResult.uploadId;
+          lionRelativePath = '';
+        }
+        if (!lionUploadId) {
+          setError('请先选择测试对象');
+          setSaving(false);
+          return;
+        }
+        const resolved = await fileserverApi.resolveProjectInputUpload(selectedProjectId, lionUploadId, lionRelativePath);
+        const cairnProject = await api.domains.cairn.createProject({
+          title: name,
+          origin: resolved.absolute_path,
+          goal: goalText,
+        });
+        const cairnProjectId = cairnProject?.project?.id || cairnProject?.id || '';
+        await scheduleApi.createUserTask(selectedProjectId, {
+          task_type: 'source_scan_e2e',
+          name,
+          description: `[黑板:cairn:${cairnProjectId}] ${goalText}`,
+          input_upload_ids: [lionUploadId],
+          input_binding: {
+            upload_id: lionUploadId,
+            selection_type: 'directory',
+            relative_path: lionRelativePath || '',
+          },
+          policy: { cairn_project_id: cairnProjectId },
+          dispatch_policy: {},
+        });
+        setName('');
+        setDescription('');
+        setGoalText('');
+        setMode('dragon-tail');
+        setSelectedRelativePath(null);
+        setSelectedRelativePaths([]);
+        setInputCurrentPath('');
+        setDirectorySelectionTouched(false);
+        setActiveCreateTab('basic');
+        uploaderRef.current?.reset();
+        onCreated();
+        handleClose();
+        return;
+      }
+
       let finalInputUploadId = selectedInputId;
       let finalInputBinding = {
         upload_id: selectedInputId,
@@ -871,14 +937,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 </div>
               </div>
 
-              {mode === 'lion-head' ? (
-                <div
-                  className="flex flex-1 flex-col items-center justify-center rounded-lg px-4 py-12 text-center text-sm font-semibold"
-                  style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
-                >
-                  「狮首」模式正在开发中，敬请期待
-                </div>
-              ) : (
+              {mode === 'lion-head' ? null : (
                 <>
               {/* binary_module_e2e module name */}
               {taskType === 'binary_module_e2e' ? (
@@ -897,6 +956,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   知识图谱-漏洞挖掘会直接使用所选测试对象记录的 <span style={{ color: LK.ink, fontFamily: MONO }}>upload_id</span> 作为知识图谱定位参数，不需要手工填写。
                 </div>
               ) : null}
+                </>
+              )}
 
 
               {/* -------- 测试对象 section -------- */}
@@ -1161,6 +1222,45 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 )}
               </div>
 
+              {mode === 'lion-head' ? (
+                <>
+                  {/* 目标 */}
+                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                    目标 <span className="required"> *</span>
+                    <textarea
+                      value={goalText}
+                      onChange={(e) => setGoalText(e.target.value)}
+                      className="form-textarea mt-1 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                      rows={3}
+                      placeholder="例如：审计该项目是否存在 SQL 注入、命令注入等高危漏洞"
+                    />
+                  </label>
+
+                  {/* 工具 */}
+                  <div>
+                    <div className="mb-1.5 text-sm font-semibold" style={{ color: LK.inkSoft }}>工具</div>
+                    <div
+                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold"
+                      style={{ backgroundColor: LK.primaryMuted, border: `1px solid ${LK.primary}`, color: LK.primary }}
+                    >
+                      <Network size={14} />
+                      黑板
+                      <span className="ml-1 text-xs font-normal" style={{ color: LK.body }}>狮首模式固定使用黑板（Cairn）源码白盒漏洞挖掘</span>
+                    </div>
+                  </div>
+
+                  {/* error */}
+                  {error ? (
+                    <div
+                      className="rounded-lg px-4 py-3 text-sm"
+                      style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}
+                    >
+                      {error}
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <>
               {/* 工具 */}
               <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                 工具
