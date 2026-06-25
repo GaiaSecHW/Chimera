@@ -1290,13 +1290,23 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
                     const sFollowups = Number(vulnSummary.followups || 0);
                     const sExecuted = Number(vulnSummary.executed_followups || 0);
                     const sFindings = Number(vulnSummary.findings || 0);
-                    // analyzed = runs (each run = one function fully analyzed)
-                    // pending = followups not yet executed nor skipped
+                    // When backend doesn't provide pending_followups/skipped_followups,
+                    // compute from graph.followups status field directly.
+                    const fwList = (vulnGraph?.graph?.followups || []) as any[];
+                    const PENDING_STATUSES = new Set(['pending', 'queued', 'running']);
+                    const SKIP_STATUSES = new Set(['skipped', 'cycle', 'depth_limit', 'merged_equivalent_taint_validation', 'forked', 'tracker_resolved']);
+                    let sPending = Number(vulnSummary.pending_followups || 0);
+                    let sSkipped = Number(vulnSummary.skipped_followups || 0);
+                    if (!sPending && !sSkipped && fwList.length > 0) {
+                      sPending = fwList.filter((f) => PENDING_STATUSES.has(String(f.status || '').toLowerCase())).length;
+                      sSkipped = fwList.filter((f) => SKIP_STATUSES.has(String(f.status || '').toLowerCase())).length;
+                    }
+                    // analyzed = runs (each run = one function analyzed)
+                    // pending = followups still queued/running (not yet executed nor skipped)
                     const analyzed = sRuns || vulnStats.analyzedNodes;
-                    const pendingFollowups = Math.max(0, sFollowups - sExecuted - (sFollowups > 0 ? Math.max(0, sFollowups - sExecuted - (vulnStats.skippedNodes || 0)) : 0));
-                    const skippedFollowups = sFollowups > 0 ? Math.max(0, sFollowups - sExecuted) : (vulnStats.skippedNodes || 0);
+                    const pending = sPending || vulnStats.pendingNodes;
+                    const skippedFollowups = sSkipped || (sFollowups > sExecuted ? sFollowups - sExecuted : 0);
                     const total = sRuns + sFollowups || vulnStats.totalNodes;
-                    const pending = (sFollowups > 0 ? Math.max(0, sFollowups - sExecuted - skippedFollowups) : 0) || vulnStats.pendingNodes;
                     const pct = (analyzed + pending) > 0 ? Math.round((analyzed / (analyzed + pending)) * 100) : detail?.status === 'running' ? 0 : detail?.status === 'passed' ? 100 : 0;
                     const isRunning = detail?.status === 'running';
                     return (
