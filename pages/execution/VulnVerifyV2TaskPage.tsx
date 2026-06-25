@@ -227,15 +227,15 @@ const DimensionCard: React.FC<{ dimKey: string; status?: boolean | null; detail?
   const statusCls = statusTone.cls;
   const StatusIcon = statusTone.Icon;
   return (
-    <div className="grid grid-cols-[auto_minmax(92px,124px)_minmax(0,1fr)] items-center gap-2 py-3">
-      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-theme-surface ${statusCls}`} title={statusTone.label}>
-        <StatusIcon size={16} strokeWidth={2.1} />
-      </div>
-      <div className="min-w-0 text-left">
-        <div className={`text-[15px] font-medium ${statusCls}`}>{conclusion}</div>
+    <div className="grid grid-cols-[minmax(124px,148px)_minmax(0,1fr)] items-start gap-2 py-3">
+      <div className="flex min-w-0 items-start gap-2">
+        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-theme-surface ${statusCls}`} title={statusTone.label}>
+          <StatusIcon size={16} strokeWidth={2.1} />
+        </div>
+        <div className={`min-w-0 truncate pt-1 text-[15px] font-semibold leading-6 ${statusCls}`}>{conclusion}</div>
       </div>
       <div className="min-w-0">
-        <div className="line-clamp-4 text-[13px] font-normal text-theme-text-primary" title={detail}>{detail || '-'}</div>
+        <div className="whitespace-pre-wrap break-words text-[13px] font-normal leading-6 text-theme-text-primary">{detail || '-'}</div>
       </div>
     </div>
   );
