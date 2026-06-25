@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../design-system';
 import { Bug, CheckCircle2, FileText, Loader2, Plus, RefreshCw, Rocket, Search, Shield, Square, SquareCheck, Trash2, X } from 'lucide-react';
 import { api } from '../../clients/api';
@@ -68,7 +69,7 @@ const USER_STATUS_LABEL: Record<string, string> = {
 };
 const getUserStatusLabel = (task: ScheduleCenterUserTask) => USER_STATUS_LABEL[getDisplayStatus(task)] ?? '进行中';
 const getUserStatusLabelFromValue = (status?: string | null) => USER_STATUS_LABEL[String(status || '')] ?? '进行中';
-const getTaskTypeLabel = (taskType: string) => TASK_TYPES.find((item) => item.value === taskType)?.label || taskType;
+export const getTaskTypeLabel = (taskType: string) => TASK_TYPES.find((item) => item.value === taskType)?.label || taskType;
 const getTaskHarnessLabel = (task: Pick<ScheduleCenterUserTask, 'task_type' | 'agent_app_name'>) =>
   task.task_type === 'sechps_tool' ? (task.agent_app_name || 'Agent Harness') : getTaskTypeLabel(String(task.task_type || ''));
 const getTaskInputsLabel = (task: Pick<ScheduleCenterUserTask, 'inputs'>) => {
@@ -131,7 +132,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
   const [tasks, setTasks] = useState<ScheduleCenterUserTask[]>([]);
   const [taskVulnCounts, setTaskVulnCounts] = useState<Record<string, number | undefined>>({});
   const [stats, setStats] = useState<Record<string, number>>({});
-  const [query, setQuery] = useState('');
+  const [searchParams] = useSearchParams();
+  const [query, setQuery] = useState(() => searchParams.get('task') || '');
   const [createOpen, setCreateOpen] = useState(false);
   const [preSelectedMode, setPreSelectedMode] = useState<HomeCardMode | undefined>(undefined);
   const [error, setError] = useState('');
@@ -162,7 +164,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
     const term = query.trim().toLowerCase();
     return tasks.filter((item) => {
       if (!term) return true;
-      return [item.name, item.task_type, item.agent_app_name || '', item.agent_app_id || '', getDisplayStatus(item), getUserStatusLabel(item), item.sync_status, item.downstream_task_id || '']
+      return [item.id, item.name, item.task_type, item.agent_app_name || '', item.agent_app_id || '', getDisplayStatus(item), getUserStatusLabel(item), item.sync_status, item.downstream_task_id || '']
         .some((value) => String(value || '').toLowerCase().includes(term));
     });
   }, [query, tasks]);

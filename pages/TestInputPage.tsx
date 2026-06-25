@@ -6,6 +6,7 @@ import {
   Eye,
   FileBox,
   FileText,
+  ListTodo,
   Loader2,
   Package,
   Plus,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../clients/api';
+import type { ScheduleCenterUploadTask } from '../clients/scheduleCenter';
 import { PageHeader } from '../design-system';
 import {
   IN_PROGRESS_STATUSES,
@@ -29,6 +31,7 @@ import { StatusBadge } from '../components/StatusBadge';
 import type { ProjectInputOverview, ProjectInputUploadDetail, ProjectInputUploadRecord, ProjectInputUploadStats, SecurityProject, UserInfo } from '../types/types';
 import { formatUploadBytes, getLatestBatchSummary, getUploadModeLabel, getUploadRecordDisplayName, isAllowedArchiveFileName } from './assets/baseResourcePageModel';
 import { CreateTaskDialog } from './task/CreateTaskDialog';
+import { getTaskTypeLabel } from './task/TaskCenterPage';
 import { TestInputUploader, TestInputUploaderHandle } from '../components/TestInputUploader';
 import { KnowledgeGraphPanel } from '../components/KnowledgeGraphPanel';
 import { CodemapMetroProgress } from '../components/CodemapMetroProgress';
@@ -64,6 +67,16 @@ const INPUT_TYPE_META: Record<InputType, { label: string; icon: React.ReactNode;
 };
 
 const INPUT_TYPE_ORDER: InputType[] = ['document', 'code', 'software', 'other'];
+
+const TASK_STATUS_META: Record<string, { label: string; className: string }> = {
+  running: { label: '运行中', className: 'text-sky-400 bg-sky-500/15 border-sky-500/20' },
+  queued: { label: '排队中', className: 'text-sky-400 bg-sky-500/15 border-sky-500/20' },
+  created: { label: '已创建', className: 'text-theme-text-secondary bg-theme-elevated border-theme-border' },
+  success: { label: '成功', className: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/20' },
+  partial_success: { label: '部分成功', className: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/20' },
+  failed: { label: '失败', className: 'text-rose-400 bg-rose-500/15 border-rose-500/20' },
+  cancelled: { label: '已取消', className: 'text-theme-text-muted bg-theme-elevated border-theme-border' },
+};
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return '-';
@@ -130,6 +143,10 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   const [detailLoadingIds, setDetailLoadingIds] = useState<string[]>([]);
   const [detailErrors, setDetailErrors] = useState<Record<string, string>>({});
   const [detailDialogTarget, setDetailDialogTarget] = useState<UploadDetailDialogState | null>(null);
+  const [tasksDialogTarget, setTasksDialogTarget] = useState<ProjectInputUploadRecord | null>(null);
+  const [tasksList, setTasksList] = useState<ScheduleCenterUploadTask[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
+  const [tasksError, setTasksError] = useState<string | null>(null);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
   const [selectedRecordForTask, setSelectedRecordForTask] = useState<string | undefined>(undefined);
   // codemap_lite 任务状态:下沉到「每条 code 上传一图」。key = upload_id,
@@ -445,6 +462,22 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
     setDetailDialogTarget({ uploadId: record.upload_id, record });
     setOpenServeError(null);
     await loadUploadDetail(record.upload_id);
+  };
+
+  const openUploadTasksDialog = async (record: ProjectInputUploadRecord) => {
+    if (!projectId) return;
+    setTasksDialogTarget(record);
+    setTasksList([]);
+    setTasksError(null);
+    setTasksLoading(true);
+    try {
+      const resp = await api.domains.platform.scheduleCenter.listUploadTasks(projectId, record.upload_id);
+      setTasksList(Array.isArray(resp?.items) ? resp.items : []);
+    } catch (error: any) {
+      setTasksError(error?.message || '加载关联测试任务失败');
+    } finally {
+      setTasksLoading(false);
+    }
   };
 
   // 详情对话框里点击"打开知识图谱"——拿当前项目级 task 的 db_name 起(或复用)
@@ -859,6 +892,15 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                                 <Eye size={16} />
                               </button>
                               <button
+                                onClick={() => { void openUploadTasksDialog(record); }} aria-label="关联测试任务" title="关联测试任务"
+                                className="rounded-md p-1.5 transition-colors"
+                                style={{ color: 'var(--text-secondary)' }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--brand-primary-mask)'; e.currentTarget.style.color = 'var(--brand-primary)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                              >
+                                <ListTodo size={16} />
+                              </button>
+                              <button
                                 onClick={() => openAppendModal(record)} aria-label="追加" title="追加"
                                 className="rounded-md p-1.5 transition-colors"
                                 style={{ color: 'var(--text-secondary)' }}
@@ -1130,6 +1172,93 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   关闭
                 </button>
 
+              </div>
+            </div>
+          </div>
+        );
+      })() : null}
+
+      {tasksDialogTarget ? (() => {
+        const record = tasksDialogTarget;
+        return (
+          <div className="fixed inset-0 z-[125] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
+            <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-theme-elevated">
+              <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
+                <div>
+                  <div className="text-sm font-medium uppercase tracking-[0.18em] text-theme-text-muted">关联测试任务</div>
+                  <div className="mt-2 text-2xl font-bold text-theme-text-primary">{getUploadRecordDisplayName(record)}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTasksDialogTarget(null)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-theme-border text-theme-text-muted hover:bg-theme-surface"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto px-6 py-6">
+                {tasksLoading ? (
+                  <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-4 py-10 text-center text-sm text-theme-text-muted">
+                    <Loader2 className="mx-auto mb-3 animate-spin text-theme-text-muted" size={24} />
+                    正在加载关联测试任务...
+                  </div>
+                ) : tasksError ? (
+                  <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-4 text-sm text-rose-400">
+                    {tasksError}
+                  </div>
+                ) : tasksList.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-4 py-10 text-center text-sm text-theme-text-muted">
+                    暂无关联测试任务
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-xl border border-theme-border">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-theme-surface text-theme-text-muted">
+                          <th className="px-4 py-3 text-left font-semibold">任务名</th>
+                          <th className="px-4 py-3 text-left font-semibold">类型</th>
+                          <th className="px-4 py-3 text-left font-semibold">状态</th>
+                          <th className="px-4 py-3 text-left font-semibold">更新时间</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-theme-border">
+                        {tasksList.map((task) => {
+                          const statusKey = String(task.business_status || '').toLowerCase();
+                          const statusMeta = TASK_STATUS_META[statusKey] || { label: statusKey || '—', className: 'text-theme-text-secondary bg-theme-elevated border-theme-border' };
+                          return (
+                            <tr key={task.task_id} className="hover:bg-theme-surface">
+                              <td className="px-4 py-3">
+                                <a
+                                  href={`#/task-list?task=${encodeURIComponent(task.task_id)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-semibold text-brand-primary hover:underline"
+                                  onClick={() => setTasksDialogTarget(null)}
+                                >
+                                  {task.name || '—'}
+                                </a>
+                              </td>
+                              <td className="px-4 py-3 text-theme-text-secondary">{getTaskTypeLabel(task.task_type)}</td>
+                              <td className="px-4 py-3">
+                                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusMeta.className}`}>
+                                  {statusMeta.label}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-theme-text-muted">{formatDateTime(task.updated_at)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 border-t border-theme-border px-6 py-5">
+                <button type="button" onClick={() => setTasksDialogTarget(null)} className="rounded-lg border border-theme-border px-4 py-3 text-sm font-semibold text-theme-text-secondary">
+                  关闭
+                </button>
               </div>
             </div>
           </div>
