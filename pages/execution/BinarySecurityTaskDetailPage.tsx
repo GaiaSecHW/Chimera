@@ -2046,7 +2046,7 @@ function ApiKeysPanel({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold text-theme-text-primary">API 密钥</h2>
-            <p className="mt-1 text-sm text-theme-text-muted">展示当前任务使用的任务级密钥与各阶段派生的 work key。</p>
+            <p className="mt-1 text-sm text-theme-text-muted">展示当前任务使用的 task key 与各阶段派生的 worker key 原始记录。</p>
           </div>
           {!hasAnyKeys ? (
             <span className="inline-flex rounded-full border border-amber-500/20 bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-400">
@@ -2090,9 +2090,9 @@ function ApiKeysPanel({
           </div>
           <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Secret</div>
-            <div className={`mt-2 text-xs font-semibold ${rootTaskKey.has_secret ? 'text-emerald-400' : 'text-theme-text-muted'}`}>
-              {rootTaskKey.has_secret ? '已配置' : '未配置'}
-            </div>
+            <button type="button" onClick={() => void onCopy(String(rootTaskKey.value || ''), 'Task Key Secret 已复制')} className="mt-2 break-all text-left font-mono text-xs font-bold text-theme-text-primary hover:text-sky-400">
+              {String(rootTaskKey.value || '-')}
+            </button>
           </div>
         </div>
 
@@ -2123,7 +2123,7 @@ function ApiKeysPanel({
                     </span>
                   </div>
                   <div className="overflow-x-auto rounded-2xl border border-theme-border">
-                    <table className="min-w-[1040px] w-full divide-y divide-theme-border text-left text-xs">
+                    <table className="min-w-[1220px] w-full divide-y divide-theme-border text-left text-xs">
                       <thead className="bg-theme-elevated text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted">
                         <tr>
                           <th className="px-3 py-2">阶段</th>
@@ -2134,6 +2134,7 @@ function ApiKeysPanel({
                           <th className="px-3 py-2">名称</th>
                           <th className="px-3 py-2">前缀</th>
                           <th className="px-3 py-2">来源</th>
+                          <th className="px-3 py-2">Work Key Value</th>
                           <th className="px-3 py-2">创建时间</th>
                         </tr>
                       </thead>
@@ -2163,6 +2164,11 @@ function ApiKeysPanel({
                             </td>
                             <td className="px-3 py-2 font-mono text-theme-text-secondary">{String(workKey.agent_task_key_prefix || '-')}</td>
                             <td className="px-3 py-2 text-theme-text-secondary">{String(workKey.agent_task_key_source || '-')}</td>
+                            <td className="px-3 py-2">
+                              <button type="button" onClick={() => void onCopy(String(workKey.value || ''), 'Work Key value 已复制')} className="break-all text-left font-mono text-theme-text-secondary hover:text-sky-400">
+                                {String(workKey.value || '-')}
+                              </button>
+                            </td>
                             <td className="px-3 py-2 text-theme-text-secondary">{fmt(workKey.created_at)}</td>
                           </tr>
                         ))}

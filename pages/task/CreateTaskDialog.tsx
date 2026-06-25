@@ -6,6 +6,12 @@ import { TestInputUploader, TestInputUploaderHandle } from '../../components/Tes
 import { getAuthHeaders, handleResponse } from '../../clients/base';
 import { agentManageApiPath } from '../../clients/agentManage';
 import { getUploadRecordDisplayName } from '../assets/baseResourcePageModel';
+import {
+  loadKgInputEligibility,
+} from './kgInputEligibility';
+import type {
+  KgInputEligibility,
+} from './kgInputEligibility';
 import { resolveSechpsInstruction } from './taskCenterInstruction';
 import type {
   AgentAppSummary,
@@ -187,6 +193,9 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [selectedInputId, setSelectedInputId] = useState('');
   const [inputs, setInputs] = useState<ProjectInputUploadRecord[]>([]);
   const [agentApps, setAgentApps] = useState<AgentAppSummary[]>([]);
+  const [kgEligibilityByUploadId, setKgEligibilityByUploadId] = useState<Record<string, KgInputEligibility>>({});
+  const [kgEligibilityLoading, setKgEligibilityLoading] = useState(false);
+  const [kgEligibilityError, setKgEligibilityError] = useState('');
 
   /* --- browse state --- */
   const [inputBrowseLoading, setInputBrowseLoading] = useState(false);
@@ -213,11 +222,21 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const isKgSourceTask = taskType === 'kg_source_vuln_scan_e2e';
   const selectionMode = useMemo(() => INPUT_MODES[taskType] || 'file', [taskType]);
   const selectedAgentApp = useMemo(() => agentApps.find((item) => item.id === selectedAgentAppId) || null, [agentApps, selectedAgentAppId]);
+  const codeInputs = useMemo(
+    () => inputs.filter((item) => String(item.input_type || '').trim().toLowerCase() === 'code'),
+    [inputs],
+  );
   const selectableInputs = useMemo(
-    () => (isKgSourceTask ? inputs.filter((item) => String(item.input_type || '').trim().toLowerCase() === 'code') : inputs),
-    [inputs, isKgSourceTask],
+    () => (isKgSourceTask
+      ? codeInputs.filter((item) => kgEligibilityByUploadId[item.upload_id]?.allowed === true)
+      : inputs),
+    [codeInputs, inputs, isKgSourceTask, kgEligibilityByUploadId],
   );
   const selectedInput = useMemo(() => selectableInputs.find((item) => item.upload_id === selectedInputId) || null, [selectableInputs, selectedInputId]);
+  const selectedKgEligibility = useMemo(
+    () => (selectedInputId ? kgEligibilityByUploadId[selectedInputId] || null : null),
+    [kgEligibilityByUploadId, selectedInputId],
+  );
   const rootBrowse = browseCache[''] || null;
   const isDirectorySelectionValid = directorySelectionTouched && selectedRelativePath !== null;
   const taskTypeMeta = useMemo(() => TASK_TYPES.find((item) => item.value === taskType) || TASK_TYPES[0], [taskType]);
@@ -225,6 +244,16 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const availableTaskTypes = useMemo(
     () => TASK_TYPES.filter((item) => item.modes.includes(mode as TaskMode)),
     [mode],
+  );
+  const kgEligibleItems = useMemo(
+    () => codeInputs.filter((item) => kgEligibilityByUploadId[item.upload_id]?.allowed === true),
+    [codeInputs, kgEligibilityByUploadId],
+  );
+  const kgIneligibleItems = useMemo(
+    () => codeInputs
+      .map((item) => ({ record: item, eligibility: kgEligibilityByUploadId[item.upload_id] || null }))
+      .filter(({ eligibility }) => eligibility && !eligibility.allowed),
+    [codeInputs, kgEligibilityByUploadId],
   );
 
   const inputSummary = useMemo(() => {
@@ -239,6 +268,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     if (taskType === 'sechps_tool') return '请选择一个已注册的 Agent Harness，并选择一个目录。调度中心会在分发时自动申请 Task Key，并把所选目录直接传给下游。';
     if (taskType === 'ai4app_fast' || taskType === 'ai4app_deep') return '请选择一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包作为测试对象；压缩包将作为 APK/HAP 的源码包处理。';
     if (taskType === 'ai4web_fast' || taskType === 'ai4web_deep') return '请选择一个 Web 源码包（zip/rar/tar.gz/gz 等压缩包）作为测试对象。';
+    if (taskType === 'kg_source_vuln_scan_e2e') return '仅展示源码类型、图谱已建立、入口分析已完成且识别到至少 1 个入口的记录。';
     if (selectionMode === 'directory') return '请选择一个目录作为测试对象。';
     if (selectionMode === 'file_list') return '请选择一个或多个文件作为测试对象。';
     return '请选择一个文件作为测试对象。';
@@ -254,8 +284,35 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           (selectionMode === 'file' && selectedRelativePath) ||
           (selectionMode === 'file_list' && selectedRelativePaths.length > 0) ||
           (selectionMode === 'directory' && isDirectorySelectionValid)
-        ) && (taskType !== 'binary_module_e2e' || moduleName.trim())))
+        ) && (taskType !== 'binary_module_e2e' || moduleName.trim()) && (!isKgSourceTask || selectedKgEligibility?.allowed === true)))
   );
+
+  const loadKgEligibilityState = async (records: ProjectInputUploadRecord[]) => {
+    if (!isKgSourceTask) {
+      setKgEligibilityByUploadId({});
+      setKgEligibilityError('');
+      setKgEligibilityLoading(false);
+      return;
+    }
+    const nextCodeRecords = records.filter((item) => String(item.input_type || '').trim().toLowerCase() === 'code');
+    if (!nextCodeRecords.length) {
+      setKgEligibilityByUploadId({});
+      setKgEligibilityError('');
+      setKgEligibilityLoading(false);
+      return;
+    }
+    setKgEligibilityLoading(true);
+    setKgEligibilityError('');
+    try {
+      const next = await loadKgInputEligibility(nextCodeRecords);
+      setKgEligibilityByUploadId(next);
+    } catch (err: any) {
+      setKgEligibilityByUploadId({});
+      setKgEligibilityError(err?.message || '加载知识图谱可选测试对象失败');
+    } finally {
+      setKgEligibilityLoading(false);
+    }
+  };
 
 
   /* --- data loading --- */
@@ -298,6 +355,17 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       void loadDialogData();
     }
   }, [open, selectedProjectId]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (!isKgSourceTask) {
+      setKgEligibilityByUploadId({});
+      setKgEligibilityError('');
+      setKgEligibilityLoading(false);
+      return;
+    }
+    void loadKgEligibilityState(inputs);
+  }, [open, isKgSourceTask, inputs]);
 
   /* --- browse helpers --- */
   const loadBrowsePath = async (relativePath: string) => {
@@ -468,6 +536,11 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       }
       if (isKgSourceTask && (!selectedInput || String(selectedInput.input_type || '').trim().toLowerCase() !== 'code')) {
         setError('知识图谱-漏洞挖掘仅支持选择类型为源码的上传记录');
+        setSaving(false);
+        return;
+      }
+      if (isKgSourceTask && (!selectedKgEligibility || selectedKgEligibility.allowed !== true)) {
+        setError(selectedKgEligibility?.reasonText || '当前测试对象未满足“图谱已建立 + 入口分析已完成 + 至少 1 个入口”的要求');
         setSaving(false);
         return;
       }
@@ -863,25 +936,60 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       <div className="mt-1 text-xs" style={{ color: LK.muted }}>{inputSelectionHint}</div>
                     </div>
 
+                    {isKgSourceTask ? (
+                      <div className="rounded-lg px-3 py-2" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
+                        <div className="text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                          严格筛选结果
+                        </div>
+                        <div className="mt-1 text-xs" style={{ color: LK.muted }}>
+                          共发现 {codeInputs.length} 条源码上传记录，当前仅 {kgEligibleItems.length} 条满足“图谱已建立 + 入口分析已完成 + 至少 1 个入口”。
+                        </div>
+                      </div>
+                    ) : null}
+
                     {/* input record selector */}
                     <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                       测试对象记录
                       <DropdownSelect
                         value={selectedInputId}
                         onChange={setSelectedInputId}
-                        options={selectableInputs.map((item) => ({ value: item.upload_id, label: `${getUploadRecordDisplayName(item)} · ${item.status}` }))}
+                        options={selectableInputs.map((item) => {
+                          const eligibility = kgEligibilityByUploadId[item.upload_id];
+                          const label = isKgSourceTask
+                            ? `${getUploadRecordDisplayName(item)} · 图谱就绪 · 入口分析完成 · 入口 ${eligibility?.attackEntries ?? 0}`
+                            : `${getUploadRecordDisplayName(item)} · ${item.status}`;
+                          return { value: item.upload_id, label };
+                        })}
                         placeholder="请选择测试对象记录"
                         emptyText="暂无可用记录"
                         containerClassName="mt-1"
                       />
                     </label>
 
+                    {isKgSourceTask && kgEligibilityLoading ? (
+                      <div className="rounded-lg px-4 py-3 text-sm" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.body }}>
+                        <Loader2 size={14} className="mr-2 inline-block animate-spin" />
+                        正在检查源码记录的知识图谱与入口分析状态...
+                      </div>
+                    ) : null}
+
+                    {isKgSourceTask && kgEligibilityError ? (
+                      <div
+                        className="rounded-lg px-4 py-3 text-sm"
+                        style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}
+                      >
+                        {kgEligibilityError}
+                      </div>
+                    ) : null}
+
                     {selectableInputs.length === 0 ? (
                       <div
                         className="rounded-lg px-4 py-3 text-sm"
                         style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
                       >
-                        {isKgSourceTask ? '当前没有可用的源码类型上传记录，请先到' : '没有可用输入，请先到'}
+                        {isKgSourceTask
+                          ? '当前没有满足“图谱已建立 + 入口分析已完成 + 至少 1 个入口”的源码上传记录，请先到'
+                          : '没有可用输入，请先到'}
                         <button
                           type="button"
                           onClick={() => {
@@ -899,6 +1007,44 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       </div>
                     ) : (
                       <div className="space-y-3">
+                        {isKgSourceTask && kgIneligibleItems.length > 0 ? (
+                          <div className="overflow-hidden rounded-xl" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+                            <div className="px-4 py-3 text-sm font-semibold" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.inkSoft, backgroundColor: LK.surfaceRaised }}>
+                              不可选源码记录
+                            </div>
+                            <div className="overflow-auto">
+                              <table className="min-w-full text-sm">
+                                <thead>
+                                  <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
+                                    <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>上传记录</th>
+                                    <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>上传状态</th>
+                                    <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>图谱状态</th>
+                                    <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>入口分析</th>
+                                    <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>不可选原因</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {kgIneligibleItems.map(({ record, eligibility }) => (
+                                    <tr key={record.upload_id} style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+                                      <td className="px-4 py-2.5" style={{ color: LK.inkSoft }}>{getUploadRecordDisplayName(record)}</td>
+                                      <td className="px-4 py-2.5" style={{ color: LK.body }}>{record.status}</td>
+                                      <td className="px-4 py-2.5" style={{ color: LK.body }}>
+                                        {eligibility?.codemapTaskStatus || eligibility?.graphStatus || '-'}
+                                      </td>
+                                      <td className="px-4 py-2.5" style={{ color: LK.body }}>
+                                        {eligibility?.attackStatus
+                                          ? `${eligibility.attackStatus}${typeof eligibility.attackEntries === 'number' ? ` · 入口 ${eligibility.attackEntries}` : ''}`
+                                          : '-'}
+                                      </td>
+                                      <td className="px-4 py-2.5" style={{ color: LK.warning }}>{eligibility?.reasonText || '-'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ) : null}
+
                         {/* breadcrumbs */}
                         <div className="rounded-lg px-3 py-2" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.borderSoft}` }}>
                           <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: LK.muted }}>
