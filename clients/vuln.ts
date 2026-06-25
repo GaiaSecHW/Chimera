@@ -282,6 +282,25 @@ const buildQueryString = (params: Record<string, any>): string => {
   return query.toString();
 };
 
+export interface VulnBreakdownTaskItem {
+  source_task_id: string; // "__no_linked_task__" means no linked task
+  total: number;          // all cases incl. unconfirmed
+  vulnerable: number;     // finished_reason === 'vulnerable'
+  not_vulnerable: number; // finished_reason === 'not_vulnerable'
+}
+
+export interface VulnBreakdownProjectItem {
+  project_id: string;
+  total: number;
+  vulnerable: number;
+  not_vulnerable: number;
+  tasks: VulnBreakdownTaskItem[];
+}
+
+export interface VulnBreakdownResponse {
+  projects: VulnBreakdownProjectItem[];
+}
+
 export const vulnApi = {
   getHealth: async (): Promise<VulnHealthResponse> =>
     normalizeHealth(await handleResponse(await fetch(`${API_BASE}/api/vuln/health`, { headers: getHeaders() }))),
@@ -290,6 +309,11 @@ export const vulnApi = {
     const query = new URLSearchParams(projectId ? { project_id: projectId } : {}).toString();
     return handleResponse(await fetch(`${API_BASE}/api/vuln/cases/ops/dashboard/overview?${query}`, { headers: getHeaders() }));
   },
+
+  // System-wide suspect-vuln breakdown: per-project -> per-task counts of
+  // vulnerable / not_vulnerable cases. No params.
+  getBreakdown: async (): Promise<VulnBreakdownResponse> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/ops/dashboard/breakdown`, { headers: getHeaders() })),
 
   getProjectConfig: async (projectId: string): Promise<any> =>
     getJsonWithDedupe(`${API_BASE}/api/vuln/config?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() }),
