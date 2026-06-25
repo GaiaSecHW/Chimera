@@ -46,6 +46,7 @@ import { CfgGuidedExploreConfigPage } from '../pages/execution/CfgGuidedExploreC
 import { CfgDbVulnToolPage } from '../pages/execution/CfgDbVulnToolPage';
 import { CfgDbVulnDetailPage } from '../pages/execution/CfgDbVulnDetailPage';
 import { VulnVerifyV2TaskPage } from '../pages/execution/VulnVerifyV2TaskPage';
+import { WebVulnVerifyPage } from '../pages/execution/WebVulnVerifyPage';
 import { FramaCVerifyPage } from '../pages/execution/FramaCVerifyPage';
 import { FramaCAdminPage } from '../pages/execution/FramaCAdminPage';
 import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage';
@@ -481,6 +482,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       );
     case 'pentest-vuln-verify-v2':
       return <VulnVerifyV2TaskPage projectId={ctx.selectedProjectId} />;
+    case 'pentest-web-vuln-verify':
+      return <WebVulnVerifyPage projectId={ctx.selectedProjectId} />;
     case 'pentest-frama-c':
       return <FramaCVerifyPage projectId={ctx.selectedProjectId} />;
     case 'frama-c-admin':
