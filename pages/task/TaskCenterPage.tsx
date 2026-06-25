@@ -72,6 +72,15 @@ const formatDateTime = (value?: string | null) => (value ? new Date(value).toLoc
 const getRootTaskKeyDisplay = (task: Pick<ScheduleCenterUserTask, 'root_task_key_name' | 'root_task_key_prefix'>) =>
   [task.root_task_key_name, task.root_task_key_prefix].filter(Boolean).join(' / ') || '—';
 const getDisplayStatus = (task: ScheduleCenterUserTask) => task.display_status || task.business_status || task.dispatch_status || task.create_status || 'unknown';
+// 面向用户：把后端细分状态收敛成 4 档中文展示
+const USER_STATUS_LABEL: Record<string, string> = {
+  success: '成功',
+  partial_success: '成功',
+  failed: '失败',
+  cancelled: '已取消',
+};
+const getUserStatusLabel = (task: ScheduleCenterUserTask) => USER_STATUS_LABEL[getDisplayStatus(task)] ?? '进行中';
+const getUserStatusLabelFromValue = (status?: string | null) => USER_STATUS_LABEL[String(status || '')] ?? '进行中';
 const getTaskTypeLabel = (taskType: string) => TASK_TYPES.find((item) => item.value === taskType)?.label || taskType;
 const getTaskHarnessLabel = (task: Pick<ScheduleCenterUserTask, 'task_type' | 'agent_app_name'>) =>
   task.task_type === 'sechps_tool' ? (task.agent_app_name || 'Agent Harness') : getTaskTypeLabel(String(task.task_type || ''));
@@ -167,7 +176,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
     return tasks.filter((item) => {
       if (selectedAgentAppFilter && String(item.agent_app_id || '') !== selectedAgentAppFilter) return false;
       if (!term) return true;
-      return [item.name, item.task_type, item.agent_app_name || '', item.agent_app_id || '', getDisplayStatus(item), item.sync_status, item.downstream_task_id || '']
+      return [item.name, item.task_type, item.agent_app_name || '', item.agent_app_id || '', getDisplayStatus(item), getUserStatusLabel(item), item.sync_status, item.downstream_task_id || '']
         .some((value) => String(value || '').toLowerCase().includes(term));
     });
   }, [query, selectedAgentAppFilter, tasks]);
@@ -562,8 +571,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                   {task.task_type === 'sechps_tool' ? <div className="text-xs" style={{ color: LK.muted }}>Agent Harness / {task.agent_app_engine || 'unknown'}</div> : null}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="font-semibold" style={{ color: LK.inkSoft }}>{getDisplayStatus(task)}</div>
-                  <div className="text-xs" style={{ color: LK.muted }}>{task.dispatch_status} / {task.business_status}</div>
+                  <div className="font-semibold" style={{ color: LK.inkSoft }}>{getUserStatusLabel(task)}</div>
                 </td>
                 <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: LK.muted }}>
                   {formatDateTime(task.updated_at)}
@@ -822,7 +830,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                         >
                           <td className="px-4 py-3 font-semibold" style={{ color: LK.inkSoft }}>{item.name}</td>
                           <td className="px-4 py-3" style={{ color: LK.body }}>{getDeleteQueueTypeLabel(String(item.task_type || ''))}</td>
-                          <td className="px-4 py-3" style={{ color: LK.body }}>{item.display_status}</td>
+                          <td className="px-4 py-3" style={{ color: LK.body }}>{getUserStatusLabelFromValue(item.display_status)}</td>
                           <td className="px-4 py-3">
                             <span style={{ color: statusColor }}>
                               {getDeleteStatusLabel(String(item.delete_status || ''))}
