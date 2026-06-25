@@ -258,9 +258,10 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
 
   const s = effective.status;
   const progress = effective.progress;
-  const hasRepairProgress = !!progress && progress.total > 0;
   const analysis = audit?.analysis;
   const scale = audit?.scale;
+  // 调用链修复 T1-T5 函数口径(scale):repair 入队全集>0 即有修复进度可展示。
+  const hasRepairProgress = (scale?.repair_total ?? 0) > 0;
 
   // ① 静态分析:building_analyze=进行中;到了攻击面/修复/完成都意味着静态已成功;
   //    failed 且无任何 repair 进度=静态分析失败。规模以 scale 为准(真实 Function/
@@ -282,14 +283,12 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
   const identified = analysis?.attack_entries ?? effective.attack?.entries ?? 0;
   const attackRecoverable = attackStatus === 'failed' && identified > 0;
 
-  // ③ 调用链修复:展示 repair 进度。口径以 T1-T5 函数为准(scale.repair_total /
-  //    repair_done,与 serve「函数分类」角标 + cli repair 取数统一):分母=repair
-  //    入队全集(T1-T5,排除 T6/excluded),分子=已完成修复=complete+partial_complete
-  //    (都至少跑过一轮)。后端旧版无此字段时回退 progress 的 per-source 口径。
-  //    hasRepairProgress 仍以 progress 为准——repair 真正跑起来才展示,避免静态分析
-  //    刚完成(已有 T1-T5 候选但 repair 未启动)时就亮出进度。
-  const repairTotal = scale?.repair_total ?? progress?.total ?? 0;
-  const repairDone = scale?.repair_done ?? progress?.completed ?? 0;
+  // ③ 调用链修复:口径只认 T1-T5 函数(scale.repair_total / repair_done,与 serve
+  //    「函数分类」角标 + cli repair 取数统一):分母=repair 入队全集(T1-T5,排除
+  //    T6/excluded),分子=已完成修复=complete+partial_complete(都至少跑过一轮)。
+  //    不再用 progress 的 per-source 旧口径。
+  const repairTotal = scale?.repair_total ?? 0;
+  const repairDone = scale?.repair_done ?? 0;
   const repairFailed = progress?.failed ?? 0;
   const repairPct = repairTotal > 0 ? Math.round((repairDone / repairTotal) * 100) : 0;
   const repairedEdges = scale?.repaired_edges ?? 0;
@@ -392,7 +391,7 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
         />
       </div>
 
-      {/* 调用链修复进度条(有进度时贯穿底部) */}
+      {/* 调用链修复进度条(有进度且统计就绪时贯穿底部) */}
       {hasRepairProgress ? (
         <div className="mt-3 h-1.5 rounded-full bg-theme-elevated">
           <div

@@ -330,8 +330,11 @@ const matchesFinalResultFilter = (item: any, filters: string[]) => {
 };
 
 const getCaseListStats = (items: any[]) => {
-  const confirmed = items.filter((item) => item.finished_reason === 'vulnerable').length;
-  const ruledOut = items.filter((item) => item.finished_reason === 'not_vulnerable' || item.finished_reason === 'non_vulnerable').length;
+  const confirmed = items.filter((item) => getEffectiveResult(item) === 'vulnerable').length;
+  const ruledOut = items.filter((item) => {
+    const effective = getEffectiveResult(item);
+    return effective === 'not_vulnerable' || effective === 'non_vulnerable';
+  }).length;
   return {
     total: items.length,
     confirmed,
