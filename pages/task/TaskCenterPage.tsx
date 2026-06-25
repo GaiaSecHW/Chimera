@@ -542,8 +542,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                         if (c === undefined || c === 0) return null;
                         return (
                           <span
-                            className="absolute -top-1 -right-1 inline-flex min-w-[15px] h-[15px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white"
-                            style={{ backgroundColor: LK.error }}
+                            className="absolute -top-1 -right-1 inline-flex min-w-[15px] h-[15px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none"
+                            style={{ backgroundColor: LK.error, color: '#FFFFFF' }}
                           >
                             {c > 99 ? '99+' : c}
                           </span>

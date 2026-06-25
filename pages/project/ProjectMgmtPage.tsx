@@ -610,13 +610,10 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       <div className="relative">
         <input
           placeholder="输入产品名称，或从列表选择..."
-          className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
-          style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+          className="form-input w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
           onFocus={(e) => {
-            e.currentTarget.style.borderColor = LK.primary;
             setShowProductDropdown(true);
           }}
-          onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
           value={productSearch}
           onChange={(e) => {
             setProductSearch(e.target.value);
@@ -666,13 +663,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       <div className="relative">
         <input
           placeholder={selectedProductId ? '输入版本号，或从列表选择...' : '请先选择或输入产品名称'}
-          className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
-          style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-          onFocus={(e) => {
-            e.currentTarget.style.borderColor = LK.primary;
-            setShowVersionDropdown(true);
-          }}
-          onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+          className="form-input w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
           value={versionSearch}
           onChange={(e) => {
             setVersionSearch(e.target.value);
@@ -856,42 +847,42 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                     </button>
                   </th>
                   <th className="whitespace-nowrap min-w-[180px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                    <button onClick={() => handleSortChange('name')} className="inline-flex items-center gap-1 transition-colors" style={{ color: sortField === 'name' ? LK.inkSoft : LK.mutedSoft }}>
+                    <button onClick={() => handleSortChange('name')} className="inline-flex items-center gap-1 text-sm font-semibold text-theme-text-primary">
                       项目
                       {renderSortIndicator('name')}
                     </button>
                   </th>
                   <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                    <button onClick={() => handleSortChange('department_name')} className="inline-flex items-center gap-1 transition-colors" style={{ color: sortField === 'department_name' ? LK.inkSoft : LK.mutedSoft }}>
+                    <button onClick={() => handleSortChange('department_name')} className="inline-flex items-center gap-1 text-sm font-semibold text-theme-text-primary">
                       归属部门
                       {renderSortIndicator('department_name')}
                     </button>
                   </th>
                   <th className="whitespace-nowrap min-w-[110px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                    <button onClick={() => handleSortChange('owner_name')} className="inline-flex items-center gap-1 transition-colors" style={{ color: sortField === 'owner_name' ? LK.inkSoft : LK.mutedSoft }}>
+                    <button onClick={() => handleSortChange('owner_name')} className="inline-flex items-center gap-1 text-sm font-semibold text-theme-text-primary">
                       项目成员
                       {renderSortIndicator('owner_name')}
                     </button>
                   </th>
                   <th className="whitespace-nowrap min-w-[200px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                    <button onClick={() => handleSortChange('product_version')} className="inline-flex items-center gap-1 transition-colors" style={{ color: sortField === 'product_version' ? LK.inkSoft : LK.mutedSoft }}>
+                    <button onClick={() => handleSortChange('product_version')} className="inline-flex items-center gap-1 text-sm font-semibold text-theme-text-primary">
                       产品版本
                       {renderSortIndicator('product_version')}
                     </button>
                   </th>
                   <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                    <button onClick={() => handleSortChange('created_at')} className="inline-flex items-center gap-1 transition-colors" style={{ color: sortField === 'created_at' ? LK.inkSoft : LK.mutedSoft }}>
+                    <button onClick={() => handleSortChange('created_at')} className="inline-flex items-center gap-1 text-sm font-semibold text-theme-text-primary">
                       创建时间
                       {renderSortIndicator('created_at')}
                     </button>
                   </th>
                   <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                    <button onClick={() => handleSortChange('updated_at')} className="inline-flex items-center gap-1 transition-colors" style={{ color: sortField === 'updated_at' ? LK.inkSoft : LK.mutedSoft }}>
+                    <button onClick={() => handleSortChange('updated_at')} className="inline-flex items-center gap-1 text-sm font-semibold text-theme-text-primary">
                       更新时间
                       {renderSortIndicator('updated_at')}
                     </button>
                   </th>
-                  <th className="whitespace-nowrap w-24 px-3 py-2.5 text-right font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
+                  <th className="whitespace-nowrap w-24 px-3 py-2.5 text-right text-sm font-semibold text-theme-text-primary" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -1119,10 +1110,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 <input
                   required
                   placeholder="例如：核心业务 API 渗透测试"
-                  className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
-                  style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                  className="form-input w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
                   value={newProject.name}
                   onChange={(event) => setNewProject({ ...newProject, name: event.target.value })}
                 />
@@ -1132,10 +1120,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 <textarea
                   rows={3}
                   placeholder="描述该项目的评估目标与范围..."
-                  className="w-full resize-none rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
-                  style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                  className="form-textarea w-full resize-none rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
                   value={newProject.description}
                   onChange={(event) => setNewProject({ ...newProject, description: event.target.value })}
                 />
