@@ -1,16 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../../design-system';
-import { ArrowRight, CheckCircle2, ChevronDown, Loader2, Plus, RefreshCw, Rocket, Search, Shield, Square, SquareCheck, X } from 'lucide-react';
+import { Bug, CheckCircle2, FileText, Loader2, Plus, RefreshCw, Rocket, Search, Shield, Square, SquareCheck, Trash2, X } from 'lucide-react';
 import { api } from '../../clients/api';
-import { getAuthHeaders, handleResponse } from '../../clients/base';
-import { agentManageApiPath } from '../../clients/agentManage';
 import { ServicePageTitle } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { saveTaskCenterReturnContext, consumeHomeCreateTaskMode } from '../../utils/executionReturnContext';
 import { getPlatformRole } from '../../utils/rbac';
 import { CreateTaskDialog, HomeCardMode } from './CreateTaskDialog';
 import {
-  AgentAppSummary,
   ScheduleCenterUserTaskDeleteQueueItem,
   ScheduleCenterUserTaskDeleteQueueResponse,
   ScheduleCenterUserTask,
@@ -47,16 +44,6 @@ const TASK_TYPES: readonly TaskTypeOption[] = [
   { value: 'ai4red', label: 'AI4RED 红线验证', downstreamView: 'task-redline-detail' },
   { value: 'sechps_tool', label: 'Agent Harness 任务' },
 ];
-
-const loadAgentApps = async (departmentId?: number | string | null, tenantId?: number | string | null): Promise<AgentAppSummary[]> => {
-  const params = new URLSearchParams();
-  if (departmentId) params.set('departmentId', String(departmentId));
-  if (tenantId) params.set('tenantId', String(tenantId));
-  const qs = params.toString();
-  const response = await fetch(agentManageApiPath(`/agent-apps${qs ?`?${qs}` : ''}`), { headers: getAuthHeaders() });
-  const payload = await handleResponse(response);
-  return Array.isArray(payload?.apps) ? payload.apps : [];
-};
 
 const getLocalUserInfo = (): UserInfo | null => {
   const raw = localStorage.getItem('user');
@@ -135,15 +122,10 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
   const [tasks, setTasks] = useState<ScheduleCenterUserTask[]>([]);
   const [taskVulnCounts, setTaskVulnCounts] = useState<Record<string, number | undefined>>({});
   const [stats, setStats] = useState<Record<string, number>>({});
-  const [agentApps, setAgentApps] = useState<AgentAppSummary[]>([]);
   const [query, setQuery] = useState('');
-  const [selectedAgentAppFilter, setSelectedAgentAppFilter] = useState('');
-  const [agentAppFilterOpen, setAgentAppFilterOpen] = useState(false);
-  const agentAppFilterRef = useRef<HTMLDivElement | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [preSelectedMode, setPreSelectedMode] = useState<HomeCardMode | undefined>(undefined);
   const [error, setError] = useState('');
-  const [agentAppsLoadError, setAgentAppsLoadError] = useState('');
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteQueueOpen, setDeleteQueueOpen] = useState(false);
@@ -167,18 +149,14 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
   const { notify, confirm, feedbackNodes } = useUiFeedback();
 
   const projectName = useMemo(() => projects.find((item) => item.id === projectId)?.name || projectId, [projectId, projects]);
-  const selectedAgentAppFilterLabel = !selectedAgentAppFilter
-    ? '全部 Harness'
-    : (agentApps.find((item) => item.id === selectedAgentAppFilter)?.name || '全部 Harness');
   const filteredTasks = useMemo(() => {
     const term = query.trim().toLowerCase();
     return tasks.filter((item) => {
-      if (selectedAgentAppFilter && String(item.agent_app_id || '') !== selectedAgentAppFilter) return false;
       if (!term) return true;
       return [item.name, item.task_type, item.agent_app_name || '', item.agent_app_id || '', getDisplayStatus(item), getUserStatusLabel(item), item.sync_status, item.downstream_task_id || '']
         .some((value) => String(value || '').toLowerCase().includes(term));
     });
-  }, [query, selectedAgentAppFilter, tasks]);
+  }, [query, tasks]);
   const deletableTaskIds = useMemo(
     () => filteredTasks.filter((task) => !['queued', 'running'].includes(String(task.delete_status || 'none'))).map((task) => task.id),
     [filteredTasks],
@@ -211,39 +189,21 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
     if (!projectId) return;
     setLoading(true);
     setError('');
-    setAgentAppsLoadError('');
     try {
-      const taskResp = await scheduleApi.listUserTasks(projectId, selectedAgentAppFilter ? { agent_app_id: selectedAgentAppFilter } : {});
+      const taskResp = await scheduleApi.listUserTasks(projectId, {});
       const taskItems = taskResp.items || [];
       setTasks(taskItems);
       setStats(taskResp.stats || {});
       void fetchTaskVulnCounts(taskItems);
     } catch (err: any) {
       setError(err?.message || '加载失败');
-    }
-    try {
-      const appResp = await loadAgentApps(currentUser?.department_id, currentUser?.department_id);
-      setAgentApps(appResp || []);
-    } catch (err: any) {
-      setAgentApps([]);
-      setAgentAppsLoadError(err?.message || '加载 Agent Harness 列表失败');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { void loadData(); }, [projectId, selectedAgentAppFilter]);
-  useEffect(() => { setSelectedTaskIds([]); }, [projectId, query, selectedAgentAppFilter]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (agentAppFilterRef.current && !agentAppFilterRef.current.contains(event.target as Node)) {
-        setAgentAppFilterOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  useEffect(() => { void loadData(); }, [projectId]);
+  useEffect(() => { setSelectedTaskIds([]); }, [projectId, query]);
 
   useEffect(() => {
     const mode = consumeHomeCreateTaskMode();
@@ -442,15 +402,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
         })}
       </div>
 
-      {agentAppsLoadError ? (
-        <div
-          className="rounded-lg px-4 py-3 text-sm"
-          style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
-        >
-          {agentAppsLoadError}。当前任务列表已正常加载，但 Harness 筛选与 Agent Harness 创建能力暂时不可用。
-        </div>
-      ) : null}
-
       <div
         className="rounded-xl"
         style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
@@ -476,40 +427,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                 <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="搜索任务名、Harness、状态"
+                    placeholder="搜索任务名、工具、状态"
                     className="form-input w-full pl-10"
                 />
-              </div>
-              <div className="relative shrink-0" ref={agentAppFilterRef}>
-                <button
-                  onClick={() => setAgentAppFilterOpen(!agentAppFilterOpen)}
-                  className="form-select flex items-center justify-between gap-2 text-left"
-                  style={{ width: '180px' }}
-                >
-                  <span className="truncate flex-1 text-left">{selectedAgentAppFilterLabel}</span>
-                  <ChevronDown size={14} className={`shrink-0 text-theme-text-faint transition-transform ${agentAppFilterOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {agentAppFilterOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-48 bg-theme-surface border border-theme-border rounded-lg shadow-overlay p-2 z-50">
-                    <div className="max-h-60 overflow-y-auto space-y-0.5">
-                      <button
-                        onClick={() => { setSelectedAgentAppFilter(''); setAgentAppFilterOpen(false); }}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors ${!selectedAgentAppFilter ? 'theme-shell-active' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}
-                      >
-                        全部 Harness
-                      </button>
-                      {agentApps.map((item) => (
-                        <button
-                          key={item.id}
-                          onClick={() => { setSelectedAgentAppFilter(item.id); setAgentAppFilterOpen(false); }}
-                          className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors ${selectedAgentAppFilter === item.id ? 'theme-shell-active' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}
-                        >
-                          {item.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
               <button onClick={() => void loadData()} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><RefreshCw size={15} />刷新</button>
             </div>
@@ -532,7 +452,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                 </button>
               </th>
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务名</th>
-              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
+              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>工具</th>
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务状态</th>
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>更新时间</th>
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
@@ -576,38 +496,53 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                   {formatDateTime(task.updated_at)}
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={() => openTask(task)}
-                      className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
-                      style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; e.currentTarget.style.borderColor = LK.primary; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
+                      title="查看报告"
+                      className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
+                      style={{ color: LK.muted }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.primary; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
                     >
-                      查看报告 <ArrowRight size={12} />
+                      <FileText size={15} />
                     </button>
                     {task.task_type !== 'sechps_tool' ? (
                       <button
                         onClick={() => {
                           window.open(`#/vuln-list?task=${encodeURIComponent(task.id)}`, '_blank', 'noopener,noreferrer');
                         }}
-                        className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
-                        style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; e.currentTarget.style.borderColor = LK.primary; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
+                        title={`查看漏洞 (${taskVulnCounts[task.id] === undefined ? '…' : taskVulnCounts[task.id]})`}
+                        className="relative inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
+                        style={{ color: LK.muted }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.primary; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
                       >
-                        查看漏洞 ({taskVulnCounts[task.id] === undefined ? '…' : taskVulnCounts[task.id]})
+                        <Bug size={15} />
+                        {(() => {
+                          const c = taskVulnCounts[task.id];
+                          if (c === undefined || c === 0) return null;
+                          return (
+                            <span
+                              className="absolute -top-1 -right-1 inline-flex min-w-[15px] h-[15px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white"
+                              style={{ backgroundColor: LK.error }}
+                            >
+                              {c > 99 ? '99+' : c}
+                            </span>
+                          );
+                        })()}
                       </button>
                     ) : null}
                     <button
                       onClick={() => void submitDelete([task.id])}
                       disabled={deleteSubmitting || ['queued', 'running'].includes(String(task.delete_status || 'none'))}
-                      className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                      style={{ backgroundColor: `${LK.error}22`, color: LK.error, border: `1px solid ${LK.error}40` }}
-                      onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor =`${LK.error}3a`; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor =`${LK.error}22`; }}
+                      title="删除"
+                      className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                      style={{ color: LK.muted }}
+                      onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = `${LK.error}22`; e.currentTarget.style.color = LK.error; } }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
                     >
-                      删除
+                      <Trash2 size={15} />
                     </button>
                   </div>
                 </td>
