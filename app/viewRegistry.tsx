@@ -45,7 +45,6 @@ import { CfgGuidedExploreTaskDetailPage } from '../pages/execution/CfgGuidedExpl
 import { CfgGuidedExploreConfigPage } from '../pages/execution/CfgGuidedExploreConfigPage';
 import { CfgDbVulnToolPage } from '../pages/execution/CfgDbVulnToolPage';
 import { CfgDbVulnDetailPage } from '../pages/execution/CfgDbVulnDetailPage';
-import { VulnVerifyTaskPage } from '../pages/execution/VulnVerifyTaskPage';
 import { VulnVerifyV2TaskPage } from '../pages/execution/VulnVerifyV2TaskPage';
 import { FramaCVerifyPage } from '../pages/execution/FramaCVerifyPage';
 import { FramaCAdminPage } from '../pages/execution/FramaCAdminPage';
@@ -480,9 +479,6 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           onBack={() => ctx.setCurrentView('cfg-db-vuln-tool')}
         />
       );
-    case 'pentest-vuln-verify':
-    case 'vuln-verify-task':
-      return <VulnVerifyTaskPage projectId={ctx.selectedProjectId} />;
     case 'pentest-vuln-verify-v2':
       return <VulnVerifyV2TaskPage projectId={ctx.selectedProjectId} />;
     case 'pentest-frama-c':

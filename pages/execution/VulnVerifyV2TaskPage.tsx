@@ -461,7 +461,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
       <div className="w-full space-y-8 px-4 lg:px-6 xl:px-8">
         {feedbackNodes}
         <PageHeader
-          title={<ServicePageTitle title="漏洞验证 v2" version={buildVersion} />}
+          title={<ServicePageTitle title="漏洞验证" version={buildVersion} />}
           description="基于漏洞报告、代码上下文与威胁模型，由 AI 围绕代码定位、路径可达性、缓解措施和安全影响进行四维判定，产出确认漏洞、排除漏洞或不可证结论。"
           actions={
             <button type="button" onClick={() => void loadOverview()} className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-3.5 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">
