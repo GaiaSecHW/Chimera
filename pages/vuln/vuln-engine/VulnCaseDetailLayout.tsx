@@ -1,6 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import {
   Activity,
   AlertTriangle,
@@ -66,14 +64,6 @@ import {
 } from './shared';
 
 type DetailTab = 'report' | 'evidence' | 'timeline' | 'actions' | 'tasks' | 'context' | 'raw';
-
-function MarkdownContent({ content }: { content: string }) {
-  return (
-    <div className="markdown-body break-words leading-7 text-sm" style={{ color: LK.body }}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-    </div>
-  );
-}
 
 function MetricCard({ label, value, helper }: { label: string; value: React.ReactNode; helper?: React.ReactNode }) {
   return (
@@ -284,7 +274,7 @@ export const VulnCaseDetailLayout: React.FC<{
                 {reportError}
               </div>
             ) : reportDocument?.content ? (
-              <MarkdownContent content={reportDocument.content} />
+              <MarkdownViewer content={reportDocument.content} />
             ) : (
               <div className="rounded-xl px-4 py-8 text-center text-sm" style={{ color: LK.muted }}>
                 当前案例暂无结构化 Markdown 报告，请查看"证据"或"原始数据"标签。
