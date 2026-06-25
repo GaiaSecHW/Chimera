@@ -1,6 +1,28 @@
 import { API_BASE, handleResponse, getHeaders } from './base';
 import { ProductTreeNode, ProductVersionNode, SecurityProject, K8sResourceList, NamespaceStatus } from '../types/types';
 
+export interface ProjectMember {
+  user_id: string;
+  username: string;
+  is_creator: boolean;
+  department_name: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface ProjectAddableUser {
+  id: number;
+  username: string;
+  department_name: string | null;
+  is_already_member: boolean;
+}
+
+export interface ProjectBatchMemberResult {
+  results: { user_id: string; success: boolean; message?: string | null }[];
+  succeeded: number;
+  failed: number;
+}
+
 export const projectsApi = {
   // Health Check
   getHealth: async (): Promise<{ status: string; service: string }> => {
@@ -57,6 +79,40 @@ export const projectsApi = {
     const response = await fetch(`${API_BASE}/api/project/${projectId}/role?user_id=${userId}`, {
       method: 'DELETE',
       headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  listMembers: async (
+    projectId: string,
+    params: { search?: string; page?: number; page_size?: number } = {},
+  ): Promise<{ items: ProjectMember[]; total: number }> => {
+    const query = new URLSearchParams();
+    if (params.search) query.set('search', params.search);
+    if (params.page) query.set('page', String(params.page));
+    if (params.page_size) query.set('page_size', String(params.page_size));
+    const response = await fetch(`${API_BASE}/api/project/${projectId}/members?${query.toString()}`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  searchAddableUsers: async (
+    projectId: string,
+    q: string,
+    limit = 20,
+  ): Promise<{ items: ProjectAddableUser[]; total: number }> => {
+    const query = new URLSearchParams({ q, limit: String(limit) });
+    const response = await fetch(`${API_BASE}/api/project/${projectId}/users/search?${query.toString()}`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  batchAddMembers: async (
+    projectId: string,
+    userIds: string[],
+  ): Promise<ProjectBatchMemberResult> => {
+    const response = await fetch(`${API_BASE}/api/project/${projectId}/members/batch`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ user_ids: userIds }),
     });
     return handleResponse(response);
   },

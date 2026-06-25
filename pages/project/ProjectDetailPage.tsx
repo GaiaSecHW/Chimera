@@ -8,7 +8,6 @@ import {
   Clock,
   FileText,
   AlertCircle,
-  X,
   Lock,
   User,
   Copy,
@@ -26,10 +25,12 @@ import { authApi } from '../../clients/auth';
 import { scheduleCenterApi } from '../../clients/scheduleCenter';
 import { environmentApi } from '../../clients/environment';
 import { api } from '../../clients/api';
+import { orgApi, UserPermissionInfo } from '../../clients/org';
 import { StatusBadge } from '../../components/StatusBadge';
 import { PageHeader } from '../../design-system';
 import { TaskCenterPage } from '../task/TaskCenterPage';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { ProjectMemberModal } from './ProjectMemberModal';
 
 /* ── LOKI design tokens ─────────────────────────────────────── */
 const LK = {
@@ -131,8 +132,17 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
 
   /* ── Member modal ── */
   const [showMemberModal, setShowMemberModal] = useState(false);
+  const [userPermissions, setUserPermissions] = useState<UserPermissionInfo | null>(null);
 
   const project = projects.find(p => p.id === projectId);
+
+  useEffect(() => {
+    orgApi.getUserPermissions().then(setUserPermissions).catch(() => null);
+  }, []);
+
+  // 成员管理权限：仅项目创建人或 super_admin
+  const canManageMembers =
+    !!userPermissions && (!!userPermissions.is_admin || String(userPermissions.user_id) === (project?.owner_id || ''));
 
   /* ── Data loading ── */
   useEffect(() => {
@@ -263,13 +273,15 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
             >
               <RefreshCw size={20} />
             </button>
-            <button
-              onClick={() => setShowMemberModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
-              style={{ backgroundColor: LK.primaryMuted, color: LK.primary, border: `1px solid ${LK.border}` }}
-            >
-              <Users size={18} /> 管理成员
-            </button>
+            {canManageMembers && (
+              <button
+                onClick={() => setShowMemberModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
+                style={{ backgroundColor: LK.primaryMuted, color: LK.primary, border: `1px solid ${LK.border}` }}
+              >
+                <Users size={18} /> 管理成员
+              </button>
+            )}
           </div>
         }
       />
@@ -542,37 +554,12 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
       )}
 
       {/* ── Member management modal ────────────────────────── */}
-      {showMemberModal && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-6"
-          style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}
-        >
-          <div className="w-full max-w-lg rounded-2xl" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
-              <h3 className="text-base font-semibold" style={{ color: LK.ink }}>项目成员管理</h3>
-              <button
-                onClick={() => setShowMemberModal(false)}
-                className="p-1.5 rounded-lg transition-colors hover:opacity-80"
-                style={{ color: LK.muted }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div className="px-6 py-8 text-center">
-              <p className="text-sm" style={{ color: LK.muted }}>成员管理功能即将上线</p>
-              <p className="text-xs mt-2" style={{ color: LK.muted }}>需要后端接口 GET /api/project/{'{id}'}/members</p>
-            </div>
-            <div className="px-6 py-4 flex justify-end" style={{ borderTop: `1px solid ${LK.borderSoft}` }}>
-              <button
-                onClick={() => setShowMemberModal(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-80"
-                style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
-              >
-                关闭
-              </button>
-            </div>
-          </div>
-        </div>
+      {showMemberModal && project && (
+        <ProjectMemberModal
+          projectId={project.id}
+          projectName={project.name}
+          onClose={() => setShowMemberModal(false)}
+        />
       )}
     </div>
   );
