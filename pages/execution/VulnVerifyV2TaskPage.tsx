@@ -106,11 +106,11 @@ const StatusBadge: React.FC<{ status?: string }> = ({ status }) => (
 function outcomeBadge(status?: string, verdict?: string | null): { label: string; iconCls: string; boxCls: string; fontCls?: string; plain?: boolean; iconOnly?: boolean; Icon?: React.ElementType; loading?: boolean } {
   if (status === 'running') return { label: '验证中', iconCls: 'text-emerald-300', boxCls: '', iconOnly: true, loading: true };
   if (status === 'pending') return { label: '等待中', iconCls: 'text-theme-text-faint', boxCls: '', fontCls: 'font-normal', plain: true, iconOnly: true, Icon: Clock3 };
-  if (status === 'failed') return { label: '验证失败', iconCls: 'text-rose-400', boxCls: 'border border-white/5 bg-rose-500/20', Icon: XCircle };
-  if (status === 'cancelled') return { label: '已取消', iconCls: 'text-amber-400', boxCls: 'border border-white/5 bg-amber-500/20', Icon: Ban };
-  if (verdict === 'confirmed') return { label: '已确认', iconCls: 'text-rose-400', boxCls: 'border border-white/5 bg-rose-500/20', Icon: AlertTriangle };
-  if (verdict === 'ruled_out') return { label: '已排除', iconCls: 'text-sky-400', boxCls: 'border border-white/5 bg-sky-500/20', Icon: CheckCircle2 };
-  if (verdict === 'unresolved') return { label: '不可证', iconCls: 'text-amber-400', boxCls: 'border border-white/5 bg-amber-500/20', Icon: CircleHelp };
+  if (status === 'failed') return { label: '验证失败', iconCls: 'text-rose-400', boxCls: 'border border-theme-border-subtle bg-rose-500/20', Icon: XCircle };
+  if (status === 'cancelled') return { label: '已取消', iconCls: 'text-amber-400', boxCls: 'border border-theme-border-subtle bg-amber-500/20', Icon: Ban };
+  if (verdict === 'confirmed') return { label: '已确认', iconCls: 'text-rose-400', boxCls: 'border border-theme-border-subtle bg-rose-500/20', Icon: AlertTriangle };
+  if (verdict === 'ruled_out') return { label: '已排除', iconCls: 'text-sky-400', boxCls: 'border border-theme-border-subtle bg-sky-500/20', Icon: CheckCircle2 };
+  if (verdict === 'unresolved') return { label: '不可证', iconCls: 'text-amber-400', boxCls: 'border border-theme-border-subtle bg-amber-500/20', Icon: CircleHelp };
   return { label: '未产出结果', iconCls: 'text-theme-text-muted', boxCls: 'border-theme-border bg-theme-elevated', Icon: CircleHelp };
 }
 
@@ -136,7 +136,7 @@ const TaskOutcomeBadge: React.FC<{ status?: string; verdict?: string | null }> =
 
 const AttemptStatusBadge: React.FC<{ status?: string }> = ({ status }) => {
   if (status === 'success') {
-    return <OutcomePill size="sm" item={{ label: '成功', iconCls: 'text-emerald-400', boxCls: 'border border-white/5 bg-emerald-500/20', Icon: CheckCircle2 }} />;
+    return <OutcomePill size="sm" item={{ label: '成功', iconCls: 'text-emerald-400', boxCls: 'border border-theme-border-subtle bg-emerald-500/20', Icon: CheckCircle2 }} />;
   }
   return <OutcomePill size="sm" item={outcomeBadge(status, null)} />;
 };
@@ -543,7 +543,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                       key={task.id}
                       type="button"
                       onClick={() => void loadDetail(task.id)}
-                      className={`group relative grid w-full cursor-pointer gap-2 px-4 py-3 text-left transition-colors hover:bg-theme-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px] lg:items-center lg:gap-4 ${isSel ? 'bg-blue-500/15' : ''}`.trim()}
+                      className={`group relative grid w-full cursor-pointer gap-2 px-4 py-3 text-left transition-colors hover:bg-blue-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px] lg:items-center lg:gap-4 ${isSel ? 'bg-blue-500/15' : ''}`.trim()}
                     >
                       <span aria-hidden="true" className={`absolute bottom-0 left-0 top-0 w-1 bg-blue-600 transition-opacity ${isSel ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
                       <div className="min-w-0">
