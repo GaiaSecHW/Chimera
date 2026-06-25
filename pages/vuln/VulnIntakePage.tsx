@@ -2665,7 +2665,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           ) : null}
 
           <div className="table-container">
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-theme-border-subtle">
+            <div className="flex items-center gap-3 px-4 py-3">
               <div className="relative max-w-[420px] flex-1">
                 <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" />
                 <input
@@ -2765,8 +2765,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               </button>
             </div>
 
-            <div className="space-y-4 px-5 py-4 xl:px-6">
-              <div className="overflow-hidden rounded-xl border border-theme-border">
+            <div>
+              <div className="overflow-hidden">
                   <div className={`grid ${suspectOnly ? 'grid-cols-[1.5fr_2.2fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr]' : 'grid-cols-[1.5fr_2.2fr_0.9fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr]'} gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2.5`}>
                   <div className="flex items-center justify-center hidden">
                     <input
@@ -2900,7 +2900,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-theme-border bg-theme-surface px-3 py-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-theme-border px-3 py-2.5">
                 <div className="text-xs font-semibold text-theme-text-muted">
                   当前显示 {totalFiltered === 0 ? 0 : pageStart + 1} - {Math.min(pageStart + pageSize, totalFiltered)} / {totalFiltered}
                 </div>
