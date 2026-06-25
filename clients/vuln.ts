@@ -64,6 +64,14 @@ export interface VulnCaseReportListResponse {
   current_report_id?: string | null;
 }
 
+export interface VulnConfirmRecord {
+  engine_name: string;
+  engine_version?: string;
+  status: string;
+  result: string;
+  reason?: string;
+}
+
 export interface DownloadCenterJob {
   job_id: string;
   project_id: string;
@@ -362,7 +370,7 @@ export const vulnApi = {
   getCaseDetail: async (caseId: string): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}`, { headers: getHeaders() })),
 
-  getCaseConfirmRecords: async (caseId: string): Promise<{ confirm_records: any[]; validation_result?: string }> =>
+  getCaseConfirmRecords: async (caseId: string): Promise<{ confirm_records: VulnConfirmRecord[]; validation_result?: string }> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}/vuln-confirm`, { headers: getHeaders() })),
 
   getCaseReport: async (caseId: string, reportId?: string): Promise<VulnCaseReportDocument> => {
