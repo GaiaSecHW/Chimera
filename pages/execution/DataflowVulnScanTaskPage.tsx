@@ -452,12 +452,12 @@ const emptyForm = {
   input_path: '',
   output_path: '',
   task_description: '',
-  // entry selection (derived into prompt_content on submit)
   entry_list_path: '',
   source_file: '',
   function_name: '',
   line_hint: '',
   taint_vars: '',
+  model: '',
 };
 
 const SORT_OPTIONS = [
@@ -660,6 +660,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
   const [runningAgentPage, setRunningAgentPage] = useState(1);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [modelOptions, setModelOptions] = useState<string[]>([]);
 
   // Detail modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -722,6 +723,32 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
       const entryListPath =`${stored.replace(/\/+$/, '')}/functions.list`;
       setForm({ ...emptyForm, input_path: stored, output_path:`/data/files/${projectId}/app/chimera-app-dataflow-vuln-scan`, entry_list_path: entryListPath });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch model options from config center (模型配置中心)
+  // and default model from DVS service config (配置界面)
+  useEffect(() => {
+    api.configCenter.listLlmProviders()
+      .then((res: { items?: Array<{ enabled?: boolean; provider_key?: string; model?: string }> }) => {
+        const items = Array.isArray(res?.items) ? res.items : [];
+        const opts = items
+          .filter((p) => p.enabled && p.provider_key && p.model)
+          .map((p) =>`${p.provider_key}/${p.model}`);
+        setModelOptions(opts);
+      })
+      .catch(() => { /* 静默忽略 */ });
+    // Fetch DVS service config to get default model
+    appApi.getConfig()
+      .then((cfg: any) => {
+        const defaultModel = cfg?.workers?.agents?.[0]?.model;
+        if (defaultModel) {
+          setForm((p) => ({ ...p, model: defaultModel }));
+          // Ensure the configured model is in the options even if config center doesn't list it
+          setModelOptions((prev) => prev.includes(defaultModel) ? prev : [defaultModel, ...prev]);
+        }
+      })
+      .catch(() => { /* 静默忽略 */ });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -921,6 +948,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
         output_path: form.output_path.trim() || undefined,
         task_description: form.task_description.trim() || undefined,
         prompt_content: prompt,
+        model: form.model || 'auto',
       });
       notify(`任务创建成功: ${resp.task_id}`, 'success');
       setForm({ ...emptyForm });
@@ -2496,6 +2524,19 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                   onChange={(e) => setForm((p) => ({ ...p, task_description: e.target.value }))}
                   placeholder="简要说明分析目标或安全关注点"
                 />
+              </label>
+
+              {/* 模型选择 */}
+              <label className="form-label">
+                模型 <span className="text-theme-text-muted text-xs">(来自模型配置中心，SK 自动使用中心配置)</span>
+                <select
+                  className="mt-1 w-full rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm"
+                  value={form.model}
+                  onChange={(e) => setForm((p) => ({ ...p, model: e.target.value }))}
+                >
+                  <option value="auto">auto (网关自动路由)</option>
+                  {modelOptions.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
               </label>
 
               <button

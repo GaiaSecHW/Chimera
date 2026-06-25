@@ -3541,6 +3541,12 @@ export interface AppSaTaskDetail extends AppSaTaskItem {
   workspace_root?: string | null;
   output_root?: string | null;
   abnormal_reason_history?: ExecutionAbnormalReasonEventSummary[] | null;
+  // 任务级模型/key 路由信息
+  model_source?: 'config_center' | 'gateway' | string | null;
+  key_type?: 'sk' | 'wsk' | string | null;
+  selected_models?: { worker?: string; reader?: string; judge?: string } | null;
+  has_agent_task_key?: boolean | null;
+  agent_task_key_prefix?: string | null;
 }
 
 export interface AppSaTaskResultSummary {
@@ -3963,6 +3969,10 @@ export interface AppSaTaskCreateRequest {
   parent_stage_name?: string;
   parent_stage_item_id?: string;
   parent_stage_item_key?: string;
+  // 手动任务模型选择（三类角色，从模型配置中心选）
+  worker_model?: string;
+  reader_model?: string;
+  judge_model?: string;
 }
 
 export interface AppSaWorkerActiveJob {
@@ -4784,6 +4794,7 @@ export interface AppDfaTaskCreateRequest {
   parent_stage_name?: string;
   parent_stage_item_id?: string;
   parent_stage_item_key?: string;
+  model?: string;
 }
 
 export interface AppDfaSessionMeta {

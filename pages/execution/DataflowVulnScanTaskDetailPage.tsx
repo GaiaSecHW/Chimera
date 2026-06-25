@@ -1270,6 +1270,11 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
                   <InfoRow label="最近事件时间" value={timeline[0]?.created_at ? new Date(timeline[0].created_at).toLocaleString('zh-CN') : '-'} />
                   <InfoRow label="耗时" value={detail.finished_at ? formatDuration(detail.started_at, detail.finished_at) : formatLiveDuration(detail.started_at, clockNow)} />
                   <InfoRow label="描述" value={detail.task_description || '-'} />
+                  <InfoRow label="模型" value={<span className="font-mono">{detail.task_config_json?.model || 'auto'}</span>} />
+                  <InfoRow label="Key ID" value={<span className="font-mono">{detail.agent_auth_json?.agent_task_key_id || '-'}</span>} />
+                  <InfoRow label="Key 名称" value={detail.agent_auth_json?.agent_task_key_name || '-'} />
+                  <InfoRow label="Key 前缀" value={<span className="font-mono">{detail.agent_auth_json?.agent_task_key_prefix || '-'}</span>} />
+                  <InfoRow label="Key 来源" value={detail.agent_auth_json?.agent_task_key_source || '-'} />
                 </div>
               </div>
  <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
