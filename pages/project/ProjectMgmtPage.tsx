@@ -15,6 +15,7 @@ import {
   Server,
   Square,
   Trash2,
+  Users,
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
@@ -23,6 +24,7 @@ import { PageHeader } from '../../design-system';
 import { Department, ProductTreeNode, ProductVersionNode, SecurityProject } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { ProjectMemberModal } from './ProjectMemberModal';
 
 interface ProjectMgmtPageProps {
   projects: SecurityProject[];
@@ -63,7 +65,7 @@ const LK = {
   border: 'var(--border-default)',
   borderSoft: 'var(--border-default)',
   ink: 'var(--text-primary)',
-  inkSoft: 'var(--text-primary)',
+  inkSoft: 'var(--text-secondary)',
   body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)',
   mutedSoft: '#8b95a8',
@@ -99,6 +101,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<SecurityProject | null>(null);
+  const [memberModalProject, setMemberModalProject] = useState<SecurityProject | null>(null);
   const [newProject, setNewProject] = useState<ProjectFormState>(EMPTY_FORM);
   const [editForm, setEditForm] = useState<ProjectFormState>(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
@@ -251,6 +254,13 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     () => filteredProjects.filter((project) => project.can_manage),
     [filteredProjects]
   );
+
+  // 成员管理权限：仅项目创建人或 super_admin。部门管理员有项目编辑/删除权(can_manage)
+  // 但不能管理成员，故独立于 can_manage 判定。
+  const canManageProjectMembers = (project: SecurityProject) => {
+    if (!userPermissions) return false;
+    return !!userPermissions.is_admin || String(userPermissions.user_id) === (project.owner_id || '');
+  };
 
   const totalPages = Math.max(1, Math.ceil(filteredProjects.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);
@@ -857,9 +867,21 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                       <td className="whitespace-nowrap px-3 py-3 text-xs" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.muted }}>
                         {project.created_at ? new Date(project.created_at).toLocaleString() : '未知'}
                       </td>
-                      {/* 操作 — edit + delete only */}
+                      {/* 操作 — 成员管理 / 编辑 / 删除 */}
                       <td className="whitespace-nowrap px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
                         <div className="flex items-center justify-end gap-1">
+                          {canManageProjectMembers(project) && (
+                            <button
+                              onClick={(event) => { event.stopPropagation(); setMemberModalProject(project); }}
+                              className="rounded-md p-1.5 transition-colors"
+                              style={{ color: LK.muted }}
+                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
+                              title="成员管理"
+                            >
+                              <Users size={15} />
+                            </button>
+                          )}
                           {project.can_manage && (
                             <>
                               <button
@@ -1210,6 +1232,13 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
             </form>
           </div>
         </div>
+      )}
+      {memberModalProject && (
+        <ProjectMemberModal
+          projectId={memberModalProject.id}
+          projectName={memberModalProject.name}
+          onClose={() => setMemberModalProject(null)}
+        />
       )}
       {feedbackNodes}
     </div>

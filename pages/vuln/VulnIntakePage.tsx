@@ -1932,7 +1932,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       <button
         type="button"
         onClick={() => handleSortChange(field)}
-        className="inline-flex items-center gap-2 text-left text-xs font-semibold uppercase tracking-wider text-theme-text-muted hover:text-theme-text-primary"
+        className="inline-flex items-center gap-2 text-left text-sm uppercase tracking-wider font-semibold text-theme-text-primary"
       >
         {label}
         <span className="inline-flex items-center gap-0.5 leading-none">
@@ -2685,7 +2685,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   </button>
                   {taskFilterOpen && (
                     <div className="absolute left-0 top-full z-50 mt-2 max-h-72 w-full overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
-                      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
+                      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
                         <input
                           type="checkbox"
                           checked={taskFilter.length === 0}
@@ -2697,7 +2697,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       {taskOptions.map((task) => {
                         const checked = taskFilter.includes(task.id);
                         return (
-                          <label key={task.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
+                          <label key={task.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
                             <input
                               type="checkbox"
                               checked={checked}
@@ -2723,7 +2723,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   </button>
                   {finalResultFilterOpen ? (
                     <div className="absolute left-0 top-full z-50 mt-2 max-h-72 w-full overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
-                      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
+                      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
                         <input
                           type="checkbox"
                           checked={finalResultFilter.length === 0}
@@ -2735,7 +2735,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       {FINAL_RESULT_OPTIONS.map((opt) => {
                         const checked = finalResultFilter.includes(opt.value);
                         return (
-                          <label key={opt.value} className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
+                          <label key={opt.value} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
                             <input
                               type="checkbox"
                               checked={checked}
@@ -2774,14 +2774,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       className="hidden"
                     />
                   </div>
-                  <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">任务名称</div>
+                  <div className="text-sm uppercase tracking-wider font-semibold text-theme-text-primary">任务名称</div>
                   {renderSortHeader('标题 / 摘要', 'title')}
                   {!suspectOnly ? renderSortHeader('阶段 / 状态', 'current_stage') : null}
                   {renderSortHeader('漏洞确认状态', 'conclusion')}
                   {renderSortHeader('工具', 'reporter')}
                   {renderSortHeader('更新时间', 'updated_at')}
                   {renderSortHeader('创建时间', 'created_at')}
-                  <div className="text-xs font-semibold uppercase tracking-wider text-theme-text-muted-soft">操作</div>
+                  <div className="text-sm uppercase tracking-wider font-semibold text-theme-text-primary">操作</div>
                 </div>
                 {loading ? (
                   <div className="bg-theme-surface px-4 py-8 text-sm text-theme-text-faint">正在加载漏洞列表...</div>

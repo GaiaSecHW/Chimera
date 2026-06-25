@@ -99,7 +99,7 @@ const LK = {
   border: 'var(--border-default)',
   borderSoft: 'var(--border-default)',
   ink: 'var(--text-primary)',
-  inkSoft: 'var(--text-primary)',
+  inkSoft: 'var(--text-secondary)',
   body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)',
   mutedSoft: '#8b95a8',
@@ -450,11 +450,11 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                   {allVisibleSelected ? <SquareCheck size={16} /> : <Square size={16} />}
                 </button>
               </th>
-              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务名</th>
-              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>工具</th>
-              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务状态</th>
-              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>更新时间</th>
-              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
+              <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-sm text-theme-text-primary" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务名</th>
+              <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-sm text-theme-text-primary" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>工具</th>
+              <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-sm text-theme-text-primary" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务状态</th>
+              <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-sm text-theme-text-primary" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>更新时间</th>
+              <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-sm text-theme-text-primary" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -468,7 +468,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                 onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
               >
-                <td className="px-4 py-3">
+                <td className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.border}` }}>
                   <button
                     type="button"
                     onClick={() => toggleTaskSelection(task.id)}
@@ -481,19 +481,19 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                     {selectedTaskIds.includes(task.id) ? <SquareCheck size={16} /> : <Square size={16} />}
                   </button>
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap" style={{ color: LK.inkSoft }}>
+                <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, color: LK.inkSoft }}>
                   <div className="font-semibold">{task.name}</div>
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap">
+                <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}` }}>
                   <div className="font-semibold" style={{ color: LK.inkSoft }}>{getTaskHarnessLabel(task)}</div>
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap">
+                <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}` }}>
                   <div className="font-semibold" style={{ color: LK.inkSoft }}>{getUserStatusLabel(task)}</div>
                 </td>
-                <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: LK.muted }}>
+                <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, color: LK.muted }}>
                   {formatDateTime(task.updated_at)}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.border}` }}>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => openTask(task)}

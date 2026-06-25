@@ -186,10 +186,10 @@ export const StaticPackageDetailPage: React.FC<StaticPackageDetailPageProps> = (
               <table className="w-full text-left">
                 <thead className="bg-slate-100/50 border-b border-theme-border sticky top-0 z-10">
                   <tr className="text-[10px] font-medium text-theme-text-muted uppercase tracking-widest">
-                    <th className="px-8 py-5">路径标识 (Relative Path)</th>
-                    <th className="px-6 py-5">物理大小</th>
-                    <th className="px-6 py-5">下载频次</th>
-                    <th className="px-8 py-5 text-right">分发</th>
+                    <th className="px-8 py-5 text-theme-text-primary font-semibold">路径标识 (Relative Path)</th>
+                    <th className="px-6 py-5 text-theme-text-primary font-semibold">物理大小</th>
+                    <th className="px-6 py-5 text-theme-text-primary font-semibold">下载频次</th>
+                    <th className="px-8 py-5 text-theme-text-primary font-semibold text-right">分发</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">

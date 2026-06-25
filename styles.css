@@ -12,7 +12,7 @@
     --bg-surface: #151C26;
     --bg-elevated: #1C2432;
     --bg-overlay: #11161E;
-    --bg-sidebar: rgba(17, 22, 30, 0.92);
+    --bg-sidebar: #151C26;
     --bg-sidebar-muted: #1C2432;
     --bg-header: #151C26;
     --bg-login: #0A0D14;
@@ -75,9 +75,9 @@
 
 
     --bg-app: #f2f4f8;
-    --bg-surface: #ffffff;
+    --bg-surface: #FFFFFF;
     --bg-elevated: #EEF0F4;
-    --bg-sidebar: #EEF0F4;
+    --bg-sidebar: #FFFFFF;
     --bg-sidebar-muted: #e8eaf0;
     --bg-header: #FFFFFF; /*1*/
     --bg-login: #f2f4f8;

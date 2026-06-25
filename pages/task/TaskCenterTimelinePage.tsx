@@ -25,7 +25,7 @@ const LK = {
   border: 'var(--border-default)',
   borderSoft: 'var(--border-default)',
   ink: 'var(--text-primary)',
-  inkSoft: 'var(--text-primary)',
+  inkSoft: 'var(--text-secondary)',
   body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)',
   mutedSoft: '#8b95a8',
@@ -332,15 +332,15 @@ export const TaskCenterTimelinePage: React.FC<Props> = ({ projectId, taskId, onB
           <table className="min-w-full border-separate border-spacing-0 text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>时间</th>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>分类</th>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>结果</th>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>来源</th>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>Actor</th>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>消息</th>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>下游任务</th>
-                <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>调度载荷</th>
+                <th className="px-4 py-2.5  text-theme-text-primary font-semibold" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>时间</th>
+                <th className="px-4 py-2.5  text-theme-text-primary font-semibold" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>分类</th>
+                <th className="px-4 py-2.5  text-theme-text-primary font-semibold" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
+                <th className="px-4 py-2.5  text-theme-text-primary font-semibold" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>结果</th>
+                <th className="px-4 py-2.5  text-theme-text-primary font-semibold" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>来源</th>
+                <th className="px-4 py-2.5  text-theme-text-primary font-semibold" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>Actor</th>
+                <th className="px-4 py-2.5  text-theme-text-primary font-semibold" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>消息</th>
+                <th className="px-4 py-2.5  text-theme-text-primary font-semibold" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>下游任务</th>
+                <th className="px-4 py-2.5  text-theme-text-primary font-semibold" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>调度载荷</th>
               </tr>
             </thead>
             <tbody>
