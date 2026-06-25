@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 // Cairn 为跨域独立服务，iframe 隔离其 SSE/图谱运行时，避免与父 SPA 状态冲突。
-const CAIRN_BLACKBOARD_SRC = 'http://cairn.secflow.ai.icsl.huawei.com';
+const CAIRN_BLACKBOARD_SRC = 'https://cairn.ai.icsl.huawei.com';
 
 const BlackboardPage: React.FC = () => {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
