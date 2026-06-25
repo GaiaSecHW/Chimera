@@ -6,7 +6,6 @@ import {
   Eye,
   FileBox,
   FileText,
-  HardDrive,
   Loader2,
   Package,
   Plus,
@@ -650,17 +649,6 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
     }
   };
 
-  const canOpenDirectory = useMemo(() => {
-    const platformRole = String(user?.platform_role || '').trim().toLowerCase();
-    return platformRole === 'developer' || platformRole === 'ordinary_admin' || platformRole === 'super_admin';
-  }, [user]);
-
-  const openProjectPath = (path: string) => {
-    const normalizedPath = path.startsWith('/') ? path :`/${path}`;
-    const targetHash =`#/project-file-explorer?path=${encodeURIComponent(normalizedPath)}`;
-    window.open(targetHash, '_blank', 'noopener,noreferrer');
-  };
-
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   if (!projectId) {
@@ -713,32 +701,19 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
 
  <section className="flex min-h-[calc(100vh-22rem)] flex-1 flex-col rounded-xl border border-theme-border bg-theme-surface p-5">
           <div className="flex flex-col gap-4 border-b border-theme-border pb-5">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-theme-text-primary">上传记录</h2>
-                <p className="mt-1 text-sm font-medium text-theme-text-muted">查看各类测试对象上传批次、容量、状态和落盘路径。</p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => {
-                    void Promise.all([loadOverview(), loadRecords()]);
-                  }}
- className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary transition hover:border-theme-border hover:text-theme-text-primary"
-                >
-                  <RefreshCw size={16} className={(loading || overviewLoading) ? 'animate-spin' : ''} />
-                  刷新
-                </button>
-                <button
-                  onClick={() => openCreateModal(selectedType === 'all' ? 'document' : selectedType)}
-                  className="btn btn-primary"
-                >
-                  <Plus size={16} />
-                  新建上传
-                </button>
-              </div>
+            <div>
+              <h2 className="text-2xl font-bold text-theme-text-primary">上传记录</h2>
+              <p className="mt-1 text-sm font-medium text-theme-text-muted">查看各类测试对象上传批次、容量、状态和落盘路径。</p>
             </div>
 
             <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
+              <button
+                onClick={() => openCreateModal(selectedType === 'all' ? 'document' : selectedType)}
+                className="btn btn-primary"
+              >
+                <Plus size={16} />
+                新建上传
+              </button>
               <div className="relative w-full lg:max-w-sm lg:flex-1">
                 <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
                 <input
@@ -776,6 +751,15 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                 <option value="partial_failed">partial_failed</option>
                 <option value="failed">failed</option>
               </select>
+              <button
+                onClick={() => {
+                  void Promise.all([loadOverview(), loadRecords()]);
+                }}
+                className="lg:ml-auto inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary transition hover:border-theme-border hover:text-theme-text-primary"
+              >
+                <RefreshCw size={16} className={(loading || overviewLoading) ? 'animate-spin' : ''} />
+                刷新
+              </button>
             </div>
           </div>
 
@@ -833,7 +817,6 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                               </button>
                               <div className="min-w-0">
                                 <div className="font-semibold text-theme-text-primary">{getUploadRecordDisplayName(record)}</div>
-                                <div className="mt-1 text-xs font-mono text-theme-text-muted">{record.upload_id}</div>
                                 <div className="mt-1 text-xs text-theme-text-muted">{record.source_archive_count} 个源压缩包</div>
                               </div>
                             </div>
@@ -865,30 +848,14 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                           </td>
                           <td className="px-4 py-4">
                             <div className="flex items-center justify-end gap-2" onClick={(event) => event.stopPropagation()}>
-                              <button onClick={() => { void openUploadDetailDialog(record); }} className="rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated">
-                                <Eye size={14} className="mr-1 inline-block" />
-                                详情
+                              <button onClick={() => { void openUploadDetailDialog(record); }} aria-label="详情" title="详情" className="inline-flex items-center justify-center rounded-xl border border-theme-border px-2.5 py-2 text-theme-text-secondary hover:bg-theme-elevated">
+                                <Eye size={14} />
                               </button>
-                              {canOpenDirectory ? (
-                                <button onClick={() => openProjectPath(record.target_path)} className="rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated">
-                                  <HardDrive size={14} className="mr-1 inline-block" />
-                                  打开目录
-                                </button>
-                              ) : null}
-                              <button onClick={() => openAppendModal(record)} className="rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated">
-                                <Plus size={14} className="mr-1 inline-block" />
-                                追加
+                              <button onClick={() => openAppendModal(record)} aria-label="追加" title="追加" className="inline-flex items-center justify-center rounded-xl border border-theme-border px-2.5 py-2 text-theme-text-secondary hover:bg-theme-elevated">
+                                <Plus size={14} />
                               </button>
-                              <button onClick={() => {
-                                setSelectedRecordForTask(record.upload_id);
-                                setCreateTaskOpen(true);
-                              }} className="rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary hover:bg-theme-elevated">
-                                <Plus size={14} className="mr-1 inline-block" />
-                                创建任务
-                              </button>
-                              <button onClick={() => setDeleteTarget(record)} className="rounded-xl border border-rose-500/20 px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-500/15">
-                                <Trash2 size={14} className="mr-1 inline-block" />
-                                删除
+                              <button onClick={() => setDeleteTarget(record)} aria-label="删除" title="删除" className="inline-flex items-center justify-center rounded-xl border border-rose-500/20 px-2.5 py-2 text-rose-400 hover:bg-rose-500/15">
+                                <Trash2 size={14} />
                               </button>
                             </div>
                           </td>
@@ -900,7 +867,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                                   <div>
                                     <div className="text-sm font-semibold text-theme-text-primary">批次历史</div>
-                                    <div className="mt-1 text-xs text-theme-text-muted">{record.upload_id} · {batches.length > 0 ?`${batches.length} 个批次` : '暂无批次明细'}</div>
+                                    <div className="mt-1 text-xs text-theme-text-muted">{batches.length > 0 ?`${batches.length} 个批次` : '暂无批次明细'}</div>
                                   </div>
                                   <div className="flex flex-wrap gap-2 text-xs font-semibold text-theme-text-muted">
                                     <span className="rounded-full bg-theme-elevated px-3 py-1">模式：{getUploadModeLabel(record.keep_original)}</span>
@@ -931,7 +898,6 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                                               <StatusBadge status={batch.status} />
                                               <span className="rounded-full bg-theme-elevated px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">{batch.mode}</span>
                                             </div>
-                                            <div className="mt-2 text-xs text-theme-text-muted">batch_id: <span className="font-mono text-theme-text-secondary">{batch.batch_id}</span></div>
                                           </div>
                                           <div className="flex flex-wrap gap-2 text-xs font-semibold text-theme-text-muted">
                                             <span className="rounded-full bg-theme-elevated px-3 py-1">提交 {batch.submitted_file_count} 个</span>
@@ -1009,7 +975,6 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   <div className="text-sm font-medium uppercase tracking-[0.18em] text-theme-text-muted">上传记录详情</div>
                   <div className="mt-2 text-2xl font-bold text-theme-text-primary">{getUploadRecordDisplayName(record)}</div>
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                    <span className="rounded-full bg-theme-elevated px-3 py-1 font-mono text-theme-text-secondary">{record.upload_id}</span>
                     <StatusBadge status={record.status} />
                     {latestBatch ? <span className="rounded-full bg-theme-elevated px-3 py-1 font-semibold text-theme-text-secondary">最新批次：{latestBatch.status}</span> : null}
                     <span className="rounded-full bg-theme-elevated px-3 py-1 font-semibold text-theme-text-secondary">类型：{INPUT_TYPE_META[normalizeType(record.input_type)].label}</span>
@@ -1031,10 +996,6 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   <section className="rounded-xl border border-theme-border bg-theme-surface p-5">
                     <div className="text-sm font-semibold text-theme-text-primary">基础信息</div>
                     <div className="mt-4 grid gap-4 md:grid-cols-2">
-                      <div>
-                        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">目标路径</div>
-                        <div className="mt-1 break-all text-sm font-mono text-theme-text-secondary">{record.target_path}</div>
-                      </div>
                       <div>
                         <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">上传模式</div>
                         <div className="mt-1 text-sm font-semibold text-theme-text-secondary">{getUploadModeLabel(record.keep_original)}</div>
@@ -1115,7 +1076,6 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                               <StatusBadge status={batch.status} />
                               <span className="rounded-full bg-theme-elevated px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">{batch.mode}</span>
                             </div>
-                            <div className="mt-2 text-xs text-theme-text-muted">batch_id: <span className="font-mono text-theme-text-secondary">{batch.batch_id}</span></div>
                             <div className="mt-4 grid gap-3 md:grid-cols-2">
                               <div>
                                 <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">提交 / 处理</div>
@@ -1150,11 +1110,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                 <button type="button" onClick={() => setDetailDialogTarget(null)} className="rounded-lg border border-theme-border px-4 py-3 text-sm font-semibold text-theme-text-secondary">
                   关闭
                 </button>
-                {canOpenDirectory ? (
-                  <button type="button" onClick={() => openProjectPath(record.target_path)} className="rounded-lg bg-theme-elevated px-4 py-3 text-sm font-semibold text-white">
-                    打开目录
-                  </button>
-                ) : null}
+
               </div>
             </div>
           </div>
