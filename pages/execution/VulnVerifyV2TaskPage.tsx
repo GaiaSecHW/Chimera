@@ -193,9 +193,8 @@ const TaskDecisionEvidence: React.FC<{ task: VulnVerifyV2Task }> = ({ task }) =>
 
 const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'emerald' | 'sky' | 'rose' | 'amber' | 'slate'; Icon?: React.ElementType }> = ({ label, value, hint, accent = 'slate', Icon }) => {
   const color = accent === 'emerald' ? 'text-emerald-400' : accent === 'sky' ? 'text-sky-400' : accent === 'rose' ? 'text-rose-400' : accent === 'amber' ? 'text-amber-400' : 'text-theme-text-primary';
-  const bg = accent === 'emerald' ? 'bg-emerald-500/10' : accent === 'sky' ? 'bg-sky-500/10' : accent === 'rose' ? 'bg-rose-500/10' : accent === 'amber' ? 'bg-amber-500/10' : 'bg-theme-elevated';
   return (
-    <div className={`border border-white/5 ${bg} p-4`}>
+    <div className="border border-theme-border bg-theme-elevated p-4">
       <div className={`inline-flex items-center gap-1.5 text-[13px] font-medium ${color}`}>
         {Icon ? <Icon size={13} strokeWidth={2.1} className="shrink-0" /> : null}
         <span>{label}</span>
