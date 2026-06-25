@@ -193,8 +193,9 @@ const TaskDecisionEvidence: React.FC<{ task: VulnVerifyV2Task }> = ({ task }) =>
 
 const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'emerald' | 'sky' | 'rose' | 'amber' | 'slate'; Icon?: React.ElementType }> = ({ label, value, hint, accent = 'slate', Icon }) => {
   const color = accent === 'emerald' ? 'text-emerald-400' : accent === 'sky' ? 'text-sky-400' : accent === 'rose' ? 'text-rose-400' : accent === 'amber' ? 'text-amber-400' : 'text-theme-text-primary';
+  const bg = accent === 'emerald' ? 'bg-emerald-500/10' : accent === 'sky' ? 'bg-sky-500/10' : accent === 'rose' ? 'bg-rose-500/10' : accent === 'amber' ? 'bg-amber-500/10' : 'bg-theme-elevated';
   return (
-    <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
+    <div className={`border border-white/5 ${bg} p-4`}>
       <div className={`inline-flex items-center gap-1.5 text-[13px] font-medium ${color}`}>
         {Icon ? <Icon size={13} strokeWidth={2.1} className="shrink-0" /> : null}
         <span>{label}</span>
@@ -458,27 +459,27 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
   return (
     <div className="min-h-full bg-theme-bg-app text-theme-text-primary">
-      <div className="w-full space-y-8 px-4 lg:px-6 xl:px-8">
+      <div className="w-full space-y-8 px-4 pt-8 pb-10 lg:px-6 xl:px-8">
         {feedbackNodes}
-        <PageHeader
-          title={<ServicePageTitle title="漏洞验证" version={buildVersion} />}
-          description="基于漏洞报告、代码上下文与威胁模型，由 AI 围绕代码定位、路径可达性、缓解措施和安全影响进行四维判定，产出确认漏洞、排除漏洞或不可证结论。"
-          actions={
-            <button type="button" onClick={() => void loadOverview()} className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-3.5 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">
-              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />刷新
-            </button>
-          }
-        />
-
-        {message ? <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">{message}</div> : null}
-
-        <section>
-          <div className="grid gap-5 md:grid-cols-3">
+        <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+          <PageHeader
+            className="border-b-0 pb-0"
+            title={<ServicePageTitle title={<span className="inline-flex items-baseline gap-1.5">漏洞验证<span className="text-xs font-medium text-theme-text-muted">v2</span></span>} version={buildVersion} />}
+            description="基于漏洞报告、代码上下文与威胁模型，由 AI 围绕代码定位、路径可达性、缓解措施和安全影响进行四维判定，产出确认漏洞、排除漏洞或不可证结论。"
+            actions={
+              <button type="button" onClick={() => void loadOverview()} className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-3.5 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">
+                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />刷新
+              </button>
+            }
+          />
+          <div className="mt-6 grid gap-5 md:grid-cols-3">
             <SummaryCard label="已确认" value={confirmedVulns} accent="rose" Icon={AlertTriangle} hint="确认存在真实漏洞风险" />
             <SummaryCard label="已排除" value={ruledOutVulns} accent="sky" Icon={CheckCircle2} hint="验证后排除漏洞风险" />
             <SummaryCard label="不可证" value={unresolvedVulns} accent="amber" Icon={CircleHelp} hint="现有证据不足以判定" />
           </div>
         </section>
+
+        {message ? <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">{message}</div> : null}
 
         <div className="grid grid-cols-1 gap-4">
           {/* 列表 */}

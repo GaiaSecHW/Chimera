@@ -549,7 +549,7 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
         { id: 'pentest-threat', label: '入口分析', icon: Zap, aliases: ['entry-analysis-root', 'entry-analysis-task', 'entry-analysis-detail'], requiresProject: true },
         { id: 'pentest-dataflow-vuln-scan', label: '数据流漏洞挖掘', icon: Zap, aliases: ['dataflow-vuln-scan-task', 'dataflow-vuln-scan-detail', 'dataflow-vuln-scan-config'], requiresProject: true },
         { id: 'pentest-cfg-guided-explore', label: 'CFG Guided Explore', icon: Zap, aliases: ['cfg-guided-explore-task', 'cfg-guided-explore-detail', 'cfg-guided-explore-config'], requiresProject: true },
-        { id: 'pentest-vuln-verify-v2', label: '漏洞验证', icon: Zap, requiresProject: true },
+        { id: 'pentest-vuln-verify-v2', label: '漏洞验证 v2', icon: Zap, requiresProject: true },
         { id: 'pentest-frama-c', label: '形式化验证', icon: ShieldCheck, requiresProject: true },
       ],
     },
