@@ -209,7 +209,7 @@ const DIMENSION_KEYS = ['code_accurate', 'path_reachable', 'unmitigated', 'secur
 
 function dimensionConclusionText(dimKey: string, status?: boolean | null): string {
   const textMap: Record<string, { pass: string; fail: string; unknown: string }> = {
-    code_accurate: { pass: '代码准确', fail: '代码不准确', unknown: '代码定位未判定' },
+    code_accurate: { pass: '漏洞代码准确', fail: '漏洞代码不准确', unknown: '漏洞代码未判定' },
     path_reachable: { pass: '路径可达', fail: '路径不可达', unknown: '路径可达性未判定' },
     unmitigated: { pass: '无缓解措施', fail: '存在缓解措施', unknown: '缓解措施未判定' },
     security_impact: { pass: '存在安全影响', fail: '无安全影响', unknown: '安全影响未判定' },
