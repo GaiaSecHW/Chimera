@@ -243,7 +243,7 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <div className="w-2 h-2 rounded-full bg-brand-primary shrink-0" />
               <span className="truncate flex-1 text-left">{currentProject.name}</span>
-              <button onClick={() => fetchProjects(true)} className="shrink-0 text-theme-text-faint">
+              <button onClick={(e) => { e.stopPropagation(); fetchProjects(true); }} className="shrink-0 text-theme-text-faint text-theme-text-primary-hover transition-all">
                 <RotateCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
               </button>
               <ChevronDown size={14} className="shrink-0 text-theme-text-faint" />

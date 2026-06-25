@@ -198,6 +198,7 @@
     color: var(--text-primary);
   }
   .text-theme-text-primary { color: var(--text-primary); }
+  .text-theme-text-primary-hover:hover { color: var(--text-primary); }
   .text-theme-text-secondary { color: var(--text-secondary); }
   .text-theme-text-muted { color: var(--text-muted); }
   .text-theme-text-faint { color: var(--text-faint); }
