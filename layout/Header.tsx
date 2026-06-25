@@ -243,9 +243,9 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Folder size={14} className="shrink-0 text-brand-primary" />
               <span className="truncate flex-1 text-left">{currentProject.name}</span>
-              <button onClick={(e) => { e.stopPropagation(); fetchProjects(true); }} className="shrink-0 text-theme-text-faint text-theme-text-primary-hover transition-all">
+              <span onClick={(e) => { e.stopPropagation(); fetchProjects(true); }} className="shrink-0 text-theme-text-faint text-theme-text-primary-hover transition-all">
                 <RotateCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
-              </button>
+              </span>
               <ChevronDown size={14} className="shrink-0 text-theme-text-faint" />
             </button>
             {isProjectDropdownOpen && (

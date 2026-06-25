@@ -122,7 +122,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
             <ul className="mt-5 space-y-2">
               {mode.points.map((p) => (
                   <li key={p} className="flex items-start gap-2 text-[13px]" style={{ color: LK.inkSoft }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                       className="w-4 h-4"
                       style={{ color: mode.accent }}
                     >
@@ -136,7 +136,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
             <div className="mt-4">
               <div className="flex items-center border-t pt-4 text-xs text-brand-primary gap-2">
                 {mode.jumpMsg}
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                      className="w-4 h-4"
                 >
                   <path d="M5 12h14"></path>
