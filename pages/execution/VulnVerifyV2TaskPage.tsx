@@ -543,9 +543,9 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                       key={task.id}
                       type="button"
                       onClick={() => void loadDetail(task.id)}
-                      className={`relative grid w-full gap-2 px-4 py-3 text-left transition-colors hover:bg-theme-elevated lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px] lg:items-center lg:gap-4 ${isSel ? 'bg-blue-500/15' : ''}`.trim()}
+                      className={`group relative grid w-full cursor-pointer gap-2 px-4 py-3 text-left transition-colors hover:bg-theme-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px] lg:items-center lg:gap-4 ${isSel ? 'bg-blue-500/15' : ''}`.trim()}
                     >
-                      {isSel ? <span aria-hidden="true" className="absolute bottom-3 left-0 top-3 w-1.5 rounded-r-full bg-blue-300" /> : null}
+                      <span aria-hidden="true" className={`absolute bottom-0 left-0 top-0 w-1 bg-blue-600 transition-opacity ${isSel ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
                       <div className="min-w-0">
                         <div className="truncate text-[15px] font-normal text-theme-text-primary" title={task.name}>{task.name}</div>
                         <div className="mt-1 font-mono text-xs text-theme-text-faint">{task.vuln_id || task.case_id || '-'}</div>
