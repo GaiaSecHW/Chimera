@@ -642,11 +642,11 @@ const AppShell: React.FC = () => {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-1">
-              <label className="text-[10px] font-semibold text-theme-text-faint uppercase ml-2">账户名称</label>
+              <label className="text-base font-semibold text-theme-text-primary uppercase">账户名称</label>
               <input name="username" required className="theme-login-input" placeholder="Username" />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-semibold text-theme-text-faint uppercase ml-2">身份凭证</label>
+              <label className="text-base font-semibold text-theme-text-primary uppercase">身份凭证</label>
               <input name="password" type="password" required className="theme-login-input" placeholder="Password" />
             </div>
             <button disabled={isLoading} className="theme-primary-button w-full py-4 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100">
