@@ -419,26 +419,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
         })}
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="搜索任务名、Harness、状态"
-            className="form-input w-full pl-10"
-          />
-        </div>
-        <select
-          value={selectedAgentAppFilter}
-          onChange={(e) => setSelectedAgentAppFilter(e.target.value)}
-          className="form-select"
-        >
-          <option value="">全部 Harness</option>
-          {agentApps.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-        </select>
-      </div>
-
       {agentAppsLoadError ? (
         <div
           className="rounded-lg px-4 py-3 text-sm"
@@ -448,41 +428,55 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
         </div>
       ) : null}
 
-      {!hideActionBar && (
-        <div
-          className="flex items-center gap-2 rounded-lg px-4 py-3"
-          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
-        >
-          <button onClick={openCreateDialog} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}><Plus size={15} />创建任务</button>
-          <button
-            onClick={() => void submitDelete(selectedTaskIds)}
-            disabled={!selectedTaskIds.length || deleteSubmitting}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ backgroundColor: LK.error, color: '#ffffff' }}
-            onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#e04848'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.error; }}
-          >
-            {deleteSubmitting ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
-            批量删除（{selectedTaskIds.length}）
-          </button>
-          <button onClick={() => void loadData()} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><RefreshCw size={15} />刷新</button>
-          <div className="flex-1" />
-        </div>
-      )}
-
-      {error ? (
-        <div
-          className="rounded-lg px-4 py-3 text-sm"
-          style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}
-        >
-          {error}
-        </div>
-      ) : null}
-
       <div
         className="overflow-hidden rounded-xl"
         style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
       >
+        {!hideActionBar && (
+            <div
+                className="flex items-center gap-2 rounded-lg px-4 py-3"
+            >
+              <button onClick={openCreateDialog} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}><Plus size={15} />创建任务</button>
+              <button
+                  onClick={() => void submitDelete(selectedTaskIds)}
+                  disabled={!selectedTaskIds.length || deleteSubmitting}
+                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ backgroundColor: LK.error, color: '#ffffff' }}
+                  onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#e04848'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.error; }}
+              >
+                {deleteSubmitting ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+                批量删除（{selectedTaskIds.length}）
+              </button>
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
+                <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="搜索任务名、Harness、状态"
+                    className="form-input w-full pl-10"
+                />
+              </div>
+              <select
+                  value={selectedAgentAppFilter}
+                  onChange={(e) => setSelectedAgentAppFilter(e.target.value)}
+                  className="form-select"
+              >
+                <option value="">全部 Harness</option>
+                {agentApps.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+              <button onClick={() => void loadData()} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><RefreshCw size={15} />刷新</button>
+            </div>
+        )}
+
+        {error ? (
+            <div
+                className="rounded-lg px-4 py-3 text-sm mb-2 mt-2"
+                style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}
+            >
+              {error}
+            </div>
+        ) : null}
         <table className="min-w-full border-separate border-spacing-0 text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
