@@ -48,7 +48,9 @@ import type {
   VulnCaseReportDocument,
   VulnCaseReportSummary,
   VulnCaseWorkspaceSummary,
+  VulnConfirmRecord,
 } from '../../../clients/vuln';
+import { MarkdownViewer } from '../../../design-system';
 import {
   ACTION_TYPE_LABELS,
   DECISION_LABELS,
@@ -108,6 +110,7 @@ export const VulnCaseDetailLayout: React.FC<{
   onRefresh: () => void;
   onCreateAutoVerify?: () => void;
   stageActionContent?: React.ReactNode;
+  confirmRecords?: VulnConfirmRecord[];
 }> = ({
   projectId,
   caseDetail,
@@ -125,6 +128,7 @@ export const VulnCaseDetailLayout: React.FC<{
   onRefresh,
   onCreateAutoVerify,
   stageActionContent,
+  confirmRecords,
 }) => {
   const [activeTab, setActiveTab] = useState<DetailTab>('report');
   const displaySummary = (caseDetail?.display_summary || {}) as VulnCaseDisplaySummary;
@@ -290,6 +294,45 @@ export const VulnCaseDetailLayout: React.FC<{
         </div>
 
         <div className="space-y-4">
+          <section
+            className="rounded-xl px-4 py-4"
+            style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
+          >
+            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>判定依据</div>
+            {(confirmRecords || []).length > 0 ? (
+              <div className="mt-3 space-y-3">
+                {(confirmRecords || []).map((record, index) => (
+                  <div
+                    key={`${record.engine_name}-${index}`}
+                    className="rounded-lg"
+                    style={{ backgroundColor: LK.surfaceRaised, border: '1px solid ' + LK.borderSoft }}
+                  >
+                    <div className="flex flex-wrap items-center gap-2 px-3 py-2" style={{ borderBottom: '1px solid ' + LK.borderSoft }}>
+                      <span className="text-sm font-semibold" style={{ color: LK.ink }}>
+                        {record.engine_name || '未知引擎'}
+                      </span>
+                      {record.engine_version ? (
+                        <span className="text-xs" style={{ color: LK.muted }}>{record.engine_version}</span>
+                      ) : null}
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                        style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}
+                      >
+                        {record.result === 'yes' ? '判定成立' : record.result === 'no' ? '判定不成立' : (record.result || '-')}
+                      </span>
+                      <span className="ml-auto text-xs" style={{ color: LK.muted }}>{record.status || ''}</span>
+                    </div>
+                    <div className="px-3 py-2">
+                      <MarkdownViewer content={record.reason} emptyText="暂无判定依据" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-3 rounded-lg px-3 py-4 text-sm" style={{ color: LK.muted }}>暂无判定依据</div>
+            )}
+          </section>
+
           <section
             className="rounded-xl px-4 py-4"
             style={{ backgroundColor: LK.surface, border: '1px solid ' + LK.border }}
