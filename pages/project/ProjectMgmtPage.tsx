@@ -154,7 +154,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       ...envStats,
     ]);
     setTaskCount(taskRes.status === 'fulfilled' ? Number(taskRes.value?.total || 0) : null);
-    setVulnCount(vulnRes.status === 'fulfilled' ? Number(vulnRes.value?.metrics?.total_cases || 0) : null);
+    setVulnCount(vulnRes.status === 'fulfilled' ? Number(vulnRes.value?.human_finished_reason_counts?.vulnerable || 0) : null);
     const envTotal = envResults.reduce<number>((sum, res) => {
       if (res.status === 'fulfilled' && res.value) {
         return sum + Number(res.value?.summary?.total_agents || 0);
