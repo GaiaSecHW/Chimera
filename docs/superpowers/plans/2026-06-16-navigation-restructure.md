@@ -855,13 +855,13 @@ interface HomePageProps {
 }
 
 const LK = {
-  primary: '#4f73ff',
+  primary: 'var(--brand-primary)',
   primaryMuted: 'rgba(79, 115, 255, 0.14)',
-  canvas: '#070d18',
-  surface: '#111a2b',
-  border: '#26324a',
-  ink: '#f5f7ff',
-  muted: '#72809a',
+  canvas: 'var(--bg-app)',
+  surface: 'var(--bg-surface)',
+  border: 'var(--border-default)',
+  ink: 'var(--text-primary)',
+  muted: 'var(--text-secondary)',
 } as const;
 
 export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {

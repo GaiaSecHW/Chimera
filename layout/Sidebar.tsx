@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { SIDEBAR_SECTIONS, SidebarHealthStatus, TOP_LEVEL_NAV_ITEMS, NAV_ROLE_CONFIG, getSystemAdminSidebarSections } from '../app/navigation';
+import { SIDEBAR_SECTIONS, SidebarHealthStatus, TOP_LEVEL_NAV_ITEMS, NAV_ROLE_CONFIG, getSystemAdminSidebarSections, getAssetsCenterSidebarSections } from '../app/navigation';
 import { UserInfo, ViewType } from '../types/types';
 import { canAccessView } from '../utils/rbac';
 
@@ -51,7 +51,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const rawSections = activeTopLevelNav === 'system-admin'
     ? getSystemAdminSidebarSections(String(currentView))
-    : (SIDEBAR_SECTIONS[activeTopLevelNav as keyof typeof SIDEBAR_SECTIONS] || []);
+    : activeTopLevelNav === 'assets-center'
+      ? getAssetsCenterSidebarSections(String(currentView))
+      : (SIDEBAR_SECTIONS[activeTopLevelNav as keyof typeof SIDEBAR_SECTIONS] || []);
 
   const sections = rawSections.map((section) => ({
     ...section,

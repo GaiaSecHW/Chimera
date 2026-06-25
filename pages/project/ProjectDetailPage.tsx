@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  ArrowRight,
   ChevronLeft,
   ChevronDown,
   RefreshCw,
@@ -29,21 +28,22 @@ import { environmentApi } from '../../clients/environment';
 import { api } from '../../clients/api';
 import { StatusBadge } from '../../components/StatusBadge';
 import { PageHeader } from '../../design-system';
+import { TaskCenterPage } from '../task/TaskCenterPage';
 import { useUiFeedback } from '../../components/UiFeedback';
 
 /* ── LOKI design tokens ─────────────────────────────────────── */
 const LK = {
-  primary: '#4f73ff',
+  primary: 'var(--brand-primary)',
   primaryMuted: 'rgba(79, 115, 255, 0.14)',
-  canvas: '#070d18',
-  surface: '#111a2b',
-  surfaceRaised: '#18233a',
-  border: '#26324a',
-  borderSoft: '#1b2438',
-  ink: '#f5f7ff',
-  inkSoft: '#d6def0',
-  body: '#a4aec4',
-  muted: '#72809a',
+  canvas: 'var(--bg-app)',
+  surface: 'var(--bg-surface)',
+  surfaceRaised: 'var(--bg-app)',
+  border: 'var(--border-default)',
+  borderSoft: 'var(--border-default)',
+  ink: 'var(--text-primary)',
+  inkSoft: 'var(--text-primary)',
+  body: 'var(--text-secondary)',
+  muted: 'var(--text-secondary)',
   mutedSoft: '#5a687e',
   success: '#45c06f',
   warning: '#d5a13a',
@@ -54,24 +54,6 @@ const LK = {
 const MONO = "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace";
 
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '—');
-
-/* ── Task helpers (mirroring TaskCenterPage) ── */
-const TASK_TYPE_LABELS: Record<string, string> = {
-  binary_firmware_e2e: '盖亚-二进制固件',
-  source_scan_e2e: '盖亚-源码',
-  kg_source_vuln_scan_e2e: '知识图谱-漏洞挖掘',
-  binary_module_e2e: '盖亚-二进制模块',
-  ai4app_fast: 'AI4APP 扫描（快速）',
-  ai4web_fast: 'AI4WEB 扫描（快速）',
-  ai4app_deep: 'AI4APP 扫描（深度）',
-  ai4web_deep: 'AI4WEB 扫描（深度）',
-  ai4red: 'AI4RED 红线验证',
-  sechps_tool: 'Agent Harness 任务',
-};
-const getTaskTypeLabel = (t: string) => TASK_TYPE_LABELS[t] || t;
-const getTaskHarnessLabel = (task: any) =>
-  task.task_type === 'sechps_tool' ? (task.agent_app_name || 'Agent Harness') : getTaskTypeLabel(String(task.task_type || ''));
-const getDisplayStatus = (task: any) => task.display_status || task.business_status || task.dispatch_status || task.create_status || 'unknown';
 
 /* ── Env helpers (mirroring EnvManagementPage) ── */
 const getAgentName = (a: any) => a.full_name || a.hostname || a.key || a.agent_key || '—';
@@ -136,11 +118,8 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
   const [taskCount, setTaskCount] = useState(0);
   const [envCount, setEnvCount] = useState(0);
   const [vulnCount, setVulnCount] = useState(0);
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [taskVulnCounts, setTaskVulnCounts] = useState<Record<string, number | undefined>>({});
   const [envAgents, setEnvAgents] = useState<any[]>([]);
   const [vulnCases, setVulnCases] = useState<any[]>([]);
-  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const [deletingVulnId, setDeletingVulnId] = useState<string | null>(null);
 
   /* ── SDK Token state ── */
@@ -160,21 +139,6 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
     loadAllData();
   }, [projectId]);
 
-  const fetchTaskVulnCounts = async (taskItems: any[]) => {
-    if (!projectId || taskItems.length === 0) return;
-    const entries = await Promise.all(
-      taskItems.map(async (t) => {
-        try {
-          const resp = await api.vuln.listCases({ project_id: projectId, source_task_id: t.id, page: 1, page_size: 1 });
-          return [t.id, Number(resp.total || 0)] as const;
-        } catch {
-          return [t.id, 0] as const;
-        }
-      }),
-    );
-    setTaskVulnCounts((prev) => entries.reduce((acc, [id, n]) => { acc[id] = n; return acc; }, { ...prev }));
-  };
-
   const loadAllData = async () => {
     setLoading(true);
     try {
@@ -184,9 +148,6 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
         api.vuln.listCases({ project_id: projectId, page: 1, page_size: 20 }).catch(() => ({ items: [], total: 0 })),
       ]);
       setTaskCount(Number(taskResp.total || 0));
-      const taskItems = taskResp.items || [];
-      setTasks(taskItems);
-      void fetchTaskVulnCounts(taskItems);
       setEnvCount(Number(envResp.total || 0));
       setEnvAgents(envResp.agents || []);
       setVulnCount(Number(vulnResp.total || 0));
@@ -195,51 +156,6 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
       console.error('Failed to load project details', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  /* ── Task actions ── */
-  const openTask = (task: any) => {
-    window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
-      detail: {
-        view: 'task-report-view',
-        taskReportTaskId: task.id,
-      },
-    }));
-  };
-
-  const openTaskVulns = (task: any) => {
-    window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
-      detail: { view: 'task-vuln-list', taskVulnListTaskId: task.id },
-    }));
-  };
-
-  const openTaskTimeline = (task: any) => {
-    window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
-      detail: { view: 'task-center-timeline', taskCenterTimelineTaskId: task.id },
-    }));
-  };
-
-  const deleteTask = async (task: any) => {
-    const ok = await confirm({ message: `确认删除任务"${task.name || task.id}"？此操作不可恢复。`, danger: true });
-    if (!ok) return;
-    setDeletingTaskId(task.id);
-    try {
-      await scheduleCenterApi.deleteUserTask(projectId, task.id);
-      await loadAllData();
-    } catch (err: any) {
-      console.error('Delete task failed', err);
-    } finally {
-      setDeletingTaskId(null);
-    }
-  };
-
-  const syncTask = async (task: any) => {
-    try {
-      await scheduleCenterApi.syncUserTask(projectId, task.id, { force: true });
-      await loadAllData();
-    } catch (err: any) {
-      console.error('Sync task failed', err);
     }
   };
 
@@ -392,88 +308,9 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
       {/* ── Block-switched list area ───────────────────────── */}
       <div className="rounded-xl overflow-hidden" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
 
-        {/* ──── Task table (TaskCenterPage layout) ──── */}
+        {/* ──── Task list (reuses TaskCenterPage) ──── */}
         {activeBlock === 'task' && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm" style={{ color: LK.body }}>
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-                  <th className={thClass} style={TH_STYLE}>任务名</th>
-                  <th className={thClass} style={TH_STYLE}>类型</th>
-                  <th className={thClass} style={TH_STYLE}>任务状态</th>
-                  <th className={thClass} style={TH_STYLE}>同步状态</th>
-                  <th className={thClass} style={TH_STYLE}>下游任务 ID</th>
-                  <th className={thClass} style={TH_STYLE}>更新时间</th>
-                  <th className={thClass} style={TH_STYLE}>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.length === 0 ? (
-                  <tr><td colSpan={7} className="px-4 py-10 text-center" style={{ color: LK.muted }}>暂无任务</td></tr>
-                ) : tasks.map((task) => (
-                  <tr
-                    key={task.id}
-                    className="transition-colors"
-                    style={{ borderBottom: `1px solid ${LK.borderSoft}` }}
-                    onMouseEnter={(e) => { (e.currentTarget.style.backgroundColor = LK.surfaceRaised); }}
-                    onMouseLeave={(e) => { (e.currentTarget.style.backgroundColor = 'transparent'); }}
-                  >
-                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: LK.inkSoft }}>
-                      <div className="font-semibold">{task.name || task.id}</div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: LK.inkSoft }}>
-                      <div className="font-semibold">{getTaskHarnessLabel(task)}</div>
-                      {task.task_type === 'sechps_tool' && (
-                        <div className="text-xs" style={{ color: LK.muted }}>Agent Harness / {task.agent_app_engine || 'unknown'}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: LK.inkSoft }}>
-                      <div className="font-semibold">{getDisplayStatus(task)}</div>
-                      <div className="text-xs" style={{ color: LK.muted }}>{task.dispatch_status} / {task.business_status}</div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-xs" style={{ color: LK.body }}>
-                      {task.sync_status || 'none'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-xs" style={{ fontFamily: MONO, fontSize: '12px', color: LK.body }}>
-                      {task.downstream_task_id || '—'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-xs" style={{ color: LK.muted }}>
-                      {formatDateTime(task.updated_at)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <button className={actionBtnClass} style={actionBtnStyle} onClick={() => openTask(task)}>
-                          查看报告 <ArrowRight size={12} />
-                        </button>
-                        {task.task_type !== 'sechps_tool' && (
-                          <button className={actionBtnClass} style={actionBtnStyle} onClick={() => openTaskVulns(task)}>
-                            查看漏洞 ({taskVulnCounts[task.id] === undefined ? '…' : taskVulnCounts[task.id]})
-                          </button>
-                        )}
-                        {task.sync_required && (
-                          <button className={actionBtnClass} style={actionBtnStyle} onClick={() => syncTask(task)}>
-                            <RefreshCw size={12} /> 立即同步
-                          </button>
-                        )}
-                        <button className={actionBtnClass} style={actionBtnStyle} onClick={() => openTaskTimeline(task)}>
-                          时间线
-                        </button>
-                        <button
-                          className={actionBtnClass}
-                          style={{ backgroundColor: `${LK.error}22`, color: LK.error, border: `1px solid ${LK.error}40` }}
-                          disabled={deletingTaskId === task.id}
-                          onClick={() => deleteTask(task)}
-                        >
-                          {deletingTaskId === task.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                          删除
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <TaskCenterPage projectId={projectId} projects={projects} onRefreshProjects={loadAllData} hideActionBar />
         )}
 
         {/* ──── Env table (EnvManagementPage layout) ──── */}

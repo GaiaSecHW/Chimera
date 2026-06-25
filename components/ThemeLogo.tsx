@@ -43,7 +43,7 @@ export const ThemeLogo: React.FC<ThemeLogoProps> = ({
   return (
     <div className="flex items-center gap-4 min-w-0">
       <div
-        className={`${sizing.box} bg-logo-surface flex items-center justify-center shrink-0 shadow-brand overflow-hidden`}
+        className={`${sizing.box} flex items-center justify-center shrink-0 overflow-hidden`}
       >
         <img
           src="/logo.png"

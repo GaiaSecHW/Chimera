@@ -8,13 +8,13 @@ import {
 } from 'lucide-react';
 
 const LK = {
-  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primary: 'var(--brand-primary)', primarySoft: '#7590ff', primaryDeep: 'var(--brand-primary-hover)',
   primaryMuted: 'rgba(79, 115, 255, 0.14)',
-  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  canvas: 'var(--bg-app)', surface: 'var(--bg-surface)', surfaceRaised: 'var(--bg-app)',
   surfaceGlass: 'rgba(17, 26, 43, 0.84)',
-  border: '#26324a', borderSoft: '#1b2438',
-  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
-  muted: '#72809a', mutedSoft: '#8b95a8',
+  border: 'var(--border-default)', borderSoft: 'var(--border-default)',
+  ink: 'var(--text-primary)', inkSoft: 'var(--text-primary)', body: 'var(--text-secondary)',
+  muted: 'var(--text-secondary)', mutedSoft: '#8b95a8',
   success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
   critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
 } as const;
@@ -1276,9 +1276,18 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
                 <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">分析进度</h2>
                 <div className="mt-4 space-y-4">
                   {(() => {
-                    const total = vulnStats.totalNodes || (vulnGraph?.available ? (vulnSummary.followups || 0) + (vulnSummary.runs || 0) : 0);
-                    const analyzed = vulnStats.analyzedNodes || (vulnGraph?.available ? (vulnSummary.runs || 0) : 0);
-                    const pct = total > 0 ? Math.round((analyzed / total) * 100) : detail?.status === 'running' ? 0 : detail?.status === 'passed' ? 100 : 0;
+                    const sRuns = Number(vulnSummary.runs || 0);
+                    const sFollowups = Number(vulnSummary.followups || 0);
+                    const sExecuted = Number(vulnSummary.executed_followups || 0);
+                    const sFindings = Number(vulnSummary.findings || 0);
+                    // analyzed = runs (each run = one function fully analyzed)
+                    // pending = followups not yet executed nor skipped
+                    const analyzed = sRuns || vulnStats.analyzedNodes;
+                    const pendingFollowups = Math.max(0, sFollowups - sExecuted - (sFollowups > 0 ? Math.max(0, sFollowups - sExecuted - (vulnStats.skippedNodes || 0)) : 0));
+                    const skippedFollowups = sFollowups > 0 ? Math.max(0, sFollowups - sExecuted) : (vulnStats.skippedNodes || 0);
+                    const total = sRuns + sFollowups || vulnStats.totalNodes;
+                    const pending = (sFollowups > 0 ? Math.max(0, sFollowups - sExecuted - skippedFollowups) : 0) || vulnStats.pendingNodes;
+                    const pct = (analyzed + pending) > 0 ? Math.round((analyzed / (analyzed + pending)) * 100) : detail?.status === 'running' ? 0 : detail?.status === 'passed' ? 100 : 0;
                     const isRunning = detail?.status === 'running';
                     return (
                       <>
@@ -1314,7 +1323,7 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
                               <Loader2 size={13} className={`text-amber-400 ${isRunning ? 'animate-spin' : ''}`} />
                               <span className="text-[11px] font-semibold text-amber-400">待分析</span>
                             </div>
-                            <p className="mt-1 text-lg font-bold text-amber-400">{vulnStats.pendingNodes || Math.max(0, total - analyzed)}</p>
+                            <p className="mt-1 text-lg font-bold text-amber-400">{pending}</p>
                           </div>
                           <div className="rounded-xl border border-violet-500/15 bg-violet-500/8 px-3 py-2.5">
                             <div className="flex items-center gap-1.5">
@@ -1328,7 +1337,7 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
                               <Bug size={13} className="text-rose-400" />
                               <span className="text-[11px] font-semibold text-rose-400">漏洞上报</span>
                             </div>
-                            <p className="mt-1 text-lg font-bold text-rose-400">{vulnStats.vulnCount || vulnSummary.findings || result?.summary?.total_findings || 0}</p>
+                            <p className="mt-1 text-lg font-bold text-rose-400">{vulnStats.vulnCount || sFindings || result?.summary?.total_findings || 0}</p>
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2 text-[11px] text-theme-text-muted">
@@ -1336,7 +1345,7 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
                             总节点: <span className="font-bold text-theme-text-secondary">{total || vulnStats.totalNodes || '-'}</span>
                           </span>
                           <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1">
-                            跳过: <span className="font-bold text-theme-text-secondary">{vulnStats.skippedNodes || 0}</span>
+                            跳过: <span className="font-bold text-theme-text-secondary">{skippedFollowups || vulnStats.skippedNodes || 0}</span>
                           </span>
                           <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1">
                             环路: <span className="font-bold text-theme-text-secondary">{vulnStats.cycleNodes || 0}</span>

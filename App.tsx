@@ -1,7 +1,7 @@
 
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { HashRouter, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Loader2, AlertCircle, Lock } from 'lucide-react';
+import { Loader2, AlertCircle, Lock, Sun, Moon } from 'lucide-react';
 import { ViewType, SecurityProject, UserInfo, Agent, EnvTemplate, StaticPackage, PackageStats, AdminDashboardStats } from './types/types';
 import { api } from './clients/api';
 import { getTopLevelDefaultView, getTopLevelNavForView, PROJECT_REQUIRED_VIEWS } from './app/navigation';
@@ -15,6 +15,7 @@ import { ServiceTerminalWindowPage } from './pages/environment/ServiceTerminalWi
 import { canAccessView, getUserAccess } from './utils/rbac';
 import { AggregatedServiceHealth, MenuServiceHealthSummary } from './clients/menu';
 import { ThemeLogo } from './components/ThemeLogo';
+import { useTheme } from './theme/ThemeProvider';
 
 const DEFAULT_VIEW = 'home';
 
@@ -60,6 +61,7 @@ const parseDeepLinkPath = (pathname: string): DeepLinkTarget | null => {
 const AppShell: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme, setTheme } = useTheme();
   const { view } = useParams<{ view?: string }>();
   const deepLinkTarget = parseDeepLinkPath(location.pathname);
   const routeView = deepLinkTarget?.view || view || DEFAULT_VIEW;
@@ -104,7 +106,16 @@ const AppShell: React.FC = () => {
   const [activeTaskCenterTimelineTaskId, setActiveTaskCenterTimelineTaskId] = useState<string>('');
   const [activeTaskCenterTimelineBackView, setActiveTaskCenterTimelineBackView] = useState<string>('task-list');
   const [activeTaskVulnListTaskId, setActiveTaskVulnListTaskId] = useState<string>('');
+  const [activeVulnIntakeTaskFilter, setActiveVulnIntakeTaskFilter] = useState<string>(() => {
+    if (routeView === 'vuln-intake' || routeView === 'vuln-list') {
+      const task = new URLSearchParams(location.search).get('task');
+      if (task) return task;
+    }
+    return '';
+  });
   const [activeTaskReportTaskId, setActiveTaskReportTaskId] = useState<string>('');
+  const [openCreateTaskOnNav, setOpenCreateTaskOnNav] = useState(false);
+  const [openCreateProjectOnNav, setOpenCreateProjectOnNav] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -272,6 +283,9 @@ const AppShell: React.FC = () => {
         taskCenterTimelineBackView?: string;
         taskVulnListTaskId?: string;
         taskReportTaskId?: string;
+        vulnIntakeTaskFilter?: string;
+        openCreateTask?: boolean;
+        openCreateProject?: boolean;
         path?: string;
       }>).detail;
       const nextView = String(detail?.view || '').trim();
@@ -341,6 +355,10 @@ const AppShell: React.FC = () => {
       if (taskVulnListTaskId) {
         setActiveTaskVulnListTaskId(taskVulnListTaskId);
       }
+      const vulnIntakeTaskFilter = String(detail?.vulnIntakeTaskFilter || '').trim();
+      if (vulnIntakeTaskFilter) {
+        setActiveVulnIntakeTaskFilter(vulnIntakeTaskFilter);
+      }
       const taskReportTaskId = String(detail?.taskReportTaskId || '').trim();
       if (taskReportTaskId) {
         setActiveTaskReportTaskId(taskReportTaskId);
@@ -350,6 +368,12 @@ const AppShell: React.FC = () => {
         setActiveAppScanTaskId(appScanTaskId);
       }
       const binaryEvolutionTaskId = String(detail?.binaryEvolutionTaskId || '').trim();
+      if (detail?.openCreateTask) {
+        setOpenCreateTaskOnNav(true);
+      }
+      if (detail?.openCreateProject) {
+        setOpenCreateProjectOnNav(true);
+      }
       if (nextView) {
         navigateToView(nextView, {
           ...(requestedPath ? { path: requestedPath } : {}),
@@ -500,11 +524,31 @@ const AppShell: React.FC = () => {
         if (resolvedProjectId && resolvedProjectId !== selectedProjectId) {
           setSelectedProjectId(resolvedProjectId);
         }
+
+        const pendingNavRaw = sessionStorage.getItem('chimera:pendingNav');
+        if (pendingNavRaw) {
+          sessionStorage.removeItem('chimera:pendingNav');
+          try {
+            const pending = JSON.parse(pendingNavRaw);
+            if (pending.projectId && nextProjects.some((p) => p.id === pending.projectId)) {
+              setSelectedProjectId(pending.projectId);
+            }
+            if (pending.view) {
+              navigateToView(pending.view);
+            }
+            if (pending.openCreateTask) {
+              setOpenCreateTaskOnNav(true);
+            }
+            if (pending.openCreateProject) {
+              setOpenCreateProjectOnNav(true);
+            }
+          } catch { /* ignore */ }
+        }
       }
     } catch (err) {
       console.error("Failed to fetch projects", err);
     } finally {
-      if (refresh) setIsRefreshing(false);
+      if (refresh) setIsRefreshing(true);
     }
   };
 
@@ -567,6 +611,13 @@ const AppShell: React.FC = () => {
   if (!token) return (
     <>
       <div className="h-screen w-full flex items-center justify-center bg-theme-login relative overflow-hidden">
+        <button
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="absolute top-4 right-4 z-20 p-2.5 text-theme-text-faint hover:text-brand-primary transition-all"
+          aria-label={theme === 'dark' ? '切换浅色主题' : '切换深色主题'}
+        >
+          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
         <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
           <div
             className="absolute inset-0"
@@ -591,11 +642,11 @@ const AppShell: React.FC = () => {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-1">
-              <label className="text-[10px] font-semibold text-theme-text-faint uppercase ml-2">账户名称</label>
+              <label className="text-base font-semibold text-theme-text-primary uppercase">账户名称</label>
               <input name="username" required className="theme-login-input" placeholder="Username" />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-semibold text-theme-text-faint uppercase ml-2">身份凭证</label>
+              <label className="text-base font-semibold text-theme-text-primary uppercase">身份凭证</label>
               <input name="password" type="password" required className="theme-login-input" placeholder="Password" />
             </div>
             <button disabled={isLoading} className="theme-primary-button w-full py-4 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100">
@@ -617,6 +668,7 @@ const AppShell: React.FC = () => {
           onSelectTopLevelNav={(nav) => navigateToView(getTopLevelDefaultView(nav, user))}
           currentView={currentView}
           onSelectSystemAdminChild={(view) => navigateToView(view)}
+          onSelectAssetsCenterChild={(view) => navigateToView(view)}
           projects={projects} 
           selectedProjectId={selectedProjectId} 
           setSelectedProjectId={setSelectedProjectId} 
@@ -631,21 +683,28 @@ const AppShell: React.FC = () => {
         />
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
-          <Sidebar
-            user={user}
-            currentView={currentView}
-            activeTopLevelNav={activeTopLevelNav}
-            hasSelectedProject={!!selectedProjectId}
-            setCurrentView={navigateToView}
-            resourceHealth={resourceServiceHealthy}
-            staticPackageHealth={staticPackageHealthy}
-            projectHealth={projectServiceHealthy}
-            envHealth={envServiceHealthy}
-            codeAuditHealth={codeAuditServiceHealthy}
-            workflowHealth={workflowServiceHealthy}
-            vulnHealth={vulnServiceHealthy}
-            configCenterHealth={configCenterServiceHealthy}
-          />
+          {(() => {
+            const hideSidebarViews = new Set(['project-mgmt', 'project-detail', 'test-input-root']);
+            const hideSidebarNavs = new Set(['home', 'test-task', 'vuln-center']);
+            if (hideSidebarNavs.has(activeTopLevelNav) || hideSidebarViews.has(String(currentView))) return null;
+            return (
+              <Sidebar
+                user={user}
+                currentView={currentView}
+                activeTopLevelNav={activeTopLevelNav}
+                hasSelectedProject={!!selectedProjectId}
+                setCurrentView={navigateToView}
+                resourceHealth={resourceServiceHealthy}
+                staticPackageHealth={staticPackageHealthy}
+                projectHealth={projectServiceHealthy}
+                envHealth={envServiceHealthy}
+                codeAuditHealth={codeAuditServiceHealthy}
+                workflowHealth={workflowServiceHealthy}
+                vulnHealth={vulnServiceHealthy}
+                configCenterHealth={configCenterServiceHealthy}
+              />
+            );
+          })()}
 
           <main className="flex-1 flex flex-col min-w-0">
             <div className="flex-1 overflow-y-auto custom-scrollbar relative">
@@ -744,8 +803,13 @@ const AppShell: React.FC = () => {
                     activeBinaryModuleSecurityTaskId,
                     activeTaskCenterTimelineTaskId,
                     activeTaskVulnListTaskId,
+                    activeVulnIntakeTaskFilter,
                     activeTaskReportTaskId,
                     activeRedlineTaskId,
+                    openCreateTaskOnNav,
+                    openCreateProjectOnNav,
+                    setOpenCreateTaskOnNav,
+                    setOpenCreateProjectOnNav,
                     selectedStaticPkgIds,
                     setCurrentView: navigateToView,
                     setSelectedProjectId: (id) => setSelectedProjectId(id),

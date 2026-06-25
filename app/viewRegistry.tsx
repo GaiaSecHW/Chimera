@@ -164,7 +164,12 @@ export interface ViewRegistryContext {
   activeTaskCenterTimelineTaskId: string;
   activeTaskCenterTimelineBackView?: string;
   activeTaskVulnListTaskId: string;
+  activeVulnIntakeTaskFilter: string;
   activeTaskReportTaskId: string;
+  openCreateTaskOnNav: boolean;
+  openCreateProjectOnNav: boolean;
+  setOpenCreateTaskOnNav: (v: boolean) => void;
+  setOpenCreateProjectOnNav: (v: boolean) => void;
   selectedStaticPkgIds: Set<string>;
   setCurrentView: (view: string) => void;
   setSelectedProjectId: (id: string) => void;
@@ -258,6 +263,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           setActiveProjectId={ctx.setActiveProjectId}
           setCurrentView={ctx.setCurrentView}
           refreshProjects={ctx.fetchProjects}
+          openCreateProjectOnNav={ctx.openCreateProjectOnNav}
+          onConsumeOpenCreateProject={() => ctx.setOpenCreateProjectOnNav(false)}
         />
       );
     case 'project-detail':
@@ -265,7 +272,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'product-mgmt':
       return <ProductMgmtPage />;
     case 'task-list':
-      return <TaskCenterPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
+      return <TaskCenterPage projectId={ctx.selectedProjectId} projects={ctx.projects} onRefreshProjects={ctx.fetchProjects} openCreateTaskOnNav={ctx.openCreateTaskOnNav} onConsumeOpenCreateTask={() => ctx.setOpenCreateTaskOnNav(false)} />;
     case 'task-web-end-to-end':
       return <WebEndToEndPage projectId={ctx.selectedProjectId} />;
     case 'task-knowledge-graph':
@@ -870,9 +877,9 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'vuln-overview':
       return <VulnOverviewPage projectId={ctx.selectedProjectId} />;
     case 'vuln-intake':
-      return <VulnIntakePage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} pageTitle="告警中心" />;
+      return <VulnIntakePage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} pageTitle="告警中心" initialTaskFilter={ctx.activeVulnIntakeTaskFilter} />;
     case 'vuln-list':
-      return <VulnIntakePage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} pageTitle="漏洞中心" suspectOnly />;
+      return <VulnIntakePage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} pageTitle="漏洞中心" suspectOnly initialTaskFilter={ctx.activeVulnIntakeTaskFilter} />;
     case 'vuln-analysis':
       return <VulnAnalysisPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
     case 'vuln-analysis-detail':

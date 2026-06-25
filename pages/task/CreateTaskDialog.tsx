@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, Folder, FolderOpen, Loader2, Square, SquareCheck, X } from 'lucide-react';
+import { ChevronRight, Folder, FolderOpen, Loader2, Plus, RefreshCw, Square, SquareCheck, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { TestInputUploader, TestInputUploaderHandle } from '../../components/TestInputUploader';
 import { getAuthHeaders, handleResponse } from '../../clients/base';
 import { agentManageApiPath } from '../../clients/agentManage';
 import { getUploadRecordDisplayName } from '../assets/baseResourcePageModel';
-import { buildManagerTargetDir } from '../../clients/codemapManager';
 import { resolveSechpsInstruction } from './taskCenterInstruction';
 import type {
   AgentAppSummary,
@@ -14,6 +13,7 @@ import type {
   ProjectInputUploadRecord,
   ScheduleCenterUserTaskCreatePayload,
   ScheduleCenterUserTaskType,
+  SecurityProject,
   UserInfo,
 } from '../../types/types';
 
@@ -21,12 +21,17 @@ import type {
 /*  Props                                                              */
 /* ------------------------------------------------------------------ */
 
+export type HomeCardMode = 'dragon-tail' | 'ram-horn' | 'lion-head';
+
 export interface CreateTaskDialogProps {
   open: boolean;
   onClose: () => void;
   projectId: string;
   projectName: string;
+  projects: SecurityProject[];
+  onRefreshProjects?: () => Promise<void> | void;
   preSelectedInputId?: string;
+  preSelectedMode?: HomeCardMode;
   onCreated: () => void;
 }
 
@@ -37,7 +42,7 @@ export interface CreateTaskDialogProps {
 type TaskMode = 'dragon-tail' | 'ram-horn';
 
 type TaskTypeOption = {
-  value: ScheduleCenterUserTaskType | 'cfg_db_vuln';
+  value: ScheduleCenterUserTaskType;
   label: string;
   downstreamView?: string;
   modes: readonly TaskMode[];
@@ -47,7 +52,6 @@ type TaskTypeOption = {
 const TASK_TYPES: readonly TaskTypeOption[] = [
   { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail', modes: ['dragon-tail', 'ram-horn'], disabled: true },
   { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
-  { value: 'cfg_db_vuln', label: 'CFG-挖掘工具', downstreamView: 'cfg-db-vuln-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'kg_source_vuln_scan_e2e', label: '知识图谱-漏洞挖掘', downstreamView: 'kg-source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail', modes: ['dragon-tail', 'ram-horn'], disabled: true },
   { value: 'ai4app_fast', label: 'AI4APP 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
@@ -69,7 +73,6 @@ const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
   binary_firmware_e2e: 'file',
   binary_module_e2e: 'file_list',
   source_scan_e2e: 'directory',
-  cfg_db_vuln: 'directory',
   kg_source_vuln_scan_e2e: 'directory',
   ai4red: 'directory',
   ai4app_fast: 'file',
@@ -84,6 +87,20 @@ const MODE_OPTIONS = [
   { value: 'ram-horn', label: '羊角' },
   { value: 'lion-head', label: '狮首' },
 ];
+
+const TASK_TYPE_HINTS: Record<string, string> = {
+  binary_firmware_e2e: '请上传一个二进制固件文件（如 .bin、.img、.fw 等）。',
+  binary_module_e2e: '请上传一个或多个二进制模块文件（如 .so、.o、.elf 等）。',
+  source_scan_e2e: '请上传一个源码目录（包含完整项目源代码）。',
+  cfg_db_vuln: '请选择一个已构建知识图谱的代码目录作为测试对象。',
+  kg_source_vuln_scan_e2e: '请上传一个源码目录作为知识图谱漏洞挖掘的测试对象。',
+  ai4app_fast: '请上传一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包（压缩包将作为源码包处理）。',
+  ai4app_deep: '请上传一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包（压缩包将作为源码包处理）。',
+  ai4web_fast: '请上传一个 Web 源码包（zip/rar/tar.gz/gz 等压缩包）。',
+  ai4web_deep: '请上传一个 Web 源码包（zip/rar/tar.gz/gz 等压缩包）。',
+  ai4red: '请上传一个目录作为红线验证的测试对象。',
+  sechps_tool: '请选择一个已注册的 Agent Harness，并选择一个目录。',
+};
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -114,20 +131,20 @@ const getLocalUserInfo = (): UserInfo | null => {
 /* ------------------------------------------------------------------ */
 
 const LK = {
-  primary: '#4f73ff',
+  primary: 'var(--brand-primary)',
   primarySoft: '#7590ff',
-  primaryDeep: '#3f63f1',
+  primaryDeep: 'var(--brand-primary-hover)',
   primaryMuted: 'rgba(79, 115, 255, 0.14)',
-  canvas: '#070d18',
-  surface: '#111a2b',
-  surfaceRaised: '#18233a',
+  canvas: 'var(--bg-app)',
+  surface: 'var(--bg-surface)',
+  surfaceRaised: 'var(--bg-app)',
   surfaceGlass: 'rgba(17, 26, 43, 0.84)',
-  border: '#26324a',
-  borderSoft: '#1b2438',
-  ink: '#f5f7ff',
-  inkSoft: '#d6def0',
-  body: '#a4aec4',
-  muted: '#72809a',
+  border: 'var(--border-default)',
+  borderSoft: 'var(--border-default)',
+  ink: 'var(--text-primary)',
+  inkSoft: 'var(--text-primary)',
+  body: 'var(--text-secondary)',
+  muted: 'var(--text-secondary)',
   mutedSoft: '#8b95a8',
   success: '#45c06f',
   warning: '#d5a13a',
@@ -146,7 +163,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   onClose,
   projectId,
   projectName,
+  projects,
+  onRefreshProjects,
   preSelectedInputId,
+  preSelectedMode,
   onCreated,
 }) => {
   const scheduleApi = api.domains.platform.scheduleCenter;
@@ -157,6 +177,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [activeCreateTab, setActiveCreateTab] = useState<(typeof CREATE_TABS)[number]['key']>('basic');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId);
+  const [projectsRefreshing, setProjectsRefreshing] = useState(false);
   const [taskType, setTaskType] = useState<(typeof TASK_TYPES)[number]['value']>('source_scan_e2e');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -213,7 +235,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   }, [isDirectorySelectionValid, selectedInput, selectedRelativePath, selectedRelativePaths, selectionMode]);
 
   const inputSelectionHint = useMemo(() => {
-    if (taskType === 'cfg_db_vuln') return '请选择一个已构建知识图谱的代码测试对象；CFG 两阶段挖掘按整个上传根进行（入口分析 → fan-out 审计）。';
     if (taskType === 'sechps_tool') return '请选择一个已注册的 Agent Harness，并选择一个目录。调度中心会在分发时自动申请 Task Key，并把所选目录直接传给下游。';
     if (taskType === 'ai4app_fast' || taskType === 'ai4app_deep') return '请选择一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包作为测试对象；压缩包将作为 APK/HAP 的源码包处理。';
     if (taskType === 'ai4web_fast' || taskType === 'ai4web_deep') return '请选择一个 Web 源码包（zip/rar/tar.gz/gz 等压缩包）作为测试对象。';
@@ -222,16 +243,13 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     return '请选择一个文件作为测试对象。';
   }, [selectionMode, taskType]);
 
-  const canCreateTask = !taskTypeDisabled && mode !== 'lion-head' && (
-    taskType === 'cfg_db_vuln'
-      // CFG mining runs over an existing, already-ingested code upload (its
-      // codemap graph must exist); just need a name + a selected record.
-      ? Boolean(name && selectedInputId)
-      : inputSource === 'upload'
-      ? Boolean(name)
+  const nameValid = name.trim().length > 0;
+  const canCreateTask = Boolean(selectedProjectId) && !taskTypeDisabled && mode !== 'lion-head' && (
+    inputSource === 'upload'
+      ? nameValid
       : (taskType === 'sechps_tool'
-        ? Boolean(name && selectedAgentApp && selectedInputId && isDirectorySelectionValid)
-        : Boolean(name && selectedInputId && (
+        ? Boolean(nameValid && selectedAgentApp && selectedInputId && isDirectorySelectionValid)
+        : Boolean(nameValid && selectedInputId && (
           (selectionMode === 'file' && selectedRelativePath) ||
           (selectionMode === 'file_list' && selectedRelativePaths.length > 0) ||
           (selectionMode === 'directory' && isDirectorySelectionValid)
@@ -241,10 +259,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   /* --- data loading --- */
   const loadDialogData = async () => {
-    if (!projectId) return;
+    if (!selectedProjectId) return;
     setAgentAppsLoadError('');
     try {
-      const inputResp = await fileserverApi.listProjectInputUploads(projectId, { pageSize: 200 });
+      const inputResp = await fileserverApi.listProjectInputUploads(selectedProjectId, { pageSize: 200 });
       const nextInputs = inputResp.items || [];
       setInputs(nextInputs);
       if (preSelectedInputId && nextInputs.some((item) => item.upload_id === preSelectedInputId)) {
@@ -268,17 +286,25 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   useEffect(() => {
     if (open) {
+      setSelectedProjectId(projectId);
+      if (preSelectedMode) setMode(preSelectedMode);
       void loadDialogData();
     }
-  }, [open, projectId]);
+  }, [open, projectId, preSelectedMode]);
+
+  useEffect(() => {
+    if (open && selectedProjectId) {
+      void loadDialogData();
+    }
+  }, [open, selectedProjectId]);
 
   /* --- browse helpers --- */
   const loadBrowsePath = async (relativePath: string) => {
-    if (!open || !selectedInputId || !projectId) return;
+    if (!open || !selectedInputId || !selectedProjectId) return;
     setInputBrowseLoading(true);
     setInputBrowseError('');
     try {
-      const resp = await fileserverApi.browseProjectInputUpload(projectId, selectedInputId, relativePath);
+      const resp = await fileserverApi.browseProjectInputUpload(selectedProjectId, selectedInputId, relativePath);
       setBrowseCache((current) => ({ ...current, [relativePath]: resp }));
     } catch (err: any) {
       setInputBrowseError(err?.message || '加载输入目录失败');
@@ -288,9 +314,9 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   };
 
   useEffect(() => {
-    if (!open || !selectedInputId || !projectId) return;
+    if (!open || !selectedInputId || !selectedProjectId) return;
     void loadBrowsePath('');
-  }, [open, projectId, selectedInputId, taskType]);
+  }, [open, selectedProjectId, selectedInputId, taskType]);
 
   /* --- keep taskType valid for the selected mode --- */
   useEffect(() => {
@@ -315,7 +341,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     }
     // CFG mining needs an existing ingested code upload (graph must pre-exist),
     // so force the "选择已有" source.
-    if (taskType === 'cfg_db_vuln' || taskType === 'kg_source_vuln_scan_e2e') {
+    if (taskType === 'kg_source_vuln_scan_e2e') {
       setInputSource('existing');
     }
   }, [taskType]);
@@ -395,6 +421,12 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     }
   };
 
+  /* --- close (cancel any in-flight upload first) --- */
+  const handleClose = () => {
+    uploaderRef.current?.cancel();
+    onClose();
+  };
+
   /* --- submit --- */
   const createTask = async () => {
     setSaving(true);
@@ -404,30 +436,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         setError(DISABLED_TASK_TYPE_MESSAGE);
         return;
       }
-      // CFG-挖掘工具: our own two-stage pipeline, not the schedule-center flow.
-      // Runs over the selected code upload's root (codemap graph keyed by that
-      // upload_id), then opens the CFG detail view.
-      if (taskType === 'cfg_db_vuln') {
-        if (!selectedInput) {
-          setError('请选择一个已有的代码测试对象（其知识图谱需已构建）');
-          return;
-        }
-        const created = await api.cfgPipeline.createPipeline({
-          project_id: projectId,
-          name,
-          input_path: buildManagerTargetDir(projectId, selectedInput.target_path),
-          created_by: currentUser?.username,
-        });
-        setName('');
-        setDescription('');
-        setActiveCreateTab('basic');
-        onCreated();
-        window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
-          detail: { view: 'cfg-db-vuln-detail', cfgDbVulnTaskId: created.pipeline_id },
-        }));
-        return;
-      }
-
       let finalInputUploadId = selectedInputId;
       let finalInputBinding = {
         upload_id: selectedInputId,
@@ -486,7 +494,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         agent_harness_path: taskType === 'sechps_tool' ? (selectedAgentApp?.agentHarnessPath || undefined) : undefined,
         instruction: taskType === 'sechps_tool' ? (sechpsInstruction || undefined) : undefined,
       };
-      await scheduleApi.createUserTask(projectId, payload);
+      await scheduleApi.createUserTask(selectedProjectId, payload);
       /* reset form state */
       setName('');
       setDescription('');
@@ -626,12 +634,9 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             <div className="text-lg font-semibold leading-7" style={{ color: LK.ink }}>
               创建任务
             </div>
-            <div className="mt-1 text-xs font-semibold" style={{ color: LK.error }}>
-              当前处于「{projectName}」项目下
-            </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="rounded-lg p-2 transition-colors"
             style={{ color: LK.muted }}
             onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }}
@@ -675,20 +680,90 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
         {/* body */}
         <div
-          className="min-h-0 flex-1 overflow-y-auto px-6 py-4 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]"
+          className="min-h-0 flex-1 overflow-y-auto px-6 py-4"
         >
           {/* =============== TAB: basic =============== */}
             <div className="flex h-full flex-col space-y-3" style={{ display: activeCreateTab === 'basic' ? undefined : 'none' }}>
+              {/* 项目选择 */}
+              <div>
+                <div className="text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                  项目 <span style={{ color: LK.error }}>*</span>
+                </div>
+                <div className="mt-1 flex items-center gap-2">
+                  <select
+                    value={selectedProjectId}
+                    onChange={(e) => setSelectedProjectId(e.target.value)}
+                    className="form-select flex-1 rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                  >
+                    {projects.map((item) => (
+                      <option key={item.id} value={item.id}>{item.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    title="新增项目"
+                    onClick={() => {
+                      sessionStorage.setItem('chimera:pendingNav', JSON.stringify({
+                        view: 'project-mgmt',
+                        openCreateProject: true,
+                      }));
+                      window.open(window.location.href, '_blank');
+                    }}
+                    className="shrink-0 rounded-lg p-2 transition-colors"
+                    style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, color: LK.body }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
+                  >
+                    <Plus size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    title="刷新项目列表"
+                    disabled={projectsRefreshing}
+                    onClick={async () => {
+                      setProjectsRefreshing(true);
+                      try { await onRefreshProjects?.(); } catch { /* ignore */ } finally { setProjectsRefreshing(false); }
+                    }}
+                    className="shrink-0 rounded-lg p-2 transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, color: LK.body }}
+                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; } }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
+                  >
+                    <RefreshCw size={16} className={projectsRefreshing ? 'animate-spin' : ''} />
+                  </button>
+                </div>
+              </div>
+              {projects.length === 0 ? (
+                <div
+                  className="rounded-lg px-4 py-3 text-sm"
+                  style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
+                >
+                  当前没有可用项目，请先到
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sessionStorage.setItem('chimera:pendingNav', JSON.stringify({
+                        view: 'project-mgmt',
+                        openCreateProject: true,
+                      }));
+                      window.open(window.location.href, '_blank');
+                    }}
+                    className="mx-1 font-semibold underline underline-offset-2 transition-opacity hover:opacity-80"
+                    style={{ color: LK.warning }}
+                  >
+                    资产管理 → 项目管理
+                  </button>
+                  初始化项目。
+                </div>
+              ) : null}
+
               {/* 任务名称 */}
               <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                任务名称
+                任务名称 <span className="required"> *</span>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                  style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                  className="form-input mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                 />
               </label>
 
@@ -721,81 +796,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 </div>
               ) : (
                 <>
-              {/* 工具 */}
-              <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                工具
-                <select
-                  value={taskType}
-                  onChange={(e) => setTaskType(e.target.value as any)}
-                  className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                  style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-                >
-                  {availableTaskTypes.map((item) => (
-                    <option key={item.value} value={item.value} disabled={item.disabled}>
-                      {item.label}{item.disabled ? '（已禁用）' : ''}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {taskTypeDisabled ? (
-                <div
-                  className="rounded-lg px-4 py-3 text-sm"
-                  style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
-                >
-                  {DISABLED_TASK_TYPE_MESSAGE}
-                </div>
-              ) : null}
-
-              {/* sechps Agent Harness specific */}
-              {taskType === 'sechps_tool' ? (
-                <>
-                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                    Agent Harness
-                    <select
-                      value={selectedAgentAppId}
-                      onChange={(e) => setSelectedAgentAppId(e.target.value)}
-                      className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-                    >
-                      <option value="">请选择具体 Harness</option>
-                      {agentApps.map((item) => <option key={item.id} value={item.id}>{`${item.name} / ${item.engine}`}</option>)}
-                    </select>
-                  </label>
-                  {agentAppsLoadError ? (
-                    <div
-                      className="rounded-lg px-4 py-3 text-sm"
-                      style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
-                    >
-                      {agentAppsLoadError}。不影响上传记录加载，但当前无法创建 Agent Harness 任务。
-                    </div>
-                  ) : null}
-                  {selectedAgentApp ? (
-                    <div className="rounded-lg px-4 py-3 text-xs" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}>
-                      <div>Harness: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.name}</span></div>
-                      <div className="mt-1">Engine: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.engine}</span></div>
-                      <div className="mt-1 break-all">Harness Path: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.agentHarnessPath || '—'}</span></div>
-                    </div>
-                  ) : null}
-                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                    执行指令（可选，不填则使用 Agent Harness 注册的启动命令）
-                    <textarea
-                      value={instruction}
-                      onChange={(e) => setInstruction(e.target.value)}
-                      rows={3}
-                      className="mt-1 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                      style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-                      placeholder="不填时使用 Agent Harness 的启动命令，例如 /project:xxx"
-                    />
-                  </label>
-                </>
-              ) : null}
-
               {/* binary_module_e2e module name */}
               {taskType === 'binary_module_e2e' ? (
                 <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
@@ -803,10 +803,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   <input
                     value={moduleName}
                     onChange={(e) => setModuleName(e.target.value)}
-                    className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                    className="form-input mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                   />
                 </label>
               ) : null}
@@ -848,7 +845,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 {inputSource === 'upload' ? (
                   <TestInputUploader
                     ref={uploaderRef}
-                    projectId={projectId}
+                    projectId={selectedProjectId}
                     displayName={name}
                     compact={true}
                     onUploadStateChange={setUploading}
@@ -872,10 +869,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       <select
                         value={selectedInputId}
                         onChange={(e) => setSelectedInputId(e.target.value)}
-                        className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                        style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                        onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                        onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                        className="form-select mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                       >
                         {selectableInputs.map((item) => <option key={item.upload_id} value={item.upload_id}>{`${getUploadRecordDisplayName(item)} · ${item.status}`}</option>)}
                       </select>
@@ -995,16 +989,87 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 )}
               </div>
 
+              {/* 工具 */}
+              <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                工具
+                <select
+                  value={taskType}
+                  onChange={(e) => setTaskType(e.target.value as any)}
+                  className="form-select mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                >
+                  {availableTaskTypes.map((item) => (
+                    <option key={item.value} value={item.value} disabled={item.disabled}>
+                      {item.label}{item.disabled ? '（已禁用）' : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {taskTypeDisabled ? (
+                <div
+                  className="rounded-lg px-4 py-3 text-sm"
+                  style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
+                >
+                  {DISABLED_TASK_TYPE_MESSAGE}
+                </div>
+              ) : null}
+              {!taskTypeDisabled && TASK_TYPE_HINTS[taskType] ? (
+                <div
+                  className="rounded-lg px-3 py-2 text-xs"
+                  style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.body }}
+                >
+                  {TASK_TYPE_HINTS[taskType]}
+                </div>
+              ) : null}
+
+              {/* sechps Agent Harness specific */}
+              {taskType === 'sechps_tool' ? (
+                <>
+                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                    Agent Harness
+                    <select
+                      value={selectedAgentAppId}
+                      onChange={(e) => setSelectedAgentAppId(e.target.value)}
+                      className="form-select mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                    >
+                      <option value="">请选择具体 Harness</option>
+                      {agentApps.map((item) => <option key={item.id} value={item.id}>{`${item.name} / ${item.engine}`}</option>)}
+                    </select>
+                  </label>
+                  {agentAppsLoadError ? (
+                    <div
+                      className="rounded-lg px-4 py-3 text-sm"
+                      style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
+                    >
+                      {agentAppsLoadError}。不影响上传记录加载，但当前无法创建 Agent Harness 任务。
+                    </div>
+                  ) : null}
+                  {selectedAgentApp ? (
+                    <div className="rounded-lg px-4 py-3 text-xs" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}>
+                      <div>Harness: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.name}</span></div>
+                      <div className="mt-1">Engine: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.engine}</span></div>
+                      <div className="mt-1 break-all">Harness Path: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.agentHarnessPath || '—'}</span></div>
+                    </div>
+                  ) : null}
+                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                    执行指令（可选，不填则使用 Agent Harness 注册的启动命令）
+                    <textarea
+                      value={instruction}
+                      onChange={(e) => setInstruction(e.target.value)}
+                      rows={3}
+                      className="form-textarea mt-1 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                      placeholder="不填时使用 Agent Harness 的启动命令，例如 /project:xxx"
+                    />
+                  </label>
+                </>
+              ) : null}
+
               {/* 描述 */}
               <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                 描述
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="mt-1 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                  style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+                  className="form-textarea mt-1 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                   rows={2}
                 />
               </label>
@@ -1031,7 +1096,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         {/* footer */}
           <div className="flex items-center justify-end gap-2 px-6 py-4" style={{ borderTop: `1px solid ${LK.border}` }}>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="btn-secondary rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
               style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
             >

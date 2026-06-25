@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Code2, Loader2, RefreshCw, RotateCcw, Route, Search, ShieldOff } from 'lucide-react';
+import { AlertTriangle, Ban, CheckCircle2, CircleHelp, Clock3, Loader2, PanelRightClose, RefreshCw, RotateCcw, Search, XCircle } from 'lucide-react';
 import { vulnVerifyV2Api, VulnVerifyV2Attempt, VulnVerifyV2ProjectStats, VulnVerifyV2Result, VulnVerifyV2Task, VulnVerifyV2TaskDetail } from '../../clients/vulnVerifyV2';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { PageHeader } from '../../design-system';
@@ -85,13 +85,14 @@ function fmtStatus(status?: string): string {
 }
 
 const VerdictBadge: React.FC<{ verdict?: string | null }> = ({ verdict }) => {
-  if (!verdict) return <span className="text-[13px] font-normal text-theme-text-muted">未产出</span>;
-  const cls = verdict === 'confirmed'
-    ? 'bg-rose-500/15 text-rose-400 border-rose-500/20'
-    : verdict === 'ruled_out'
-      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20'
-      : 'bg-amber-500/15 text-amber-400 border-amber-500/20';
-  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-[13px] font-normal ${cls}`}>{VERDICT_LABEL[verdict] || verdict}</span>;
+  const item = outcomeBadge(undefined, verdict);
+  const Icon = item.Icon;
+  return (
+    <span className={`inline-flex w-[128px] items-center ${item.iconOnly ? 'justify-center px-3 py-1.5' : `gap-2 rounded-full border px-3 py-1.5 ${item.boxCls}`} text-[15px] ${item.fontCls || 'font-bold'}`}>
+      {Icon ? <Icon size={16} strokeWidth={2.2} className={`shrink-0 ${item.iconCls}`} /> : null}
+      {item.iconOnly ? null : <span className={`truncate ${item.iconCls}`}>{item.label}</span>}
+    </span>
+  );
 };
 
 const StatusBadge: React.FC<{ status?: string }> = ({ status }) => (
@@ -101,29 +102,41 @@ const StatusBadge: React.FC<{ status?: string }> = ({ status }) => (
   </span>
 );
 
-function outcomeBadge(status?: string, verdict?: string | null): { label: string; dotCls: string; loading?: boolean } {
-  if (status === 'running') return { label: '验证中', dotCls: 'bg-blue-400', loading: true };
-  if (status === 'pending') return { label: '等待验证', dotCls: 'bg-theme-text-muted' };
-  if (status === 'failed') return { label: '验证失败', dotCls: 'bg-rose-400' };
-  if (status === 'cancelled') return { label: '已取消', dotCls: 'bg-amber-400' };
-  if (verdict === 'confirmed') return { label: '确认漏洞', dotCls: 'bg-rose-400' };
-  if (verdict === 'ruled_out') return { label: '排除漏洞', dotCls: 'bg-emerald-400' };
-  if (verdict === 'unresolved') return { label: '不可证', dotCls: 'bg-amber-400' };
-  return { label: '未产出结果', dotCls: 'bg-theme-text-muted' };
+function outcomeBadge(status?: string, verdict?: string | null): { label: string; iconCls: string; boxCls: string; fontCls?: string; plain?: boolean; iconOnly?: boolean; Icon?: React.ElementType; loading?: boolean } {
+  if (status === 'running') return { label: '验证中', iconCls: 'text-emerald-300 drop-shadow-[0_0_8px_rgba(110,231,183,0.75)]', boxCls: '', iconOnly: true, loading: true };
+  if (status === 'pending') return { label: '等待中', iconCls: 'text-theme-text-faint', boxCls: '', fontCls: 'font-normal', plain: true, iconOnly: true, Icon: Clock3 };
+  if (status === 'failed') return { label: '验证失败', iconCls: 'text-rose-400', boxCls: 'border-rose-500/30 bg-rose-500/20', Icon: XCircle };
+  if (status === 'cancelled') return { label: '已取消', iconCls: 'text-amber-400', boxCls: 'border-amber-500/30 bg-amber-500/20', Icon: Ban };
+  if (verdict === 'confirmed') return { label: '确认漏洞', iconCls: 'text-rose-400', boxCls: 'border-rose-500/30 bg-rose-500/20', Icon: AlertTriangle };
+  if (verdict === 'ruled_out') return { label: '排除漏洞', iconCls: 'text-sky-400', boxCls: 'border-sky-500/30 bg-sky-500/20', Icon: CheckCircle2 };
+  if (verdict === 'unresolved') return { label: '不可证', iconCls: 'text-amber-400', boxCls: 'border-amber-500/30 bg-amber-500/20', Icon: CircleHelp };
+  return { label: '未产出结果', iconCls: 'text-theme-text-muted', boxCls: 'border-theme-border bg-theme-elevated', Icon: CircleHelp };
 }
 
-const TaskOutcomeBadge: React.FC<{ status?: string; verdict?: string | null }> = ({ status, verdict }) => {
-  const item = outcomeBadge(status, verdict);
+const OutcomePill: React.FC<{ item: ReturnType<typeof outcomeBadge>; size?: 'normal' | 'sm' }> = ({ item, size = 'normal' }) => {
+  const Icon = item.Icon;
+  const isSm = size === 'sm';
   return (
-    <span className="inline-flex items-center gap-2 text-[17px] font-normal text-theme-text-primary">
+    <span className={`inline-flex ${isSm ? 'w-[86px]' : 'w-[128px]'} items-center ${item.iconOnly ? `justify-center ${isSm ? 'px-2 py-1' : 'px-3 py-1.5'}` : `${isSm ? 'gap-1.5 px-2 py-1' : 'gap-2 px-3 py-1.5'} rounded-full border ${item.boxCls}`} ${isSm ? 'text-xs' : 'text-[15px]'} ${item.fontCls || 'font-bold'}`}>
       {item.loading ? (
-        <Loader2 size={16} strokeWidth={2.2} className="shrink-0 animate-spin text-blue-400" />
-      ) : (
-        <span className={`h-4 w-4 shrink-0 rounded-full ${item.dotCls}`} />
-      )}
-      <span>{item.label}</span>
+        <Loader2 size={isSm ? 14 : 18} strokeWidth={isSm ? 2.5 : 2.8} className={`shrink-0 animate-spin ${item.iconCls}`} />
+      ) : Icon ? (
+        <Icon size={isSm ? 13 : 16} strokeWidth={2.2} className={`shrink-0 ${item.iconCls}`} />
+      ) : null}
+      {item.iconOnly ? null : <span className={`truncate ${item.iconCls}`}>{item.label}</span>}
     </span>
   );
+};
+
+const TaskOutcomeBadge: React.FC<{ status?: string; verdict?: string | null }> = ({ status, verdict }) => (
+  <OutcomePill item={outcomeBadge(status, verdict)} />
+);
+
+const AttemptStatusBadge: React.FC<{ status?: string }> = ({ status }) => {
+  if (status === 'success') {
+    return <OutcomePill size="sm" item={{ label: '成功', iconCls: 'text-emerald-400', boxCls: 'border-emerald-500/30 bg-emerald-500/20', Icon: CheckCircle2 }} />;
+  }
+  return <OutcomePill size="sm" item={outcomeBadge(status, null)} />;
 };
 
 function normalizeRuledOutBy(value: unknown): string[] {
@@ -163,7 +176,10 @@ const TaskDecisionEvidence: React.FC<{ task: VulnVerifyV2Task }> = ({ task }) =>
     return (
       <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         {reasons.map((key) => (
-          <EvidencePill key={key} title={DIMENSION_LABEL[key] || key}>{DIMENSION_LABEL[key] || key}<span aria-hidden="true">&nbsp;</span><span className="text-rose-400">✕</span></EvidencePill>
+          <EvidencePill key={key} title={dimensionConclusionText(key, false)}>
+            <CheckCircle2 size={13} strokeWidth={2.1} className="mr-1 shrink-0 text-sky-400" />
+            {dimensionConclusionText(key, false)}
+          </EvidencePill>
         ))}
       </div>
     );
@@ -173,8 +189,8 @@ const TaskDecisionEvidence: React.FC<{ task: VulnVerifyV2Task }> = ({ task }) =>
   return <EvidencePill>未产出判定</EvidencePill>;
 };
 
-const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'emerald' | 'rose' | 'amber' | 'slate' }> = ({ label, value, hint, accent = 'slate' }) => {
-  const color = accent === 'emerald' ? 'text-emerald-400' : accent === 'rose' ? 'text-rose-400' : accent === 'amber' ? 'text-amber-400' : 'text-theme-text-primary';
+const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'emerald' | 'sky' | 'rose' | 'amber' | 'slate' }> = ({ label, value, hint, accent = 'slate' }) => {
+  const color = accent === 'emerald' ? 'text-emerald-400' : accent === 'sky' ? 'text-sky-400' : accent === 'rose' ? 'text-rose-400' : accent === 'amber' ? 'text-amber-400' : 'text-theme-text-primary';
   return (
     <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
       <div className="text-xs font-medium text-theme-text-muted">{label}</div>
@@ -202,23 +218,24 @@ function dimensionConclusionText(dimKey: string, status?: boolean | null): strin
 
 const DimensionCard: React.FC<{ dimKey: string; status?: boolean | null; detail?: string }> = ({ dimKey, status, detail }) => {
   const conclusion = dimensionConclusionText(dimKey, status);
-  const statusCls = status === true ? 'text-emerald-400' : status === false ? 'text-rose-400' : 'text-theme-text-muted';
-  const Icon = dimKey === 'code_accurate' ? Code2
-    : dimKey === 'path_reachable' ? Route
-      : dimKey === 'unmitigated' ? ShieldOff
-        : AlertTriangle;
+  // 风险语义统一，且避免只靠红/绿：成立=红色警告，排除=蓝色勾选，未判定=黄色问号。
+  const statusTone = status === true
+    ? { cls: 'text-rose-400', Icon: AlertTriangle, label: '支持漏洞成立' }
+    : status === false
+      ? { cls: 'text-sky-400', Icon: CheckCircle2, label: '支持排除漏洞' }
+      : { cls: 'text-amber-400', Icon: CircleHelp, label: '未判定' };
+  const statusCls = statusTone.cls;
+  const StatusIcon = statusTone.Icon;
   return (
-    <div className="rounded-lg border border-theme-border bg-theme-elevated p-3">
-      <div className="grid grid-cols-[auto_minmax(104px,148px)_minmax(0,1fr)] items-center gap-3">
-        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-theme-surface ${statusCls}`}>
-          <Icon size={16} strokeWidth={1.8} />
+    <div className="grid grid-cols-[minmax(124px,148px)_minmax(0,1fr)] items-start gap-2 py-3">
+      <div className="flex min-w-0 items-start gap-2">
+        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-theme-surface ${statusCls}`} title={statusTone.label}>
+          <StatusIcon size={16} strokeWidth={2.1} />
         </div>
-        <div className="min-w-0 text-left">
-          <div className={`text-[15px] font-medium ${statusCls}`}>{conclusion}</div>
-        </div>
-        <div className="min-w-0">
-          <div className="line-clamp-4 text-[13px] font-normal text-theme-text-muted" title={detail}>{detail || '-'}</div>
-        </div>
+        <div className={`min-w-0 truncate pt-1 text-[15px] font-semibold leading-6 ${statusCls}`}>{conclusion}</div>
+      </div>
+      <div className="min-w-0">
+        <div className="whitespace-pre-wrap break-words text-[13px] font-normal leading-6 text-theme-text-primary">{detail || '-'}</div>
       </div>
     </div>
   );
@@ -231,7 +248,6 @@ const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[] }> = ({ attemp
   return (
     <ol className="space-y-3">
       {attempts.map((att) => {
-        const isRunning = att.status === 'running';
         const isFailed = att.status === 'failed';
         const dotCls = att.status === 'success' ? 'bg-emerald-400'
           : att.status === 'failed' ? 'bg-rose-400'
@@ -253,14 +269,12 @@ const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[] }> = ({ attemp
             <div className="min-w-0 flex-1 pb-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[15px] font-medium text-theme-text-primary">第 {att.attempt_number} 次执行</span>
-                <StatusBadge status={att.status} />
-                {isRunning ? <Loader2 size={12} className="animate-spin text-blue-400" /> : null}
+                <AttemptStatusBadge status={att.status} />
               </div>
               <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs font-normal text-theme-text-muted">
                 <span>开始：{fmtTime(att.started_at)}</span>
                 <span>结束：{fmtTime(att.completed_at)}</span>
                 <span>耗时：{duration}</span>
-                {att.worker_id ? <span className="font-mono">worker: {att.worker_id}</span> : null}
               </div>
               {isFailed && failureMsg ? (
                 <div className="mt-2 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-[13px] font-normal text-rose-300 break-words">{failureMsg}</div>
@@ -426,7 +440,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
         <div className="grid gap-4 md:grid-cols-3">
           <SummaryCard label="已确认" value={confirmedVulns} accent="rose" hint="verdict = confirmed" />
-          <SummaryCard label="已排除" value={ruledOutVulns} accent="emerald" hint="verdict = ruled_out" />
+          <SummaryCard label="已排除" value={ruledOutVulns} accent="sky" hint="verdict = ruled_out" />
           <SummaryCard label="不可证" value={unresolvedVulns} accent="amber" hint="verdict = unresolved" />
         </div>
 
@@ -470,7 +484,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
             </div>
 
             <div className="overflow-hidden rounded-xl border border-theme-border bg-theme-surface">
-              <div className="hidden border-b border-theme-border bg-theme-elevated/80 px-4 py-3 text-xs font-medium text-theme-text-muted lg:grid lg:grid-cols-[minmax(180px,1.1fr)_120px_minmax(220px,1.3fr)_80px] lg:gap-4">
+              <div className="hidden border-b border-theme-border bg-theme-elevated/80 px-4 py-3 text-xs font-medium text-theme-text-muted lg:grid lg:grid-cols-[minmax(240px,1.55fr)_120px_minmax(160px,0.9fr)_80px] lg:gap-4">
                 <div>漏洞标题 / ID</div>
                 <div>结果</div>
                 <div className="lg:pl-5">判定依据</div>
@@ -485,8 +499,9 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                       key={task.id}
                       type="button"
                       onClick={() => void loadDetail(task.id)}
-                      className={`grid w-full gap-2 px-4 py-3 text-left transition-colors hover:bg-theme-elevated lg:grid-cols-[minmax(180px,1.1fr)_120px_minmax(220px,1.3fr)_80px] lg:items-center lg:gap-4 ${isSel ? 'bg-theme-elevated/70' : ''}`.trim()}
+                      className={`relative grid w-full gap-2 px-4 py-3 text-left transition-colors hover:bg-theme-elevated lg:grid-cols-[minmax(240px,1.55fr)_120px_minmax(160px,0.9fr)_80px] lg:items-center lg:gap-4 ${isSel ? 'bg-blue-500/15' : ''}`.trim()}
                     >
+                      {isSel ? <span aria-hidden="true" className="absolute bottom-3 left-0 top-3 w-1.5 rounded-r-full bg-blue-300" /> : null}
                       <div className="min-w-0">
                         <div className="truncate text-[15px] font-normal text-theme-text-primary" title={task.name}>{task.name}</div>
                         <div className="mt-1 font-mono text-xs text-theme-text-muted">{task.vuln_id || task.case_id || '-'}</div>
@@ -530,62 +545,84 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
           role="presentation"
         >
           <aside
-            className={`absolute right-0 top-0 flex h-full w-full max-w-[960px] transform flex-col overflow-hidden border-l border-theme-border bg-theme-surface shadow-2xl transition-transform duration-300 ease-out xl:w-[56vw] 2xl:max-w-[1040px] ${detailPanelOpen ? 'translate-x-0' : 'translate-x-full'}`}
+            className={`absolute right-0 top-0 flex h-full w-full max-w-[1080px] transform flex-col overflow-visible border-l border-theme-border bg-theme-surface shadow-2xl transition-transform duration-300 ease-out xl:w-[62vw] 2xl:max-w-[1180px] ${detailPanelOpen ? 'translate-x-0' : 'translate-x-full'}`}
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label="验证详情"
           >
-            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-theme-border px-5 py-4">
-              <span className="text-[15px] font-medium text-theme-text-primary">验证详情</span>
-              <button onClick={closeDetailPanel} aria-label="收起详情" className="rounded-md px-2 py-1 text-xs font-normal text-theme-text-muted hover:bg-theme-elevated hover:text-theme-text-primary">收起</button>
-            </div>
-            <div ref={detailScrollRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            <button
+              onClick={closeDetailPanel}
+              aria-label="收起详情"
+              title="收起详情"
+              className="absolute left-0 top-1/2 z-10 inline-flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-theme-border bg-theme-surface/95 text-theme-text-muted shadow-md backdrop-blur hover:bg-theme-elevated hover:text-theme-text-primary"
+            >
+              <PanelRightClose size={14} strokeWidth={2.1} />
+            </button>
+            <div ref={detailScrollRef} className="min-h-0 flex-1 overflow-y-auto px-8 py-8 lg:px-10 lg:py-10">
               {detailLoading ? (
                 <div className="flex h-full min-h-[300px] items-center justify-center gap-2 py-10 text-[13px] font-normal text-theme-text-muted">
                   <Loader2 size={16} className="animate-spin" />加载详情...
                 </div>
               ) : detail ? (
-                <div className="space-y-5">
+                <div className="space-y-7">
                   {/* 头部：标题 + 结论 + 重试 */}
-                  <div className="flex items-start justify-between gap-3 border-b border-theme-border pb-4">
-                    <div className="min-w-0">
-                      <div className="truncate text-[17px] font-bold text-theme-text-primary" title={detail.name}>{detail.name}</div>
-                      <div className="mt-1 font-mono text-xs font-normal text-theme-text-muted">{detail.vuln_id || detail.case_id}</div>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <StatusBadge status={detail.status} />
-                        <VerdictBadge verdict={detail.verdict} />
+                  <div className="px-1 pb-1">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="truncate text-[17px] font-bold text-theme-text-primary" title={detail.name}>{detail.name}</div>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <VerdictBadge verdict={detail.verdict} />
+                        </div>
+                        <div className="mt-4 text-xs font-normal">
+                          {[
+                            ['漏洞ID', detail.vuln_id || detail.case_id, true],
+                            ['AI模型', detail.runtime?.resolved_model || detail.model || '-', false],
+                            ['创建时间', fmtTime(detail.created_at), false],
+                          ].map(([label, value, mono]) => (
+                            <div key={String(label)} className="grid grid-cols-[88px_minmax(0,1fr)] gap-4 border-b border-theme-border/70 py-2">
+                              <span className="text-theme-text-muted">{label}</span>
+                              <span className={`${mono ? 'font-mono' : ''} truncate text-theme-text-secondary`} title={String(value)}>{String(value)}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
+                      <button onClick={() => void handleRerun(detail.id)} aria-label="重新执行" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-[13px] font-medium text-theme-text-secondary hover:bg-theme-elevated">
+                        <RotateCcw size={13} />重试
+                      </button>
                     </div>
-                    <button onClick={() => void handleRerun(detail.id)} aria-label="重新执行" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-[13px] font-medium text-theme-text-secondary hover:bg-theme-elevated">
-                      <RotateCcw size={13} />重试
-                    </button>
                   </div>
 
                   {/* 根因摘要 */}
-                  <div>
-                    <div className="mb-2 text-[15px] font-medium text-theme-text-primary">根因摘要</div>
-                    <p className="whitespace-pre-wrap rounded-lg border border-theme-border bg-theme-elevated p-3 text-[13px] font-normal text-theme-text-secondary">
-                      {String(detailRaw.root_cause_summary || '-')}
-                    </p>
-                  </div>
+                  <section>
+                    <div className="mb-3 text-[15px] font-medium text-theme-text-muted">根因摘要</div>
+                    <div className="rounded-2xl border border-theme-border bg-theme-elevated p-5">
+                      <p className="whitespace-pre-wrap text-[13px] font-normal leading-6 text-theme-text-primary">
+                        {String(detailRaw.root_cause_summary || '-')}
+                      </p>
+                    </div>
+                  </section>
 
                   {/* 四维判定 */}
-                  <div>
-                    <div className="mb-2 text-[15px] font-medium text-theme-text-primary">四维判定</div>
-                    <div className="grid gap-3">
-                      {DIMENSION_KEYS.map((key) => {
-                        const dim = detailDimensions[key];
-                        return <DimensionCard key={key} dimKey={key} status={dim?.status} detail={dim?.detail} />;
-                      })}
+                  <section>
+                    <div className="mb-3 text-[15px] font-medium text-theme-text-muted">四维判定</div>
+                    <div className="rounded-2xl border border-theme-border bg-theme-elevated px-7 py-3 lg:px-8">
+                      <div className="divide-y divide-theme-border/70">
+                        {DIMENSION_KEYS.map((key) => {
+                          const dim = detailDimensions[key];
+                          return <DimensionCard key={key} dimKey={key} status={dim?.status} detail={dim?.detail} />;
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  </section>
 
                   {/* 时间线 */}
-                  <div>
-                    <div className="mb-3 text-[15px] font-medium text-theme-text-primary">时间线</div>
-                    <AttemptTimeline attempts={detailAttempts} />
-                  </div>
+                  <section>
+                    <div className="mb-3 text-[15px] font-medium text-theme-text-muted">时间线</div>
+                    <div className="rounded-2xl border border-theme-border bg-theme-elevated p-5">
+                      <AttemptTimeline attempts={detailAttempts} />
+                    </div>
+                  </section>
                 </div>
               ) : (
                 <div className="py-10 text-center text-[13px] font-normal text-theme-text-muted">加载详情失败</div>

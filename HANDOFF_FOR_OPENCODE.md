@@ -36,7 +36,7 @@ Chimera 是 React 19 + TypeScript 5 + Tailwind CSS 3 + Vite 6 的单页应用（
 背景层级（深色→浅）：app #070d18 → surface #111a2b → elevated #18233a
 文本：primary #f5f7ff · secondary #d6def0 · muted #a4aec4 · faint #72809a
 边框：default #26324a · subtle #1b2438
-品牌：primary #6366f1 · hover #818cf8
+品牌：primary #2563EB · hover #3B82F6
 语义：success #10b981 · warning #f59e0b · danger #f43f5e · info #3b82f6
 ```
 

@@ -3,6 +3,7 @@ import {
   DEFAULT_THEME_ID,
   getThemeDefinition,
   isThemeId,
+  migrateLegacyThemeId,
   THEME_DEFINITIONS,
   THEME_STORAGE_KEY,
   ThemeDefinition,
@@ -21,7 +22,12 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 const readStoredTheme = (): ThemeId => {
   if (typeof window === 'undefined') return DEFAULT_THEME_ID;
   const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-  return isThemeId(stored) ? stored : DEFAULT_THEME_ID;
+  const migrated = migrateLegacyThemeId(stored);
+  if (migrated) {
+    if (migrated !== stored) window.localStorage.setItem(THEME_STORAGE_KEY, migrated);
+    return migrated;
+  }
+  return DEFAULT_THEME_ID;
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

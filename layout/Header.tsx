@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Lock, LogOut, RotateCw } from 'lucide-react';
+import { ChevronDown, Lock, LogOut, Moon, RotateCw, Sun } from 'lucide-react';
 import {
   TopLevelNavKey,
   TopLevelNavItem,
@@ -7,19 +6,19 @@ import {
   getVisibleTopLevelNavItems,
   SYSTEM_ADMIN_CHILDREN,
   getSystemAdminActiveChild,
+  ASSETS_CENTER_CHILDREN,
+  getAssetsCenterActiveChild,
 } from '../app/navigation';
 import { SecurityProject, UserInfo, ViewType } from '../types/types';
 import { getPlatformRoleLabel, getUserAccess } from '../utils/rbac';
 import { ThemeLogo } from '../components/ThemeLogo';
 import { useTheme } from '../theme/ThemeProvider';
 
-const FRONTEND_BUILD_VERSION = String(
-  typeof __CHIMERA_BUILD_VERSION__ !== 'undefined' ? __CHIMERA_BUILD_VERSION__ : '',
-).trim() || 'dev';
+import React, { useEffect, useRef, useState } from 'react';
 
 const getTabStyle = (item: TopLevelNavItem, isActive: boolean): React.CSSProperties => {
   if (isActive) {
-    if (!item.role) return { background: '#6366f1', color: '#fff', boxShadow: '0 2px 12px rgba(99,102,241,0.32)' };
+    if (!item.role) return { background: '#2563EB', color: '#fff', boxShadow: '0 2px 12px rgba(99,102,241,0.32)' };
     const cfg = NAV_ROLE_CONFIG[item.role!];
     return { background: cfg.activeBg, color: '#fff', boxShadow: `0 2px 12px ${cfg.color}52` };
   }
@@ -36,6 +35,7 @@ interface HeaderProps {
   onSelectTopLevelNav: (nav: TopLevelNavKey) => void;
   currentView: ViewType | string;
   onSelectSystemAdminChild: (view: string) => void;
+  onSelectAssetsCenterChild: (view: string) => void;
   projects: SecurityProject[];
   selectedProjectId: string;
   setSelectedProjectId: (id: string) => void;
@@ -54,6 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectTopLevelNav,
   currentView,
   onSelectSystemAdminChild,
+  onSelectAssetsCenterChild,
   user,
   projects,
   selectedProjectId,
@@ -68,6 +69,7 @@ export const Header: React.FC<HeaderProps> = ({
   handleLogout,
 }) => {
   const userAccess = getUserAccess(user);
+  const { theme, setTheme } = useTheme();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const projectDropdownRef = useRef<HTMLDivElement>(null);
@@ -75,6 +77,10 @@ export const Header: React.FC<HeaderProps> = ({
   const [isSystemAdminOpen, setIsSystemAdminOpen] = useState(false);
   const systemAdminRef = useRef<HTMLDivElement>(null);
   const systemAdminTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [isAssetsCenterOpen, setIsAssetsCenterOpen] = useState(false);
+  const assetsCenterRef = useRef<HTMLDivElement>(null);
+  const assetsCenterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSystemAdminEnter = () => {
     if (systemAdminTimerRef.current) clearTimeout(systemAdminTimerRef.current);
@@ -84,15 +90,26 @@ export const Header: React.FC<HeaderProps> = ({
     systemAdminTimerRef.current = setTimeout(() => setIsSystemAdminOpen(false), 150);
   };
 
+  const handleAssetsCenterEnter = () => {
+    if (assetsCenterTimerRef.current) clearTimeout(assetsCenterTimerRef.current);
+    setIsAssetsCenterOpen(true);
+  };
+  const handleAssetsCenterLeave = () => {
+    assetsCenterTimerRef.current = setTimeout(() => setIsAssetsCenterOpen(false), 150);
+  };
+
   const currentProject = projects.find((p) => p.id === selectedProjectId) || { name: '选择项目' };
 
   const visibleNavItems = getVisibleTopLevelNavItems(user);
   const activeSystemAdminChild = getSystemAdminActiveChild(String(currentView));
+  const activeAssetsCenterChild = getAssetsCenterActiveChild(String(currentView));
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) setIsUserMenuOpen(false);
       if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) setIsProjectDropdownOpen(false);
+      if (assetsCenterRef.current && !assetsCenterRef.current.contains(event.target as Node)) setIsAssetsCenterOpen(false);
+      if (systemAdminRef.current && !systemAdminRef.current.contains(event.target as Node)) setIsSystemAdminOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -100,22 +117,65 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="bg-theme-header border-b border-theme-sidebar shadow-brand z-20 sticky top-0">
-      <div className="h-14 px-6 xl:px-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-        <div className="flex items-center gap-4 min-w-0">
-          <ThemeLogo size="small" buildVersion={FRONTEND_BUILD_VERSION} showBadge={false} />
+      <div className="h-14 px-4 flex items-center gap-4">
+        <div className="flex items-center gap-2 min-w-0">
+          <ThemeLogo size="small" showBadge={false} />
         </div>
 
-        <div className="flex justify-center min-w-0 overflow-visible">
+        <div className="flex justify-start  flex-1 min-w-0 overflow-visible">
           <nav className="flex items-center gap-1 flex-wrap max-w-full">
             {visibleNavItems.map((item) => {
               const isActive = currentTopLevelNav === item.id;
 
+              if (item.id === 'assets-center') {
+                return (
+                  <React.Fragment key={item.id}>
+                    <div
+                      className="relative shrink-0"
+                      ref={assetsCenterRef}
+                      onMouseEnter={handleAssetsCenterEnter}
+                      onMouseLeave={handleAssetsCenterLeave}
+                    >
+                      <button
+                        onClick={() => setIsAssetsCenterOpen((v) => !v)}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                          isActive ? 'head-tab-active' : 'head-tab-hover'
+                        }`}
+                      >
+                        {item.label}
+                        <ChevronDown size={12} className={`transition-transform ${isAssetsCenterOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {isAssetsCenterOpen && (
+                        <div className="absolute top-full left-0 mt-2 w-36 bg-theme-surface border border-theme-border rounded-xl shadow-brand p-2 z-50">
+                          {ASSETS_CENTER_CHILDREN.map((child) => {
+                            const childActive = isActive && activeAssetsCenterChild === child.key;
+                            return (
+                              <button
+                                key={child.key}
+                                onClick={() => {
+                                  onSelectAssetsCenterChild(child.defaultView);
+                                  setIsAssetsCenterOpen(false);
+                                }}
+                                className={`w-full text-left px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${
+                                  childActive
+                                    ? 'theme-shell-active'
+                                    : 'text-theme-text-secondary hover:bg-theme-elevated'
+                                }`}
+                              >
+                                {child.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </React.Fragment>
+                );
+              }
+
               if (item.id === 'system-admin') {
                 return (
                   <React.Fragment key={item.id}>
-                    {item.showDividerBefore && (
-                      <div className="w-px h-4 bg-theme-text-faint/20 mx-1.5 shrink-0" />
-                    )}
                     <div
                       className="relative shrink-0"
                       ref={systemAdminRef}
@@ -124,16 +184,15 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <button
                         onClick={() => setIsSystemAdminOpen((v) => !v)}
-                        style={getTabStyle(item, isActive)}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
-                          isActive ? '' : 'hover:bg-theme-sidebar-muted hover:text-theme-text-inverse'
+                            isActive ? 'head-tab-active' : 'head-tab-hover'
                         }`}
                       >
                         {item.label}
                         <ChevronDown size={12} className={`transition-transform ${isSystemAdminOpen ? 'rotate-180' : ''}`} />
                       </button>
                       {isSystemAdminOpen && (
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-44 bg-theme-surface border border-theme-border rounded-xl shadow-brand p-2 z-50">
+                        <div className="absolute top-full left-0 mt-2 w-44 bg-theme-surface border border-theme-border rounded-xl shadow-brand p-2 z-50">
                           {SYSTEM_ADMIN_CHILDREN.map((child) => {
                             const childActive = isActive && activeSystemAdminChild === child.key;
                             return (
@@ -162,14 +221,10 @@ export const Header: React.FC<HeaderProps> = ({
 
               return (
                 <React.Fragment key={item.id}>
-                  {item.showDividerBefore && (
-                    <div className="w-px h-4 bg-theme-text-faint/20 mx-1.5 shrink-0" />
-                  )}
                   <button
                     onClick={() => onSelectTopLevelNav(item.id)}
-                    style={getTabStyle(item, isActive)}
                     className={`px-3 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
-                      isActive ? '' : 'hover:bg-theme-sidebar-muted hover:text-theme-text-inverse'
+                        isActive ? 'head-tab-active' : 'head-tab-hover'
                     }`}
                   >
                     {item.label}
@@ -184,14 +239,14 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="relative min-w-0 max-w-[18rem]" ref={projectDropdownRef}>
             <button
               onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-              className="flex items-center gap-2.5 px-3.5 py-2.5 theme-shell-muted rounded-lg text-sm font-medium min-w-[12rem] max-w-[18rem]"
+              className="flex items-center gap-2.5 px-1.5 py-1.5 rounded-xl text-sm font-medium head-tab-hover"
             >
               <div className="w-2 h-2 rounded-full bg-brand-primary shrink-0" />
-              <span className="truncate">{currentProject.name}</span>
+              <span className="truncate flex-1 text-left">{currentProject.name}</span>
               <ChevronDown size={14} className="shrink-0 text-theme-text-faint" />
             </button>
             {isProjectDropdownOpen && (
-              <div className="absolute top-full right-0 mt-2 w-72 bg-theme-surface border border-theme-border rounded-lg shadow-overlay p-2 z-50">
+              <div className="absolute top-full right-0 mt-2 w-48 bg-theme-surface border border-theme-border rounded-lg shadow-overlay p-2 z-50">
                 <input
                   placeholder="过滤项目..."
                   className="form-input w-full text-xs placeholder:text-theme-text-faint"
@@ -221,12 +276,20 @@ export const Header: React.FC<HeaderProps> = ({
             <RotateCw size={20} className={isRefreshing ? 'animate-spin' : ''} />
           </button>
 
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="p-3 text-theme-text-faint hover:text-brand-primary transition-all shrink-0"
+            aria-label={theme === 'dark' ? '切换浅色主题' : '切换深色主题'}
+          >
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+
           <div className="relative shrink-0" ref={userMenuRef}>
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex items-center gap-2.5 px-3.5 py-2.5 theme-shell-muted rounded-lg text-sm font-medium"
+              className="flex items-center gap-2 px-1 py-1 rounded-xl head-tab-hover"
             >
-              <div className="w-8 h-8 rounded-lg bg-brand-soft flex items-center justify-center text-brand-primary font-semibold text-sm shrink-0">
+              <div className="w-6 h-6 bg-brand-soft flex items-center justify-center text-brand-primary text-sm rounded-full shrink-0">
                 {user?.username?.[0]?.toUpperCase()}
               </div>
               <div className="text-left hidden md:block">
@@ -237,7 +300,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             {isUserMenuOpen && (
-              <div className="absolute top-full right-0 mt-2 w-56 bg-theme-surface border border-theme-border rounded-lg shadow-overlay overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50 p-2">
+              <div className="absolute top-full right-0 mt-2 w-48 bg-theme-surface border border-theme-border rounded-lg shadow-overlay overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50 p-2">
                 <div className="px-3 py-3 border-b border-theme-border mb-1">
                   <p className="text-[10px] font-medium text-theme-text-faint uppercase tracking-wider">Current Identity</p>
                   <div className="flex items-center gap-2.5 mt-1.5">

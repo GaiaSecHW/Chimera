@@ -60,10 +60,10 @@ export default {
           user: '#343541',
         },
         chart: {
-          logic: '#6366f1',
+          logic: '#2563EB',
           logic1: '#c7d2fe',
           logic2: '#a5b4fc',
-          logic3: '#6366f1',
+          logic3: '#2563EB',
           structure: '#8b5cf6',
           structure1: '#ddd6fe',
           structure2: '#a78bfa',

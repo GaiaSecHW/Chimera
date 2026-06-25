@@ -43,6 +43,11 @@ interface EnqueueTaskParams<TResult> {
   size?: number;
   run: (ctx: { signal: AbortSignal; onProgress: (event: UploadProgressEvent) => void }) => Promise<TResult>;
   postProcess?: (result: TResult) => Promise<void>;
+  // Optional external abort signal. When aborted, the tracked task is
+  // cancelled (same as calling cancelUpload(taskId)). Lets callers such as
+  // upload dialogs cancel a globally-tracked task without knowing the
+  // internal task id.
+  externalSignal?: AbortSignal;
 }
 
 interface InternalJob<TResult> {
@@ -249,6 +254,17 @@ class UploadCenterStore {
         controller,
       });
     });
+
+    // Link an external abort signal so callers (e.g. upload dialogs) can
+    // cancel a tracked task without knowing the internal task id.
+    if (params.externalSignal) {
+      const cancelTask = () => this.cancelUpload(taskId);
+      if (params.externalSignal.aborted) {
+        cancelTask();
+      } else {
+        params.externalSignal.addEventListener('abort', cancelTask, { once: true });
+      }
+    }
 
     this.pumpQueue();
     return promise;
