@@ -1,6 +1,5 @@
 import React from 'react';
 import { saveHomeCreateTaskMode } from '../utils/executionReturnContext';
-import '../css/homePage.css'
 
 interface HomePageProps {
   setCurrentView: (view: string) => void;

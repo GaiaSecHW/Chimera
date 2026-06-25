@@ -475,6 +475,43 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
               </ConfigRow>
             </>);
           })()}
+          {(() => {
+            // 完整 key 信息：wsk 显示 id/name/prefix/secret/source；sk 显示模型配置中心解析的实际 apiKey
+            const ki = (detail as any).key_info;
+            if (!ki) return null;
+            if (ki.type === 'wsk' || ki.secret) {
+              return (<>
+                <Divider />
+                <ConfigRow label="Key ID"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(ki.id || '-')}</span></ConfigRow>
+                <Divider />
+                <ConfigRow label="名称">{String(ki.name || '-')}</ConfigRow>
+                <Divider />
+                <ConfigRow label="前缀">{String(ki.prefix || '-')}</ConfigRow>
+                <Divider />
+                <ConfigRow label="来源">{String(ki.source || '-')}</ConfigRow>
+                <Divider />
+                <ConfigRow label="Secret"><span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(ki.secret || '-')}</span></ConfigRow>
+              </>);
+            }
+            const sks: any[] = Array.isArray(ki.sk_keys) ? ki.sk_keys : [];
+            if (sks.length === 0) return null;
+            return (<>
+              {sks.map((sk, idx) => (
+                <React.Fragment key={idx}>
+                  <Divider />
+                  <ConfigRow label={`Provider (${sk.provider})`}>
+                    <span style={{ fontFamily: MONO, fontSize: '12px' }}>
+                      baseUrl={String(sk.base_url || '-')} models={(sk.models || []).join(',')}
+                    </span>
+                  </ConfigRow>
+                  <Divider />
+                  <ConfigRow label={`API Key (${sk.provider})`}>
+                    <span style={{ wordBreak: 'break-all', fontFamily: MONO, fontSize: '12px' }}>{String(sk.api_key || '-')}</span>
+                  </ConfigRow>
+                </React.Fragment>
+              ))}
+            </>);
+          })()}
         </div>
       </SectionCard>
 

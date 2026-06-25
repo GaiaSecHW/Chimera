@@ -357,10 +357,10 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
   };
 
   const statsCards = [
-    { label: '总任务', value: stats.total || tasks.length, icon: Shield },
-    { label: '排队中', value: stats.queued || 0, icon: Rocket },
-    { label: '运行中', value: stats.running || 0, icon: CheckCircle2 },
-    { label: '失败', value: stats.failed || 0, icon: X },
+    { label: '总任务', value: stats.total || tasks.length, icon: Shield, color: 'var(--text-primary)', shadow: 'var(--mask-primary)'},
+    { label: '排队中', value: stats.queued || 0, icon: Rocket, color: '#D97706', shadow: 'rgba(217, 119, 6, 0.08)' },
+    { label: '运行中', value: stats.running || 0, icon: CheckCircle2, color: '#2563EB', shadow: 'rgba(37, 99, 235, 0.08)' },
+    { label: '失败', value: stats.failed || 0, icon: X, color: '#DC2626', shadow: 'rgba(220, 38, 38, 0.08)' },
   ];
 
   return (
@@ -386,13 +386,13 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                 <div className="text-xs" style={{ color: LK.muted }}>
                   {item.label}
                 </div>
-                <div className="mt-1 text-3xl font-semibold tabular-nums text-theme-text-primary" style={{ color: LK.ink }}>
+                <div className="mt-1 text-3xl font-semibold tabular-nums text-theme-text-primary" style={{ color: item.color }}>
                   {item.value}
                 </div>
               </div>
               <div
                 className="flex h-9 w-9 items-center justify-center rounded-md"
-                style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}
+                style={{ backgroundColor: item.shadow, color: item.color }}
               >
                 <Icon size={18} />
               </div>

@@ -25,6 +25,7 @@
     --text-faint: #6E7B96;
     --text-inverse: #EDF2F9; /*1*/
     --text-soft: #C5CDDE;  /*1*/
+    --mask-primary: rgba(237, 242, 248, 0.08);
     --text-muted-soft: #7C8896;
     --border-default: #293240;
     --border-strong: #36435A;
@@ -36,9 +37,9 @@
     --brand-accent: #2563EB;
     --brand-soft: rgba(99, 102, 241, 0.15);
     --brand-border: rgba(99, 102, 241, 0.4);
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #f43f5e;
+    --success: #30A46C;
+    --warning: #D97706;
+    --danger: #DC2626;
     --info: #3b82f6;
     --success-soft: rgba(16, 185, 129, 0.15);
     --warning-soft: rgba(245, 158, 11, 0.15);
@@ -89,6 +90,7 @@
     --text-faint: #9ca3af;
     --text-inverse: #0B0F17; /*1*/
     --text-soft: #4A5268; /*1*/
+    --mask-primary: rgba(11, 15, 23, 0.08);
     --border-default: #DFE3EA;
     --border-strong: #DFE3EA;
     --border-subtle: #EEF0F4;
@@ -99,9 +101,9 @@
     --brand-accent: #3B82F6;
     --brand-soft: rgba(99, 102, 241, 0.08);
     --brand-border: rgba(99, 102, 241, 0.25);
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #f43f5e;
+    --success: #30A46C;
+    --warning: #D97706;
+    --danger: #DC2626;
     --info: #3b82f6;
     --success-soft: rgba(16, 185, 129, 0.08);
     --warning-soft: rgba(245, 158, 11, 0.08);
@@ -921,3 +923,25 @@
 :root[data-theme='dark'] *::-webkit-scrollbar-thumb:hover {background: rgba(255,255,255,0.22)}
 :root[data-theme='light'] *::-webkit-scrollbar-thumb,
 :root[data-theme='light'] *::-webkit-scrollbar-thumb:hover {background: rgba(0, 0, 0, 0.22)}
+
+.stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.stat-card:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--brand-primary), transparent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+.stat-card:hover:before {
+  opacity: 0.6;
+}
