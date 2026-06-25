@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, Folder, FolderOpen, Loader2, Plus, RefreshCw, Square, SquareCheck, X } from 'lucide-react';
 import { api } from '../../clients/api';
+import { DropdownSelect } from '../../design-system';
 import { TestInputUploader, TestInputUploaderHandle } from '../../components/TestInputUploader';
 import { getAuthHeaders, handleResponse } from '../../clients/base';
 import { agentManageApiPath } from '../../clients/agentManage';
@@ -690,15 +691,14 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   项目 <span style={{ color: LK.error }}>*</span>
                 </div>
                 <div className="mt-1 flex items-center gap-2">
-                  <select
+                  <DropdownSelect
                     value={selectedProjectId}
-                    onChange={(e) => setSelectedProjectId(e.target.value)}
-                    className="form-select flex-1 rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                  >
-                    {projects.map((item) => (
-                      <option key={item.id} value={item.id}>{item.name}</option>
-                    ))}
-                  </select>
+                    onChange={setSelectedProjectId}
+                    options={projects.map((item) => ({ value: item.id, label: item.name }))}
+                    placeholder="请选择项目"
+                    emptyText="暂无可用项目"
+                    containerClassName="flex-1"
+                  />
                   <button
                     type="button"
                     title="新增项目"
@@ -710,8 +710,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       window.open(window.location.href, '_blank');
                     }}
                     className="shrink-0 rounded-lg p-2 transition-colors"
-                    style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, color: LK.body }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+                    style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primary; }}
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
                   >
                     <Plus size={16} />
@@ -725,8 +725,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       try { await onRefreshProjects?.(); } catch { /* ignore */ } finally { setProjectsRefreshing(false); }
                     }}
                     className="shrink-0 rounded-lg p-2 transition-colors disabled:opacity-50"
-                    style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, color: LK.body }}
-                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; } }}
+                    style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
+                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primary; } }}
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
                   >
                     <RefreshCw size={16} className={projectsRefreshing ? 'animate-spin' : ''} />
@@ -866,13 +866,14 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     {/* input record selector */}
                     <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                       测试对象记录
-                      <select
+                      <DropdownSelect
                         value={selectedInputId}
-                        onChange={(e) => setSelectedInputId(e.target.value)}
-                        className="form-select mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                      >
-                        {selectableInputs.map((item) => <option key={item.upload_id} value={item.upload_id}>{`${getUploadRecordDisplayName(item)} · ${item.status}`}</option>)}
-                      </select>
+                        onChange={setSelectedInputId}
+                        options={selectableInputs.map((item) => ({ value: item.upload_id, label: `${getUploadRecordDisplayName(item)} · ${item.status}` }))}
+                        placeholder="请选择测试对象记录"
+                        emptyText="暂无可用记录"
+                        containerClassName="mt-1"
+                      />
                     </label>
 
                     {selectableInputs.length === 0 ? (
@@ -992,17 +993,18 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               {/* 工具 */}
               <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                 工具
-                <select
+                <DropdownSelect
                   value={taskType}
-                  onChange={(e) => setTaskType(e.target.value as any)}
-                  className="form-select mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                >
-                  {availableTaskTypes.map((item) => (
-                    <option key={item.value} value={item.value} disabled={item.disabled}>
-                      {item.label}{item.disabled ? '（已禁用）' : ''}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => setTaskType(v as (typeof TASK_TYPES)[number]['value'])}
+                  options={availableTaskTypes.map((item) => ({
+                    value: item.value,
+                    label: `${item.label}${item.disabled ? '（已禁用）' : ''}`,
+                    disabled: item.disabled,
+                  }))}
+                  placeholder="请选择工具"
+                  emptyText="暂无可用工具"
+                  containerClassName="mt-1"
+                />
               </label>
               {taskTypeDisabled ? (
                 <div
@@ -1026,14 +1028,17 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 <>
                   <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                     Agent Harness
-                    <select
+                    <DropdownSelect
                       value={selectedAgentAppId}
-                      onChange={(e) => setSelectedAgentAppId(e.target.value)}
-                      className="form-select mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                    >
-                      <option value="">请选择具体 Harness</option>
-                      {agentApps.map((item) => <option key={item.id} value={item.id}>{`${item.name} / ${item.engine}`}</option>)}
-                    </select>
+                      onChange={setSelectedAgentAppId}
+                      options={[
+                        { value: '', label: '请选择具体 Harness' },
+                        ...agentApps.map((item) => ({ value: item.id, label: `${item.name} / ${item.engine}` })),
+                      ]}
+                      placeholder="请选择具体 Harness"
+                      emptyText="暂无可用 Harness"
+                      containerClassName="mt-1"
+                    />
                   </label>
                   {agentAppsLoadError ? (
                     <div

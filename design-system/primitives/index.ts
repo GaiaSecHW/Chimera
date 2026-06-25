@@ -7,6 +7,9 @@ export type { InputProps } from './Input';
 export { Select } from './Select';
 export type { SelectProps, SelectOption } from './Select';
 
+export { DropdownSelect } from './DropdownSelect';
+export type { DropdownSelectProps, DropdownSelectOption } from './DropdownSelect';
+
 export { FormField } from './FormField';
 export type { FormFieldProps } from './FormField';
 

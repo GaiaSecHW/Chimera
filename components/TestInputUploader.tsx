@@ -1,6 +1,7 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import { Upload, X } from 'lucide-react';
 import { api } from '../clients/api';
+import { DropdownSelect } from '../design-system';
 import { formatUploadBytes, isAllowedArchiveFileName } from '../pages/assets/baseResourcePageModel';
 
 type InputType = 'document' | 'code' | 'software' | 'other';
@@ -180,15 +181,11 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
         {/* 输入类型 */}
         <div className="space-y-1.5">
           <label className="form-label">输入类型</label>
-          <select
+          <DropdownSelect
             value={inputType}
-            onChange={(e) => setInputType(e.target.value as InputType)}
-            className="form-select w-full"
-          >
-            {INPUT_TYPE_ORDER.map((type) => (
-              <option key={type} value={type}>{INPUT_TYPE_META[type].label}</option>
-            ))}
-          </select>
+            onChange={(v) => setInputType(v as InputType)}
+            options={INPUT_TYPE_ORDER.map((type) => ({ value: type, label: INPUT_TYPE_META[type].label }))}
+          />
         </div>
 
         {/* 文件选择 */}
