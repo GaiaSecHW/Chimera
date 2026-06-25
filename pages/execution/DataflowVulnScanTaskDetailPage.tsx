@@ -1156,6 +1156,36 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
   const vulnStats = useMemo(() => computeVulnGraphStats(traceTreeRoot), [traceTreeRoot]);
   const vulnSummary = vulnGraph?.summary || {};
   const [expandedFindingIds, setExpandedFindingIds] = useState<Set<string>>(new Set());
+  const progressStats = useMemo(() => {
+    const sRuns = Number(vulnSummary.runs || 0);
+    const sFollowups = Number(vulnSummary.followups || 0);
+    const sExecuted = Number(vulnSummary.executed_followups || 0);
+    const fwList = (vulnGraph?.graph?.followups || []) as any[];
+    const PENDING_STATUSES = new Set(['pending', 'queued', 'running']);
+    const SKIP_STATUSES = new Set(['skipped', 'cycle', 'depth_limit', 'merged_equivalent_taint_validation', 'forked', 'tracker_resolved']);
+    let sPending = Number(vulnSummary.pending_followups || 0);
+    let sSkipped = Number(vulnSummary.skipped_followups || 0);
+    let maxDepth = vulnStats.maxDepth;
+    if (fwList.length > 0) {
+      if (!sPending && !sSkipped) {
+        for (const f of fwList) {
+          const st = String(f.status || '').toLowerCase();
+          if (PENDING_STATUSES.has(st)) sPending++;
+          else if (SKIP_STATUSES.has(st)) sSkipped++;
+        }
+      }
+      for (const f of fwList) {
+        const d = Number(f.depth) || 0;
+        if (d > maxDepth) maxDepth = d;
+      }
+    }
+    const analyzed = sRuns || vulnStats.analyzedNodes;
+    const pending = sPending || vulnStats.pendingNodes;
+    const skippedFollowups = sSkipped || (sFollowups > sExecuted ? sFollowups - sExecuted : 0);
+    const total = sRuns + sFollowups || vulnStats.totalNodes;
+    const pct = (analyzed + pending) > 0 ? Math.round((analyzed / (analyzed + pending)) * 100) : 0;
+    return { analyzed, pending, skippedFollowups, total, maxDepth, pct };
+  }, [vulnSummary, vulnGraph?.graph, vulnStats]);
   const traceTreeNodes = useMemo(() => flattenTraceTree(traceTreeRoot), [traceTreeRoot]);
   const selectedTraceNode = useMemo(
     () => traceTreeNodes.find((node) => node.run_id === selectedTraceRunId) || traceTreeNodes[0] || null,
@@ -1286,33 +1316,22 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
                 <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">分析进度</h2>
                 <div className="mt-4 space-y-4">
                   {(() => {
-                    const sRuns = Number(vulnSummary.runs || 0);
-                    const sFollowups = Number(vulnSummary.followups || 0);
-                    const sExecuted = Number(vulnSummary.executed_followups || 0);
-                    const sSkipped = Number(vulnSummary.skipped_followups || 0);
-                    const sPending = Number(vulnSummary.pending_followups || 0);
-                    const sFindings = Number(vulnSummary.findings || 0);
-                    // analyzed = runs (each run = one function analyzed)
-                    // pending = followups still queued/running (not yet executed nor skipped)
-                    const analyzed = sRuns || vulnStats.analyzedNodes;
-                    const pending = sPending || vulnStats.pendingNodes;
-                    const skippedFollowups = sSkipped || (sFollowups > sExecuted ? sFollowups - sExecuted : 0);
-                    const total = sRuns + sFollowups || vulnStats.totalNodes;
-                    const pct = (analyzed + pending) > 0 ? Math.round((analyzed / (analyzed + pending)) * 100) : detail?.status === 'running' ? 0 : detail?.status === 'passed' ? 100 : 0;
+                    const { analyzed, pending, skippedFollowups, total, maxDepth, pct } = progressStats;
                     const isRunning = detail?.status === 'running';
+                    const displayPct = pct > 0 ? pct : detail?.status === 'passed' ? 100 : 0;
                     return (
                       <>
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-xs font-semibold text-theme-text-secondary">函数节点分析进度</span>
-                            <span className="text-xs font-bold text-theme-text-primary">{pct}%</span>
+                            <span className="text-xs font-bold text-theme-text-primary">{displayPct}%</span>
                           </div>
                           <div className="h-3 w-full overflow-hidden rounded-full bg-theme-elevated">
                             <div
                               className={`h-full rounded-full transition-all duration-700 ${isRunning ? 'animate-pulse' : ''}`}
                               style={{
-                                width: `${pct}%`,
-                                background: pct === 100
+                                width: `${displayPct}%`,
+                                background: displayPct === 100
                                   ? 'linear-gradient(90deg, #45c06f, #34d399)'
                                   : isRunning
                                     ? 'linear-gradient(90deg, #4f8cff, #7590ff)'
@@ -1341,14 +1360,14 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
                               <TrendingUp size={13} className="text-violet-400" />
                               <span className="text-[11px] font-semibold text-violet-400">分析深度</span>
                             </div>
-                            <p className="mt-1 text-lg font-bold text-violet-400">{vulnStats.maxDepth > 0 ? `Lv.${vulnStats.maxDepth}` : '-'}</p>
+                            <p className="mt-1 text-lg font-bold text-violet-400">{maxDepth > 0 ? `Lv.${maxDepth}` : '-'}</p>
                           </div>
                           <div className="rounded-xl border border-rose-500/15 bg-rose-500/8 px-3 py-2.5">
                             <div className="flex items-center gap-1.5">
                               <Bug size={13} className="text-rose-400" />
                               <span className="text-[11px] font-semibold text-rose-400">漏洞上报</span>
                             </div>
-                            <p className="mt-1 text-lg font-bold text-rose-400">{vulnStats.vulnCount || sFindings || result?.summary?.total_findings || 0}</p>
+                            <p className="mt-1 text-lg font-bold text-rose-400">{vulnStats.vulnCount || vulnSummary.findings || result?.summary?.total_findings || 0}</p>
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2 text-[11px] text-theme-text-muted">
