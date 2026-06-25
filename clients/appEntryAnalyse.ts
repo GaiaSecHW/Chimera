@@ -48,6 +48,9 @@ export const appEntryAnalyseApi = {
     getJsonWithDedupe(`${BASE}/health`, { headers: getHeaders() }),
 
   // ── Tasks ─────────────────────────────────────────────────────────────────
+  listProviders: async (): Promise<{ items: Array<{ provider_key: string; model: string; enabled?: boolean; id?: string; name?: string; reasoning?: boolean; [key: string]: unknown }> }> =>
+    getJsonWithDedupe(`${BASE}/providers`, { headers: getHeaders() }),
+
   createTask: async (payload: AppEaTaskCreateRequest): Promise<AppEaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks`, {
       method: 'POST',
