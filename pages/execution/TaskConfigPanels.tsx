@@ -450,6 +450,34 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
         )}
       </SectionCard>
 
+      <SectionCard title="当前使用 Key">
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <ConfigRow label="Key 类型">
+            <span style={{ fontFamily: MONO, fontSize: '12px' }}>
+              {String((detail as any).key_type || (Object.keys(agentAuthJson).length > 0 ? 'wsk' : 'sk') || '-')}
+            </span>
+          </ConfigRow>
+          <Divider />
+          <ConfigRow label="模型来源">
+            <span style={{ fontFamily: MONO, fontSize: '12px' }}>
+              {String((detail as any).model_source || (Object.keys(agentAuthJson).length > 0 ? 'gateway' : 'config_center') || '-')}
+            </span>
+          </ConfigRow>
+          {(() => {
+            const sm = (detail as any).selected_models;
+            if (!sm) return null;
+            return (<>
+              <Divider />
+              <ConfigRow label="选定模型">
+                <span style={{ fontFamily: MONO, fontSize: '12px' }}>
+                  {['worker', 'reader', 'judge'].map((r) => sm[r] ? `${r}=${sm[r]}` : null).filter(Boolean).join('  ') || '-'}
+                </span>
+              </ConfigRow>
+            </>);
+          })()}
+        </div>
+      </SectionCard>
+
       <SectionCard title="角色配置">
         {roleKeys.length === 0 ? (
           <EmptyState text="该任务未保存角色级运行快照，历史任务可继续参考下方实际运行快照与原始 JSON。" />
