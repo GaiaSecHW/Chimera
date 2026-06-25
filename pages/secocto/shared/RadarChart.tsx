@@ -52,9 +52,9 @@ export const RadarChart: React.FC<RadarChartProps> = ({ values, labels, size = 2
       {axesEnds.map(([x, y], i) => (
         <line key={`a${i}`} x1={cx} y1={cy} x2={x.toFixed(1)} y2={y.toFixed(1)} stroke="currentColor" strokeWidth={1} opacity={0.6} />
       ))}
-      <polygon points={dataPolyPts} fill="rgba(99,102,241,0.18)" stroke="#6366f1" strokeWidth={2} />
+      <polygon points={dataPolyPts} fill="rgba(99,102,241,0.18)" stroke="#2563EB" strokeWidth={2} />
       {dataPts.map(([x, y], i) => (
-        <circle key={`d${i}`} cx={x.toFixed(1)} cy={y.toFixed(1)} r={3} fill="#6366f1" />
+        <circle key={`d${i}`} cx={x.toFixed(1)} cy={y.toFixed(1)} r={3} fill="#2563EB" />
       ))}
       {angles.map((a, i) => {
         const [lx, ly] = pt(R + 16, a);

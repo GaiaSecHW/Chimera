@@ -34,6 +34,7 @@ export type BinarySecurityTaskOrigin = {
 const STORAGE_KEY = 'chimera:binarySecurityReturnContext';
 const EXECUTION_RETURN_STORAGE_KEY = 'chimera:executionReturnContext';
 const TASK_CENTER_RETURN_STORAGE_KEY = 'chimera:taskCenterReturnContext';
+const HOME_CREATE_TASK_MODE_KEY = 'chimera:homeCreateTaskMode';
 
 export const saveBinarySecurityReturnContext = (context: BinarySecurityReturnContext) => {
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(context));
@@ -112,6 +113,18 @@ export const consumeTaskCenterReturnContext = (): boolean => {
     sessionStorage.removeItem(TASK_CENTER_RETURN_STORAGE_KEY);
   }
   return hasContext;
+};
+
+export const saveHomeCreateTaskMode = (mode: string) => {
+  sessionStorage.setItem(HOME_CREATE_TASK_MODE_KEY, mode);
+};
+
+export const consumeHomeCreateTaskMode = (): string | null => {
+  const mode = sessionStorage.getItem(HOME_CREATE_TASK_MODE_KEY);
+  if (mode) {
+    sessionStorage.removeItem(HOME_CREATE_TASK_MODE_KEY);
+  }
+  return mode;
 };
 
 export const getBinarySecurityOriginReturnContext = (

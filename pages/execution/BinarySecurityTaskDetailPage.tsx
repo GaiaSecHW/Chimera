@@ -48,13 +48,13 @@ import { deriveRuntimeDiagnoses, deriveRuntimeOwnerTopology, type RuntimeDiagnos
 import { clearExecutionReturnContext, saveBinarySecurityReturnContext } from '../../utils/executionReturnContext';
 
 const LK = {
-  primary: '#4f73ff', primarySoft: '#7590ff', primaryDeep: '#3f63f1',
+  primary: 'var(--brand-primary)', primarySoft: '#7590ff', primaryDeep: 'var(--brand-primary-hover)',
   primaryMuted: 'rgba(79, 115, 255, 0.14)',
-  canvas: '#070d18', surface: '#111a2b', surfaceRaised: '#18233a',
+  canvas: 'var(--bg-app)', surface: 'var(--bg-surface)', surfaceRaised: 'var(--bg-app)',
   surfaceGlass: 'rgba(17, 26, 43, 0.84)',
-  border: '#26324a', borderSoft: '#1b2438',
-  ink: '#f5f7ff', inkSoft: '#d6def0', body: '#a4aec4',
-  muted: '#72809a', mutedSoft: '#8b95a8',
+  border: 'var(--border-default)', borderSoft: 'var(--border-default)',
+  ink: 'var(--text-primary)', inkSoft: 'var(--text-primary)', body: 'var(--text-secondary)',
+  muted: 'var(--text-secondary)', mutedSoft: '#8b95a8',
   success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
   critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
 } as const;
@@ -226,6 +226,8 @@ const statusTone = (status: string): { backgroundColor: string; color: string; b
     case 'uploading':
     case 'dispatching':
       return { backgroundColor: 'rgba(14, 165, 233, 0.1)', color: LK.info, borderColor: LK.info };
+    case 'ready_to_start':
+      return { backgroundColor: 'rgba(99, 102, 241, 0.1)', color: '#2563EB', borderColor: '#2563EB' };
     case 'running':
       return { backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', borderColor: '#3b82f6' };
     case 'continue_in_progress':
@@ -1198,7 +1200,7 @@ const timelineDetailRows = (payload: Record<string, any> | null) => {
     before: '变更前',
     after: '变更后',
     reason: '变更原因',
-    source: '变更来源',
+    source: Object.prototype.hasOwnProperty.call(payload, 'changed_fields') ? '变更来源' : '源路径',
     target_stage: '目标阶段',
     last_success_stage: '最后成功阶段',
     cleared_stages: '清理阶段',
@@ -1225,7 +1227,6 @@ const timelineDetailRows = (payload: Record<string, any> | null) => {
     uploaded_files: '上传文件数',
     archive_count: '归档数',
     extracted_file_count: '解压文件数',
-    source: '源路径',
     target: '目标路径',
     error: '错误',
     message: '消息',

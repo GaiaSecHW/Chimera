@@ -1,5 +1,5 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { Upload } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import { api } from '../clients/api';
 import { formatUploadBytes, isAllowedArchiveFileName } from '../pages/assets/baseResourcePageModel';
 
@@ -27,6 +27,7 @@ export interface TestInputUploaderHandle {
   triggerUpload: () => Promise<{ uploadId: string }>;
   hasFiles: () => boolean;
   reset: () => void;
+  cancel: () => void;
 }
 
 export interface TestInputUploaderProps {
@@ -53,14 +54,14 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
   ({ projectId, displayName, compact = false, onUploadStateChange }, ref) => {
     const fileserverApi = api.domains.assets.fileserver;
     const [inputType, setInputType] = useState<InputType>('document');
-    const [keepOriginal, setKeepOriginal] = useState(false);
     const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     const addFilesToQueue = (files: FileList | null) => {
       if (!files) return;
       const next: UploadQueueItem[] = Array.from(files).map((file) => {
-        const allowed = keepOriginal || isAllowedArchiveFileName(file.name || '');
+        const allowed = isAllowedArchiveFileName(file.name || '');
         return {
           id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2)}`,
           file,
@@ -71,6 +72,11 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
         };
       });
       setUploadQueue((current) => [...current, ...next]);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const removeFile = (id: string) => {
+      setUploadQueue((current) => current.filter((item) => item.id !== id));
     };
 
     useImperativeHandle(ref, () => ({
@@ -78,8 +84,10 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
       reset: () => {
         setUploadQueue([]);
         setInputType('document');
-        setKeepOriginal(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
+      },
+      cancel: () => {
+        abortControllerRef.current?.abort();
       },
       triggerUpload: async () => {
         const readyFiles = uploadQueue.filter((item) => item.status !== 'failed').map((item) => item.file);
@@ -87,6 +95,8 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
           throw new Error('没有可上传的文件');
         }
         onUploadStateChange?.(true);
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
         setUploadQueue((current) =>
           current.map((item) =>
             item.status === 'failed' ? item : { ...item, status: 'uploading', progress: 40, speedBytesPerSec: 0 },
@@ -97,12 +107,12 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
             {
               project_id: projectId,
               input_type: inputType,
-              keep_original: keepOriginal,
-              upload_mode: keepOriginal ? 'raw' : 'archive',
+              keep_original: false,
+              upload_mode: 'archive',
               files: readyFiles,
             },
             {
-              trackGlobal: false,
+              signal: controller.signal,
               onProgress: (progress) => {
                 setUploadQueue((current) =>
                   current.map((item) =>
@@ -135,6 +145,7 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
           if (uploadId) {
             const maxAttempts = 120;
             for (let i = 0; i < maxAttempts; i++) {
+              if (controller.signal.aborted) throw new Error('上传已取消');
               const detail = await fileserverApi.getProjectInputUploadDetail(uploadId);
               if (detail.status === 'succeeded' || detail.status === 'partial_failed') break;
               if (detail.status === 'failed') throw new Error(detail.last_error || '服务器处理上传文件失败');
@@ -159,6 +170,7 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
           throw error;
         } finally {
           onUploadStateChange?.(false);
+          abortControllerRef.current = null;
         }
       },
     }));
@@ -179,29 +191,16 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
           </select>
         </div>
 
-        {/* 是否解压 */}
-        <label className="flex items-center gap-2 text-sm font-medium text-theme-text-secondary">
-          <input
-            type="checkbox"
-            checked={keepOriginal}
-            onChange={(e) => setKeepOriginal(e.target.checked)}
-            className="h-4 w-4 rounded border-theme-border"
-          />
-          保留原始文件，不自动解压
-        </label>
-
         {/* 文件选择 */}
         <div className="rounded-xl border border-dashed border-theme-border px-4 py-4 text-center">
           <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg bg-theme-elevated text-theme-text-muted">
             <Upload size={20} />
           </div>
           <div className="mt-2 text-sm font-semibold text-theme-text-primary">
-            {keepOriginal ? '上传原始文件' : '上传压缩包'}
+            上传压缩包
           </div>
           <div className="mt-1 text-xs leading-5 text-theme-text-muted">
-            {keepOriginal
-              ? '当前保留原始文件模式下，支持上传任意文件，一次可选择多个文件。'
-              : '支持 zip / tar / tar.gz / tgz / tar.bz2 / tbz2 / tar.xz / txz，一次可选择多个文件。'}
+            支持 zip / tar / tar.gz / tgz / tar.bz2 / tbz2 / tar.xz / txz，一次可选择多个文件。
           </div>
           <div className="mt-2">
             <button
@@ -215,7 +214,7 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
               ref={fileInputRef}
               type="file"
               multiple
-              accept={keepOriginal ? undefined : '.zip,.tar,.tar.gz,.tgz,.tar.bz2,.tbz2,.tar.xz,.txz'}
+              accept='.zip,.tar,.tar.gz,.tgz,.tar.bz2,.tbz2,.tar.xz,.txz'
               className="hidden"
               onChange={(e) => addFilesToQueue(e.target.files)}
             />
@@ -238,8 +237,20 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
                       {formatUploadBytes(item.file.size)} · {formatSpeed(item.speedBytesPerSec)}
                     </div>
                   </div>
-                  <div className="text-xs font-semibold text-theme-text-muted">
-                    {item.error || item.status}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs font-semibold text-theme-text-muted">
+                      {item.error || item.status}
+                    </span>
+                    {(item.status === 'pending' || item.status === 'failed') && (
+                      <button
+                        type="button"
+                        onClick={() => removeFile(item.id)}
+                        className="text-theme-text-muted hover:text-state-danger transition-colors"
+                        aria-label="移除"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="mt-2 h-1.5 rounded-full bg-theme-elevated">

@@ -1,14 +1,14 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { PageHeader } from '../../design-system';
-import { ArrowRight, CheckCircle2, Loader2, Plus, RefreshCw, Rocket, Search, Shield, Square, SquareCheck, X } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ChevronDown, Loader2, Plus, RefreshCw, Rocket, Search, Shield, Square, SquareCheck, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { getAuthHeaders, handleResponse } from '../../clients/base';
 import { agentManageApiPath } from '../../clients/agentManage';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { saveTaskCenterReturnContext } from '../../utils/executionReturnContext';
+import { saveTaskCenterReturnContext, consumeHomeCreateTaskMode } from '../../utils/executionReturnContext';
 import { getPlatformRole } from '../../utils/rbac';
-import { CreateTaskDialog } from './CreateTaskDialog';
+import { CreateTaskDialog, HomeCardMode } from './CreateTaskDialog';
 import {
   AgentAppSummary,
   ScheduleCenterUserTaskDeleteQueueItem,
@@ -23,6 +23,10 @@ import {
 interface Props {
   projectId: string;
   projects: SecurityProject[];
+  onRefreshProjects?: () => Promise<void> | void;
+  openCreateTaskOnNav?: boolean;
+  onConsumeOpenCreateTask?: () => void;
+  hideActionBar?: boolean;
 }
 
 type TaskTypeOption = {
@@ -88,20 +92,20 @@ const truncateText = (value?: string | null, max = 80) => {
 
 // LOKI design tokens (DESIGN.md) — page-local palette.
 const LK = {
-  primary: '#4f73ff',
+  primary: 'var(--brand-primary)',
   primarySoft: '#7590ff',
-  primaryDeep: '#3f63f1',
+  primaryDeep: 'var(--brand-primary-hover)',
   primaryMuted: 'rgba(79, 115, 255, 0.14)',
-  canvas: '#070d18',
-  surface: '#111a2b',
-  surfaceRaised: '#18233a',
+  canvas: 'var(--bg-app)',
+  surface: 'var(--bg-surface)',
+  surfaceRaised: 'var(--bg-app)',
   surfaceGlass: 'rgba(17, 26, 43, 0.84)',
-  border: '#26324a',
-  borderSoft: '#1b2438',
-  ink: '#f5f7ff',
-  inkSoft: '#d6def0',
-  body: '#a4aec4',
-  muted: '#72809a',
+  border: 'var(--border-default)',
+  borderSoft: 'var(--border-default)',
+  ink: 'var(--text-primary)',
+  inkSoft: 'var(--text-primary)',
+  body: 'var(--text-secondary)',
+  muted: 'var(--text-secondary)',
   mutedSoft: '#8b95a8',
   success: '#45c06f',
   warning: '#d5a13a',
@@ -111,7 +115,7 @@ const LK = {
 
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
-export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
+export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefreshProjects, openCreateTaskOnNav, onConsumeOpenCreateTask, hideActionBar }) => {
   const scheduleApi = api.domains.platform.scheduleCenter;
   const buildVersion = useServiceBuildVersion(scheduleApi.getHealth);
   const currentUser = useMemo(() => getLocalUserInfo(), []);
@@ -126,7 +130,10 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const [agentApps, setAgentApps] = useState<AgentAppSummary[]>([]);
   const [query, setQuery] = useState('');
   const [selectedAgentAppFilter, setSelectedAgentAppFilter] = useState('');
+  const [agentAppFilterOpen, setAgentAppFilterOpen] = useState(false);
+  const agentAppFilterRef = useRef<HTMLDivElement | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [preSelectedMode, setPreSelectedMode] = useState<HomeCardMode | undefined>(undefined);
   const [error, setError] = useState('');
   const [agentAppsLoadError, setAgentAppsLoadError] = useState('');
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
@@ -152,6 +159,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   const { notify, confirm, feedbackNodes } = useUiFeedback();
 
   const projectName = useMemo(() => projects.find((item) => item.id === projectId)?.name || projectId, [projectId, projects]);
+  const selectedAgentAppFilterLabel = !selectedAgentAppFilter
+    ? '全部 Harness'
+    : (agentApps.find((item) => item.id === selectedAgentAppFilter)?.name || '全部 Harness');
   const filteredTasks = useMemo(() => {
     const term = query.trim().toLowerCase();
     return tasks.filter((item) => {
@@ -217,6 +227,24 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
   useEffect(() => { void loadData(); }, [projectId, selectedAgentAppFilter]);
   useEffect(() => { setSelectedTaskIds([]); }, [projectId, query, selectedAgentAppFilter]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (agentAppFilterRef.current && !agentAppFilterRef.current.contains(event.target as Node)) {
+        setAgentAppFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const mode = consumeHomeCreateTaskMode();
+    if (mode === 'dragon-tail' || mode === 'ram-horn' || mode === 'lion-head') {
+      setPreSelectedMode(mode as HomeCardMode);
+      setCreateOpen(true);
+    }
+  }, []);
+
   const loadDeleteQueue = async (
     nextPage = deleteQueuePage,
     nextPageSize = deleteQueuePageSize,
@@ -249,7 +277,15 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     setCreateOpen(true);
   };
 
+  useEffect(() => {
+    if (openCreateTaskOnNav) {
+      setCreateOpen(true);
+      onConsumeOpenCreateTask?.();
+    }
+  }, [openCreateTaskOnNav, onConsumeOpenCreateTask]);
+
   const closeCreateDialog = () => {
+    setPreSelectedMode(undefined);
     setCreateOpen(false);
   };
 
@@ -325,16 +361,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
     }));
   };
 
-  const requestSync = async (task: ScheduleCenterUserTask) => {
-    try {
-      await scheduleApi.syncUserTask(projectId, task.id, { force: true });
-      notify('已加入同步队列', 'success');
-      await loadData();
-    } catch (err: any) {
-      notify(err?.message || '加入同步队列失败', 'error');
-    }
-  };
-
   const submitDeleteQueueFilters = async (event: React.FormEvent) => {
     event.preventDefault();
     setDeleteQueuePage(1);
@@ -372,37 +398,12 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
 
   return (
     <div
-      className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
-      style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
+      className="task-center space-y-4 px-5 py-5 md:px-6 2xl:px-8"
+      style={{ minHeight: '100%', color: LK.inkSoft }}
     >
       <PageHeader
         title={<ServicePageTitle title="任务中心" version={buildVersion} className="" titleClassName="text-2xl font-semibold tracking-tight text-theme-text-primary" />}
         description="统一展示当前项目下的所有测试任务，追踪分发、执行与同步状态"
-        actions={
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={openDeleteQueue}
-              className="btn btn-secondary"
-            >
-              <Shield size={16} /> 删除队列
-            </button>
-            <button
-              type="button"
-              onClick={() => void loadData()}
-              className="btn btn-secondary"
-            >
-              <RefreshCw size={16} /> 刷新
-            </button>
-            <button
-              type="button"
-              onClick={openCreateDialog}
-              className="btn btn-primary"
-            >
-              <Plus size={16} /> 创建任务
-            </button>
-          </div>
-        }
       />
 
       <div className="grid gap-3 md:grid-cols-5">
@@ -411,14 +412,14 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
           return (
             <div
               key={item.label}
-              className="flex items-center justify-between rounded-xl px-4 py-3"
+              className="flex items-center justify-between rounded-xl p-4"
               style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
             >
               <div>
                 <div className="text-xs" style={{ color: LK.muted }}>
                   {item.label}
                 </div>
-                <div className="mt-1 text-2xl font-bold leading-7 tabular-nums" style={{ color: LK.ink }}>
+                <div className="mt-1 text-3xl font-semibold tabular-nums text-theme-text-primary" style={{ color: LK.ink }}>
                   {item.value}
                 </div>
               </div>
@@ -433,26 +434,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         })}
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="搜索任务名、Harness、状态、下游任务 ID"
-            className="form-input w-full pl-10"
-          />
-        </div>
-        <select
-          value={selectedAgentAppFilter}
-          onChange={(e) => setSelectedAgentAppFilter(e.target.value)}
-          className="form-select"
-        >
-          <option value="">全部 Harness</option>
-          {agentApps.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-        </select>
-      </div>
-
       {agentAppsLoadError ? (
         <div
           className="rounded-lg px-4 py-3 text-sm"
@@ -463,40 +444,77 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
       ) : null}
 
       <div
-        className="flex items-center justify-between gap-3 rounded-lg px-4 py-3"
+        className="rounded-xl"
         style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
       >
-        <div className="text-sm" style={{ color: LK.body }}>
-          当前页已选 <span style={{ color: LK.ink }}>{selectedTaskIds.length}</span> 项
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => void submitDelete(selectedTaskIds)}
-            disabled={!selectedTaskIds.length || deleteSubmitting}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ backgroundColor: LK.error, color: '#ffffff' }}
-            onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#e04848'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.error; }}
-          >
-            {deleteSubmitting ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
-            批量删除（{selectedTaskIds.length}）
-          </button>
-        </div>
-      </div>
+        {!hideActionBar && (
+            <div
+                className="flex items-center gap-2 rounded-lg px-4 py-3"
+            >
+              <button onClick={openCreateDialog} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}><Plus size={15} />创建任务</button>
+              <button
+                  onClick={() => void submitDelete(selectedTaskIds)}
+                  disabled={!selectedTaskIds.length || deleteSubmitting}
+                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ backgroundColor: LK.error, color: '#ffffff' }}
+                  onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#e04848'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.error; }}
+              >
+                {deleteSubmitting ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+                批量删除（{selectedTaskIds.length}）
+              </button>
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
+                <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="搜索任务名、Harness、状态"
+                    className="form-input w-full pl-10"
+                />
+              </div>
+              <div className="relative shrink-0" ref={agentAppFilterRef}>
+                <button
+                  onClick={() => setAgentAppFilterOpen(!agentAppFilterOpen)}
+                  className="form-select flex items-center justify-between gap-2 text-left"
+                  style={{ width: '180px' }}
+                >
+                  <span className="truncate flex-1 text-left">{selectedAgentAppFilterLabel}</span>
+                  <ChevronDown size={14} className={`shrink-0 text-theme-text-faint transition-transform ${agentAppFilterOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {agentAppFilterOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-theme-surface border border-theme-border rounded-lg shadow-overlay p-2 z-50">
+                    <div className="max-h-60 overflow-y-auto space-y-0.5">
+                      <button
+                        onClick={() => { setSelectedAgentAppFilter(''); setAgentAppFilterOpen(false); }}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors ${!selectedAgentAppFilter ? 'theme-shell-active' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}
+                      >
+                        全部 Harness
+                      </button>
+                      {agentApps.map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => { setSelectedAgentAppFilter(item.id); setAgentAppFilterOpen(false); }}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors ${selectedAgentAppFilter === item.id ? 'theme-shell-active' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}
+                        >
+                          {item.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <button onClick={() => void loadData()} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><RefreshCw size={15} />刷新</button>
+            </div>
+        )}
 
-      {error ? (
-        <div
-          className="rounded-lg px-4 py-3 text-sm"
-          style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}
-        >
-          {error}
-        </div>
-      ) : null}
-
-      <div
-        className="overflow-hidden rounded-xl"
-        style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
-      >
+        {error ? (
+            <div
+                className="rounded-lg px-4 py-3 text-sm mb-2 mt-2"
+                style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}
+            >
+              {error}
+            </div>
+        ) : null}
         <table className="min-w-full border-separate border-spacing-0 text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
@@ -508,14 +526,13 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务名</th>
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务状态</th>
-              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>下游任务 ID</th>
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>更新时间</th>
               <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
             </tr>
           </thead>
           <tbody>
-            {loading ? <tr><td className="px-4 py-10 text-center" colSpan={7} style={{ color: LK.muted }}><span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />加载中...</span></td></tr> : null}
-            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-10 text-center" colSpan={7} style={{ color: LK.muted }}>暂无任务</td></tr> : null}
+            {loading ? <tr><td className="px-4 py-10 text-center" colSpan={6} style={{ color: LK.muted }}><span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />加载中...</span></td></tr> : null}
+            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-10 text-center" colSpan={6} style={{ color: LK.muted }}>暂无任务</td></tr> : null}
             {filteredTasks.map((task) => (
               <tr
                 key={task.id}
@@ -548,9 +565,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                   <div className="font-semibold" style={{ color: LK.inkSoft }}>{getDisplayStatus(task)}</div>
                   <div className="text-xs" style={{ color: LK.muted }}>{task.dispatch_status} / {task.business_status}</div>
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap" style={{ fontFamily: MONO, fontSize: '12px', color: LK.body }}>
-                  {task.downstream_task_id || '—'}
-                </td>
                 <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: LK.muted }}>
                   {formatDateTime(task.updated_at)}
                 </td>
@@ -568,9 +582,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                     {task.task_type !== 'sechps_tool' ? (
                       <button
                         onClick={() => {
-                          window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
-                            detail: { view: 'task-vuln-list', taskVulnListTaskId: task.id },
-                          }));
+                          window.open(`#/vuln-list?task=${encodeURIComponent(task.id)}`, '_blank', 'noopener,noreferrer');
                         }}
                         className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
                         style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
@@ -580,27 +592,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                         查看漏洞 ({taskVulnCounts[task.id] === undefined ? '…' : taskVulnCounts[task.id]})
                       </button>
                     ) : null}
-                    {task.sync_required ? (
-                      <button
-                        onClick={() => void requestSync(task)}
-                        className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
-                        style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; e.currentTarget.style.borderColor = LK.primary; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
-                      >
-                        <RefreshCw size={12} />
-                        立即同步
-                      </button>
-                    ) : null}
-                    <button
-                      onClick={() => openTimelinePage(task)}
-                      className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
-                      style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; e.currentTarget.style.borderColor = LK.primary; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.body; e.currentTarget.style.borderColor = LK.border; }}
-                    >
-                      时间线
-                    </button>
                     <button
                       onClick={() => void submitDelete([task.id])}
                       disabled={deleteSubmitting || ['queued', 'running'].includes(String(task.delete_status || 'none'))}
@@ -669,7 +660,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
                   <input
                     value={deleteQueueFilters.search}
                     onChange={(e) => setDeleteQueueFilters((current) => ({ ...current, search: e.target.value }))}
-                    placeholder="任务名 / 任务ID / 下游任务ID / 删除错误"
+                    placeholder="任务名 / 任务ID / 删除错误"
                     className="mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
                     style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
                     onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
@@ -907,7 +898,10 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects }) => {
         onClose={closeCreateDialog}
         projectId={projectId}
         projectName={projectName}
-        onCreated={() => { closeCreateDialog(); void loadData(); }}
+        projects={projects}
+        onRefreshProjects={onRefreshProjects}
+        preSelectedMode={preSelectedMode}
+        onCreated={() => { setPreSelectedMode(undefined); closeCreateDialog(); void loadData(); }}
       />
     </div>
   );

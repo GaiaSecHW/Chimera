@@ -234,6 +234,7 @@ export const fileserverApi = {
       name: payload.file.name || 'file',
       size: payload.file.size || 0,
       run: ({ signal, onProgress }) => execute({ signal, onProgress }),
+      externalSignal: options?.signal,
     });
   },
 
@@ -408,6 +409,7 @@ export const fileserverApi = {
       name: payload.files.map((file) => file.name || 'file').join(', '),
       size: totalSize,
       run: ({ signal, onProgress }) => execute({ signal, onProgress }),
+      externalSignal: options?.signal,
     });
   },
 
@@ -449,6 +451,7 @@ export const fileserverApi = {
       name: payload.files.map((file) => file.name || 'file').join(', '),
       size: totalSize,
       run: ({ signal, onProgress }) => execute({ signal, onProgress }),
+      externalSignal: options?.signal,
     });
   },
 
@@ -662,6 +665,7 @@ export const fileserverApi = {
       name: payload.file.name || 'file',
       size: payload.file.size || 0,
       run: ({ signal, onProgress }) => execute({ signal, onProgress }),
+      externalSignal: options?.signal,
     });
   },
 

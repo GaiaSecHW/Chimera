@@ -22,6 +22,7 @@ import { orgApi, UserPermissionInfo } from '../../clients/org';
 import { PageHeader } from '../../design-system';
 import { Department, ProductTreeNode, ProductVersionNode, SecurityProject } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
+import { useUiFeedback } from '../../components/UiFeedback';
 
 interface ProjectMgmtPageProps {
   projects: SecurityProject[];
@@ -29,6 +30,8 @@ interface ProjectMgmtPageProps {
   setActiveProjectId: (id: string) => void;
   setCurrentView: (view: string) => void;
   refreshProjects: (showRefresh?: boolean) => Promise<void>;
+  openCreateProjectOnNav?: boolean;
+  onConsumeOpenCreateProject?: () => void;
 }
 
 interface ProjectFormState {
@@ -49,20 +52,20 @@ const EMPTY_FORM: ProjectFormState = {
 
 // LOKI design tokens (DESIGN.md) — page-local palette.
 const LK = {
-  primary: '#4f73ff',
+  primary: 'var(--brand-primary)',
   primarySoft: '#7590ff',
-  primaryDeep: '#3f63f1',
+  primaryDeep: 'var(--brand-primary-hover)',
   primaryMuted: 'rgba(79, 115, 255, 0.14)',
-  canvas: '#070d18',
-  surface: '#111a2b',
-  surfaceRaised: '#18233a',
+  canvas: 'var(--bg-app)',
+  surface: 'var(--bg-surface)',
+  surfaceRaised: 'var(--bg-app)',
   surfaceGlass: 'rgba(17, 26, 43, 0.84)',
-  border: '#26324a',
-  borderSoft: '#1b2438',
-  ink: '#f5f7ff',
-  inkSoft: '#d6def0',
-  body: '#a4aec4',
-  muted: '#72809a',
+  border: 'var(--border-default)',
+  borderSoft: 'var(--border-default)',
+  ink: 'var(--text-primary)',
+  inkSoft: 'var(--text-primary)',
+  body: 'var(--text-secondary)',
+  muted: 'var(--text-secondary)',
   mutedSoft: '#8b95a8',
   success: '#45c06f',
   warning: '#d5a13a',
@@ -76,10 +79,13 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   setActiveProjectId,
   setCurrentView,
   refreshProjects,
+  openCreateProjectOnNav,
+  onConsumeOpenCreateProject,
 }) => {
   const projectApi = api.domains.project;
   const scheduleApi = api.domains.platform.scheduleCenter;
   const vulnApi = api.domains.vuln.vuln;
+  const { confirm, feedbackNodes } = useUiFeedback();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(() => {
@@ -194,21 +200,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     return departments.filter((department) => allowedSet.has(department.id));
   }, [allowedDepartmentIds, departments, userPermissions]);
 
-  const productVersionOptions = useMemo(() => {
-    const flatNodes = (nodes: ProductTreeNode[]): ProductTreeNode[] =>
-      nodes.flatMap((node) => [node, ...flatNodes(node.children || [])]);
-
-    return flatNodes(productTree)
-      .filter((node) => node.is_leaf)
-      .flatMap((node) =>
-        (node.versions || []).map((version: ProductVersionNode) => ({
-          product: node,
-          version,
-          label: `${node.name} / ${version.version}${version.name ? ` · ${version.name}` : ''}`,
-        }))
-      );
-  }, [productTree]);
-
   // ComboBox derived data
   const leafProducts = useMemo(() => {
     const flat = (nodes: ProductTreeNode[]): ProductTreeNode[] =>
@@ -322,6 +313,13 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     setIsCreateModalOpen(true);
   };
 
+  useEffect(() => {
+    if (openCreateProjectOnNav) {
+      openCreateModal();
+      onConsumeOpenCreateProject?.();
+    }
+  }, [openCreateProjectOnNav, onConsumeOpenCreateProject]);
+
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProject.department_id) {
@@ -354,16 +352,31 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       }
       // else: existing product + existing version — selectedVersionId already set
 
-      await projectApi.projects.create({
+      const createdProject = await projectApi.projects.create({
         name: newProject.name,
         description: newProject.description,
         is_public: false, // Always department project
         department_id: Number(newProject.department_id),
         product_version_id: productVersionId!,
       });
+      const createdProjectName = createdProject.name || newProject.name || `${productSearch} / ${versionSearch}`;
       setIsCreateModalOpen(false);
       resetCreateForm();
       await refreshProjects();
+      const goCreateTask = await confirm({
+        title: '项目创建成功',
+        message: `项目「${createdProjectName}」已初始化。是否前往测试任务中心创建测试任务？`,
+        confirmText: '去创建任务',
+        cancelText: '暂不',
+      });
+      if (goCreateTask) {
+        sessionStorage.setItem('chimera:pendingNav', JSON.stringify({
+          view: 'task-list',
+          openCreateTask: true,
+          projectId: createdProject.id,
+        }));
+        window.open(window.location.href, '_blank');
+      }
     } catch (err: any) {
       setError(err.message || '创建项目失败');
     } finally {
@@ -378,16 +391,38 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       setError('请选择项目归属部门');
       return;
     }
+    if (!productSearch.trim()) {
+      setError('请输入或选择产品名称');
+      return;
+    }
+    if (!versionSearch.trim()) {
+      setError('请输入或选择版本号');
+      return;
+    }
 
     setIsSubmitting(true);
     setError(null);
     try {
+      let productVersionId = selectedVersionId;
+
+      if (!selectedProductId) {
+        // New product + new version
+        const newProd = await projectApi.products.create({ name: productSearch, code: productSearch });
+        const newVer = await projectApi.products.createVersion(String(newProd.id), { version: versionSearch, name: versionSearch });
+        productVersionId = newVer.id;
+      } else if (!selectedVersionId) {
+        // Existing product + new version
+        const newVer = await projectApi.products.createVersion(selectedProductId, { version: versionSearch, name: versionSearch });
+        productVersionId = newVer.id;
+      }
+      // else: existing product + existing version — selectedVersionId already set
+
       await projectApi.projects.update(editingProject.id, {
         name: editForm.name,
         description: editForm.description,
         is_public: editForm.is_public,
         department_id: Number(editForm.department_id),
-        product_version_id: editForm.product_version_id || null,
+        product_version_id: productVersionId || null,
       });
       setIsEditModalOpen(false);
       setEditingProject(null);
@@ -412,6 +447,12 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       department_id: project.department_id ? String(project.department_id) : getDefaultDepartmentId(),
       product_version_id: project.product_version_id || '',
     });
+    setProductSearch(project.product_name || '');
+    setSelectedProductId(project.product_id || null);
+    setVersionSearch(project.product_version_name || '');
+    setSelectedVersionId(project.product_version_id || null);
+    setShowProductDropdown(false);
+    setShowVersionDropdown(false);
     setError(null);
     setIsEditModalOpen(true);
   };
@@ -494,29 +535,111 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     </div>
   );
 
-  const renderProductVersionSelect = (
-    value: string,
-    onChange: (productVersionId: string) => void,
-    helperText: string
-  ) => (
-    <div className="space-y-1.5">
-      <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>产品版本 <span className="required"> *</span></label>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
-        style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-        onFocus={(e) => (e.currentTarget.style.borderColor = LK.primary)}
-        onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-      >
-        <option value="">请选择产品版本</option>
-        {productVersionOptions.map((option) => (
-          <option key={option.version.id} value={option.version.id}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <p className="text-[11px]" style={{ color: LK.muted }}>{helperText}</p>
+  const renderProductComboBox = () => (
+    <div className="space-y-1.5" ref={productDropdownRef}>
+      <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>产品名称 <span className="required"> *</span></label>
+      <div className="relative">
+        <input
+          placeholder="输入产品名称，或从列表选择..."
+          className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+          style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = LK.primary;
+            setShowProductDropdown(true);
+          }}
+          onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+          value={productSearch}
+          onChange={(e) => {
+            setProductSearch(e.target.value);
+            setSelectedProductId(null);
+            setVersionSearch('');
+            setSelectedVersionId(null);
+            setShowProductDropdown(true);
+          }}
+        />
+        {showProductDropdown && filteredProducts.length > 0 && (
+          <div
+            className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-lg py-1"
+            style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}
+          >
+            {filteredProducts.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className="w-full px-3 py-2 text-left text-sm transition-colors"
+                style={{ color: LK.inkSoft }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = LK.primaryMuted)}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setProductSearch(p.name);
+                  setSelectedProductId(String(p.id));
+                  setVersionSearch('');
+                  setSelectedVersionId(null);
+                  setShowProductDropdown(false);
+                }}
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <p className="text-[11px]" style={{ color: LK.muted }}>
+        {selectedProductId ? '已选择现有产品' : productSearch.trim() ? '将创建新产品' : '从产品树叶子节点选择，或输入新产品名称'}
+      </p>
+    </div>
+  );
+
+  const renderVersionComboBox = () => (
+    <div className="space-y-1.5" ref={versionDropdownRef}>
+      <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>版本号 <span className="required"> *</span></label>
+      <div className="relative">
+        <input
+          placeholder={selectedProductId ? '输入版本号，或从列表选择...' : '请先选择或输入产品名称'}
+          className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+          style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = LK.primary;
+            setShowVersionDropdown(true);
+          }}
+          onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
+          value={versionSearch}
+          onChange={(e) => {
+            setVersionSearch(e.target.value);
+            setSelectedVersionId(null);
+            setShowVersionDropdown(true);
+          }}
+        />
+        {showVersionDropdown && filteredVersions.length > 0 && (
+          <div
+            className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-lg py-1"
+            style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}
+          >
+            {filteredVersions.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                className="w-full px-3 py-2 text-left text-sm transition-colors"
+                style={{ color: LK.inkSoft }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = LK.primaryMuted)}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setVersionSearch(v.name);
+                  setSelectedVersionId(v.id);
+                  setShowVersionDropdown(false);
+                }}
+              >
+                {v.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <p className="text-[11px]" style={{ color: LK.muted }}>
+        {selectedVersionId ? '已选择现有版本' : versionSearch.trim() ? '将创建新版本' : '选择已有版本或输入新版本号'}
+      </p>
     </div>
   );
 
@@ -529,27 +652,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       <PageHeader
         title="项目概览"
         description="统一展示用户权限范围内的所有项目"
-        actions={
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleRefresh}
-              className="btn-icon"
-              title="刷新列表"
-              aria-label="刷新列表"
-            >
-              <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
-            </button>
-            <button
-              type="button"
-              onClick={openCreateModal}
-              disabled={!userPermissions || selectableDepartments.length === 0}
-              className="btn btn-primary"
-            >
-              <Plus size={16} /> 初始化项目
-            </button>
-          </div>
-        }
       />
 
       {/* Batch selection bar */}
@@ -630,16 +732,38 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         </div>
       )}
 
-      {/* Search bar */}
-      <div className="relative flex items-center">
-        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
-        <input
-          type="text"
-          placeholder="搜索项目名称、负责人、归属部门、产品路径、版本号..."
-          className="form-input w-full pl-10"
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
-        />
+      {/* Action bar: 初始化项目 -> 搜索框 -> 刷新 */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={openCreateModal}
+          disabled={!userPermissions || selectableDepartments.length === 0}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+          style={{ backgroundColor: LK.primary, color: '#ffffff' }}
+          onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
+          onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
+        >
+          <Plus size={16} /> 初始化项目
+        </button>
+        <div className="relative flex flex-1 items-center">
+          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
+          <input
+            type="text"
+            placeholder="搜索项目名称、负责人、归属部门、产品路径、版本号..."
+            className="form-input w-full pl-10"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+          />
+        </div>
+        <button
+          onClick={handleRefresh}
+          className="shrink-0 rounded-lg p-2.5 transition-colors"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
+          title="刷新列表"
+        >
+          <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+        </button>
       </div>
 
       {/* Unified project table */}
@@ -666,7 +790,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                   <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>归属部门</th>
                   <th className="whitespace-nowrap min-w-[110px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>项目成员</th>
                   <th className="whitespace-nowrap min-w-[200px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>产品版本</th>
-                  <th className="whitespace-nowrap min-w-[90px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>状态</th>
                   <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>创建时间</th>
                   <th className="whitespace-nowrap w-24 px-3 py-2.5 text-right font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
                 </tr>
@@ -729,10 +852,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                         <div className="text-sm font-medium" style={{ color: LK.inkSoft }}>
                           {project.product_version || project.product_version_name || '未归属版本'}
                         </div>
-                      </td>
-                      {/* 状态 */}
-                      <td className="whitespace-nowrap px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
-                        <StatusBadge status={project.status || 'active'} />
                       </td>
                       {/* 创建时间 */}
                       <td className="whitespace-nowrap px-3 py-3 text-xs" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.muted }}>
@@ -912,111 +1031,9 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 '项目仅对该部门及其上级部门可见；归属部门管理员负责维护。'
               )}
 
-              {/* Product ComboBox */}
-              <div className="space-y-1.5" ref={productDropdownRef}>
-                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>产品名称 <span className="required"> *</span></label>
-                <div className="relative">
-                  <input
-                    placeholder="输入产品名称，或从列表选择..."
-                    className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
-                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = LK.primary;
-                      setShowProductDropdown(true);
-                    }}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-                    value={productSearch}
-                    onChange={(e) => {
-                      setProductSearch(e.target.value);
-                      setSelectedProductId(null);
-                      setVersionSearch('');
-                      setSelectedVersionId(null);
-                      setShowProductDropdown(true);
-                    }}
-                  />
-                  {showProductDropdown && filteredProducts.length > 0 && (
-                    <div
-                      className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-lg py-1"
-                      style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}
-                    >
-                      {filteredProducts.map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          className="w-full px-3 py-2 text-left text-sm transition-colors"
-                          style={{ color: LK.inkSoft }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = LK.primaryMuted)}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setProductSearch(p.name);
-                            setSelectedProductId(String(p.id));
-                            setVersionSearch('');
-                            setSelectedVersionId(null);
-                            setShowProductDropdown(false);
-                          }}
-                        >
-                          {p.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <p className="text-[11px]" style={{ color: LK.muted }}>
-                  {selectedProductId ? '已选择现有产品' : productSearch.trim() ? '将创建新产品' : '从产品树叶子节点选择，或输入新产品名称'}
-                </p>
-              </div>
+              {renderProductComboBox()}
 
-              {/* Version ComboBox */}
-              <div className="space-y-1.5" ref={versionDropdownRef}>
-                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>版本号 <span className="required"> *</span></label>
-                <div className="relative">
-                  <input
-                    placeholder={selectedProductId ? '输入版本号，或从列表选择...' : '请先选择或输入产品名称'}
-                    className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
-                    style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = LK.primary;
-                      setShowVersionDropdown(true);
-                    }}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = LK.border)}
-                    value={versionSearch}
-                    onChange={(e) => {
-                      setVersionSearch(e.target.value);
-                      setSelectedVersionId(null);
-                      setShowVersionDropdown(true);
-                    }}
-                  />
-                  {showVersionDropdown && filteredVersions.length > 0 && (
-                    <div
-                      className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-lg py-1"
-                      style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}
-                    >
-                      {filteredVersions.map((v) => (
-                        <button
-                          key={v.id}
-                          type="button"
-                          className="w-full px-3 py-2 text-left text-sm transition-colors"
-                          style={{ color: LK.inkSoft }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = LK.primaryMuted)}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setVersionSearch(v.version + (v.name ? ` · ${v.name}` : ''));
-                            setSelectedVersionId(v.id);
-                            setShowVersionDropdown(false);
-                          }}
-                        >
-                          {v.version}{v.name ? ` · ${v.name}` : ''}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <p className="text-[11px]" style={{ color: LK.muted }}>
-                  {selectedVersionId ? '已选择现有版本' : versionSearch.trim() ? '将创建新版本' : '选择已有版本或输入新版本号'}
-                </p>
-              </div>
+              {renderVersionComboBox()}
 
               <div className="flex gap-2 pt-2">
                 <button
@@ -1163,11 +1180,9 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 '归属部门决定私有项目的可见范围，同时决定哪些部门管理员可编辑和删除项目。'
               )}
 
-              {renderProductVersionSelect(
-                editForm.product_version_id,
-                (product_version_id) => setEditForm({ ...editForm, product_version_id }),
-                '可切换到其他产品版本；历史项目允许暂时为空，但建议尽快补齐。'
-              )}
+              {renderProductComboBox()}
+
+              {renderVersionComboBox()}
 
               <div className="flex gap-2 pt-2">
                 <button
@@ -1196,6 +1211,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
           </div>
         </div>
       )}
+      {feedbackNodes}
     </div>
   );
 };
