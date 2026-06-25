@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   Building2,
   CheckCircle2,
   CheckSquare,
@@ -52,6 +55,12 @@ const EMPTY_FORM: ProjectFormState = {
   product_version_id: '',
 };
 
+type ProjectSortField = 'created_at' | 'updated_at' | 'name' | 'department_name' | 'owner_name' | 'product_version';
+type ProjectSortDirection = 'asc' | 'desc';
+
+const PROJECT_SORT_FIELDS: readonly ProjectSortField[] = ['created_at', 'updated_at', 'name', 'department_name', 'owner_name', 'product_version'];
+const DATE_SORT_FIELDS: readonly ProjectSortField[] = ['created_at', 'updated_at'];
+
 // LOKI design tokens (DESIGN.md) — page-local palette.
 const LK = {
   primary: 'var(--brand-primary)',
@@ -93,6 +102,13 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   const [pageSize, setPageSize] = useState<number>(() => {
     const saved = Number(localStorage.getItem('chimera:projectList:pageSize'));
     return saved && [10, 20, 50, 100].includes(saved) ? saved : 10;
+  });
+  const [sortField, setSortField] = useState<ProjectSortField>(() => {
+    const saved = localStorage.getItem('chimera:projectList:sortField');
+    return saved && (PROJECT_SORT_FIELDS as readonly string[]).includes(saved) ? (saved as ProjectSortField) : 'created_at';
+  });
+  const [sortDirection, setSortDirection] = useState<ProjectSortDirection>(() => {
+    return localStorage.getItem('chimera:projectList:sortDirection') === 'asc' ? 'asc' : 'desc';
   });
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -232,7 +248,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
 
   const filteredProjects = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    return (projects || []).filter((project) => {
+    const filtered = (projects || []).filter((project) => {
       if (!project) return false;
       if (!term) return true;
       return [
@@ -248,7 +264,29 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         project.product_version_name || '',
       ].some((value) => value.toLowerCase().includes(term));
     });
-  }, [projects, searchTerm]);
+    const dir = sortDirection === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      switch (sortField) {
+        case 'name':
+          return String(a.name || '').localeCompare(String(b.name || ''), 'zh-CN') * dir;
+        case 'department_name':
+          return String(a.department_name || '').localeCompare(String(b.department_name || ''), 'zh-CN') * dir;
+        case 'owner_name':
+          return String(a.owner_name || '').localeCompare(String(b.owner_name || ''), 'zh-CN') * dir;
+        case 'product_version':
+          return String(a.product_version || a.product_version_name || '')
+            .localeCompare(String(b.product_version || b.product_version_name || ''), 'zh-CN') * dir;
+        case 'created_at':
+        case 'updated_at': {
+          const aVal = sortField === 'created_at' ? a.created_at : a.updated_at;
+          const bVal = sortField === 'created_at' ? b.created_at : b.updated_at;
+          const aTime = aVal ? new Date(aVal).getTime() : 0;
+          const bTime = bVal ? new Date(bVal).getTime() : 0;
+          return (aTime - bTime) * dir;
+        }
+      }
+    });
+  }, [projects, searchTerm, sortField, sortDirection]);
 
   const manageableProjects = useMemo(
     () => filteredProjects.filter((project) => project.can_manage),
@@ -273,7 +311,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, sortField, sortDirection]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -285,6 +323,27 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     setPageSize(next);
     localStorage.setItem('chimera:projectList:pageSize', String(next));
     setCurrentPage(1);
+  };
+
+  const handleSortChange = (field: ProjectSortField) => {
+    if (field === sortField) {
+      const next: ProjectSortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+      setSortDirection(next);
+      localStorage.setItem('chimera:projectList:sortDirection', next);
+    } else {
+      const next: ProjectSortDirection = DATE_SORT_FIELDS.includes(field) ? 'desc' : 'asc';
+      setSortField(field);
+      setSortDirection(next);
+      localStorage.setItem('chimera:projectList:sortField', field);
+      localStorage.setItem('chimera:projectList:sortDirection', next);
+    }
+  };
+
+  const renderSortIndicator = (field: ProjectSortField) => {
+    if (sortField !== field) return <ArrowUpDown size={13} style={{ color: LK.mutedSoft }} />;
+    return sortDirection === 'asc'
+      ? <ArrowUp size={13} style={{ color: LK.inkSoft }} />
+      : <ArrowDown size={13} style={{ color: LK.inkSoft }} />;
   };
 
   const isAllSelected = manageableProjects.length > 0 && manageableProjects.every((project) => selectedIds.has(project.id));
@@ -796,11 +855,42 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                       {isAllSelected ? <CheckSquare size={16} /> : <Square size={16} />}
                     </button>
                   </th>
-                  <th className="whitespace-nowrap min-w-[180px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>项目</th>
-                  <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>归属部门</th>
-                  <th className="whitespace-nowrap min-w-[110px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>项目成员</th>
-                  <th className="whitespace-nowrap min-w-[200px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>产品版本</th>
-                  <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>创建时间</th>
+                  <th className="whitespace-nowrap min-w-[180px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                    <button onClick={() => handleSortChange('name')} className="inline-flex items-center gap-1 transition-colors" style={{ color: sortField === 'name' ? LK.inkSoft : LK.mutedSoft }}>
+                      项目
+                      {renderSortIndicator('name')}
+                    </button>
+                  </th>
+                  <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                    <button onClick={() => handleSortChange('department_name')} className="inline-flex items-center gap-1 transition-colors" style={{ color: sortField === 'department_name' ? LK.inkSoft : LK.mutedSoft }}>
+                      归属部门
+                      {renderSortIndicator('department_name')}
+                    </button>
+                  </th>
+                  <th className="whitespace-nowrap min-w-[110px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                    <button onClick={() => handleSortChange('owner_name')} className="inline-flex items-center gap-1 transition-colors" style={{ color: sortField === 'owner_name' ? LK.inkSoft : LK.mutedSoft }}>
+                      项目成员
+                      {renderSortIndicator('owner_name')}
+                    </button>
+                  </th>
+                  <th className="whitespace-nowrap min-w-[200px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                    <button onClick={() => handleSortChange('product_version')} className="inline-flex items-center gap-1 transition-colors" style={{ color: sortField === 'product_version' ? LK.inkSoft : LK.mutedSoft }}>
+                      产品版本
+                      {renderSortIndicator('product_version')}
+                    </button>
+                  </th>
+                  <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                    <button onClick={() => handleSortChange('created_at')} className="inline-flex items-center gap-1 transition-colors" style={{ color: sortField === 'created_at' ? LK.inkSoft : LK.mutedSoft }}>
+                      创建时间
+                      {renderSortIndicator('created_at')}
+                    </button>
+                  </th>
+                  <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                    <button onClick={() => handleSortChange('updated_at')} className="inline-flex items-center gap-1 transition-colors" style={{ color: sortField === 'updated_at' ? LK.inkSoft : LK.mutedSoft }}>
+                      更新时间
+                      {renderSortIndicator('updated_at')}
+                    </button>
+                  </th>
                   <th className="whitespace-nowrap w-24 px-3 py-2.5 text-right font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
                 </tr>
               </thead>
@@ -866,6 +956,10 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                       {/* 创建时间 */}
                       <td className="whitespace-nowrap px-3 py-3 text-xs" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.muted }}>
                         {project.created_at ? new Date(project.created_at).toLocaleString() : '未知'}
+                      </td>
+                      {/* 更新时间 */}
+                      <td className="whitespace-nowrap px-3 py-3 text-xs" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.muted }}>
+                        {project.updated_at ? new Date(project.updated_at).toLocaleString() : '—'}
                       </td>
                       {/* 操作 — 成员管理 / 编辑 / 删除 */}
                       <td className="whitespace-nowrap px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>

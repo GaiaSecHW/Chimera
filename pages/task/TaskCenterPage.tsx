@@ -71,6 +71,12 @@ const getUserStatusLabelFromValue = (status?: string | null) => USER_STATUS_LABE
 const getTaskTypeLabel = (taskType: string) => TASK_TYPES.find((item) => item.value === taskType)?.label || taskType;
 const getTaskHarnessLabel = (task: Pick<ScheduleCenterUserTask, 'task_type' | 'agent_app_name'>) =>
   task.task_type === 'sechps_tool' ? (task.agent_app_name || 'Agent Harness') : getTaskTypeLabel(String(task.task_type || ''));
+const getTaskInputsLabel = (task: Pick<ScheduleCenterUserTask, 'inputs'>) => {
+  const labels = (task.inputs || [])
+    .map((item) => String(item.display_name || item.input_label || '').trim())
+    .filter(Boolean);
+  return labels.length ? labels.join('、') : '—';
+};
 const getDeleteQueueTypeLabel = (taskType: string) => taskType === 'sechps_tool' ? 'Agent Harness 任务' : getTaskTypeLabel(taskType);
 const getDeleteStatusLabel = (status: string) => {
   if (status === 'queued') return '排队中';
@@ -466,8 +472,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
             </tr>
           </thead>
           <tbody>
-            {loading ? <tr><td className="px-4 py-10 text-center" colSpan={6} style={{ color: LK.muted }}><span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />加载中...</span></td></tr> : null}
-            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-10 text-center" colSpan={6} style={{ color: LK.muted }}>暂无任务</td></tr> : null}
+            {loading ? <tr><td className="px-4 py-10 text-center" colSpan={7} style={{ color: LK.muted }}><span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />加载中...</span></td></tr> : null}
+            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-10 text-center" colSpan={7} style={{ color: LK.muted }}>暂无任务</td></tr> : null}
             {filteredTasks.map((task) => (
               <tr
                 key={task.id}
@@ -513,32 +519,30 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                     >
                       <FileText size={15} />
                     </button>
-                    {task.task_type !== 'sechps_tool' ? (
-                      <button
-                        onClick={() => {
-                          window.open(`#/vuln-list?task=${encodeURIComponent(task.id)}`, '_blank', 'noopener,noreferrer');
-                        }}
-                        title={`查看漏洞 (${taskVulnCounts[task.id] === undefined ? '…' : taskVulnCounts[task.id]})`}
-                        className="relative inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
-                        style={{ color: LK.muted }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.primary; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
-                      >
-                        <Bug size={15} />
-                        {(() => {
-                          const c = taskVulnCounts[task.id];
-                          if (c === undefined || c === 0) return null;
-                          return (
-                            <span
-                              className="absolute -top-1 -right-1 inline-flex min-w-[15px] h-[15px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white"
-                              style={{ backgroundColor: LK.error }}
-                            >
-                              {c > 99 ? '99+' : c}
-                            </span>
-                          );
-                        })()}
-                      </button>
-                    ) : null}
+                    <button
+                      onClick={() => {
+                        window.open(`#/vuln-list?task=${encodeURIComponent(task.id)}`, '_blank', 'noopener,noreferrer');
+                      }}
+                      title={`查看漏洞 (${taskVulnCounts[task.id] === undefined ? '…' : taskVulnCounts[task.id]})`}
+                      className="relative inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
+                      style={{ color: LK.muted }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.primary; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
+                    >
+                      <Bug size={15} />
+                      {(() => {
+                        const c = taskVulnCounts[task.id];
+                        if (c === undefined || c === 0) return null;
+                        return (
+                          <span
+                            className="absolute -top-1 -right-1 inline-flex min-w-[15px] h-[15px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white"
+                            style={{ backgroundColor: LK.error }}
+                          >
+                            {c > 99 ? '99+' : c}
+                          </span>
+                        );
+                      })()}
+                    </button>
                     <button
                       onClick={() => void submitDelete([task.id])}
                       disabled={deleteSubmitting || ['queued', 'running'].includes(String(task.delete_status || 'none'))}
