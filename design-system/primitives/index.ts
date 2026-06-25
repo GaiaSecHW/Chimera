@@ -21,3 +21,6 @@ export type { ModalProps } from './Modal';
 
 export { SegmentedControl } from './SegmentedControl';
 export type { SegmentedControlProps, SegmentedOption } from './SegmentedControl';
+
+export { MarkdownViewer } from './MarkdownViewer';
+export type { MarkdownViewerProps } from './MarkdownViewer';
