@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { api } from '../clients/api';
 import { PageHeader } from '../design-system';
+import { SuspectVulnTaskBreakdownDialog } from '../components/SuspectVulnTaskBreakdownDialog';
 import { API_BASE, getHeaders, handleResponse } from '../clients/base';
 import {
   AdminDashboardStats,
@@ -269,6 +270,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [algoHover, setAlgoHover] = useState<string | null>(null);
   const [vulnConfirmed, setVulnConfirmed] = useState<number | null>(null);
   const [vulnRuledOut, setVulnRuledOut] = useState<number | null>(null);
+  const [suspectBreakdownOpen, setSuspectBreakdownOpen] = useState(false);
+  const [suspectCardHover, setSuspectCardHover] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -535,6 +538,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               icon: Bug,
               color: LK.primary,
               algorithm: '漏洞中心接收到的全部 case 数量，包含所有阶段（receive / triage / validation / finished）。',
+              onClick: undefined,
             },
             {
               label: '疑似漏洞',
@@ -542,6 +546,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               icon: CheckCircle2,
               color: LK.primaryDeep,
               algorithm: 'A + B\n\nA：上报工具（reporter.name）被任一漏洞确认引擎的 bind_tools 包含，且 finished_reason="vulnerable" 的 case 数。\nB：上报工具未被任何引擎 bind_tools 包含的全部 case 数（任意阶段都计入）。',
+              onClick: () => setSuspectBreakdownOpen(true),
             },
             {
               label: '确认是漏洞',
@@ -549,6 +554,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               icon: AlertTriangle,
               color: LK.error,
               algorithm: '经过人工终审且判定为漏洞的 case 数。\n\n人工终审指 StageHistory 中存在 to_stage="finished" 且 source_type="human" 的记录；判定取 finished_reason="vulnerable"。',
+              onClick: undefined,
             },
             {
               label: '确认非漏洞',
@@ -556,12 +562,31 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               icon: ShieldCheck,
               color: LK.success,
               algorithm: '经过人工终审且判定为非漏洞的 case 数。\n\n人工终审指 StageHistory 中存在 to_stage="finished" 且 source_type="human" 的记录；判定取 finished_reason="not_vulnerable"。',
+              onClick: undefined,
             },
           ].map((stat) => (
             <div
               key={stat.label}
-              className="flex flex-col rounded-xl px-3 py-3 relative"
-              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+              className={`flex flex-col rounded-xl px-3 py-3 relative${stat.onClick ? ' cursor-pointer transition-colors' : ''}`}
+              style={{
+                backgroundColor: LK.surface,
+                border: `1px solid ${stat.onClick && suspectCardHover ? LK.primarySoft : LK.border}`,
+              }}
+              onClick={stat.onClick}
+              role={stat.onClick ? 'button' : undefined}
+              tabIndex={stat.onClick ? 0 : undefined}
+              onMouseEnter={stat.onClick ? () => setSuspectCardHover(true) : undefined}
+              onMouseLeave={stat.onClick ? () => setSuspectCardHover(false) : undefined}
+              onKeyDown={
+                stat.onClick
+                  ? (e: React.KeyboardEvent) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        stat.onClick?.();
+                      }
+                    }
+                  : undefined
+              }
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1">
@@ -905,6 +930,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             </div>
           )}
         </CardShell>
+        <SuspectVulnTaskBreakdownDialog
+          open={suspectBreakdownOpen}
+          onClose={() => setSuspectBreakdownOpen(false)}
+          projects={projects}
+        />
       </div>
     </div>
   );
