@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Copy, ExternalLink, FileText, Info, Loader2, RefreshCw, SlidersHorizontal, Trash2, X } from 'lucide-react';
+import { Copy, ExternalLink, FileText, Info, Loader2, RefreshCw, SlidersHorizontal, Trash2, X, Shield } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +10,9 @@ import { BinarySecurityRuntimeHealthTab } from './BinarySecurityRuntimeHealthTab
 import {
   BinarySecurityAbnormalReason,
   BinarySecurityAbnormalReasonEventSummary,
+  BinarySecurityDeleteQueueItem,
+  BinarySecurityDeleteQueueResponse,
+  BinarySecurityDeleteQueueTaskType,
   BinarySecurityEntryContract,
   BinarySecurityModuleContract,
   BinarySecurityModuleReportDetail,
@@ -59,6 +62,8 @@ const LK = {
   critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
 } as const;
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+const DELETE_QUEUE_POLL_MS = 15000;
+const DELETE_QUEUE_PAGE_SIZE = 20;
 
 interface Props {
   projectId: string;
@@ -120,6 +125,21 @@ const STAGE_LABELS: Record<string, string> = {
   entry_analysis: '入口分析',
   knowledge_graph_entry_fetch: '知识图谱入口获取',
   dataflow_vuln_scan: '数据流漏洞挖掘',
+};
+
+const DELETE_QUEUE_TYPE_LABELS: Record<string, string> = {
+  binary_firmware_e2e: '盖亚-二进制固件',
+  source_scan_e2e: '盖亚-源码',
+  kg_source_vuln_scan_e2e: '知识图谱-漏洞挖掘',
+  binary_module_e2e: '盖亚-二进制模块',
+};
+
+const DELETE_QUEUE_STATUS_LABELS: Record<string, string> = {
+  queued: '排队中',
+  running: '删除中',
+  blocked: '阻塞',
+  failed: '失败',
+  deleted: '已删除',
 };
 
 const DOWNSTREAM_DETAIL_SUPPORT: Record<string, { supported: boolean; reason?: string }> = {
@@ -456,6 +476,38 @@ const formatBinarySecurityStatus = (status?: string | null) => {
 const formatDownstreamStatus = (status?: string | null) => {
   if (!status) return '待同步';
   return formatBinarySecurityStatus(status);
+};
+
+const formatDeleteQueueStatus = (status?: string | null) => {
+  const normalized = String(status || '').trim().toLowerCase();
+  return DELETE_QUEUE_STATUS_LABELS[normalized] || status || '—';
+};
+
+const getDeleteQueueTypeLabel = (taskType?: string | null) => {
+  const normalized = String(taskType || '').trim();
+  return DELETE_QUEUE_TYPE_LABELS[normalized] || normalized || '—';
+};
+
+const deleteQueueStatusColor = (status?: string | null) => {
+  switch (String(status || '').trim().toLowerCase()) {
+    case 'running':
+      return LK.info;
+    case 'failed':
+      return LK.error;
+    case 'blocked':
+      return LK.warning;
+    case 'deleted':
+      return LK.success;
+    case 'queued':
+    default:
+      return LK.warning;
+  }
+};
+
+const truncateText = (value?: string | null, max = 120) => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '—';
+  return normalized.length > max ? `${normalized.slice(0, max)}...` : normalized;
 };
 
 const isTailControlPlaneSyncTransition = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
@@ -2232,6 +2284,21 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const entrySelectionRequestKeyRef = useRef<string | null>(null);
   const stageItemsRequestKeyRef = useRef<string | null>(null);
   const [runtimeHealthExpanded, setRuntimeHealthExpanded] = useState(false);
+  const [deleteQueueOpen, setDeleteQueueOpen] = useState(false);
+  const [deleteQueueLoading, setDeleteQueueLoading] = useState(false);
+  const [deleteQueueError, setDeleteQueueError] = useState<string | null>(null);
+  const [deleteQueueItems, setDeleteQueueItems] = useState<BinarySecurityDeleteQueueItem[]>([]);
+  const [deleteQueueStats, setDeleteQueueStats] = useState<BinarySecurityDeleteQueueResponse['stats']>({
+    queued_total: 0,
+    running_total: 0,
+    blocked_total: 0,
+    failed_total: 0,
+  });
+  const [deleteQueuePage, setDeleteQueuePage] = useState(1);
+  const [deleteQueueTotal, setDeleteQueueTotal] = useState(0);
+  const [deleteQueueSearch, setDeleteQueueSearch] = useState('');
+  const [deleteQueueStatusFilter, setDeleteQueueStatusFilter] = useState('');
+  const [deleteQueueRowActionId, setDeleteQueueRowActionId] = useState<string | null>(null);
   const [stageFlowLayout, setStageFlowLayout] = useState<{ mode: 'horizontal' | 'vertical'; cardWidth: number; connectorWidth: number }>({
     mode: 'horizontal',
     cardWidth: 160,
@@ -2240,6 +2307,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
   const isSourceTask = taskType === 'source';
   const isBinaryModuleTask = taskType === 'binary_module';
+  const deleteQueueTaskType = useMemo<BinarySecurityDeleteQueueTaskType>(
+    () => (isBinaryModuleTask
+      ? 'binary_module_e2e'
+      : isSourceTask
+        ? (detail?.pipeline_profile === 'kg_source_vuln_scan' ? 'kg_source_vuln_scan_e2e' : 'source_scan_e2e')
+        : 'binary_firmware_e2e'),
+    [detail?.pipeline_profile, isBinaryModuleTask, isSourceTask],
+  );
+  const deleteQueueTypeLabel = getDeleteQueueTypeLabel(deleteQueueTaskType);
   const stageSequence = useMemo(
     () => (detail?.stage_sequence?.length
       ? detail.stage_sequence
@@ -2437,6 +2513,74 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       return null;
     } finally {
       if (showLoading) setLoading(false);
+    }
+  };
+
+  const loadDeleteQueue = async (page = deleteQueuePage) => {
+    if (!projectId) return;
+    setDeleteQueueLoading(true);
+    setDeleteQueueError(null);
+    setDeleteQueuePage(page);
+    try {
+      const payload: BinarySecurityDeleteQueueResponse = await executionApi.binarySecurity.listDeleteQueue(projectId, {
+        page,
+        pageSize: DELETE_QUEUE_PAGE_SIZE,
+        taskType: deleteQueueTaskType,
+        deleteStatus: deleteQueueStatusFilter || undefined,
+        search: deleteQueueSearch.trim() || undefined,
+        sortBy: 'delete_requested_at',
+        sortDirection: 'desc',
+      });
+      setDeleteQueueItems(payload.items || []);
+      setDeleteQueueStats(payload.stats || {
+        queued_total: 0,
+        running_total: 0,
+        blocked_total: 0,
+        failed_total: 0,
+      });
+      setDeleteQueueTotal(Number(payload.total || 0));
+      setDeleteQueuePage(Number(payload.page || page || 1));
+    } catch (e: any) {
+      setDeleteQueueError(e?.message || '加载删除队列失败');
+    } finally {
+      setDeleteQueueLoading(false);
+    }
+  };
+
+  const openDeleteQueue = () => {
+    setDeleteQueueOpen(true);
+  };
+
+  const closeDeleteQueue = () => {
+    setDeleteQueueOpen(false);
+  };
+
+  const forceDeleteQueueItem = async (item: BinarySecurityDeleteQueueItem) => {
+    if (!projectId || !item?.id || deleteQueueRowActionId) return;
+    const confirmed = await showConfirm({
+      title: '强制删除队列任务',
+      message: `将对任务“${item.name || item.id}”发起强制删除，忽略当前删除阻塞或下游删除失败并继续清理主任务。该操作不可恢复，是否继续？`,
+      confirmText: '确认强制删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setDeleteQueueRowActionId(item.id);
+    setDeleteQueueError(null);
+    setError(null);
+    try {
+      const result = await executionApi.binarySecurity.deleteTask(projectId, item.id, { force: true });
+      setNotice(result?.message || '强制删除已受理，后台正在处理中');
+      await Promise.all([
+        loadDeleteQueue(deleteQueuePage),
+        item.id === taskId ? loadTask({ showLoading: false, preserveStrategyDraft: true }) : Promise.resolve(null),
+      ]);
+    } catch (e: any) {
+      const message = e?.message || '强制删除失败';
+      setDeleteQueueError(message);
+      setError(message);
+    } finally {
+      setDeleteQueueRowActionId(null);
     }
   };
 
@@ -2854,6 +2998,23 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   }, [projectId, taskId]);
 
   useEffect(() => {
+    setDeleteQueueOpen(false);
+    setDeleteQueueError(null);
+    setDeleteQueueItems([]);
+    setDeleteQueueStats({
+      queued_total: 0,
+      running_total: 0,
+      blocked_total: 0,
+      failed_total: 0,
+    });
+    setDeleteQueuePage(1);
+    setDeleteQueueTotal(0);
+    setDeleteQueueSearch('');
+    setDeleteQueueStatusFilter('');
+    setDeleteQueueRowActionId(null);
+  }, [projectId, taskId]);
+
+  useEffect(() => {
     if (!detail || TERMINAL.has(detail.status)) return;
     if (detail.status === 'pending_module_confirmation') return;
     const timer = window.setInterval(
@@ -2862,6 +3023,19 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     );
     return () => window.clearInterval(timer);
   }, [activeTab, detail?.manual_operation_state?.operation_in_progress, detail?.status, projectId, strategyDirty, taskId]);
+
+  useEffect(() => {
+    if (!deleteQueueOpen) return;
+    void loadDeleteQueue(1);
+  }, [deleteQueueOpen, deleteQueueTaskType]);
+
+  useEffect(() => {
+    if (!deleteQueueOpen) return;
+    const timer = window.setInterval(() => {
+      void loadDeleteQueue(deleteQueuePage);
+    }, DELETE_QUEUE_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [deleteQueueOpen, deleteQueuePage, deleteQueueSearch, deleteQueueStatusFilter, deleteQueueTaskType]);
 
   useEffect(() => {
     if (activeTab !== 'modules' || moduleSelection || moduleSelectionLoading) return;
@@ -4271,15 +4445,226 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
               </div>
             </div>
-	          </div>
+          </div>
 	        </div>
 	      ) : null}
+      {deleteQueueOpen ? (
+        <div className="fixed inset-0 z-[121] bg-slate-950/55 backdrop-blur-sm" onClick={closeDeleteQueue}>
+          <div className="flex h-full w-full justify-end">
+            <div
+              className="flex h-full w-full max-w-[min(96vw,1100px)] flex-col border-l border-theme-border bg-theme-surface shadow-[0_0_60px_rgba(15,23,42,0.4)]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="border-b border-theme-border bg-theme-elevated px-6 py-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">Delete Queue</div>
+                    <h3 className="mt-2 text-2xl font-bold tracking-tight text-theme-text-primary">{deleteQueueTypeLabel} 删除队列</h3>
+                    <p className="mt-2 text-sm text-theme-text-secondary">按当前任务类型查看后台异步删除队列，并对阻塞项直接发起强制删除。</p>
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                      <span className="rounded-full px-3 py-1 font-semibold" style={{ backgroundColor: `${LK.warning}22`, color: LK.warning }}>
+                        排队中 {deleteQueueStats.queued_total}
+                      </span>
+                      <span className="rounded-full px-3 py-1 font-semibold" style={{ backgroundColor: `${LK.info}22`, color: LK.info }}>
+                        删除中 {deleteQueueStats.running_total}
+                      </span>
+                      <span className="rounded-full px-3 py-1 font-semibold" style={{ backgroundColor: `${LK.warning}22`, color: LK.warning }}>
+                        阻塞 {deleteQueueStats.blocked_total}
+                      </span>
+                      <span className="rounded-full px-3 py-1 font-semibold" style={{ backgroundColor: `${LK.error}22`, color: LK.error }}>
+                        失败 {deleteQueueStats.failed_total}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void loadDeleteQueue(deleteQueuePage)}
+                      disabled={deleteQueueLoading}
+                      className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
+                    >
+                      {deleteQueueLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+                      刷新
+                    </button>
+                    <button
+                      type="button"
+                      onClick={closeDeleteQueue}
+                      className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated"
+                    >
+                      <X size={16} />
+                      关闭
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-b border-theme-border px-6 py-4">
+                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_auto]">
+                  <label className="block text-sm font-semibold text-theme-text-secondary">
+                    搜索
+                    <input
+                      value={deleteQueueSearch}
+                      onChange={(event) => setDeleteQueueSearch(event.target.value)}
+                      placeholder="任务名 / 任务ID / 删除错误"
+                      className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary outline-none transition focus:border-sky-500"
+                    />
+                  </label>
+                  <label className="block text-sm font-semibold text-theme-text-secondary">
+                    删除状态
+                    <select
+                      value={deleteQueueStatusFilter}
+                      onChange={(event) => setDeleteQueueStatusFilter(event.target.value)}
+                      className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary outline-none transition focus:border-sky-500"
+                    >
+                      <option value="">全部</option>
+                      <option value="queued">queued</option>
+                      <option value="running">running</option>
+                      <option value="blocked">blocked</option>
+                      <option value="failed">failed</option>
+                    </select>
+                  </label>
+                  <div className="flex items-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeleteQueuePage(1);
+                        void loadDeleteQueue(1);
+                      }}
+                      className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-sky-700"
+                    >
+                      查询
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeleteQueueSearch('');
+                        setDeleteQueueStatusFilter('');
+                        setDeleteQueuePage(1);
+                        void loadDeleteQueue(1);
+                      }}
+                      className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+                    >
+                      重置
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {deleteQueueError ? (
+                <div className="mx-6 mt-4 rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-3 text-sm font-semibold text-rose-400">
+                  {deleteQueueError}
+                </div>
+              ) : null}
+
+              <div className="flex-1 overflow-auto px-6 py-4">
+                <div className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs uppercase tracking-[0.18em] text-theme-text-muted">
+                        <th className="px-4 py-3 font-semibold">任务名</th>
+                        <th className="px-4 py-3 font-semibold">任务 ID</th>
+                        <th className="px-4 py-3 font-semibold">类型</th>
+                        <th className="px-4 py-3 font-semibold">当前状态</th>
+                        <th className="px-4 py-3 font-semibold">删除状态</th>
+                        <th className="px-4 py-3 font-semibold">删除错误</th>
+                        <th className="px-4 py-3 font-semibold">下游任务 ID</th>
+                        <th className="px-4 py-3 font-semibold">请求时间</th>
+                        <th className="px-4 py-3 font-semibold">开始时间</th>
+                        <th className="px-4 py-3 font-semibold">完成时间</th>
+                        <th className="px-4 py-3 font-semibold">更新时间</th>
+                        <th className="px-4 py-3 font-semibold">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {deleteQueueLoading ? (
+                        <tr>
+                          <td colSpan={12} className="px-4 py-12 text-center text-theme-text-muted">
+                            <span className="inline-flex items-center gap-2">
+                              <Loader2 size={16} className="animate-spin" />
+                              加载删除队列中...
+                            </span>
+                          </td>
+                        </tr>
+                      ) : null}
+                      {!deleteQueueLoading && deleteQueueItems.length === 0 ? (
+                        <tr>
+                          <td colSpan={12} className="px-4 py-12 text-center text-theme-text-muted">
+                            当前类型暂无删除队列任务
+                          </td>
+                        </tr>
+                      ) : null}
+                      {!deleteQueueLoading && deleteQueueItems.map((item) => {
+                        const statusColor = deleteQueueStatusColor(item.delete_status);
+                        const forceDeleteDisabled = item.delete_status === 'deleted';
+                        return (
+                          <tr
+                            key={item.id}
+                            className="border-t border-theme-border align-top"
+                            style={{
+                              backgroundColor: item.delete_status === 'failed'
+                                ? `${LK.error}10`
+                                : item.delete_status === 'blocked'
+                                  ? `${LK.warning}10`
+                                  : item.delete_status === 'running'
+                                    ? `${LK.info}10`
+                                    : 'transparent',
+                            }}
+                          >
+                            <td className="px-4 py-3 font-semibold text-theme-text-primary">{item.name}</td>
+                            <td className="px-4 py-3 font-mono text-xs text-theme-text-secondary">{item.id}</td>
+                            <td className="px-4 py-3 text-theme-text-secondary">{getDeleteQueueTypeLabel(item.task_type)}</td>
+                            <td className="px-4 py-3 text-theme-text-secondary">{item.display_status || '—'}</td>
+                            <td className="px-4 py-3">
+                              <span style={{ color: statusColor }}>{formatDeleteQueueStatus(item.delete_status)}</span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-theme-text-secondary" title={item.delete_error || item.last_error || ''}>
+                              {truncateText(item.delete_error || item.last_error)}
+                            </td>
+                            <td className="px-4 py-3 font-mono text-xs text-theme-text-secondary">{item.downstream_task_id || '—'}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-xs text-theme-text-muted">{fmt(item.delete_requested_at)}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-xs text-theme-text-muted">{fmt(item.delete_started_at)}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-xs text-theme-text-muted">{fmt(item.delete_finished_at)}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-xs text-theme-text-muted">{fmt(item.updated_at)}</td>
+                            <td className="px-4 py-3">
+                              <button
+                                type="button"
+                                disabled={forceDeleteDisabled || deleteQueueRowActionId === item.id}
+                                title={forceDeleteDisabled ? '该队列项已删除完成，无需再次强制删除' : '忽略当前删除阻塞并重新发起强制删除'}
+                                onClick={() => void forceDeleteQueueItem(item)}
+                                className="inline-flex items-center gap-2 rounded-xl border border-rose-500 bg-rose-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {deleteQueueRowActionId === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                                强制删除
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <PageHeader
         title={detail ? detail.name : '任务详情'}
         description={detail ? <span className="break-all font-mono text-xs text-theme-text-muted">{detail.id}</span> : undefined}
         back={{ label: '返回任务列表', onClick: onBack }}
         actions={
           <div className="flex flex-wrap justify-end gap-3">
+            <button
+              type="button"
+              onClick={openDeleteQueue}
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+            >
+              <Shield size={16} />
+              删除队列
+              <span className="rounded-full bg-theme-elevated px-2 py-0.5 text-xs text-theme-text-primary">
+                {deleteQueueStats.queued_total + deleteQueueStats.running_total}
+              </span>
+            </button>
             <button
               type="button"
               onClick={() => void refreshActiveTab()}

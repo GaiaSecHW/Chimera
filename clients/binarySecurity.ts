@@ -973,6 +973,41 @@ export interface BinarySecurityActionResult {
   cleanup_status?: string | null;
 }
 
+export type BinarySecurityDeleteQueueTaskType =
+  | 'binary_firmware_e2e'
+  | 'source_scan_e2e'
+  | 'kg_source_vuln_scan_e2e'
+  | 'binary_module_e2e';
+
+export interface BinarySecurityDeleteQueueItem {
+  id: string;
+  project_id: string;
+  name: string;
+  task_type: BinarySecurityDeleteQueueTaskType | string;
+  display_status: string;
+  delete_status: 'queued' | 'running' | 'blocked' | 'failed' | 'deleted' | string;
+  delete_error?: string | null;
+  last_error?: string | null;
+  downstream_task_id?: string | null;
+  delete_requested_at?: string | null;
+  delete_started_at?: string | null;
+  delete_finished_at?: string | null;
+  updated_at: string;
+}
+
+export interface BinarySecurityDeleteQueueResponse {
+  total: number;
+  items: BinarySecurityDeleteQueueItem[];
+  page: number;
+  page_size: number;
+  stats: {
+    queued_total: number;
+    running_total: number;
+    blocked_total: number;
+    failed_total: number;
+  };
+}
+
 export const binarySecurityApi = {
   getHealth: async (): Promise<BinarySecurityHealth> =>
     getJsonWithDedupe(`${API_BASE}/api/app/binary-security/health`, { headers: getHeaders() }),
@@ -1319,6 +1354,36 @@ export const binarySecurityApi = {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}${suffix}`, {
       method: 'DELETE',
       headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  listDeleteQueue: async (
+    projectId: string,
+    query?: {
+      page?: number;
+      pageSize?: number;
+      taskType?: BinarySecurityDeleteQueueTaskType;
+      deleteStatus?: string;
+      search?: string;
+      sortBy?: 'delete_requested_at' | 'updated_at' | 'name';
+      sortDirection?: 'asc' | 'desc';
+      hasError?: boolean;
+    },
+  ): Promise<BinarySecurityDeleteQueueResponse> => {
+    const params = new URLSearchParams();
+    if (query?.page) params.set('page', String(query.page));
+    if (query?.pageSize) params.set('page_size', String(query.pageSize));
+    if (query?.taskType) params.set('task_type', query.taskType);
+    if (query?.deleteStatus) params.set('delete_status', query.deleteStatus);
+    if (query?.search) params.set('search', query.search);
+    if (query?.sortBy) params.set('sort_by', query.sortBy);
+    if (query?.sortDirection) params.set('sort_direction', query.sortDirection);
+    if (query?.hasError) params.set('has_error', 'true');
+    const suffix = params.toString() ? `?${params.toString()}` : '';
+    const resp = await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/user-task-delete-queue${suffix}`, {
+      headers: getHeaders(),
+      cache: 'no-store',
     });
     return handleResponse(resp);
   },
