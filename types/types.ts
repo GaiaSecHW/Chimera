@@ -3544,6 +3544,15 @@ export interface AppSaTaskDetail extends AppSaTaskItem {
   // 任务级模型/key 路由信息
   model_source?: 'config_center' | 'gateway' | string | null;
   key_type?: 'sk' | 'wsk' | string | null;
+  key_info?: {
+    type: string;
+    id?: string | null;
+    name?: string | null;
+    prefix?: string | null;
+    secret?: string | null;
+    source?: string | null;
+    sk_keys?: { provider: string; api_key: string; base_url: string; models: string[] }[];
+  } | null;
   selected_models?: { worker?: string; reader?: string; judge?: string } | null;
   has_agent_task_key?: boolean | null;
   agent_task_key_prefix?: string | null;
