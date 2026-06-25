@@ -34,7 +34,7 @@ import {
 import { api } from '../../clients/api';
 import { authApi } from '../../clients/auth';
 import { API_BASE } from '../../clients/base';
-import { Modal, PageHeader, PageSection, StatisticCard } from '../../design-system';
+import { MarkdownViewer, Modal, PageHeader, PageSection, StatisticCard } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
 
 const vulnApi = api.domains.vuln;
@@ -2244,8 +2244,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           </div>
                         ) : null}
                         {conclusionReason.text ? (
-                          <div className="mt-1 text-[11px] font-medium text-theme-text-muted leading-relaxed break-words">
-                            判定理由: {conclusionReason.text}
+                          <div className="mt-3">
+                            <div className="text-xs font-semibold text-theme-text-muted-soft">判定理由</div>
+                            <MarkdownViewer content={conclusionReason.text} emptyText="暂无判定理由" />
                           </div>
                         ) : null}
                       </div>
