@@ -90,6 +90,7 @@ import { AtomicCapabilityOverviewPage } from '../pages/execution/AtomicCapabilit
 import { ToolOverviewPage } from '../pages/execution/ToolOverviewPage';
 import { VulnOverviewPage } from '../pages/vuln/VulnOverviewPage';
 import { VulnIntakePage } from '../pages/vuln/VulnIntakePage';
+import { AlertCenterPage } from '../pages/vuln/AlertCenterPage';
 import { VulnAnalysisPage } from '../pages/vuln/VulnAnalysisPage';
 import { VulnAnalysisDetailPage } from '../pages/vuln/VulnAnalysisDetailPage';
 import { VulnAutoVerifyCreatePage } from '../pages/vuln/VulnAutoVerifyCreatePage';
@@ -879,9 +880,9 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'vuln-overview':
       return <VulnOverviewPage projectId={ctx.selectedProjectId} />;
     case 'vuln-intake':
-      return <VulnIntakePage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} pageTitle="告警中心" initialTaskFilter={ctx.activeVulnIntakeTaskFilter} />;
+      return <AlertCenterPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} pageTitle="告警中心" initialTaskFilter={ctx.activeVulnIntakeTaskFilter} />;
     case 'vuln-list':
-      return <VulnIntakePage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} pageTitle="漏洞中心" suspectOnly initialTaskFilter={ctx.activeVulnIntakeTaskFilter} />;
+      return <VulnIntakePage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} pageTitle="漏洞中心" initialTaskFilter={ctx.activeVulnIntakeTaskFilter} />;
     case 'vuln-analysis':
       return <VulnAnalysisPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
     case 'vuln-analysis-detail':
