@@ -12,10 +12,7 @@ import type { ProjectInputUploadRecord } from '../../types/types';
 export type KgInputEligibilityReasonCode =
   | 'ok'
   | 'upload_not_ready'
-  | 'kg_task_missing'
-  | 'kg_db_missing'
-  | 'kg_build_failed'
-  | 'kg_graph_unavailable'
+  | 'entry_analysis_unavailable'
   | 'entry_analysis_running'
   | 'entry_analysis_failed'
   | 'entry_analysis_not_ready'
@@ -35,12 +32,9 @@ export interface KgInputEligibility {
 }
 
 const REASON_TEXT: Record<KgInputEligibilityReasonCode, string> = {
-  ok: '图谱已建立，入口分析已完成且识别到可用入口',
+  ok: '入口分析已完成且识别到可用入口',
   upload_not_ready: '上传记录尚未处理完成，暂不可用于知识图谱漏洞挖掘',
-  kg_task_missing: '该源码记录尚未建立知识图谱',
-  kg_db_missing: '知识图谱任务已创建，但图数据库尚未就绪',
-  kg_build_failed: '知识图谱构建失败',
-  kg_graph_unavailable: '知识图谱当前不可用',
+  entry_analysis_unavailable: '当前无法获取入口分析结果',
   entry_analysis_running: '入口分析仍在进行中',
   entry_analysis_failed: '入口分析失败',
   entry_analysis_not_ready: '入口分析尚未完成',
@@ -55,8 +49,8 @@ const makeEligibility = (
 ): KgInputEligibility => ({
   uploadId: record.upload_id,
   allowed: false,
-  reasonCode: 'kg_graph_unavailable',
-  reasonText: REASON_TEXT.kg_graph_unavailable,
+  reasonCode: 'entry_analysis_unavailable',
+  reasonText: REASON_TEXT.entry_analysis_unavailable,
   uploadStatus: String(record.status || ''),
   codemapTaskStatus: null,
   graphStatus: null,
@@ -89,8 +83,8 @@ export const buildKgInputEligibility = async (
 ): Promise<KgInputEligibility> => {
   if (String(record.input_type || '').trim().toLowerCase() !== 'code') {
     return makeEligibility(record, {
-      reasonCode: 'kg_graph_unavailable',
-      reasonText: REASON_TEXT.kg_graph_unavailable,
+      reasonCode: 'entry_analysis_unavailable',
+      reasonText: REASON_TEXT.entry_analysis_unavailable,
     });
   }
   if (!USABLE_UPLOAD_STATUSES.has(record.status)) {
@@ -103,8 +97,8 @@ export const buildKgInputEligibility = async (
   const task = await fetchTaskStatus(record.upload_id);
   if (!task) {
     return makeEligibility(record, {
-      reasonCode: 'kg_task_missing',
-      reasonText: REASON_TEXT.kg_task_missing,
+      reasonCode: 'entry_analysis_unavailable',
+      reasonText: REASON_TEXT.entry_analysis_unavailable,
     });
   }
 
@@ -112,32 +106,14 @@ export const buildKgInputEligibility = async (
   const attackStatus = task.attack?.status ? String(task.attack.status).trim() : null;
   const dbName = task.db_name ? String(task.db_name).trim() : null;
 
-  if (!dbName) {
-    return makeEligibility(record, {
-      codemapTaskStatus: taskStatus,
-      attackStatus,
-      reasonCode: 'kg_db_missing',
-      reasonText: REASON_TEXT.kg_db_missing,
-    });
-  }
-  if (taskStatus === 'failed') {
-    return makeEligibility(record, {
-      codemapTaskStatus: taskStatus,
-      attackStatus,
-      dbName,
-      reasonCode: 'kg_build_failed',
-      reasonText: REASON_TEXT.kg_build_failed,
-    });
-  }
-
   const audit = await fetchAuditSources(record.upload_id);
   if (!audit) {
     return makeEligibility(record, {
       codemapTaskStatus: taskStatus,
       attackStatus,
       dbName,
-      reasonCode: 'kg_graph_unavailable',
-      reasonText: REASON_TEXT.kg_graph_unavailable,
+      reasonCode: 'entry_analysis_unavailable',
+      reasonText: REASON_TEXT.entry_analysis_unavailable,
     });
   }
 
