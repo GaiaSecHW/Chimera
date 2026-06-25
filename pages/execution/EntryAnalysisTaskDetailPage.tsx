@@ -2623,23 +2623,55 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                 value={<ProjectDirectoryOverviewValue path={overviewOutputPath} projectId={projectId} openInExplorer={openInFileExplorer} />}
               />
               <InfoRow label="最近事件时间" value={timeline[0]?.created_at ? new Date(timeline[0].created_at).toLocaleString('zh-CN') : '-'} />
+            </div>
+          </section>
+
+          {/* ─ LLM 配置（触发方式 / 使用模型 / 使用密钥） */}
+          <section className="rounded-2xl border border-theme-border bg-theme-surface p-5 shadow-sm">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">LLM 配置</h2>
+            <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2 lg:grid-cols-3">
+              {(() => {
+                const k = detail.resolved_key_info;
+                const origin = String(detail.task_origin_type || k?.task_origin_type || 'manual').trim() || 'manual';
+                const isAuto = origin === 'binary_security';
+                const triggerLabel = isAuto ? '自动触发' : '手动触发';
+                const triggerTone = isAuto ? 'border-sky-500/20 bg-sky-500/15 text-sky-400' : 'border-violet-500/20 bg-violet-500/15 text-violet-400';
+                const triggerDesc = isAuto ? '由编排器(binary_security)自动下发' : '用户手动创建';
+                return (
+                  <InfoRow
+                    label="触发方式"
+                    value={(
+                      <span className="inline-flex flex-wrap items-center gap-2 text-xs">
+                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 font-bold ${triggerTone}`}>{triggerLabel}</span>
+                        <span className="text-theme-text-muted">{triggerDesc}</span>
+                      </span>
+                    )}
+                  />
+                );
+              })()}
               <InfoRow
-                label="当前 Key"
-                value={(() => {
-                  const k = detail.resolved_key_info;
-                  if (!k) return <span className="text-theme-text-muted">-</span>;
-                  const sourceLabel = k.source === 'gateway' ? '网关(WSK)' : k.source === 'config_center' ? '模型配置中心(SK)' : (k.source || '-');
-                  const sourceTone = k.source === 'gateway' ? 'text-cyan-400' : k.source === 'config_center' ? 'text-emerald-400' : 'text-theme-text-secondary';
-                  return (
-                    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs">
-                      <span className={`rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 font-bold ${sourceTone}`}>{sourceLabel}</span>
-                      <span className="text-theme-text-secondary">模型 {k.model || '-'}</span>
-                      {k.key_masked ? <span className="text-theme-text-muted">密钥 {k.key_prefix ? `${k.key_prefix}_` : ''}{k.key_masked}</span> : <span className="text-theme-text-muted">密钥 -</span>}
-                      {k.key_source ? <span className="text-theme-text-muted">来源 {k.key_source}</span> : null}
-                    </span>
-                  );
-                })()}
+                label="使用模型"
+                value={<span className="break-all font-mono text-xs text-theme-text-secondary">{detail.resolved_key_info?.model || '-'}</span>}
               />
+              {(() => {
+                const k = detail.resolved_key_info;
+                if (!k) return <InfoRow label="使用密钥" value={<span className="text-theme-text-muted">-</span>} />;
+                const sourceLabel = k.source === 'gateway' ? '网关 WSK' : k.source === 'config_center' ? '模型配置中心 SK' : (k.source || '-');
+                const sourceTone = k.source === 'gateway' ? 'border-cyan-500/20 bg-cyan-500/15 text-cyan-400' : k.source === 'config_center' ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary';
+                const keyText = k.key_masked ? `${k.key_prefix ? `${k.key_prefix}_` : ''}${k.key_masked}` : '-';
+                return (
+                  <InfoRow
+                    label="使用密钥"
+                    value={(
+                      <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs">
+                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 font-bold ${sourceTone}`}>{sourceLabel}</span>
+                        <span className="text-theme-text-secondary">{keyText}</span>
+                        {k.key_source ? <span className="text-theme-text-muted">来源 {k.key_source}</span> : null}
+                      </span>
+                    )}
+                  />
+                );
+              })()}
             </div>
           </section>
           {/* ─ 流水线阶段进度（全宽水平卡片流） */}
