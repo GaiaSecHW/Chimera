@@ -1534,7 +1534,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       if (latestAutoVerifyTask?.taskId) {
         localStorage.setItem(VERIFY_OPEN_TASK_ID_KEY, latestAutoVerifyTask.taskId);
         localStorage.setItem(VERIFY_OPEN_PROJECT_ID_KEY, latestAutoVerifyTask.projectId || selectedDetail.project_id || projectId);
-        onNavigateToView?.('pentest-vuln-verify');
+        onNavigateToView?.('pentest-vuln-verify-v2');
         return;
       }
       localStorage.setItem(AUTO_VERIFY_CASE_TARGET_KEY, selectedDetail.id);
