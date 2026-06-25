@@ -819,6 +819,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       };
       const matchesFinalResult = (item: any) => matchesFinalResultFilter(item, finalResultFilter);
       const matchesSuspect = (item: any): boolean => {
+        if (item.is_human_finished) return true;
         const reporterName: string = item?.reporter?.name || '';
         if (reporterName && engineTools.has(reporterName)) {
           return getEffectiveResult(item) === 'vulnerable';
@@ -1769,6 +1770,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       };
       const matchesFinalResult = (item: any) => matchesFinalResultFilter(item, finalResultFilter);
       const matchesSuspect = (item: any): boolean => {
+        if (item.is_human_finished) return true;
         const reporterName: string = item?.reporter?.name || '';
         if (reporterName && engineTools.has(reporterName)) {
           return getEffectiveResult(item) === 'vulnerable';
