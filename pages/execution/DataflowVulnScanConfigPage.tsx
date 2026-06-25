@@ -60,6 +60,7 @@ const defaultConfig = (): AppDfaServiceConfig => ({
   entry_screen_enabled: false,
   entry_screen_whitelist: ['recv', 'read', 'proc', 'process', 'handle', 'parse', 'decode', 'dispatch', 'on_', 'callback', 'ioctl', 'input', 'msg', 'packet', 'request', 'cmd'],
   entry_screen_thinking_level: 'off',
+  branch_pruning_enabled: false,
   workers: defaultRole(),
   judges: { ...defaultRole(), agents: [] },
   output_dir: '/data/output',
@@ -222,6 +223,7 @@ const applyDfaPanel = (
         entry_screen_enabled: source.entry_screen_enabled,
         entry_screen_whitelist: source.entry_screen_whitelist,
         entry_screen_thinking_level: source.entry_screen_thinking_level,
+        branch_pruning_enabled: source.branch_pruning_enabled,
       };
     case 'retry':
       return {
@@ -524,6 +526,33 @@ className="form-select w-full"
             <FieldRow label="entry_screen_whitelist" hint="函数名（大小写不敏感子串）命中任一关键字即直接判为入口、跳过 agent（0 token）">
               <KeywordListEditor value={config.entry_screen_whitelist ?? []} onChange={(v) => patch({ entry_screen_whitelist: v })} />
             </FieldRow>
+          </SectionCard>
+
+          {/* 分支剪枝 */}
+          <SectionCard
+            title="分支剪枝"
+            subtitle="智能模式：污点分析完成后 fork 独立会话，提取待跟入函数体交给 LLM 判断是否有漏洞发现价值"
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'entry'}
+                onSave={() => { void handlePanelSave('entry', '分支剪枝'); }}
+                onReset={() => handlePanelReset('entry', '分支剪枝')}
+              />
+            )}
+          >
+            <FieldRow label="branch_pruning_enabled" hint="关闭=全面模式（所有 followup 全部追踪）；开启=智能模式（LLM 判断每个跟入点是否值得追）">
+              <label className="inline-flex cursor-pointer items-center gap-3 rounded-lg border border-theme-border px-3 py-2">
+                <div className="relative">
+                  <input type="checkbox" className="peer sr-only" checked={!!config.branch_pruning_enabled} onChange={(e) => patch({ branch_pruning_enabled: e.target.checked })} />
+                  <div className="h-6 w-11 rounded-full bg-theme-elevated border border-theme-border peer-checked:bg-violet-600 peer-checked:border-violet-600 transition-colors" />
+                  <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-theme-surface border border-theme-border shadow transition-transform peer-checked:translate-x-5 peer-checked:bg-white peer-checked:border-transparent" />
+                </div>
+                <span className="text-sm text-theme-text-secondary">{config.branch_pruning_enabled ? '智能模式' : '全面模式'}</span>
+              </label>
+            </FieldRow>
+            <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-3 text-sm leading-6 text-amber-500">
+              智能模式下，每个函数分析完成后会 fork 一个<b>独立会话</b>，提取待跟入函数的函数体交给 LLM 判断。判断为不值得跟入的分支直接舍弃，减少无效分析。设备管理面代码（HA/订阅/Timer/状态机）是高价值攻击面，不会被剪枝。
+            </div>
           </SectionCard>
 
           {/* 重试配置 */}

@@ -5058,6 +5058,7 @@ export interface AppDfaServiceConfig {
   entry_screen_enabled?: boolean;
   entry_screen_whitelist?: string[];
   entry_screen_thinking_level?: string;
+  branch_pruning_enabled?: boolean;
   workers: AppDfaRoleConfig;
   judges: AppDfaRoleConfig;
   output_dir: string;
