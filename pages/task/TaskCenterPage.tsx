@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { PageHeader } from '../../design-system';
-import { ArrowRight, CheckCircle2, Loader2, Plus, RefreshCw, Rocket, Search, Shield, Square, SquareCheck, X } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ChevronDown, Loader2, Plus, RefreshCw, Rocket, Search, Shield, Square, SquareCheck, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { getAuthHeaders, handleResponse } from '../../clients/base';
 import { agentManageApiPath } from '../../clients/agentManage';
@@ -130,6 +130,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
   const [agentApps, setAgentApps] = useState<AgentAppSummary[]>([]);
   const [query, setQuery] = useState('');
   const [selectedAgentAppFilter, setSelectedAgentAppFilter] = useState('');
+  const [agentAppFilterOpen, setAgentAppFilterOpen] = useState(false);
+  const agentAppFilterRef = useRef<HTMLDivElement | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [preSelectedMode, setPreSelectedMode] = useState<HomeCardMode | undefined>(undefined);
   const [error, setError] = useState('');
@@ -157,6 +159,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
   const { notify, confirm, feedbackNodes } = useUiFeedback();
 
   const projectName = useMemo(() => projects.find((item) => item.id === projectId)?.name || projectId, [projectId, projects]);
+  const selectedAgentAppFilterLabel = !selectedAgentAppFilter
+    ? '全部 Harness'
+    : (agentApps.find((item) => item.id === selectedAgentAppFilter)?.name || '全部 Harness');
   const filteredTasks = useMemo(() => {
     const term = query.trim().toLowerCase();
     return tasks.filter((item) => {
@@ -221,6 +226,16 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
 
   useEffect(() => { void loadData(); }, [projectId, selectedAgentAppFilter]);
   useEffect(() => { setSelectedTaskIds([]); }, [projectId, query, selectedAgentAppFilter]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (agentAppFilterRef.current && !agentAppFilterRef.current.contains(event.target as Node)) {
+        setAgentAppFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const mode = consumeHomeCreateTaskMode();
@@ -429,7 +444,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
       ) : null}
 
       <div
-        className="overflow-hidden rounded-xl"
+        className="rounded-xl"
         style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
       >
         {!hideActionBar && (
@@ -457,15 +472,38 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                     className="form-input w-full pl-10"
                 />
               </div>
-              <select
-                  value={selectedAgentAppFilter}
-                  onChange={(e) => setSelectedAgentAppFilter(e.target.value)}
-                  className="form-select"
-              >
-                <option value="">全部 Harness</option>
-                {agentApps.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-              </select>
-              <button onClick={() => void loadData()} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><RefreshCw size={15} />刷新</button>
+              <div className="relative shrink-0" ref={agentAppFilterRef}>
+                <button
+                  onClick={() => setAgentAppFilterOpen(!agentAppFilterOpen)}
+                  className="form-select flex items-center justify-between gap-2 text-left"
+                  style={{ width: '180px' }}
+                >
+                  <span className="truncate flex-1 text-left">{selectedAgentAppFilterLabel}</span>
+                  <ChevronDown size={14} className={`shrink-0 text-theme-text-faint transition-transform ${agentAppFilterOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {agentAppFilterOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-theme-surface border border-theme-border rounded-lg shadow-overlay p-2 z-50">
+                    <div className="max-h-60 overflow-y-auto space-y-0.5">
+                      <button
+                        onClick={() => { setSelectedAgentAppFilter(''); setAgentAppFilterOpen(false); }}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors ${!selectedAgentAppFilter ? 'theme-shell-active' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}
+                      >
+                        全部 Harness
+                      </button>
+                      {agentApps.map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => { setSelectedAgentAppFilter(item.id); setAgentAppFilterOpen(false); }}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors ${selectedAgentAppFilter === item.id ? 'theme-shell-active' : 'text-theme-text-secondary hover:bg-theme-elevated'}`}
+                        >
+                          {item.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <button onClick={() => void loadData()} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><RefreshCw size={15} />刷新</button>
             </div>
         )}
 
