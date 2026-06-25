@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, Folder, FolderOpen, Loader2, Network, Plus, RefreshCw, Square, SquareCheck, X } from 'lucide-react';
+import { Loader2, Network, Plus, RefreshCw, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { DropdownSelect } from '../../design-system';
 import { TestInputUploader, TestInputUploaderHandle } from '../../components/TestInputUploader';
@@ -15,8 +15,6 @@ import type {
 import { resolveSechpsInstruction } from './taskCenterInstruction';
 import type {
   AgentAppSummary,
-  ProjectInputUploadBrowseEntry,
-  ProjectInputUploadBrowseResponse,
   ProjectInputUploadRecord,
   ScheduleCenterUserTaskCreatePayload,
   ScheduleCenterUserTaskType,
@@ -70,24 +68,6 @@ const TASK_TYPES: readonly TaskTypeOption[] = [
 ];
 
 const DISABLED_TASK_TYPE_MESSAGE = '该任务类型已临时禁用，请勿从调度中心创建。';
-
-const CREATE_TABS = [
-  { key: 'basic', label: '基础信息' },
-  { key: 'dynamic-env', label: '动态验证环境（可选）' },
-] as const;
-
-const INPUT_MODES: Record<string, 'file' | 'file_list' | 'directory'> = {
-  binary_firmware_e2e: 'file',
-  binary_module_e2e: 'file_list',
-  source_scan_e2e: 'directory',
-  kg_source_vuln_scan_e2e: 'directory',
-  ai4red: 'directory',
-  ai4app_fast: 'file',
-  ai4app_deep: 'file',
-  ai4web_fast: 'file',
-  ai4web_deep: 'file',
-  sechps_tool: 'directory',
-};
 
 const MODE_OPTIONS = [
   { value: 'dragon-tail', label: '龙尾' },
@@ -183,7 +163,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   /* --- form state --- */
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [activeCreateTab, setActiveCreateTab] = useState<(typeof CREATE_TABS)[number]['key']>('basic');
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId);
   const [projectsRefreshing, setProjectsRefreshing] = useState(false);
   const [taskType, setTaskType] = useState<(typeof TASK_TYPES)[number]['value']>('source_scan_e2e');
@@ -197,16 +176,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [kgEligibilityByUploadId, setKgEligibilityByUploadId] = useState<Record<string, KgInputEligibility>>({});
   const [kgEligibilityLoading, setKgEligibilityLoading] = useState(false);
   const [kgEligibilityError, setKgEligibilityError] = useState('');
-
-  /* --- browse state --- */
-  const [inputBrowseLoading, setInputBrowseLoading] = useState(false);
-  const [inputBrowseError, setInputBrowseError] = useState('');
-  const [inputCurrentPath, setInputCurrentPath] = useState('');
-  const [browseCache, setBrowseCache] = useState<Record<string, ProjectInputUploadBrowseResponse>>({});
-  const [expandedPaths, setExpandedPaths] = useState<string[]>([]);
-  const [selectedRelativePath, setSelectedRelativePath] = useState<string | null>(null);
-  const [selectedRelativePaths, setSelectedRelativePaths] = useState<string[]>([]);
-  const [directorySelectionTouched, setDirectorySelectionTouched] = useState(false);
 
   /* --- sechps-specific state --- */
   const [moduleName, setModuleName] = useState('');
@@ -222,7 +191,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   /* --- derived --- */
   const isLionHead = mode === 'lion-head';
   const isKgSourceTask = !isLionHead && taskType === 'kg_source_vuln_scan_e2e';
-  const selectionMode = useMemo(() => isLionHead ? 'directory' : (INPUT_MODES[taskType] || 'file'), [isLionHead, taskType]);
   const selectedAgentApp = useMemo(() => agentApps.find((item) => item.id === selectedAgentAppId) || null, [agentApps, selectedAgentAppId]);
   const codeInputs = useMemo(
     () => inputs.filter((item) => String(item.input_type || '').trim().toLowerCase() === 'code'),
@@ -239,8 +207,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     () => (selectedInputId ? kgEligibilityByUploadId[selectedInputId] || null : null),
     [kgEligibilityByUploadId, selectedInputId],
   );
-  const rootBrowse = browseCache[''] || null;
-  const isDirectorySelectionValid = directorySelectionTouched && selectedRelativePath !== null;
   const taskTypeMeta = useMemo(() => TASK_TYPES.find((item) => item.value === taskType) || TASK_TYPES[0], [taskType]);
   const taskTypeDisabled = Boolean(taskTypeMeta?.disabled);
   const availableTaskTypes = useMemo(
@@ -258,45 +224,29 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     [codeInputs, kgEligibilityByUploadId],
   );
 
-  const inputSummary = useMemo(() => {
-    if (!selectedInput) return '未选择上传记录';
-    if (isKgSourceTask) return selectedInput.target_path || '/';
-    if (selectionMode === 'file') return selectedRelativePath || '请选择一个文件';
-    if (selectionMode === 'file_list') return selectedRelativePaths.length ? selectedRelativePaths.join('，') : '请选择一个或多个文件';
-    if (!isDirectorySelectionValid) return '请选择一个文件夹';
-    return selectedRelativePath || selectedInput.target_path || '/';
-  }, [isDirectorySelectionValid, isKgSourceTask, selectedInput, selectedRelativePath, selectedRelativePaths, selectionMode]);
-
   const inputSelectionHint = useMemo(() => {
-    if (isLionHead) return '请选择一个源码目录作为黑板漏洞挖掘的测试对象。';
-    if (taskType === 'sechps_tool') return '请选择一个已注册的 Agent Harness，并选择一个目录。调度中心会在分发时自动申请 Task Key，并把所选目录直接传给下游。';
-    if (taskType === 'ai4app_fast' || taskType === 'ai4app_deep') return '请选择一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包作为测试对象；压缩包将作为 APK/HAP 的源码包处理。';
-    if (taskType === 'ai4web_fast' || taskType === 'ai4web_deep') return '请选择一个 Web 源码包（zip/rar/tar.gz/gz 等压缩包）作为测试对象。';
+    if (isLionHead) return '选择一个源码上传记录作为黑板漏洞挖掘的测试对象，固定使用其根目录。';
+    if (taskType === 'sechps_tool') return '选择一个已注册的 Agent Harness。调度中心会在分发时自动申请 Task Key，并把所选记录根目录直接传给下游。';
+    if (taskType === 'ai4app_fast' || taskType === 'ai4app_deep') return '选择一个 APK/HAP 安装包或 zip/rar/tar.gz/gz 压缩包记录；压缩包将作为 APK/HAP 的源码包处理，提交时固定使用记录根目录。';
+    if (taskType === 'ai4web_fast' || taskType === 'ai4web_deep') return '选择一个 Web 源码包（zip/rar/tar.gz/gz 等压缩包）记录，提交时固定使用记录根目录。';
     if (taskType === 'kg_source_vuln_scan_e2e') return '仅展示源码类型且入口分析已完成并识别到至少 1 个入口的记录，提交时固定使用上传记录根目录。';
-    if (selectionMode === 'directory') return '请选择一个目录作为测试对象。';
-    if (selectionMode === 'file_list') return '请选择一个或多个文件作为测试对象。';
-    return '请选择一个文件作为测试对象。';
-  }, [isLionHead, selectionMode, taskType]);
+    return '选择一个上传记录作为测试对象，提交时固定使用其根目录。';
+  }, [isLionHead, taskType]);
 
   const nameValid = name.trim().length > 0;
   const lionHeadInputReady = inputSource === 'upload'
     ? nameValid && !uploading
-    : Boolean(nameValid && selectedInputId && isDirectorySelectionValid);
+    : Boolean(nameValid && selectedInputId);
   const canCreateTask = Boolean(selectedProjectId) && !taskTypeDisabled && (
     mode === 'lion-head'
       ? Boolean(lionHeadInputReady && goalText.trim().length > 0)
       : (
     inputSource === 'upload'
       ? nameValid
-      : (taskType === 'sechps_tool'
-        ? Boolean(nameValid && selectedAgentApp && selectedInputId && isDirectorySelectionValid)
-        : Boolean(nameValid && selectedInputId && (
-          isKgSourceTask || (
-            (selectionMode === 'file' && selectedRelativePath) ||
-            (selectionMode === 'file_list' && selectedRelativePaths.length > 0) ||
-            (selectionMode === 'directory' && isDirectorySelectionValid)
-          )
-        ) && (taskType !== 'binary_module_e2e' || moduleName.trim()) && (!isKgSourceTask || selectedKgEligibility?.allowed === true)))
+      : Boolean(nameValid && selectedInputId
+        && (taskType !== 'sechps_tool' || selectedAgentApp)
+        && (taskType !== 'binary_module_e2e' || moduleName.trim())
+        && (!isKgSourceTask || selectedKgEligibility?.allowed === true))
   ));
 
   const loadKgEligibilityState = async (records: ProjectInputUploadRecord[]) => {
@@ -379,26 +329,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     void loadKgEligibilityState(inputs);
   }, [open, isKgSourceTask, inputs]);
 
-  /* --- browse helpers --- */
-  const loadBrowsePath = async (relativePath: string) => {
-    if (!open || !selectedInputId || !selectedProjectId) return;
-    setInputBrowseLoading(true);
-    setInputBrowseError('');
-    try {
-      const resp = await fileserverApi.browseProjectInputUpload(selectedProjectId, selectedInputId, relativePath);
-      setBrowseCache((current) => ({ ...current, [relativePath]: resp }));
-    } catch (err: any) {
-      setInputBrowseError(err?.message || '加载输入目录失败');
-    } finally {
-      setInputBrowseLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!open || !selectedInputId || !selectedProjectId) return;
-    void loadBrowsePath('');
-  }, [open, selectedProjectId, selectedInputId, taskType]);
-
   /* --- keep taskType valid for the selected mode --- */
   useEffect(() => {
     if (mode === 'lion-head') return;
@@ -410,12 +340,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   /* --- reset on task-type change --- */
   useEffect(() => {
-    setSelectedRelativePath(null);
-    setSelectedRelativePaths([]);
-    setInputCurrentPath('');
-    setExpandedPaths([]);
-    setDirectorySelectionTouched(false);
-    setInputBrowseError('');
     setInstruction('');
     if (taskType !== 'sechps_tool') {
       setSelectedAgentAppId('');
@@ -439,17 +363,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     }
   }, [agentApps, selectedAgentAppId, taskType]);
 
-  /* --- reset on input change --- */
-  useEffect(() => {
-    setSelectedRelativePath(null);
-    setSelectedRelativePaths([]);
-    setInputCurrentPath('');
-    setBrowseCache({});
-    setExpandedPaths([]);
-    setDirectorySelectionTouched(false);
-    setInputBrowseError('');
-  }, [selectedInputId]);
-
   /* --- keep selectedInputId valid --- */
   useEffect(() => {
     if (!selectableInputs.length) {
@@ -460,47 +373,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setSelectedInputId(selectableInputs[0]?.upload_id || '');
     }
   }, [selectableInputs, selectedInputId]);
-
-  /* --- browse actions --- */
-  const openBrowsePath = (relativePath: string) => {
-    setInputCurrentPath(relativePath);
-    if (selectionMode === 'directory') {
-      setSelectedRelativePath(relativePath);
-      setDirectorySelectionTouched(true);
-    }
-    setExpandedPaths((current) => (current.includes(relativePath) || !relativePath ? current : [...current, relativePath]));
-    if (!(relativePath in browseCache)) {
-      void loadBrowsePath(relativePath);
-    }
-  };
-
-  const toggleDirectoryExpansion = (relativePath: string) => {
-    const nextExpanded = expandedPaths.includes(relativePath)
-      ? expandedPaths.filter((item) => item !== relativePath)
-      : [...expandedPaths, relativePath];
-    setExpandedPaths(nextExpanded);
-    if (!expandedPaths.includes(relativePath) && !(relativePath in browseCache)) {
-      void loadBrowsePath(relativePath);
-    }
-  };
-
-  const selectDirectoryPath = (relativePath: string | null) => {
-    setSelectedRelativePath(relativePath);
-    setDirectorySelectionTouched(true);
-  };
-
-  const toggleFileSelection = (entry: ProjectInputUploadBrowseEntry) => {
-    if (entry.node_type !== 'file') return;
-    if (selectionMode === 'file') {
-      setSelectedRelativePath((current) => (current === entry.relative_path ? null : entry.relative_path));
-      return;
-    }
-    if (selectionMode === 'file_list') {
-      setSelectedRelativePaths((current) => current.includes(entry.relative_path)
-        ? current.filter((item) => item !== entry.relative_path)
-        : [...current, entry.relative_path]);
-    }
-  };
 
   /* --- close (cancel any in-flight upload first) --- */
   const handleClose = () => {
@@ -521,9 +393,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       /* ---- 狮首 (lion-head): 直接走 Cairn 黑板，不经过调度中心 ---- */
       if (mode === 'lion-head') {
         let lionUploadId = selectedInputId;
-        let lionRelativePath = selectionMode === 'directory'
-          ? (selectedRelativePath !== null ? selectedRelativePath : '')
-          : (selectedRelativePath || '');
+        let lionRelativePath = '';
         if (inputSource === 'upload') {
           if (!uploaderRef.current?.hasFiles()) {
             setError('请先选择要上传的文件');
@@ -563,11 +433,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         setDescription('');
         setGoalText('');
         setMode('dragon-tail');
-        setSelectedRelativePath(null);
-        setSelectedRelativePaths([]);
-        setInputCurrentPath('');
-        setDirectorySelectionTouched(false);
-        setActiveCreateTab('basic');
         uploaderRef.current?.reset();
         onCreated();
         handleClose();
@@ -577,9 +442,9 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       let finalInputUploadId = selectedInputId;
       let finalInputBinding = {
         upload_id: selectedInputId,
-        selection_type: selectionMode,
-        relative_path: selectionMode === 'file_list' ? undefined : (selectionMode === 'directory' ? (selectedRelativePath !== null ? selectedRelativePath : undefined) : (selectedRelativePath || undefined)),
-        relative_paths: selectionMode === 'file_list' ? selectedRelativePaths : undefined,
+        selection_type: 'directory' as const,
+        relative_path: '',
+        relative_paths: undefined,
       };
 
       if (inputSource === 'upload') {
@@ -592,7 +457,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         finalInputUploadId = uploadResult.uploadId;
         finalInputBinding = {
           upload_id: uploadResult.uploadId,
-          selection_type: 'directory',
+          selection_type: 'directory' as const,
           relative_path: '',
           relative_paths: undefined,
         };
@@ -612,14 +477,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         setError(selectedKgEligibility?.reasonText || '当前测试对象未满足“入口分析已完成 + 至少 1 个入口”的要求');
         setSaving(false);
         return;
-      }
-      if (isKgSourceTask) {
-        finalInputBinding = {
-          upload_id: finalInputUploadId,
-          selection_type: 'directory',
-          relative_path: '',
-          relative_paths: undefined,
-        };
       }
 
       const sechpsInstruction = taskType === 'sechps_tool'
@@ -653,11 +510,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setModuleName('');
       setSelectedAgentAppId('');
       setInstruction('');
-      setSelectedRelativePath(null);
-      setSelectedRelativePaths([]);
-      setInputCurrentPath('');
-      setDirectorySelectionTouched(false);
-      setActiveCreateTab('basic');
       uploaderRef.current?.reset();
       onCreated();
     } catch (err: any) {
@@ -667,105 +519,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     }
   };
 
-
-  /* --- tree rendering --- */
-  const renderTreeRows = (relativePath: string, depth: number): React.ReactNode[] => {
-    const browse = browseCache[relativePath];
-    if (!browse) return [];
-    const rows: React.ReactNode[] = [];
-    const entries = [...(browse.directories || []), ...(browse.files || [])];
-    entries.forEach((entry) => {
-      const isDirectory = entry.node_type === 'directory';
-      const isExpanded = isDirectory && expandedPaths.includes(entry.relative_path);
-      const isSelected = selectionMode === 'file_list'
-        ? selectedRelativePaths.includes(entry.relative_path)
-        : selectionMode === 'directory'
-          ? selectedRelativePath === entry.relative_path
-          : selectedRelativePath === entry.relative_path;
-      rows.push(
-        <tr
-          key={entry.relative_path || `${relativePath}:${entry.name}`}
-          style={{ borderBottom: `1px solid ${LK.borderSoft}` }}
-        >
-          <td className="px-4 py-2">
-            {isDirectory ? (
-              selectionMode === 'directory' ? (
-                <button
-                  type="button"
-                  onClick={() => selectDirectoryPath(entry.relative_path)}
-                  className="transition-colors"
-                  style={{ color: LK.muted }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = LK.ink; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = LK.muted; }}
-                >
-                  {isSelected ? <SquareCheck size={16} /> : <Square size={16} />}
-                </button>
-              ) : null
-            ) : (
-              <button
-                type="button"
-                onClick={() => toggleFileSelection(entry)}
-                className="transition-colors"
-                style={{ color: LK.muted }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = LK.ink; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = LK.muted; }}
-              >
-                {isSelected ? <SquareCheck size={16} /> : <Square size={16} />}
-              </button>
-            )}
-          </td>
-          <td className="px-4 py-2">
-            <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 16}px` }}>
-              {isDirectory ? (
-                <button
-                  type="button"
-                  onClick={() => toggleDirectoryExpansion(entry.relative_path)}
-                  className="rounded-md p-1 transition-colors"
-                  style={{ color: LK.muted }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
-                >
-                  <ChevronRight size={14} className={isExpanded ? 'rotate-90 transition-transform' : 'transition-transform'} />
-                </button>
-              ) : (
-                <span className="inline-block h-6 w-6" />
-              )}
-              {isDirectory ? (
-                <button
-                  type="button"
-                  onClick={() => openBrowsePath(entry.relative_path)}
-                  className="inline-flex items-center gap-2 font-semibold transition-colors"
-                  style={{ color: LK.inkSoft }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = LK.primary; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = LK.inkSoft; }}
-                >
-                  {isExpanded ? <FolderOpen size={15} /> : <Folder size={15} />}
-                  {entry.name}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => toggleFileSelection(entry)}
-                  className="font-medium transition-colors"
-                  style={{ color: LK.inkSoft }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = LK.primary; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = LK.inkSoft; }}
-                >
-                  {entry.name}
-                </button>
-              )}
-            </div>
-          </td>
-          <td className="px-4 py-2" style={{ fontFamily: MONO, fontSize: '12px', color: LK.muted }}>{entry.relative_path || '.'}</td>
-          <td className="px-4 py-2" style={{ color: LK.body }}>{isDirectory ? '文件夹' : '文件'}</td>
-        </tr>,
-      );
-      if (isDirectory && isExpanded) {
-        rows.push(...renderTreeRows(entry.relative_path, depth + 1));
-      }
-    });
-    return rows;
-  };
 
   /* --- render --- */
   if (!open) return null;
@@ -797,44 +550,11 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           </button>
         </div>
 
-        {/* tabs */}
-        <div className="px-6 py-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
-          <div className="flex flex-wrap gap-2">
-            {CREATE_TABS.map((tab, index) => {
-              const active = tab.key === activeCreateTab;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setActiveCreateTab(tab.key)}
-                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-                  style={{
-                    backgroundColor: active ? LK.primaryMuted : LK.surfaceRaised,
-                    color: active ? LK.primary : LK.body,
-                    borderBottom: active ? `2px solid ${LK.primary}` : '2px solid transparent',
-                  }}
-                  onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = LK.ink; }}
-                  onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = LK.body; }}
-                >
-                  <span
-                    className="flex h-6 w-6 items-center justify-center rounded-full text-xs"
-                    style={{ backgroundColor: active ? 'rgba(255, 255, 255, 0.15)' : LK.surface }}
-                  >
-                    {index + 1}
-                  </span>
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* body */}
         <div
           className="min-h-0 flex-1 overflow-y-auto px-6 py-4"
         >
-          {/* =============== TAB: basic =============== */}
-            <div className="flex h-full flex-col space-y-3" style={{ display: activeCreateTab === 'basic' ? undefined : 'none' }}>
+            <div className="flex h-full flex-col space-y-3">
               {/* 项目选择 */}
               <div>
                 <div className="text-sm font-semibold" style={{ color: LK.inkSoft }}>
@@ -1000,10 +720,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     {/* hint block */}
                     <div className="rounded-lg px-3 py-2" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
                       <div className="text-sm" style={{ color: LK.body }}>
-                        当前输入模式：
-                        <span className="ml-2 font-semibold" style={{ color: LK.ink }}>
-                          {selectionMode === 'file' ? '选择单个文件' : selectionMode === 'file_list' ? '选择多个文件' : '选择文件夹'}
-                        </span>
+                        固定使用所选上传记录的<span className="ml-1 font-semibold" style={{ color: LK.ink }}>根目录</span>作为测试对象。
                       </div>
                       <div className="mt-1 text-xs" style={{ color: LK.muted }}>{inputSelectionHint}</div>
                     </div>
@@ -1116,106 +833,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                             </div>
                           </div>
                         ) : null}
-
-                        {isKgSourceTask ? (
-                          <div className="rounded-lg px-3 py-2" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.borderSoft}` }}>
-                            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>固定绑定目录</div>
-                            <div className="mt-1 text-sm font-semibold" style={{ color: LK.ink }}>
-                              {selectedInput?.target_path || '/'}
-                            </div>
-                            <div className="mt-1 text-xs" style={{ color: LK.muted }}>
-                              知识图谱-漏洞挖掘固定使用所选上传记录的根目录，不支持选择子文件夹。
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            {/* breadcrumbs */}
-                            <div className="rounded-lg px-3 py-2" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.borderSoft}` }}>
-                              <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: LK.muted }}>
-                                {((browseCache[inputCurrentPath]?.breadcrumbs) || (rootBrowse?.breadcrumbs) || []).map((crumb, index, items) => (
-                                  <button
-                                    key={`${crumb.path}-${index}`}
-                                    type="button"
-                                    onClick={() => openBrowsePath(crumb.path)}
-                                    className="inline-flex items-center gap-1 rounded-lg px-2 py-1 transition-colors"
-                                    style={{ color: LK.body }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.body; }}
-                                  >
-                                    <Folder size={12} />
-                                    <span>{crumb.name}</span>
-                                    {index < items.length - 1 ? <ChevronRight size={12} /> : null}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* browse error */}
-                            {inputBrowseError ? (
-                              <div
-                                className="rounded-lg px-4 py-3 text-sm"
-                                style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}
-                              >
-                                {inputBrowseError}
-                              </div>
-                            ) : null}
-
-                            {/* file tree table */}
-                            <div className="max-h-[min(14rem,28vh)] overflow-auto rounded-xl" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
-                              <table className="min-w-full text-sm">
-                                <thead>
-                                  <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-                                    <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>选择</th>
-                                    <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>名称</th>
-                                    <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>相对路径</th>
-                                    <th className="px-4 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>类型</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {inputBrowseLoading ? (
-                                    <tr><td className="px-4 py-6 text-center" colSpan={4} style={{ color: LK.muted }}>加载目录中...</td></tr>
-                                  ) : null}
-                                  {!inputBrowseLoading && !rootBrowse ? (
-                                    <tr><td className="px-4 py-6 text-center" colSpan={4} style={{ color: LK.muted }}>暂无可浏览目录</td></tr>
-                                  ) : null}
-                                  {rootBrowse ? (
-                                    <tr style={{ borderBottom: `1px solid ${LK.borderSoft}`, backgroundColor: `${LK.surfaceRaised}40` }}>
-                                      <td className="px-4 py-2">
-                                        {selectionMode === 'directory' ? (
-                                          <button
-                                            type="button"
-                                            onClick={() => selectDirectoryPath('')}
-                                            className="transition-colors"
-                                            style={{ color: LK.muted }}
-                                            onMouseEnter={(e) => { e.currentTarget.style.color = LK.ink; }}
-                                            onMouseLeave={(e) => { e.currentTarget.style.color = LK.muted; }}
-                                          >
-                                            {selectedRelativePath === '' && directorySelectionTouched ? <SquareCheck size={16} /> : <Square size={16} />}
-                                          </button>
-                                        ) : null}
-                                      </td>
-                                      <td className="px-4 py-2">
-                                        <div className="flex items-center gap-2 font-semibold" style={{ color: LK.ink }}>
-                                          <FolderOpen size={15} />
-                                          上传根目录
-                                        </div>
-                                      </td>
-                                      <td className="px-4 py-2" style={{ fontFamily: MONO, fontSize: '12px', color: LK.muted }}>.</td>
-                                      <td className="px-4 py-2" style={{ color: LK.body }}>文件夹</td>
-                                    </tr>
-                                  ) : null}
-                                  {rootBrowse ? renderTreeRows('', 0) : null}
-                                </tbody>
-                              </table>
-                            </div>
-                          </>
-                        )}
-
-                        {/* current selection summary */}
-                        <div className="rounded-lg px-3 py-2" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
-                          <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>当前选择</div>
-                          <div className="mt-1 text-sm font-semibold" style={{ color: LK.ink }}>{inputSummary}</div>
-                        </div>
                       </div>
                     )}
                   </div>
@@ -1361,12 +978,29 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               ) : null}
                 </>
               )}
-            </div>
 
-          {/* =============== TAB: dynamic-env =============== */}
-          <div className="flex flex-col items-center gap-4 py-12" style={{ display: activeCreateTab === 'dynamic-env' ? undefined : 'none' }}>
-            <p className="text-sm" style={{ color: LK.muted }}>后续支持动态验证环境配置</p>
-          </div>
+              {/* 动态验证环境提示 */}
+              <div
+                className="rounded-lg px-4 py-3 text-sm"
+                style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.body }}
+              >
+                如需运行动态验证，请前往
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
+                      detail: { view: 'env-management' },
+                    }));
+                  }}
+                  className="mx-1 font-semibold underline underline-offset-2 transition-opacity hover:opacity-80"
+                  style={{ color: LK.primary }}
+                >
+                  测试环境 · 环境管理
+                </button>
+                完成环境配置。
+              </div>
+            </div>
         </div>
 
         {/* footer */}
