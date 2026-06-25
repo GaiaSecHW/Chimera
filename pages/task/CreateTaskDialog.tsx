@@ -713,6 +713,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     projectId={selectedProjectId}
                     displayName={name}
                     compact={true}
+                    defaultInputType="code"
                     onUploadStateChange={setUploading}
                   />
                 ) : (

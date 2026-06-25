@@ -35,6 +35,7 @@ export interface TestInputUploaderProps {
   projectId: string;
   displayName: string;
   compact?: boolean;
+  defaultInputType?: InputType;
   onUploadStateChange?: (uploading: boolean) => void;
 }
 
@@ -52,9 +53,9 @@ const formatSpeed = (value?: number | null) => {
 };
 
 export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUploaderProps>(
-  ({ projectId, displayName, compact = false, onUploadStateChange }, ref) => {
+  ({ projectId, displayName, compact = false, defaultInputType = 'document', onUploadStateChange }, ref) => {
     const fileserverApi = api.domains.assets.fileserver;
-    const [inputType, setInputType] = useState<InputType>('document');
+    const [inputType, setInputType] = useState<InputType>(defaultInputType);
     const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
@@ -84,7 +85,7 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
       hasFiles: () => uploadQueue.some((item) => item.status !== 'failed'),
       reset: () => {
         setUploadQueue([]);
-        setInputType('document');
+        setInputType(defaultInputType);
         if (fileInputRef.current) fileInputRef.current.value = '';
       },
       cancel: () => {
