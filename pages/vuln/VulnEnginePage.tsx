@@ -167,6 +167,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
   const [reportDocument, setReportDocument] = useState<any | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
+  const [confirmRecords, setConfirmRecords] = useState<any[]>([]);
   const [workspaceView, setWorkspaceView] = useState<WorkspaceViewKey>(initialWorkspaceView);
   const [caseSearch, setCaseSearch] = useState('');
   const [stageFilter, setStageFilter] = useState(defaultStageFilter);
@@ -435,14 +436,16 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
       setSelectedCaseDetail(null);
       setSelectedCaseTimeline([]);
       setRecommendedActions([]);
+      setConfirmRecords([]);
       return;
     }
     try {
-      const [detail, timeline, recommendations, reports] = await Promise.all([
+      const [detail, timeline, recommendations, reports, confirm] = await Promise.all([
         vulnApi.vuln.getCaseDetail(caseId),
         vulnApi.vuln.getCaseTimeline(caseId),
         vulnApi.vuln.getRecommendedActions(caseId),
         vulnApi.vuln.listCaseReports(caseId),
+        vulnApi.vuln.getCaseConfirmRecords(caseId).catch(() => ({ confirm_records: [] })),
       ]);
       setSelectedCaseDetail(detail);
       setSelectedCaseTimeline(timeline.items || []);
@@ -451,6 +454,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
       setCaseReports(reportItems);
       const initialReportId = reports.current_report_id || detail?.report_summary?.report_id || reportItems[0]?.report_id || '';
       setSelectedReportId(initialReportId);
+      setConfirmRecords(confirm?.confirm_records || []);
     } catch (err: any) {
       setError(err?.message || '加载案例详情失败');
     }
@@ -1361,6 +1365,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
               onRefresh={refreshAll}
               onCreateAutoVerify={selectedCaseDetail?.current_stage === 'triage' ? () => handleOpenAutoVerifyCreate(selectedCaseDetail.id) : undefined}
               stageActionContent={stageSpecificPanel}
+              confirmRecords={confirmRecords}
             />
           ) : undefined}
           enableBulkSelection={!hideCasePool}
