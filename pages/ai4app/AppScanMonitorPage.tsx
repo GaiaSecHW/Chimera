@@ -120,14 +120,14 @@ const OcServerTable: React.FC<{ servers: AppScanOcServer[]; urlToJob: Record<str
     <table className="w-full text-sm">
       <thead>
         <tr className="border-b border-theme-border text-left text-xs font-medium uppercase tracking-wider text-theme-text-muted">
-          <th className="px-3 py-2">ID</th>
-          <th className="px-3 py-2">状态</th>
-          <th className="px-3 py-2">URL</th>
-          <th className="px-3 py-2">Provider</th>
-          <th className="px-3 py-2 text-center">Sessions</th>
-          <th className="px-3 py-2">运行时长</th>
-          <th className="px-3 py-2">绑定 Job</th>
-          <th className="px-3 py-2 text-center">PID</th>
+          <th className="px-3 py-2 text-theme-text-primary font-semibold">ID</th>
+          <th className="px-3 py-2 text-theme-text-primary font-semibold">状态</th>
+          <th className="px-3 py-2 text-theme-text-primary font-semibold">URL</th>
+          <th className="px-3 py-2 text-theme-text-primary font-semibold">Provider</th>
+          <th className="px-3 py-2 text-theme-text-primary font-semibold text-center">Sessions</th>
+          <th className="px-3 py-2 text-theme-text-primary font-semibold">运行时长</th>
+          <th className="px-3 py-2 text-theme-text-primary font-semibold">绑定 Job</th>
+          <th className="px-3 py-2 text-theme-text-primary font-semibold text-center">PID</th>
         </tr>
       </thead>
       <tbody>
@@ -357,8 +357,8 @@ export const AppScanMonitorPage: React.FC<Props> = ({ onBack }) => {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-theme-border text-left text-xs font-medium uppercase tracking-wider text-theme-text-muted">
-                      <th className="px-3 py-2">Key</th>
-                      <th className="px-3 py-2">调度中 / 并发槽</th>
+                      <th className="px-3 py-2 text-theme-text-primary font-semibold">Key</th>
+                      <th className="px-3 py-2 text-theme-text-primary font-semibold">调度中 / 并发槽</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -480,14 +480,14 @@ export const AppScanMonitorPage: React.FC<Props> = ({ onBack }) => {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-theme-border text-left text-xs font-medium uppercase tracking-wider text-theme-text-muted">
-                      <th className="px-3 py-2">项目</th>
-                      <th className="px-3 py-2">扫描时间</th>
-                      <th className="px-3 py-2">状态</th>
-                      <th className="px-3 py-2">模型</th>
-                      <th className="px-3 py-2 text-right">总 Token</th>
-                      <th className="px-3 py-2 text-right">输入</th>
-                      <th className="px-3 py-2 text-right">缓存命中</th>
-                      <th className="px-3 py-2 text-right">输出</th>
+                      <th className="px-3 py-2 text-theme-text-primary font-semibold">项目</th>
+                      <th className="px-3 py-2 text-theme-text-primary font-semibold">扫描时间</th>
+                      <th className="px-3 py-2 text-theme-text-primary font-semibold">状态</th>
+                      <th className="px-3 py-2 text-theme-text-primary font-semibold">模型</th>
+                      <th className="px-3 py-2 text-theme-text-primary font-semibold text-right">总 Token</th>
+                      <th className="px-3 py-2 text-theme-text-primary font-semibold text-right">输入</th>
+                      <th className="px-3 py-2 text-theme-text-primary font-semibold text-right">缓存命中</th>
+                      <th className="px-3 py-2 text-theme-text-primary font-semibold text-right">输出</th>
                     </tr>
                   </thead>
                   <tbody>

@@ -84,7 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const roleConfig = navRole ? NAV_ROLE_CONFIG[navRole] : null;
 
   return (
-    <aside className="w-60 bg-theme-sidebar text-theme-text-soft flex flex-col z-30 shadow-brand shrink-0">
+    <aside className="w-60 bg-theme-sidebar text-theme-text-soft flex flex-col z-30 shrink-0">
       {roleConfig && (
         <div className="px-5 pt-4 pb-1 flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full" style={{ background: roleConfig.color }} />

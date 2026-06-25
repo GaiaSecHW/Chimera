@@ -21,7 +21,7 @@ const LK = {
   border: 'var(--border-default)',
   borderSoft: 'var(--border-default)',
   ink: 'var(--text-primary)',
-  inkSoft: 'var(--text-primary)',
+  inkSoft: 'var(--text-secondary)',
   body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)',
   mutedSoft: '#8b95a8',
@@ -297,14 +297,14 @@ export const TaskVulnListPage: React.FC<Props> = ({ projectId, taskId, onBack })
         <table className="min-w-full border-separate border-spacing-0 text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={headerCellStyle()}>标题 / 摘要</th>
-              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={headerCellStyle()}>severity</th>
-              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={headerCellStyle()}>阶段 / 决策</th>
-              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={headerCellStyle()}>上报时间</th>
+              <th className="px-4 py-2.5 text-theme-text-primary font-semibold whitespace-nowrap" style={headerCellStyle()}>标题 / 摘要</th>
+              <th className="px-4 py-2.5 text-theme-text-primary font-semibold whitespace-nowrap" style={headerCellStyle()}>severity</th>
+              <th className="px-4 py-2.5 text-theme-text-primary font-semibold whitespace-nowrap" style={headerCellStyle()}>阶段 / 决策</th>
+              <th className="px-4 py-2.5 text-theme-text-primary font-semibold whitespace-nowrap" style={headerCellStyle()}>上报时间</th>
               {activeOptionalColumns.map((col) => (
                 <th key={col.key} className="px-4 py-2.5 font-medium whitespace-nowrap" style={headerCellStyle()}>{col.label}</th>
               ))}
-              <th className="px-4 py-2.5 font-medium whitespace-nowrap" style={headerCellStyle()}>操作</th>
+              <th className="px-4 py-2.5 text-theme-text-primary font-semibold whitespace-nowrap" style={headerCellStyle()}>操作</th>
             </tr>
           </thead>
           <tbody>

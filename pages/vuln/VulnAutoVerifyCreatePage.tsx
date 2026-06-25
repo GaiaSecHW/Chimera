@@ -38,7 +38,7 @@ const LK = {
   border: 'var(--border-default)',
   borderSoft: 'var(--border-default)',
   ink: 'var(--text-primary)',
-  inkSoft: 'var(--text-primary)',
+  inkSoft: 'var(--text-secondary)',
   body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)',
   mutedSoft: '#8b95a8',

@@ -774,13 +774,13 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
               <table className="min-w-full divide-y divide-theme-border">
                 <thead className="bg-theme-elevated text-left text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">
                   <tr>
-                    <th className="px-4 py-4">类型</th>
-                    <th className="px-4 py-4">上传记录</th>
-                    <th className="px-4 py-4">批次 / 模式</th>
-                    <th className="px-4 py-4">文件 / 容量</th>
-                    <th className="px-4 py-4">创建信息</th>
-                    <th className="px-4 py-4 text-center">知识图谱构建进度</th>
-                    <th className="px-4 py-4 text-right">操作</th>
+                    <th className="px-4 py-4 text-theme-text-primary font-semibold">类型</th>
+                    <th className="px-4 py-4 text-theme-text-primary font-semibold">上传记录</th>
+                    <th className="px-4 py-4 text-theme-text-primary font-semibold">批次 / 模式</th>
+                    <th className="px-4 py-4 text-theme-text-primary font-semibold">文件 / 容量</th>
+                    <th className="px-4 py-4 text-theme-text-primary font-semibold">创建信息</th>
+                    <th className="px-4 py-4 text-theme-text-primary font-semibold text-center">知识图谱构建进度</th>
+                    <th className="px-4 py-4 text-theme-text-primary font-semibold text-right">操作</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-theme-border bg-theme-elevated text-sm">
