@@ -359,7 +359,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
   const statsCards = [
     { label: '总任务', value: stats.total || tasks.length, icon: Shield },
     { label: '排队中', value: stats.queued || 0, icon: Rocket },
-    { label: '分发中', value: stats.dispatching || 0, icon: Loader2 },
     { label: '运行中', value: stats.running || 0, icon: CheckCircle2 },
     { label: '失败', value: stats.failed || 0, icon: X },
   ];
@@ -374,7 +373,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
         description="统一展示当前项目下的所有测试任务，追踪分发、执行与同步状态"
       />
 
-      <div className="grid gap-3 md:grid-cols-5">
+      <div className="grid gap-3 md:grid-cols-4">
         {statsCards.map((item) => {
           const Icon = item.icon;
           return (
@@ -487,7 +486,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="font-semibold" style={{ color: LK.inkSoft }}>{getTaskHarnessLabel(task)}</div>
-                  {task.task_type === 'sechps_tool' ? <div className="text-xs" style={{ color: LK.muted }}>Agent Harness / {task.agent_app_engine || 'unknown'}</div> : null}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="font-semibold" style={{ color: LK.inkSoft }}>{getUserStatusLabel(task)}</div>
