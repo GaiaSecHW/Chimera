@@ -48,10 +48,10 @@ export interface CodemapServeResponse {
 }
 
 // GET /uploads/{id}/audit/sources 的返回(直连 DozerDB,不起 serve)。入口识别
-// 的状态分桶 + 规模,供详情「知识图谱」框展示。graph_status:图生命周期
-// (building/active/superseded/failed)。analysis:入口识别分桶(NOT repair):
-// identified 已判为入口 / pending 有 SP 未判 / confirmed|rejected 人工裁决。
-// total:当前 kind/module 过滤下的源点条数(默认全量)。scale:图规模指标
+// 的状态 + 规模,供详情「知识图谱」框展示。graph_status:图生命周期
+// (building/active/superseded/failed)。analysis:入口识别 headline(口径统一,
+// 待办不计算):total 当前 kind/module 过滤下的源点条数 / attack_entries 攻击入口数
+// (basic 判 YES 或拓扑提升顶,减折叠/人工否决,加人工确认)。scale:图规模指标
 // (静态分析/修复阶段的真实产物,与入口数无关):functions 函数节点数 /
 // files 文件节点数 / repaired_edges LLM 修复新建的 CALLS 边数。
 export interface CodemapAuditSources {
@@ -59,10 +59,7 @@ export interface CodemapAuditSources {
   graph_status: string;
   analysis: {
     total: number;
-    identified: number;
-    pending: number;
-    confirmed: number;
-    rejected: number;
+    attack_entries: number;
   };
   scale?: {
     functions: number;

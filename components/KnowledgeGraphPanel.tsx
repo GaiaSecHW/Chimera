@@ -275,10 +275,11 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
   const funcCount = scale?.functions ?? 0;
   const fileCount = scale?.files ?? 0;
 
-  // ② 入口分析:attack.status 为主,但「已识别数」以图为准(audit.analysis.identified
-  //    优先,回退 attack.entries)。failed 但 identified>0 → 友好文案。
+  // ② 入口分析:attack.status 为主,但「攻击入口数」以图为准(audit.analysis
+  //    .attack_entries 优先,回退 attack.entries)。failed 但 >0 → 友好文案。
+  //    口径统一后后端只给 attack_entries 一个数(待办不计算)。
   const attackStatus = effective.attack?.status ?? null;
-  const identified = analysis?.identified ?? effective.attack?.entries ?? 0;
+  const identified = analysis?.attack_entries ?? effective.attack?.entries ?? 0;
   const attackRecoverable = attackStatus === 'failed' && identified > 0;
 
   // ③ 调用链修复:有 progress 即展示进度条。repairedEdges=本次修复 LLM 新建的
@@ -351,17 +352,9 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
             )
           }
           primary={
-            analysis || identified > 0 ? `已识别 ${analysis?.identified ?? identified}` : null
+            analysis || identified > 0 ? `攻击入口 ${analysis?.attack_entries ?? identified}` : null
           }
-          secondary={
-            analysis ? (
-              <>
-                待判 {analysis.pending}
-                {analysis.confirmed > 0 ? ` · 人工确认 ${analysis.confirmed}` : ''}
-                {analysis.rejected > 0 ? ` · 已否决 ${analysis.rejected}` : ''}
-              </>
-            ) : null
-          }
+          secondary={null}
         />
 
         <StageArrow />
