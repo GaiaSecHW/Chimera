@@ -77,6 +77,8 @@ const getTaskInputsLabel = (task: Pick<ScheduleCenterUserTask, 'inputs'>) => {
     .filter(Boolean);
   return labels.length ? labels.join('、') : '—';
 };
+const getTaskTestObjectLabel = (task: Pick<ScheduleCenterUserTask, 'inputs'>) =>
+  String(task.inputs?.[0]?.display_name || '').trim() || '—';
 const getDeleteQueueTypeLabel = (taskType: string) => taskType === 'sechps_tool' ? 'Agent Harness 任务' : getTaskTypeLabel(taskType);
 const getDeleteStatusLabel = (status: string) => {
   if (status === 'queued') return '排队中';
@@ -467,6 +469,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
               </th>
               <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-sm text-theme-text-primary" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务名</th>
               <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-sm text-theme-text-primary" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>工具</th>
+              <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-sm text-theme-text-primary" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>测试对象</th>
               <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-sm text-theme-text-primary" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务状态</th>
               <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-sm text-theme-text-primary" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>更新时间</th>
               <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-sm text-theme-text-primary" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
@@ -501,6 +504,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}` }}>
                   <div className="font-semibold" style={{ color: LK.inkSoft }}>{getTaskHarnessLabel(task)}</div>
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}` }}>
+                  <div className="font-semibold" style={{ color: LK.inkSoft }}>{getTaskTestObjectLabel(task)}</div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}` }}>
                   <div className="font-semibold" style={{ color: LK.inkSoft }}>{getUserStatusLabel(task)}</div>
