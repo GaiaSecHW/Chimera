@@ -2019,9 +2019,15 @@ function ApiKeysPanel({
     name: null,
     prefix: null,
     source: null,
+    value: null,
     has_secret: false,
     used: false,
   };
+  const workerKeyValue = String(
+    detail.dispatcher_instance_id
+    || detail.task_lease_owner_instance_id
+    || '',
+  ).trim();
   const workKeys = Array.isArray(snapshot.work_keys) ? snapshot.work_keys : [];
   const stageGroups = stageSequence
     .filter((stageName) => workKeys.some((workKey) => workKey.stage_name === stageName))
@@ -2049,7 +2055,13 @@ function ApiKeysPanel({
           ) : null}
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-7">
+          <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Worker Key Value</div>
+            <button type="button" onClick={() => void onCopy(workerKeyValue, 'Worker Key value 已复制')} className="mt-2 break-all text-left font-mono text-xs font-bold text-theme-text-primary hover:text-sky-400">
+              {workerKeyValue || '-'}
+            </button>
+          </div>
           <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Task Key ID</div>
             <button type="button" onClick={() => void onCopy(String(rootTaskKey.id || ''), 'Task Key ID 已复制')} className="mt-2 break-all text-left font-mono text-xs font-bold text-theme-text-primary hover:text-sky-400">
@@ -2069,6 +2081,12 @@ function ApiKeysPanel({
           <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">来源</div>
             <div className="mt-2 text-xs font-bold text-theme-text-primary">{String(rootTaskKey.source || '-')}</div>
+          </div>
+          <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Task Key Value</div>
+            <button type="button" onClick={() => void onCopy(String(rootTaskKey.value || ''), 'Task Key value 已复制')} className="mt-2 break-all text-left font-mono text-xs font-bold text-theme-text-primary hover:text-sky-400">
+              {String(rootTaskKey.value || '-')}
+            </button>
           </div>
           <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">Secret</div>

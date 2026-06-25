@@ -84,6 +84,7 @@ export interface BinarySecurityRootTaskKeySnapshot {
   name?: string | null;
   prefix?: string | null;
   source?: string | null;
+  value?: string | null;
   has_secret: boolean;
   used: boolean;
 }
