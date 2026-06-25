@@ -2684,7 +2684,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     <ChevronDown size={14} />
                   </button>
                   {taskFilterOpen && (
-                    <div className="absolute left-0 top-full z-50 mt-2 max-h-72 w-72 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
+                    <div className="absolute left-0 top-full z-50 mt-2 max-h-72 w-full overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
                       <label className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
                         <input
                           type="checkbox"
@@ -2716,13 +2716,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     type="button"
                     onClick={() => setFinalResultFilterOpen((open) => !open)}
                     className="form-select flex items-center justify-between gap-2 text-left"
-                    style={{ width: '140px' }}
+                    style={{ width: '180px' }}
                   >
                     <span className="truncate">{selectedFinalResultLabel}</span>
                     <ChevronDown size={14} />
                   </button>
                   {finalResultFilterOpen ? (
-                    <div className="absolute left-0 top-full z-50 mt-2 max-h-72 w-56 overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
+                    <div className="absolute left-0 top-full z-50 mt-2 max-h-72 w-full overflow-auto rounded-xl border border-theme-border bg-theme-surface p-2 shadow-xl">
                       <label className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-secondary hover:bg-theme-elevated">
                         <input
                           type="checkbox"

@@ -681,7 +681,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   setSelectedType(inputType);
                   setPage(1);
                 }}
- className={`rounded-xl border p-5 text-left transition ${selectedType === inputType ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-elevated text-theme-text-primary hover:border-theme-border'}`}
+ className={`stat-card rounded-xl border p-5 text-left transition ${selectedType === inputType ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-elevated text-theme-text-primary hover:border-theme-border'}`}
               >
  <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.2em] ${selectedType === inputType ? 'border-theme-border bg-theme-elevated text-white' : meta.tone}`}>
                   {meta.icon}

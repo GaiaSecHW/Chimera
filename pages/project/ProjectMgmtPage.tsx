@@ -701,14 +701,14 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         ].map((stat) => (
           <div
             key={stat.label}
-            className="flex items-center justify-between rounded-xl px-4 py-3"
+            className="flex items-center justify-between rounded-xl p-4"
             style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
           >
             <div>
               <div className="text-xs" style={{ color: LK.muted }}>
                 {stat.label}
               </div>
-              <div className="mt-1 text-2xl font-semibold leading-7 tabular-nums" style={{ color: stat.color }}>
+              <div className="mt-1 text-3xl font-semibold tabular-nums" style={{ color: stat.color }}>
                 {stat.value}
               </div>
             </div>
