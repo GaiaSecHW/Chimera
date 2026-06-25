@@ -1,4 +1,4 @@
-import { ChevronDown, Lock, LogOut, Moon, RotateCw, Sun } from 'lucide-react';
+import { ChevronDown, Folder, Lock, LogOut, Moon, RotateCw, Sun } from 'lucide-react';
 import {
   TopLevelNavKey,
   TopLevelNavItem,
@@ -241,7 +241,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
               className="flex items-center gap-2 px-1.5 py-1.5 max-w-[15rem] rounded-xl text-sm font-medium head-tab-hover"
             >
-              <div className="w-2 h-2 rounded-full bg-brand-primary shrink-0" />
+              <Folder size={14} className="shrink-0 text-brand-primary" />
               <span className="truncate flex-1 text-left">{currentProject.name}</span>
               <button onClick={(e) => { e.stopPropagation(); fetchProjects(true); }} className="shrink-0 text-theme-text-faint text-theme-text-primary-hover transition-all">
                 <RotateCw size={14} className={isRefreshing ? 'animate-spin' : ''} />

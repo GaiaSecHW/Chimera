@@ -33,6 +33,7 @@
     --scrim: rgba(5, 10, 20, 0.72);
     --brand-primary: #2563EB;
     --brand-primary-hover: #3B82F6;
+    --brand-primary-mask: rgba(37, 99, 235, 0.08);
     --brand-secondary: #3B82F6;
     --brand-accent: #2563EB;
     --brand-soft: rgba(99, 102, 241, 0.15);
@@ -97,6 +98,7 @@
     --text-muted-soft: #8b95a8;
     --brand-primary: #2563EB;
     --brand-primary-hover: #3B82F6;
+    --brand-primary-mask: rgba(37, 99, 235, 0.08);
     --brand-secondary: #3B82F6;
     --brand-accent: #3B82F6;
     --brand-soft: rgba(99, 102, 241, 0.08);

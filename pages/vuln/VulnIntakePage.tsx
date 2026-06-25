@@ -2854,7 +2854,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       <div className="text-sm text-theme-text-muted">{formatTime(item.updated_at || item.created_at)}</div>
                       <div className="text-sm text-theme-text-muted">{formatTime(item.created_at)}</div>
                       <div>
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex items-center gap-1">
                           {suspectOnly ? (
                             <button
                               type="button"
@@ -2865,9 +2865,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                               disabled={manualConfirmSubmitting}
                               title={item.finished_reason ? '重新判定' : '确认漏洞'}
                               aria-label={`确认漏洞 ${item.title}`}
-                              className="btn btn-secondary btn-sm px-2"
+                              className="rounded-md p-1.5 transition-colors"
+                              style={{ color: 'var(--text-secondary)' }}
+                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--brand-primary-mask)'; e.currentTarget.style.color = 'var(--brand-primary)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                             >
-                              <ShieldCheck size={14} />
+                              <ShieldCheck size={16} />
                             </button>
                           ) : null}
                           <button
@@ -2879,9 +2882,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                             disabled={creatingDownload}
                             title={creatingDownload ? '创建下载任务中' : '下载'}
                             aria-label={`下载漏洞 ${item.title}`}
-                            className="btn btn-secondary btn-sm px-2"
+                            className="rounded-md p-1.5 transition-colors"
+                            style={{ color: 'var(--text-secondary)' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--brand-primary-mask)'; e.currentTarget.style.color = 'var(--brand-primary)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                           >
-                            <Download size={14} />
+                            <Download size={16} />
                           </button>
                           <button
                             type="button"
@@ -2892,9 +2898,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                             disabled={bulkDeleting || rowDeletingId === item.id}
                             title={rowDeletingId === item.id ? '删除中' : '删除'}
                             aria-label={`删除漏洞 ${item.title}`}
-                            className="btn btn-ghost-danger btn-sm px-2"
+                            className="rounded-md p-1.5 transition-colors"
+                            style={{ color: 'var(--text-secondary)' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--danger-soft)'; e.currentTarget.style.color = 'var(--danger)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                           >
-                            {rowDeletingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                            {rowDeletingId === item.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                           </button>
                         </div>
                       </div>

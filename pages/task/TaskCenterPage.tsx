@@ -97,7 +97,7 @@ const LK = {
   primary: 'var(--brand-primary)',
   primarySoft: '#7590ff',
   primaryDeep: 'var(--brand-primary-hover)',
-  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  primaryMuted: 'var(--brand-primary-mask)',
   canvas: 'var(--bg-app)',
   surface: 'var(--bg-surface)',
   surfaceRaised: 'var(--bg-app)',
@@ -111,7 +111,8 @@ const LK = {
   mutedSoft: '#8b95a8',
   success: '#45c06f',
   warning: '#d5a13a',
-  error: '#f15d5d',
+  errorSoft: 'var(--danger-soft)',
+  error: 'var(--danger)',
   info: '#4f8cff',
 } as const;
 
@@ -423,11 +424,11 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
             <div
                 className="flex items-center gap-2 rounded-lg px-4 py-3"
             >
-              <button onClick={openCreateDialog} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}><Plus size={15} />创建任务</button>
+              <button onClick={openCreateDialog} className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}><Plus size={15} />创建任务</button>
               <button
                   onClick={() => void submitDelete(selectedTaskIds)}
                   disabled={!selectedTaskIds.length || deleteSubmitting}
-                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   style={{ backgroundColor: LK.error, color: '#ffffff' }}
                   onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#e04848'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.error; }}
@@ -444,7 +445,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                     className="form-input w-full pl-10"
                 />
               </div>
-              <button onClick={() => void loadData()} className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><RefreshCw size={15} />刷新</button>
+              <button onClick={() => void loadData()} className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><RefreshCw size={15} />刷新</button>
             </div>
         )}
 
@@ -514,10 +515,10 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                       title="查看报告"
                       className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
                       style={{ color: LK.muted }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.primary; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
                       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
                     >
-                      <FileText size={15} />
+                      <FileText size={16} />
                     </button>
                     <button
                       onClick={() => {
@@ -526,10 +527,10 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                       title={`查看漏洞 (${taskVulnCounts[task.id] === undefined ? '…' : taskVulnCounts[task.id]})`}
                       className="relative inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
                       style={{ color: LK.muted }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.primary; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
                       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
                     >
-                      <Bug size={15} />
+                      <Bug size={16} />
                       {(() => {
                         const c = taskVulnCounts[task.id];
                         if (c === undefined || c === 0) return null;
@@ -549,10 +550,10 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                       title="删除"
                       className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                       style={{ color: LK.muted }}
-                      onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = `${LK.error}22`; e.currentTarget.style.color = LK.error; } }}
+                      onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = `${LK.errorSoft}`; e.currentTarget.style.color = LK.error; } }}
                       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
                     >
-                      <Trash2 size={15} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </td>

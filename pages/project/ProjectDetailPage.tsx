@@ -35,7 +35,7 @@ import { ProjectMemberModal } from './ProjectMemberModal';
 /* ── LOKI design tokens ─────────────────────────────────────── */
 const LK = {
   primary: 'var(--brand-primary)',
-  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  primaryMuted: 'var(--brand-primary-mask)',
   canvas: 'var(--bg-app)',
   surface: 'var(--bg-surface)',
   surfaceRaised: 'var(--bg-app)',

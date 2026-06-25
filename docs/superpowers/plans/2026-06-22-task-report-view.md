@@ -51,7 +51,7 @@ interface Props {
 const LK = {
   primary: 'var(--brand-primary)',
   primarySoft: '#7590ff',
-  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  primaryMuted: 'var(--brand-primary-mask)',
   canvas: 'var(--bg-app)',
   surface: 'var(--bg-surface)',
   surfaceRaised: 'var(--bg-app)',

@@ -143,7 +143,7 @@ type PathPickerTarget = 'target_dir' | 'entrylist_file' | 'report_dir';
 
 const LK = {
   primary: 'var(--brand-primary)', primarySoft: '#7590ff', primaryDeep: 'var(--brand-primary-hover)',
-  primaryMuted: 'rgba(79, 115, 255, 0.14)',
+  primaryMuted: 'var(--brand-primary-mask)',
   canvas: 'var(--bg-app)', surface: 'var(--bg-surface)', surfaceRaised: 'var(--bg-app)',
   surfaceGlass: 'rgba(17, 26, 43, 0.84)',
   border: 'var(--border-default)', borderSoft: 'var(--border-default)',

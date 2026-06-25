@@ -710,6 +710,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
               <button
                 onClick={() => openCreateModal(selectedType === 'all' ? 'document' : selectedType)}
                 className="btn btn-primary"
+                style={{ color: '#ffffff' }}
               >
                 <Plus size={16} />
                 新建上传
@@ -847,15 +848,33 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                             </div>
                           </td>
                           <td className="px-4 py-4">
-                            <div className="flex items-center justify-end gap-2" onClick={(event) => event.stopPropagation()}>
-                              <button onClick={() => { void openUploadDetailDialog(record); }} aria-label="详情" title="详情" className="inline-flex items-center justify-center rounded-xl border border-theme-border px-2.5 py-2 text-theme-text-secondary hover:bg-theme-elevated">
-                                <Eye size={14} />
+                            <div className="flex items-center justify-end gap-1" onClick={(event) => event.stopPropagation()}>
+                              <button
+                                onClick={() => { void openUploadDetailDialog(record); }} aria-label="详情" title="详情"
+                                className="rounded-md p-1.5 transition-colors"
+                                style={{ color: 'var(--text-secondary)' }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--brand-primary-mask)'; e.currentTarget.style.color = 'var(--brand-primary)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                              >
+                                <Eye size={16} />
                               </button>
-                              <button onClick={() => openAppendModal(record)} aria-label="追加" title="追加" className="inline-flex items-center justify-center rounded-xl border border-theme-border px-2.5 py-2 text-theme-text-secondary hover:bg-theme-elevated">
-                                <Plus size={14} />
+                              <button
+                                onClick={() => openAppendModal(record)} aria-label="追加" title="追加"
+                                className="rounded-md p-1.5 transition-colors"
+                                style={{ color: 'var(--text-secondary)' }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--brand-primary-mask)'; e.currentTarget.style.color = 'var(--brand-primary)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                              >
+                                <Plus size={16} />
                               </button>
-                              <button onClick={() => setDeleteTarget(record)} aria-label="删除" title="删除" className="inline-flex items-center justify-center rounded-xl border border-rose-500/20 px-2.5 py-2 text-rose-400 hover:bg-rose-500/15">
-                                <Trash2 size={14} />
+                              <button
+                                onClick={() => setDeleteTarget(record)} aria-label="删除" title="删除"
+                                className="rounded-md p-1.5 transition-colors"
+                                style={{ color: 'var(--text-secondary)' }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--danger-soft)'; e.currentTarget.style.color = 'var(--danger)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                              >
+                                <Trash2 size={16} />
                               </button>
                             </div>
                           </td>
