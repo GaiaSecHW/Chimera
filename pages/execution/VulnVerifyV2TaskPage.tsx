@@ -89,7 +89,7 @@ const VerdictBadge: React.FC<{ verdict?: string | null }> = ({ verdict }) => {
   const item = outcomeBadge(undefined, verdict);
   const Icon = item.Icon;
   return (
-    <span className={`inline-flex w-auto items-center gap-1.5 rounded-full py-1.5 pl-3 pr-4 text-[13px] ${item.fontCls || 'font-semibold'} ${item.boxCls}`}>
+    <span className={`inline-flex w-auto items-center gap-1.5 rounded-full py-1.5 pl-3 pr-4 text-sm ${item.fontCls || 'font-semibold'} ${item.boxCls}`}>
       {Icon ? <Icon size={16} strokeWidth={2.2} className={`shrink-0 ${item.iconCls}`} /> : null}
       <span className={item.iconCls}>{item.label}</span>
     </span>
@@ -97,7 +97,7 @@ const VerdictBadge: React.FC<{ verdict?: string | null }> = ({ verdict }) => {
 };
 
 const StatusBadge: React.FC<{ status?: string }> = ({ status }) => (
-  <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[13px] font-normal ${statusClass(status)}`}>
+  <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-sm font-normal ${statusClass(status)}`}>
     {status === 'running' ? <Loader2 size={12} className="mr-1 animate-spin" /> : null}
     {fmtStatus(status)}
   </span>
@@ -119,7 +119,7 @@ const OutcomePill: React.FC<{ item: ReturnType<typeof outcomeBadge>; size?: 'nor
   const isSm = size === 'sm';
   const boxCls = item.boxCls;
   return (
-    <span className={`inline-flex w-auto items-center ${item.iconOnly ? `justify-center ${isSm ? 'px-2 py-1' : 'px-2.5 py-1.5'}` : `${isSm ? 'gap-1.5 py-1 pl-2 pr-3' : 'gap-1.5 pl-3 pr-4 py-1.5'} rounded-full ${boxCls}`} ${isSm ? 'text-xs' : 'text-[13px]'} ${item.fontCls || 'font-semibold'}`}>
+    <span className={`inline-flex w-auto items-center ${item.iconOnly ? `justify-center ${isSm ? 'px-2 py-1' : 'px-2.5 py-1.5'}` : `${isSm ? 'gap-1.5 py-1 pl-2 pr-3' : 'gap-1.5 pl-3 pr-4 py-1.5'} rounded-full ${boxCls}`} ${isSm ? 'text-xs' : 'text-sm'} ${item.fontCls || 'font-semibold'}`}>
       {item.loading ? (
         <Loader2 size={isSm ? 14 : 18} strokeWidth={isSm ? 2.5 : 2.8} className={`shrink-0 animate-spin ${item.iconCls}`} />
       ) : Icon ? (
@@ -157,19 +157,19 @@ const EvidencePill: React.FC<{ children: React.ReactNode; tone?: 'rose' | 'emera
         : tone === 'blue'
           ? 'border-blue-500/20 bg-blue-500/10 text-blue-300'
           : 'border-theme-border bg-theme-elevated text-theme-text-muted';
-  return <span title={title} className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[13px] font-normal ${cls}`}>{children}</span>;
+  return <span title={title} className={`inline-flex items-center rounded-full border px-2.5 py-1 text-sm font-normal ${cls}`}>{children}</span>;
 };
 
 const TaskDecisionEvidence: React.FC<{ task: VulnVerifyV2Task }> = ({ task }) => {
-  if (task.status === 'running' || task.status === 'pending') return <span className="text-[13px] font-normal text-theme-text-faint">-</span>;
+  if (task.status === 'running' || task.status === 'pending') return <span className="text-sm font-normal text-theme-text-faint">-</span>;
   if (task.status === 'failed') return <EvidencePill tone="rose">执行失败</EvidencePill>;
   if (task.status === 'cancelled') return <EvidencePill tone="amber">已取消</EvidencePill>;
 
   if (task.verdict === 'confirmed') {
     const summary = task.root_cause_summary || '';
     return summary
-      ? <div className="line-clamp-2 text-[13px] font-normal text-theme-text-secondary" title={summary}>{summary}</div>
-      : <span className="text-[13px] font-normal text-theme-text-faint">-</span>;
+      ? <div className="line-clamp-2 text-sm font-normal text-theme-text-secondary" title={summary}>{summary}</div>
+      : <span className="text-sm font-normal text-theme-text-faint">-</span>;
   }
 
   if (task.verdict === 'ruled_out') {
@@ -179,7 +179,6 @@ const TaskDecisionEvidence: React.FC<{ task: VulnVerifyV2Task }> = ({ task }) =>
       <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         {reasons.map((key) => (
           <EvidencePill key={key} title={dimensionConclusionText(key, false)}>
-            <CheckCircle2 size={13} strokeWidth={2.1} className="mr-1 shrink-0 text-sky-400" />
             {dimensionConclusionText(key, false)}
           </EvidencePill>
         ))}
@@ -187,20 +186,23 @@ const TaskDecisionEvidence: React.FC<{ task: VulnVerifyV2Task }> = ({ task }) =>
     );
   }
 
-  if (task.verdict === 'unresolved') return <span className="text-[13px] font-normal text-theme-text-secondary">证据不足</span>;
+  if (task.verdict === 'unresolved') return <span className="text-sm font-normal text-theme-text-secondary">证据不足</span>;
   return <EvidencePill>未产出判定</EvidencePill>;
 };
 
 const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'emerald' | 'sky' | 'rose' | 'amber' | 'slate'; Icon?: React.ElementType }> = ({ label, value, hint, accent = 'slate', Icon }) => {
   const color = accent === 'emerald' ? 'text-emerald-400' : accent === 'sky' ? 'text-sky-400' : accent === 'rose' ? 'text-rose-400' : accent === 'amber' ? 'text-amber-400' : 'text-theme-text-primary';
   return (
-    <div className="border border-theme-border bg-theme-elevated p-4">
-      <div className={`inline-flex items-center gap-1.5 text-[13px] font-medium ${color}`}>
+    <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
+      <div className={`inline-flex items-center gap-1.5 text-sm font-medium ${color}`}>
         {Icon ? <Icon size={13} strokeWidth={2.1} className="shrink-0" /> : null}
         <span>{label}</span>
       </div>
-      <div className={`mt-2 text-2xl font-semibold ${color}`}>{value}</div>
-      {hint ? <div className="mt-1 text-xs text-theme-text-muted">{hint}</div> : null}
+      {hint ? <div className="mt-5 text-sm text-theme-text-muted">{hint}</div> : null}
+      <div className={`mt-1.5 flex items-baseline gap-1 ${color}`}>
+        <span className="text-2xl font-semibold">{value}</span>
+        <span className="text-sm font-medium">个</span>
+      </div>
     </div>
   );
 };
@@ -237,10 +239,10 @@ const DimensionCard: React.FC<{ dimKey: string; status?: boolean | null; detail?
         <div className={`flex h-8 w-8 shrink-0 items-center justify-center ${statusCls}`} title={statusTone.label}>
           <StatusIcon size={16} strokeWidth={2.1} />
         </div>
-        <div className={`min-w-0 truncate pt-1 text-[15px] font-semibold leading-6 ${statusCls}`}>{conclusion}</div>
+        <div className={`min-w-0 truncate pt-1 text-base font-semibold leading-6 ${statusCls}`}>{conclusion}</div>
       </div>
       <div className="min-w-0">
-        <div className="whitespace-pre-wrap break-words text-[13px] font-normal leading-6 text-theme-text-primary">{detail || '-'}</div>
+        <div className="whitespace-pre-wrap break-words text-sm font-normal leading-6 text-theme-text-primary">{detail || '-'}</div>
       </div>
     </div>
   );
@@ -248,7 +250,7 @@ const DimensionCard: React.FC<{ dimKey: string; status?: boolean | null; detail?
 
 const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[] }> = ({ attempts }) => {
   if (!attempts.length) {
-    return <div className="py-6 text-center text-[13px] font-normal text-theme-text-muted">暂无执行尝试记录</div>;
+    return <div className="py-6 text-center text-sm font-normal text-theme-text-muted">暂无执行尝试记录</div>;
   }
   return (
     <ol className="space-y-3">
@@ -273,7 +275,7 @@ const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[] }> = ({ attemp
             </div>
             <div className="min-w-0 flex-1 pb-3">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[15px] font-medium text-theme-text-primary">第 {att.attempt_number} 次执行</span>
+                <span className="text-base font-medium text-theme-text-primary">第 {att.attempt_number} 次执行</span>
                 <AttemptStatusBadge status={att.status} />
               </div>
               <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs font-normal text-theme-text-muted">
@@ -282,7 +284,7 @@ const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[] }> = ({ attemp
                 <span>耗时：{duration}</span>
               </div>
               {isFailed && failureMsg ? (
-                <div className="mt-2 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-[13px] font-normal text-rose-300 break-words">{failureMsg}</div>
+                <div className="mt-2 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm font-normal text-rose-300 break-words">{failureMsg}</div>
               ) : null}
             </div>
           </li>
@@ -460,18 +462,19 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
     <div className="min-h-full bg-theme-bg-app text-theme-text-primary">
       <div className="w-full space-y-8 px-4 pt-8 pb-10 lg:px-6 xl:px-8">
         {feedbackNodes}
-        <section className="rounded-2xl border border-theme-border bg-theme-surface p-5">
-          <PageHeader
-            className="border-b-0 pb-0"
-            title={<ServicePageTitle title={<span className="inline-flex items-baseline gap-1.5">漏洞验证<span className="text-xs font-medium text-theme-text-muted">v2</span></span>} version={buildVersion} />}
-            description="基于漏洞报告、代码上下文与威胁模型，由 AI 围绕代码定位、路径可达性、缓解措施和安全影响进行四维判定，产出确认漏洞、排除漏洞或不可证结论。"
-            actions={
-              <button type="button" onClick={() => void loadOverview()} className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-3.5 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">
-                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />刷新
-              </button>
-            }
-          />
-          <div className="mt-6 grid gap-5 md:grid-cols-3">
+        <PageHeader
+          className="border-b-0 !pb-0"
+          title={<ServicePageTitle title={<span className="inline-flex items-baseline gap-1.5 py-2">漏洞验证<span className="text-xs font-medium text-theme-text-muted">v2</span></span>} version={buildVersion} />}
+          description="基于漏洞报告、代码上下文与威胁模型，由 AI 围绕代码定位、路径可达性、缓解措施和安全影响进行四维判定，产出确认漏洞、排除漏洞或不可证结论。"
+          actions={
+            <button type="button" onClick={() => void loadOverview()} className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-3.5 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />刷新
+            </button>
+          }
+        />
+
+        <section>
+          <div className="grid gap-5 md:grid-cols-3">
             <SummaryCard label="已确认" value={confirmedVulns} accent="rose" Icon={AlertTriangle} hint="确认存在真实漏洞风险" />
             <SummaryCard label="已排除" value={ruledOutVulns} accent="sky" Icon={CheckCircle2} hint="验证后排除漏洞风险" />
             <SummaryCard label="不可证" value={unresolvedVulns} accent="amber" Icon={CircleHelp} hint="现有证据不足以判定" />
@@ -517,7 +520,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                         key={option.value || 'all'}
                         type="button"
                         onClick={() => handleResultFilterChange(option.value)}
-                        className={`shrink-0 rounded-lg border px-3 py-1.5 text-[13px] font-medium transition ${active ? activeCls : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated hover:text-theme-text-primary'}`}
+                        className={`shrink-0 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${active ? activeCls : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated hover:text-theme-text-primary'}`}
                       >
                         {option.label}
                       </button>
@@ -543,11 +546,11 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                       key={task.id}
                       type="button"
                       onClick={() => void loadDetail(task.id)}
-                      className={`group relative grid w-full cursor-pointer gap-2 px-4 py-3 text-left transition-colors hover:bg-blue-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px] lg:items-center lg:gap-4 ${isSel ? 'bg-blue-500/15' : ''}`.trim()}
+                      className={`group relative grid w-full cursor-pointer gap-2 px-4 py-4 text-left transition-colors hover:bg-blue-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px] lg:items-center lg:gap-4 ${isSel ? 'bg-blue-500/15' : ''}`.trim()}
                     >
                       <span aria-hidden="true" className={`absolute bottom-0 left-0 top-0 w-1 bg-blue-600 transition-opacity ${isSel ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
                       <div className="min-w-0">
-                        <div className="truncate text-[15px] font-normal text-theme-text-primary" title={task.name}>{task.name}</div>
+                        <div className="truncate text-sm font-normal text-theme-text-primary" title={task.name}>{task.name}</div>
                         <div className="mt-1 font-mono text-xs text-theme-text-faint">{task.vuln_id || task.case_id || '-'}</div>
                       </div>
                       <div className="flex items-center justify-center">
@@ -559,7 +562,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                       </div>
                       <div className="flex items-center gap-2 text-xs lg:justify-end">
                         <span className="text-xs font-medium text-theme-text-muted lg:hidden">耗时</span>
-                        <span className="text-[13px] font-normal text-theme-text-secondary lg:text-right">{showRuntime ? fmtRuntime(runtime) : '-'}</span>
+                        <span className="text-sm font-normal text-theme-text-secondary lg:text-right">{showRuntime ? fmtRuntime(runtime) : '-'}</span>
                       </div>
                     </button>
                   );
@@ -604,7 +607,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
           role="presentation"
         >
           <aside
-            className={`absolute right-0 top-0 flex h-full w-full max-w-[1080px] transform flex-col overflow-visible border-l border-theme-border bg-theme-surface shadow-2xl transition-transform duration-300 ease-out xl:w-[62vw] 2xl:max-w-[1180px] ${detailPanelOpen ? 'translate-x-0' : 'translate-x-full'}`}
+            className={`absolute right-0 top-0 flex h-full w-full max-w-[1080px] transform flex-col overflow-visible border-l border-theme-border bg-theme-bg-app shadow-2xl transition-transform duration-300 ease-out xl:w-[62vw] 2xl:max-w-[1180px] ${detailPanelOpen ? 'translate-x-0' : 'translate-x-full'}`}
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -614,13 +617,13 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               onClick={closeDetailPanel}
               aria-label="收起详情"
               title="收起详情"
-              className="absolute left-0 top-1/2 z-10 inline-flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-theme-border bg-theme-surface/95 text-theme-text-muted shadow-md backdrop-blur hover:bg-theme-elevated hover:text-theme-text-primary"
+              className="absolute left-0 top-1/2 z-10 inline-flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-theme-border bg-theme-bg-app text-theme-text-secondary shadow-md transition hover:bg-theme-elevated hover:text-theme-text-primary"
             >
               <PanelRightClose size={14} strokeWidth={2.1} />
             </button>
             <div ref={detailScrollRef} className="min-h-0 flex-1 overflow-y-auto px-8 py-8 lg:px-10 lg:py-10">
               {detailLoading ? (
-                <div className="flex h-full min-h-[300px] items-center justify-center gap-2 py-10 text-[13px] font-normal text-theme-text-muted">
+                <div className="flex h-full min-h-[300px] items-center justify-center gap-2 py-10 text-sm font-normal text-theme-text-muted">
                   <Loader2 size={16} className="animate-spin" />加载详情...
                 </div>
               ) : detail ? (
@@ -628,10 +631,10 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   {/* 头部：标题 + 结论 + 重试 */}
                   <div className="px-1 pb-2 pt-4">
                     <div className="min-w-0">
-                      <div className="whitespace-normal break-words text-[17px] font-bold leading-6 text-theme-text-primary" title={detail.name}>{detail.name}</div>
+                      <div className="whitespace-normal break-words text-lg font-bold leading-6 text-theme-text-primary" title={detail.name}>{detail.name}</div>
                       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
                         <VerdictBadge verdict={detail.verdict} />
-                        <button onClick={() => void handleRerun(detail.id)} aria-label="重新执行" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-[13px] font-medium text-theme-text-secondary hover:bg-theme-elevated">
+                        <button onClick={() => void handleRerun(detail.id)} aria-label="重新执行" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated">
                           <RotateCcw size={13} />重试
                         </button>
                       </div>
@@ -652,9 +655,9 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
                   {/* 根因摘要 */}
                   <section>
-                    <div className="mb-3 text-[15px] font-medium text-theme-text-primary">根因摘要</div>
-                    <div className="rounded-2xl border border-theme-border bg-theme-elevated p-5">
-                      <p className="whitespace-pre-wrap text-[13px] font-normal leading-6 text-theme-text-primary">
+                    <div className="mb-3 text-base font-medium text-theme-text-primary">根因摘要</div>
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                      <p className="whitespace-pre-wrap text-sm font-normal leading-6 text-theme-text-primary">
                         {String(detailRaw.root_cause_summary || '-')}
                       </p>
                     </div>
@@ -662,8 +665,8 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
                   {/* 四维判定 */}
                   <section>
-                    <div className="mb-3 text-[15px] font-medium text-theme-text-primary">四维判定</div>
-                    <div className="rounded-2xl border border-theme-border bg-theme-elevated px-7 py-3 lg:px-8">
+                    <div className="mb-3 text-base font-medium text-theme-text-primary">四维判定</div>
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface px-7 py-3 lg:px-8">
                       <div className="divide-y divide-theme-border/70">
                         {DIMENSION_KEYS.map((key) => {
                           const dim = detailDimensions[key];
@@ -675,14 +678,14 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
                   {/* 时间线 */}
                   <section>
-                    <div className="mb-3 text-[15px] font-medium text-theme-text-primary">时间线</div>
-                    <div className="rounded-2xl border border-theme-border bg-theme-elevated p-5">
+                    <div className="mb-3 text-base font-medium text-theme-text-primary">时间线</div>
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                       <AttemptTimeline attempts={detailAttempts} />
                     </div>
                   </section>
                 </div>
               ) : (
-                <div className="py-10 text-center text-[13px] font-normal text-theme-text-muted">加载详情失败</div>
+                <div className="py-10 text-center text-sm font-normal text-theme-text-muted">加载详情失败</div>
               )}
             </div>
           </aside>
