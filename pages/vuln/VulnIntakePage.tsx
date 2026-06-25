@@ -304,7 +304,7 @@ const getCaseSortValue = (item: any, field: SortField) => {
   if (field === 'created_at') return parseTimeMs(item?.created_at);
   if (field === 'confidence' || field === 'cvss_score') return Number(item?.[field] || 0);
   if (field === 'conclusion') {
-    const isTerminal = item?.current_stage === 'finished' || !!item?.finished_reason;
+    const isTerminal = item?.is_human_finished === true;
     const effective = isTerminal ? String(item?.finished_reason || item?.validation_result || '').trim() : '';
     if (effective === 'vulnerable') return 4;
     if (effective === 'not_vulnerable' || effective === 'non_vulnerable') return 3;
@@ -316,11 +316,11 @@ const getCaseSortValue = (item: any, field: SortField) => {
 
 const getEffectiveResult = (item: any) => String(item?.finished_reason || item?.validation_result || '').trim();
 
-const isTerminalCase = (item: any) => item?.current_stage === 'finished' || !!item?.finished_reason;
+const isHumanFinishedCase = (item: any) => item?.is_human_finished === true;
 
 const matchesFinalResultFilter = (item: any, filters: string[]) => {
   if (!filters || filters.length === 0) return true;
-  const effective = isTerminalCase(item) ? getEffectiveResult(item) : '';
+  const effective = isHumanFinishedCase(item) ? getEffectiveResult(item) : '';
   const isVulnerable = effective === 'vulnerable';
   const isRuledOut = effective === 'not_vulnerable' || effective === 'non_vulnerable';
   return filters.some((f) => {
@@ -332,9 +332,9 @@ const matchesFinalResultFilter = (item: any, filters: string[]) => {
 };
 
 const getCaseListStats = (items: any[]) => {
-  const confirmed = items.filter((item) => isTerminalCase(item) && getEffectiveResult(item) === 'vulnerable').length;
+  const confirmed = items.filter((item) => isHumanFinishedCase(item) && getEffectiveResult(item) === 'vulnerable').length;
   const ruledOut = items.filter((item) => {
-    if (!isTerminalCase(item)) return false;
+    if (!isHumanFinishedCase(item)) return false;
     const effective = getEffectiveResult(item);
     return effective === 'not_vulnerable' || effective === 'non_vulnerable';
   }).length;
@@ -1880,7 +1880,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   const FINAL_RESULT_OPTIONS: Array<{ value: string; label: string }> = [
     { value: 'vulnerable', label: '是漏洞' },
-    { value: 'not_vulnerable', label: '非漏洞' },
+    { value: 'not_vulnerable', label: '不是漏洞' },
   ];
   const selectedFinalResultLabel = finalResultFilter.length === 0
     ? '全部结果'
@@ -2837,7 +2837,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         </div>
                       ) : null}
                       <div className="min-w-0">
-                        {(item.current_stage === 'finished' || item.finished_reason) ? (
+                        {item.is_human_finished ? (
                           <>
                             <div className={`text-sm font-semibold ${(item.finished_reason || item.validation_result) === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-secondary'}`}>
                               {toConclusionText(item.finished_reason || item.validation_result)}
