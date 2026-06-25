@@ -88,9 +88,9 @@ const VerdictBadge: React.FC<{ verdict?: string | null }> = ({ verdict }) => {
   const item = outcomeBadge(undefined, verdict);
   const Icon = item.Icon;
   return (
-    <span className={`inline-flex w-[128px] items-center gap-2 rounded-full border px-3 py-1.5 text-[15px] ${item.fontCls || 'font-bold'} ${item.boxCls}`}>
+    <span className={`inline-flex w-[128px] items-center ${item.iconOnly ? 'justify-center px-3 py-1.5' : `gap-2 rounded-full border px-3 py-1.5 ${item.boxCls}`} text-[15px] ${item.fontCls || 'font-bold'}`}>
       {Icon ? <Icon size={16} strokeWidth={2.2} className={`shrink-0 ${item.iconCls}`} /> : null}
-      <span className={`truncate ${item.iconCls}`}>{item.label}</span>
+      {item.iconOnly ? null : <span className={`truncate ${item.iconCls}`}>{item.label}</span>}
     </span>
   );
 };
@@ -102,9 +102,9 @@ const StatusBadge: React.FC<{ status?: string }> = ({ status }) => (
   </span>
 );
 
-function outcomeBadge(status?: string, verdict?: string | null): { label: string; iconCls: string; boxCls: string; fontCls?: string; Icon?: React.ElementType; loading?: boolean } {
-  if (status === 'running') return { label: '验证中', iconCls: 'text-white', boxCls: 'border-blue-500/30 bg-blue-500/20', loading: true };
-  if (status === 'pending') return { label: '等待中', iconCls: 'text-theme-text-faint', boxCls: 'border-theme-border bg-theme-elevated', fontCls: 'font-normal', Icon: Clock3 };
+function outcomeBadge(status?: string, verdict?: string | null): { label: string; iconCls: string; boxCls: string; fontCls?: string; plain?: boolean; iconOnly?: boolean; Icon?: React.ElementType; loading?: boolean } {
+  if (status === 'running') return { label: '验证中', iconCls: 'text-emerald-300 drop-shadow-[0_0_8px_rgba(110,231,183,0.75)]', boxCls: '', iconOnly: true, loading: true };
+  if (status === 'pending') return { label: '等待中', iconCls: 'text-theme-text-faint', boxCls: '', fontCls: 'font-normal', plain: true, iconOnly: true, Icon: Clock3 };
   if (status === 'failed') return { label: '验证失败', iconCls: 'text-rose-400', boxCls: 'border-rose-500/30 bg-rose-500/20', Icon: XCircle };
   if (status === 'cancelled') return { label: '已取消', iconCls: 'text-amber-400', boxCls: 'border-amber-500/30 bg-amber-500/20', Icon: Ban };
   if (verdict === 'confirmed') return { label: '确认漏洞', iconCls: 'text-rose-400', boxCls: 'border-rose-500/30 bg-rose-500/20', Icon: AlertTriangle };
@@ -113,19 +113,30 @@ function outcomeBadge(status?: string, verdict?: string | null): { label: string
   return { label: '未产出结果', iconCls: 'text-theme-text-muted', boxCls: 'border-theme-border bg-theme-elevated', Icon: CircleHelp };
 }
 
-const TaskOutcomeBadge: React.FC<{ status?: string; verdict?: string | null }> = ({ status, verdict }) => {
-  const item = outcomeBadge(status, verdict);
+const OutcomePill: React.FC<{ item: ReturnType<typeof outcomeBadge>; size?: 'normal' | 'sm' }> = ({ item, size = 'normal' }) => {
   const Icon = item.Icon;
+  const isSm = size === 'sm';
   return (
-    <span className={`inline-flex w-[128px] items-center gap-2 rounded-full border px-3 py-1.5 text-[15px] ${item.fontCls || 'font-bold'} ${item.boxCls}`}>
+    <span className={`inline-flex ${isSm ? 'w-[86px]' : 'w-[128px]'} items-center ${item.iconOnly ? `justify-center ${isSm ? 'px-2 py-1' : 'px-3 py-1.5'}` : `${isSm ? 'gap-1.5 px-2 py-1' : 'gap-2 px-3 py-1.5'} rounded-full border ${item.boxCls}`} ${isSm ? 'text-xs' : 'text-[15px]'} ${item.fontCls || 'font-bold'}`}>
       {item.loading ? (
-        <Loader2 size={16} strokeWidth={2.2} className="shrink-0 animate-spin text-white" />
-      ) : !Icon ? null : (
-        <Icon size={16} strokeWidth={2.2} className={`shrink-0 ${item.iconCls}`} />
-      )}
-      <span className={`truncate ${item.iconCls}`}>{item.label}</span>
+        <Loader2 size={isSm ? 14 : 18} strokeWidth={isSm ? 2.5 : 2.8} className={`shrink-0 animate-spin ${item.iconCls}`} />
+      ) : Icon ? (
+        <Icon size={isSm ? 13 : 16} strokeWidth={2.2} className={`shrink-0 ${item.iconCls}`} />
+      ) : null}
+      {item.iconOnly ? null : <span className={`truncate ${item.iconCls}`}>{item.label}</span>}
     </span>
   );
+};
+
+const TaskOutcomeBadge: React.FC<{ status?: string; verdict?: string | null }> = ({ status, verdict }) => (
+  <OutcomePill item={outcomeBadge(status, verdict)} />
+);
+
+const AttemptStatusBadge: React.FC<{ status?: string }> = ({ status }) => {
+  if (status === 'success') {
+    return <OutcomePill size="sm" item={{ label: '成功', iconCls: 'text-emerald-400', boxCls: 'border-emerald-500/30 bg-emerald-500/20', Icon: CheckCircle2 }} />;
+  }
+  return <OutcomePill size="sm" item={outcomeBadge(status, null)} />;
 };
 
 function normalizeRuledOutBy(value: unknown): string[] {
@@ -237,7 +248,6 @@ const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[] }> = ({ attemp
   return (
     <ol className="space-y-3">
       {attempts.map((att) => {
-        const isRunning = att.status === 'running';
         const isFailed = att.status === 'failed';
         const dotCls = att.status === 'success' ? 'bg-emerald-400'
           : att.status === 'failed' ? 'bg-rose-400'
@@ -259,14 +269,12 @@ const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[] }> = ({ attemp
             <div className="min-w-0 flex-1 pb-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[15px] font-medium text-theme-text-primary">第 {att.attempt_number} 次执行</span>
-                <StatusBadge status={att.status} />
-                {isRunning ? <Loader2 size={12} className="animate-spin text-blue-400" /> : null}
+                <AttemptStatusBadge status={att.status} />
               </div>
               <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs font-normal text-theme-text-muted">
                 <span>开始：{fmtTime(att.started_at)}</span>
                 <span>结束：{fmtTime(att.completed_at)}</span>
                 <span>耗时：{duration}</span>
-                {att.worker_id ? <span className="font-mono">worker: {att.worker_id}</span> : null}
               </div>
               {isFailed && failureMsg ? (
                 <div className="mt-2 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-[13px] font-normal text-rose-300 break-words">{failureMsg}</div>
