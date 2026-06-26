@@ -479,7 +479,7 @@ export const vulnApi = {
   getDownloadJobStats: async (projectId: string): Promise<DownloadCenterStatsResponse> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/download-center/stats?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
 
-  createDownloadJob: async (payload: { project_id: string; report_ids: string[] }): Promise<DownloadCenterJob> =>
+  createDownloadJob: async (payload: { project_id: string; report_ids: string[]; output_format?: 'zip' | 'xlsx' }): Promise<DownloadCenterJob> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/download-center/jobs`, {
       method: 'POST',
       headers: getHeaders(),

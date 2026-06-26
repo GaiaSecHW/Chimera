@@ -668,6 +668,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   });
   const [downloadJobsLoading, setDownloadJobsLoading] = useState(false);
   const [creatingDownload, setCreatingDownload] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [downloadActionJobId, setDownloadActionJobId] = useState<string | null>(null);
   const [detailEditMode, setDetailEditMode] = useState(false);
   const [detailSaving, setDetailSaving] = useState(false);
@@ -1733,7 +1734,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     }
   };
 
-  const handleCreateDownloadJob = async (reportIds: string[], mode: 'single' | 'batch') => {
+  const handleCreateDownloadJob = async (reportIds: string[], mode: 'single' | 'batch', outputFormat: 'zip' | 'xlsx' = 'zip') => {
     if (!projectId || reportIds.length === 0) return;
     setCreatingDownload(true);
     setError(null);
@@ -1742,6 +1743,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       await vulnApi.vuln.createDownloadJob({
         project_id: projectId,
         report_ids: reportIds,
+        output_format: outputFormat,
       });
       setRootTab('download-center');
       await loadDownloadCenter();
@@ -1753,7 +1755,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     }
   };
 
-  const handleCreateTaskDownloadJob = async () => {
+  const handleCreateTaskDownloadJob = async (outputFormat: 'zip' | 'xlsx' = 'zip') => {
     if (!projectId) return;
     setCreatingDownload(true);
     setError(null);
@@ -1793,7 +1795,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         setError('当前筛选下没有可导出的漏洞。');
         return;
       }
-      await vulnApi.vuln.createDownloadJob({ project_id: projectId, report_ids: reportIds });
+      await vulnApi.vuln.createDownloadJob({ project_id: projectId, report_ids: reportIds, output_format: outputFormat });
       setRootTab('download-center');
       await loadDownloadCenter();
       setSuccessMessage(`已创建 ${reportIds.length} 条漏洞的导出任务，请到下载中心查看。`);
@@ -1813,7 +1815,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = job.output_filename ||`${job.job_id}.zip`;
+      anchor.download = job.output_filename ||`${job.job_id}.${job.output_format === 'xlsx' ? 'xlsx' : 'zip'}`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -1990,8 +1992,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           </div>
         </div>
         <div className="overflow-hidden">
-          <div className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-3 px-4 py-2.5 border-b border-theme-border bg-theme-elevated">
-            {['任务 ID', '类型', '报告数', '状态', '文件名', '大小', '创建人', '创建时间', '完成时间', '过期时间', '错误摘要', '操作'].map((label) => (
+          <div className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_0.7fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-3 px-4 py-2.5 border-b border-theme-border bg-theme-elevated">
+            {['任务 ID', '类型', '报告数', '状态', '导出', '文件名', '大小', '创建人', '创建时间', '完成时间', '过期时间', '错误摘要', '操作'].map((label) => (
               <div key={label} className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">{label}</div>
             ))}
           </div>
@@ -2001,7 +2003,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
             <div className="px-4 py-8 text-sm bg-theme-surface text-theme-text-faint">当前项目还没有下载任务。</div>
           ) : (
             downloadJobs.map((job) => (
-              <div key={job.job_id} className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-3 px-4 py-3 text-sm last:border-b-0 border-b border-theme-border-subtle bg-theme-surface">
+              <div key={job.job_id} className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_0.7fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-3 px-4 py-3 text-sm last:border-b-0 border-b border-theme-border-subtle bg-theme-surface">
                 <div className="min-w-0">
                   <div className="truncate font-semibold font-mono text-theme-text-primary">{job.job_id}</div>
                 </div>
@@ -2012,6 +2014,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     {toDownloadStatusText(job.status)}
                   </span>
                 </div>
+                <div className="text-xs text-theme-text-muted">{job.output_format === 'xlsx' ? '表格' : '数据包'}</div>
                 <div className="truncate text-theme-text-muted">{job.output_filename || '-'}</div>
                 <div className="font-semibold tabular-nums text-theme-text-secondary">{formatBytes(job.output_size_bytes)}</div>
                 <div className="truncate text-theme-text-muted">{job.created_by || '-'}</div>
@@ -2757,16 +2760,40 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                   ) : null}
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={handleCreateTaskDownloadJob}
-                disabled={creatingDownload}
-                className="btn btn-secondary btn-sm ml-auto"
-                title="按当前筛选条件导出全部漏洞"
-              >
-                <Download size={12} />
-                {creatingDownload ? '创建中...' : '导出数据'}
-              </button>
+              <div className="relative ml-auto">
+                <button
+                  type="button"
+                  onClick={() => setExportMenuOpen((v) => !v)}
+                  disabled={creatingDownload}
+                  className="btn btn-secondary btn-sm inline-flex items-center gap-1"
+                  title="按当前筛选条件导出全部漏洞"
+                >
+                  <Download size={12} />
+                  {creatingDownload ? '创建中...' : '导出数据'}
+                  <ChevronDown size={12} />
+                </button>
+                {exportMenuOpen ? (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setExportMenuOpen(false)} />
+                    <div className="absolute right-0 z-20 mt-1 w-32 rounded-lg p-1 border border-theme-border bg-theme-surface shadow-lg">
+                      <button
+                        type="button"
+                        onClick={() => { setExportMenuOpen(false); handleCreateTaskDownloadJob('zip'); }}
+                        className="flex w-full items-start flex-col rounded-md px-2 py-1.5 text-left text-xs hover:bg-theme-elevated"
+                      >
+                        <span className="font-semibold text-theme-text-primary">导出数据包</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setExportMenuOpen(false); handleCreateTaskDownloadJob('xlsx'); }}
+                        className="flex w-full items-start flex-col rounded-md px-2 py-1.5 text-left text-xs hover:bg-theme-elevated"
+                      >
+                        <span className="font-semibold text-theme-text-primary">导出表格</span>
+                      </button>
+                    </div>
+                  </>
+                ) : null}
+              </div>
             </div>
 
             <div>
