@@ -171,6 +171,12 @@ export const appDataflowVulnScanApi = {
   getVulnFindings: async (taskId: string): Promise<any> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/vuln-findings`, { headers: getHeaders() })),
 
+  reportFinding: async (taskId: string, findingId: string): Promise<{ task_id: string; finding_id: string; report_id?: string; case_id?: string; status: string; duplicate?: boolean; error?: string }> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/vuln-findings/${encodeURIComponent(findingId)}/report`, {
+      method: 'POST',
+      headers: getHeaders(),
+    })),
+
   listTaskSessions: async (taskId: string): Promise<{ task_id: string; items: AppDfaSessionMeta[] }> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions`, { headers: getHeaders() })),
 

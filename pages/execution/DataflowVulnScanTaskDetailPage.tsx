@@ -850,6 +850,25 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
     }
   };
 
+  const [reportingFindingId, setReportingFindingId] = useState<string | null>(null);
+
+  const handleManualReport = async (findingId: string) => {
+    if (!taskId || reportingFindingId) return;
+    setReportingFindingId(findingId);
+    try {
+      const result = await appApi.reportFinding(taskId, findingId);
+      if (result.status === 'reported' || result.status === 'disabled') {
+        notify(result.duplicate ? '上报成功（重复疑点，已合并）' : `上报成功！漏洞 ID: ${result.case_id || result.report_id || '-'}`, 'success');
+      } else {
+        notify(`上报失败: ${result.error || result.status || '未知错误'}`, 'error');
+      }
+    } catch (err: any) {
+      notify(`上报请求失败: ${err?.message || err}`, 'error');
+    } finally {
+      setReportingFindingId(null);
+    }
+  };
+
   const loadVulnGraph = async () => {
     if (!taskId || vulnGraphLoading) return;
     setVulnGraphLoading(true);
@@ -1709,7 +1728,17 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
                                       <span className="text-sm font-bold text-theme-text-primary">{finding.title || finding.finding_id || '-'}</span>
                                       <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${sevTone}`}>{sevLabel[sev] || sev}</span>
                                       {finding.confidence != null ? <span className="rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[10px] font-bold text-theme-text-muted">置信度 {typeof finding.confidence === 'number' ? `${Math.round(finding.confidence * 100)}%` : finding.confidence}</span> : null}
-                                      {expanded ? <ChevronUp size={14} className="ml-auto text-theme-text-muted shrink-0" /> : <ChevronDown size={14} className="ml-auto text-theme-text-muted shrink-0" />}
+                                      <span className="flex-1" />
+                                      <button
+                                        type="button"
+                                        disabled={reportingFindingId === (finding.finding_id || fid)}
+                                        onClick={(e) => { e.stopPropagation(); handleManualReport(finding.finding_id || fid); }}
+                                        className="rounded-lg border border-theme-border px-2 py-1 text-[10px] font-semibold text-theme-text-muted hover:bg-lime-500/10 hover:text-lime-400 hover:border-lime-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="手动上报到漏洞中心"
+                                      >
+                                        {reportingFindingId === (finding.finding_id || fid) ? '⏳ 上报中...' : '📤 上报'}
+                                      </button>
+                                      {expanded ? <ChevronUp size={14} className="text-theme-text-muted shrink-0" /> : <ChevronDown size={14} className="text-theme-text-muted shrink-0" />}
                                     </div>
                                     <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-theme-text-muted">
                                       <span className="font-mono">{finding.vuln_type || 'unknown'}</span>
