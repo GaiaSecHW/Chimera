@@ -328,6 +328,14 @@ const matchesFinalResultFilter = (item: any, filters: string[]) => {
   });
 };
 
+// 将前端最终结果过滤值映射为服务端 listCases 的 final_result 单值参数。
+const mapFinalResult = (value: string): 'vulnerable' | 'not_vulnerable' | 'inconclusive' | 'analyzing' | undefined => {
+  if (value === 'vulnerable') return 'vulnerable';
+  if (value === 'not_vulnerable') return 'not_vulnerable';
+  if (value === 'pending') return 'analyzing';
+  return undefined;
+};
+
 const getCaseListStats = (items: any[]) => {
   const confirmed = items.filter((item) => isHumanFinishedCase(item) && getEffectiveResult(item) === 'vulnerable').length;
   const ruledOut = items.filter((item) => {
@@ -652,8 +660,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [manualConfirmReason, setManualConfirmReason] = useState('');
   const [manualConfirmError, setManualConfirmError] = useState('');
   const [manualConfirmSubmitting, setManualConfirmSubmitting] = useState(false);
-  const [engineTools, setEngineTools] = useState<Set<string>>(new Set());
-  const [enginesLoaded, setEnginesLoaded] = useState(false);
   const [downloadJobs, setDownloadJobs] = useState<any[]>([]);
   const [downloadStats, setDownloadStats] = useState<any>({
     total: 0,
@@ -803,9 +809,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     const requestSeq = ++suspicionRequestSeq.current;
     setLoading(true);
     setError(null);
-    if (!enginesLoaded) {
-      return;
-    }
+    const nextPage = pageOverride ?? currentPage;
     try {
       const baseParams = {
         project_id: projectId,
@@ -816,53 +820,21 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         sort_field: sortField,
         sort_direction: sortDirection,
       };
-      const matchesFinalResult = (item: any) => matchesFinalResultFilter(item, finalResultFilter);
-      const matchesSuspect = (item: any): boolean => {
-        if (item.is_human_finished) return true;
-        const reporterName: string = item?.reporter?.name || '';
-        if (reporterName && engineTools.has(reporterName)) {
-          return getEffectiveResult(item) === 'vulnerable';
-        }
-        return true;
-      };
-      const fetchAllForTask = async (taskId: string | undefined): Promise<any[]> => {
-        const first = await vulnApi.vuln.listCases({
-          ...baseParams,
-          source_task_id: taskId,
-          page: 1,
-          page_size: 500,
-        });
-        const total = Number(first.total || 0);
-        const items = [...(first.items || [])];
-        const pages = Math.ceil(total / 500);
-        for (let page = 2; page <= pages; page += 1) {
-          const next = await vulnApi.vuln.listCases({
-            ...baseParams,
-            source_task_id: taskId,
-            page,
-            page_size: 500,
-          });
-          items.push(...(next.items || []));
-        }
-        return items;
-      };
-      const taskIds = taskFilter.length > 0 ? taskFilter : [undefined];
-      const chunks: any[][] = [];
-      for (const taskId of taskIds) {
-        if (requestSeq !== suspicionRequestSeq.current) return;
-        chunks.push(await fetchAllForTask(taskId));
-      }
+
+      // 0 或 1 个任务：按表格 pageSize 做服务端分页，只查当前页。
+      const sourceTaskId = taskFilter.length === 1 ? taskFilter[0] : undefined;
+      const resp = await vulnApi.vuln.listCases({
+        ...baseParams,
+        source_task_id: sourceTaskId,
+        page: nextPage,
+        page_size: pageSize,
+      });
       if (requestSeq !== suspicionRequestSeq.current) return;
-      const merged = sortCases(
-        Array.from(new Map(chunks.flat().map((item: any) => [item.id, item])).values()),
-        sortField,
-        sortDirection,
-      );
-      const filtered = merged.filter(matchesSuspect).filter(matchesFinalResult);
-      const nextPage = pageOverride ?? currentPage;
-      setSuspicions(filtered.slice((nextPage - 1) * pageSize, nextPage * pageSize));
-      setListTotal(filtered.length);
-      setListStats(getCaseListStats(filtered));
+      const items = resp.items || [];
+      const total = Number(resp.total || 0);
+      setSuspicions(items);
+      setListTotal(total);
+      setListStats({ ...getCaseListStats(items), total });
     } catch (err: any) {
       setError(err?.message || '加载漏洞列表失败');
     } finally {
@@ -1171,27 +1143,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   useEffect(() => {
     void loadSuspicions();
-  }, [projectId, currentPage, pageSize, search, stageFilter, reporterTypeFilter, cvssBandFilter, taskFilter, finalResultFilter, sortField, sortDirection, enginesLoaded, engineTools]);
-
-  useEffect(() => {
-    let mounted = true;
-    setEnginesLoaded(false);
-    vulnApi.vuln
-      .listConfirmEngines()
-      .then((res) => {
-        if (!mounted) return;
-        const tools = new Set<string>();
-        (res?.engines || []).forEach((eng: any) => {
-          (eng?.bind_tools || []).forEach((t: string) => tools.add(t));
-        });
-        setEngineTools(tools);
-      })
-      .catch((e) => console.error('Failed to load confirm engines for suspect filter', e))
-      .finally(() => {
-        if (mounted) setEnginesLoaded(true);
-      });
-    return () => { mounted = false; };
-  }, []);
+  }, [projectId, currentPage, pageSize, search, stageFilter, reporterTypeFilter, cvssBandFilter, taskFilter, finalResultFilter, sortField, sortDirection]);
 
   useEffect(() => {
     if (rootTab !== 'download-center') return;
@@ -1774,25 +1726,17 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         search: search.trim() || undefined,
         sort_field: sortField,
         sort_direction: sortDirection,
-      };
-      const matchesFinalResult = (item: any) => matchesFinalResultFilter(item, finalResultFilter);
-      const matchesSuspect = (item: any): boolean => {
-        if (item.is_human_finished) return true;
-        const reporterName: string = item?.reporter?.name || '';
-        if (reporterName && engineTools.has(reporterName)) {
-          return getEffectiveResult(item) === 'vulnerable';
-        }
-        return true;
+        final_result: finalResultFilter.length === 1 ? mapFinalResult(finalResultFilter[0]) : undefined,
       };
       const ids: string[] = [];
       const taskIds = taskFilter.length > 0 ? taskFilter : [undefined];
       for (const taskId of taskIds) {
         const first = await vulnApi.vuln.listCases({ ...baseParams, source_task_id: taskId, page: 1, page_size: 500 });
-        ids.push(...(first.items || []).filter(matchesSuspect).filter(matchesFinalResult).map((item: any) => item.id).filter(Boolean));
+        ids.push(...(first.items || []).map((item: any) => item.id).filter(Boolean));
         const pages = Math.ceil(Number(first.total || 0) / 500);
         for (let page = 2; page <= pages; page += 1) {
           const next = await vulnApi.vuln.listCases({ ...baseParams, source_task_id: taskId, page, page_size: 500 });
-          ids.push(...(next.items || []).filter(matchesSuspect).filter(matchesFinalResult).map((item: any) => item.id).filter(Boolean));
+          ids.push(...(next.items || []).map((item: any) => item.id).filter(Boolean));
         }
       }
       const reportIds = Array.from(new Set(ids));
