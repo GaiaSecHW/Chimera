@@ -154,26 +154,53 @@ CREATE TABLE `tool_microservice` (
   COMMENT='微服务类工具的全部属性:部署/探活/前端入口/版本/健康';
 ```
 
-### agent 子类型:复用 `agent_app`(加注册 + 展示列)
+### agent 子类型:复用 `agent_app`(完整表结构 = 现有字段 + 新增注册/展示列)
 
-agent 与工具一对一,不另建表。给现有 `agent_app` 加回指列与前端入口/版本列:
+agent 与工具一对一,不另建表。下面列出 `agent_app` 的**完整结构**:上半部是现有字段(原样保留,不改),下半部是本设计新增的注册回指 + 前端入口/版本列。
 
 ```sql
+-- ========== agent_app 现有字段(保持不变,仅供对照)==========
+-- `id`                        VARCHAR(36)  NOT NULL  -- 主键
+-- `user_id`                   VARCHAR(64)  NOT NULL  -- 上传者
+-- `tenant_id`                 VARCHAR(64)  NULL       -- 租户
+-- `department_id`             INT          NULL       -- 部门
+-- `model_alias_id`            INT          NULL       -- 模型别名
+-- `name`                      VARCHAR(255) NOT NULL  -- agent 名称
+-- `engine`                    VARCHAR(50)  NOT NULL  -- opencode/claudecode/agentflow/script
+-- `agent_harness_path`        VARCHAR(500) NULL       -- harness 路径
+-- `agent_harness_repo_name`   VARCHAR(255) NULL       -- harness 仓库名
+-- `agent_harness_gitea_url`   VARCHAR(500) NULL       -- harness gitea 地址
+-- `default_agent_name`        VARCHAR(255) NOT NULL DEFAULT 'default-agent'
+-- `start_command`             TEXT         NULL       -- 启动命令
+-- `notes`                     TEXT         NULL       -- 备注
+-- `input_requirements`        TEXT         NULL       -- 输入要求
+-- `require_codedmap`          TINYINT(1)   NOT NULL DEFAULT 0
+-- `status`                    VARCHAR(50)  NOT NULL DEFAULT 'active'  -- agent 自身状态(与 tool.status 不同)
+-- `is_public`                 TINYINT(1)   NOT NULL DEFAULT 0
+-- `created_at`                DATETIME     NOT NULL
+-- `updated_at`                DATETIME     NOT NULL
+
+-- ========== 本设计新增列 ==========
 ALTER TABLE `agent_app`
-  ADD COLUMN `tool_id`         VARCHAR(36)  NULL COMMENT '回指 tool.id;NULL=未注册为工具',
+  ADD COLUMN `tool_id`         VARCHAR(36)  NULL COMMENT '回指 tool.id;NULL=未注册为平台工具,有值=已注册',
   ADD COLUMN `view_id`         VARCHAR(128) NULL COMMENT '前端路由 view',
   ADD COLUMN `icon`            VARCHAR(64)  NULL COMMENT '图标名',
-  ADD COLUMN `menu_group`      VARCHAR(64)  NULL COMMENT '所属菜单分组',
+  ADD COLUMN `menu_group`      VARCHAR(64)  NULL COMMENT '所属菜单分组,如 开发者工具',
   ADD COLUMN `order`           INT          NULL DEFAULT 0 COMMENT '菜单排序',
-  ADD COLUMN `catalog`         JSON         NULL COMMENT '总览页元数据',
-  ADD COLUMN `current_version` VARCHAR(128) NULL COMMENT '当前上线版本(commit)',
+  ADD COLUMN `catalog`         JSON         NULL COMMENT '总览页元数据 summary/tags/usageSections',
+  ADD COLUMN `current_version` VARCHAR(128) NULL COMMENT '当前上线版本(gitea commit),升版直接覆盖',
+  ADD UNIQUE KEY `uk_agent_app_tool` (`tool_id`),
   ADD CONSTRAINT `fk_agent_app_tool`
     FOREIGN KEY (`tool_id`) REFERENCES `tool`(`id`) ON DELETE SET NULL;
 ```
 
-> 全部为可空新增列,不改 `agent_app` 现有字段与数据。agent 不参与微服务探活,菜单 UNION 时健康恒为 `unknown`,故 `agent_app` 不加健康列。`engine/agent_harness_path/start_command` 等原样复用。`ON DELETE SET NULL`:删工具时 agent 退回未注册。
-
-> 仅新增一个可空列 + 外键,不改 `agent_app` 任何现有字段、不动现有数据(低风险)。engine/harness/start_command 等 16 个字段原样复用,无复制。`ON DELETE SET NULL`:删工具时把 agent_app 退回"未注册"状态,保留 agent 本身。`tool_id` 唯一性(一个 agent 只对一个工具)由应用层保证,或加唯一索引 `UNIQUE KEY uk_tool_id (tool_id)`(忽略多个 NULL)。
+说明:
+- 全部新增列可空,不改 `agent_app` 任何现有字段、不动现有数据(低风险 ALTER)。
+- `engine / agent_harness_path / agent_harness_repo_name / agent_harness_gitea_url / start_command / input_requirements` 等实现字段**原样复用**,无复制。
+- 注意区分两个 `status`:`agent_app.status`(agent 自身,如 active)与 `tool.status`(准生证)语义不同,互不覆盖;准生证以 `tool.status` 为准。
+- agent 不参与微服务探活,菜单 UNION 时健康恒为 `unknown`,故 `agent_app` 不加健康列。
+- `uk_agent_app_tool` 唯一索引保证一个工具只对一个 agent(MySQL 允许多个 NULL,不影响未注册行)。
+- `ON DELETE SET NULL`:删工具时 agent 退回未注册,保留 agent 本身。
 
 ### 字段说明(父表 `tool`)
 
