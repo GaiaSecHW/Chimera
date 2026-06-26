@@ -17,7 +17,7 @@
 
 ## 目标
 
-把「工具」按钮做成系统工具的**准生证注册中心**:注册 ≠ 可用;只有审核通过(状态=online)的工具才解锁下游能力——开放给用户 / 上报漏洞中心 / 创建任务 / 获取网关密钥。
+把「工具」按钮做成系统工具的**准生证注册中心**:注册 ≠ 可用;只有审核通过(状态=online)的工具才能被下游使用——开放给用户 / 上报漏洞中心 / 创建任务 / 获取网关密钥。下游服务以 `tool_id` 回注册中心校验有效性,防止绕过注册中心直接调用。能力不分项授权:工具一旦上线,默认即可使用全部下游能力。
 
 ## 关键决策(已与干系人对齐)
 
@@ -47,7 +47,7 @@ AgentManage 升级为全平台**唯一**的「工具注册中心」,既是系统
 
 边界(全部收敛进 AgentManage):
 - 工具档案 + 准生证状态(慢变、需审批历史)→ 持久化在 MySQL
-- 菜单可见性 → 完全由准生证状态(online + capabilities.userVisible)决定
+- 菜单可见性 → 完全由准生证状态(status=online)决定
 - 微服务工具健康 → AgentManage 后台调度器按 `runtime.healthPath` 定时探活,结果写回 `tool` 记录
 - 前端「工具」页 → 只调 AgentManage:一个接口同时拿到档案、状态、健康
 
@@ -58,7 +58,7 @@ AgentManage 升级为全平台**唯一**的「工具注册中心」,既是系统
 | 未注册 | 不展示(无准生证) |
 | draft / pending | 不展示(未过审) |
 | offline | 不展示(已下线) |
-| online 且 capabilities.userVisible | 展示 + 健康徽标 |
+| online | 展示 + 健康徽标 |
 
 结论:菜单可见性完全由准生证决定。这正是「只有注册并审核上线后才能开放给用户」诉求的落地点。
 
@@ -78,7 +78,6 @@ CREATE TABLE `tool` (
   `status`            VARCHAR(20)  NOT NULL DEFAULT 'draft'
                       COMMENT '准生证状态: draft/pending/online/offline',
   `is_builtin`        TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '是否内置种子工具',
-  `capabilities`      JSON         NULL COMMENT '能力开关位 createTask/reportVuln/gatewayKey/userVisible',
   `submitted_by`      VARCHAR(64)  NULL COMMENT '提交人',
   `reviewed_by`       VARCHAR(64)  NULL COMMENT '审核人',
   `review_note`       TEXT         NULL COMMENT '审核意见/驳回原因',
@@ -122,7 +121,6 @@ CREATE TABLE `tool` (
 | `kind` | varchar(20) | `microservice`(K8s 微服务)/ `agent`(开发者上传) |
 | `status` | varchar(20) | 准生证状态机:`draft→pending→online→offline` |
 | `is_builtin` | tinyint(1) | 内置种子工具,迁移时直接 online,闸门兜底 fail-open |
-| `capabilities` | json | 能力开关 `{createTask,reportVuln,gatewayKey,userVisible}`,闸门据此判定 |
 | `submitted_by`/`reviewed_by`/`review_note`/`reviewed_at` | — | 审核轨迹 |
 | `view_id` | varchar(128) | 前端路由 view,取代 `navigation.tsx` 硬编码 |
 | `icon`/`menu_group`/`order` | — | 菜单渲染元数据,取代 `navigation.tsx` 硬编码 |
@@ -141,7 +139,7 @@ CREATE TABLE `tool` (
 要点:
 - `catalog` 吃掉 `toolCatalog.ts` 的 summary/tags/usageSections。
 - `view_id/icon/menu_group/order` 吃掉 `navigation.tsx` 的硬编码菜单项。
-- `capabilities` 是闸门数据基础:下游校验既看 `status='online'` 也看对应能力位。
+- 闸门只校验注册有效性(`status='online'`),不做分能力授权:工具一旦上线,默认即可创建任务/上报漏洞/取密钥。闸门目的是防绕过(见设计 4),不是限权。
 - `health_status/last_health_check` 由内置探测器(设计 3)维护,前端直接读。
 
 ### 版本管理(轻治理:升版不重审)
@@ -188,11 +186,11 @@ AgentManage 后台起一个定时调度器(NestJS `@Interval` 或 cron):
 | POST | `/api/tools/:id/submit` | draft → pending | owner |
 | POST | `/api/tools/:id/review` | pending → online / 驳回,带 note | 管理员 |
 | POST | `/api/tools/:id/offline` | online → offline | 管理员/owner |
-| GET | `/api/tools` | 列表(按 status/kind/visible 过滤,含 healthStatus) | 登录用户 |
+| GET | `/api/tools` | 列表(按 status/kind 过滤,含 healthStatus) | 登录用户 |
 | GET | `/api/tools/:id` | 详情 | 登录用户 |
-| GET | `/api/tools/:id/gate?cap=createTask` | 闸门校验(下游服务调) | 服务间 |
+| GET | `/api/tools/:id/gate` | 注册有效性校验(下游服务调) | 服务间 |
 
-`gate` 判定 = `status==='online' && capabilities[cap]===true`,返回 `{ allowed: boolean, reason?: string }`。
+`gate` 判定 = `工具存在 && status==='online'`,返回 `{ allowed: boolean, reason?: string }`。它只回答"这是不是一个有效上线的工具",防止绕过注册中心直接调下游接口。不区分能力类型。
 
 ## 设计 4:能力闸门校验(下游强校验)
 
@@ -204,17 +202,19 @@ MVP 只对「创建任务」这一条链路做真实强校验。下游后端是 
    ▼
 chirmera-platform-schedule(调度中心,下游)   ← 闸门挂这里
    │ ① 取 tool_id
-   │ ② GET /api/tools/{tool_id}/gate?cap=createTask
+   │ ② GET /api/tools/{tool_id}/gate
    ▼
 AgentManage 工具注册中心
-   └─► { allowed } = (status==='online' && capabilities.createTask===true)
+   └─► { allowed } = (工具存在 && status==='online')
    ▼
 schedule:allowed=false → 拒绝建任务 + reason;true → 正常入队
 ```
 
+闸门目的是**防绕过**:没在注册中心注册(或未上线)的 `tool_id` 想直接调下游接口建任务,会被拒。不限制已上线工具的能力。
+
 MVP 范围:
 - 只在调度中心接入强校验。
-- 其余三能力(漏洞上报 / 网关密钥 / 用户可见)`gate` 接口已通用支持,下游暂不接入,后续按同一模式复制。
+- 其余下游(漏洞上报 / 网关密钥)`gate` 接口已通用(同一个无参 gate),下游暂不接入,后续按同一模式复制——校验逻辑完全一致,都是"tool_id 是否有效上线"。
 - 前端门控同步做:未上线工具不展示创建入口,与后端强校验形成双层。
 
 兜底策略:
@@ -228,7 +228,7 @@ MVP 范围:
 前端改造(去硬编码):
 
 1. 新增 `clients/toolRegistry.ts` → 调 AgentManage `/api/tools`(列表含 status + healthStatus)。
-2. `navigation.tsx`「开发者工具」分组:改为运行时拉取 `GET /api/tools?visible=true&group=开发者工具`,按 `order` 渲染,健康徽标读 `healthStatus`。黑板等 iframe 类工具同样纳入(MVP 不动黑板实现)。
+2. `navigation.tsx`「开发者工具」分组:改为运行时拉取 `GET /api/tools?status=online&group=开发者工具`,按 `order` 渲染,健康徽标读 `healthStatus`。黑板等 iframe 类工具同样纳入(MVP 不动黑板实现)。
 3. `toolCatalog.ts`:删除硬编码常量,`ToolOverviewPage` 改读注册中心 `catalog` 字段。
 4. `CreateTaskDialog`:提交带 `tool_id`;未上线工具不展示创建入口。
 5. 新增工具注册/审核页:开发者提交注册(填 runtime 或关联 agentApp),管理员审核列表(pending → online/驳回)。
@@ -253,7 +253,6 @@ MVP 范围:
 
 ## 后续阶段(非 MVP)
 
-- 漏洞上报(secflow-platform-vuln)接入 `gate?cap=reportVuln`
-- 网关密钥(aigw/configcenter)接入 `gate?cap=gatewayKey`
-- 用户可见性(`userVisible`)全面接管前端门控
+- 漏洞上报(secflow-platform-vuln)接入 `gate` 防绕过校验
+- 网关密钥(aigw/configcenter)接入 `gate` 防绕过校验
 - Agent 类工具的健康/就绪语义(harness 可拉起、engine 可用)纳入探测
