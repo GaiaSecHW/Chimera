@@ -80,7 +80,9 @@ export const deriveRuntimeDiagnoses = ({
   const heartbeatUnit = runtimeHealthUnits.find((unit) => unit.unit_key === 'task_heartbeat') || null;
   const tailUnit = runtimeHealthUnits.find((unit) => unit.unit_key === 'downstream_sync') || null;
   const operationUnit = runtimeHealthUnits.find((unit) => unit.unit_key === 'task_operation') || null;
-  const reducerLoop = runtimeHealthRelatedLoops.find((loop) => loop.loop_key === 'state_reducer') || null;
+  const stateEventInboxLoop =
+    runtimeHealthRelatedLoops.find((loop) => loop.loop_key === 'state_event_inbox')
+    || null;
   const dispatchLoop = runtimeHealthRelatedLoops.find((loop) => loop.loop_key === 'task_dispatch') || null;
   const localTaskCard = runtimeHealthSnapshotCards.find((card) => card.card_key === 'local_task_runtime') || null;
   const localWorkerAlive = findRowValue(localTaskCard, 'local_worker_alive') === 'true';
@@ -159,14 +161,14 @@ export const deriveRuntimeDiagnoses = ({
       action: '检查 continue/retry/cancel 当前 operation 是否残留 queued/running 锁但没有实际 worker 推进。',
     });
   }
-  if (reducerLoop && reducerLoop.status !== 'healthy') {
+  if (stateEventInboxLoop && stateEventInboxLoop.status !== 'healthy') {
     diagnoses.push({
-      key: 'reducer_not_healthy',
-      severity: reducerLoop.status === 'unhealthy' ? 'unhealthy' : 'degraded',
+      key: 'state_event_inbox_not_healthy',
+      severity: stateEventInboxLoop.status === 'unhealthy' ? 'unhealthy' : 'degraded',
       priority: 80,
-      title: 'State Reducer 不健康',
-      summary: reducerLoop.message || '状态归约 loop 不在健康窗口内。',
-      action: '检查 reducer pod、state events 积压和 reducer logs；否则任务状态可能不会及时收敛。',
+      title: '状态事件收件箱不健康',
+      summary: stateEventInboxLoop.message || '状态事件收件箱 loop 不在健康窗口内。',
+      action: '检查 owner pod、state events 积压和 state_event_inbox logs；否则任务状态可能不会及时收敛。',
     });
   }
   if (taskStatus === 'success' && (tailUnit?.status === 'degraded' || tailUnit?.status === 'unhealthy' || runtimeOwnerTopology.hasMismatch)) {
@@ -179,7 +181,7 @@ export const deriveRuntimeDiagnoses = ({
       action: '重点核对 stage_runs、stage_items、downstream refs 和 orchestration observability，确认没有假成功或残留执行世界。',
     });
   }
-  if (taskStatus === 'failed' && dispatchLoop?.status === 'healthy' && reducerLoop?.status === 'healthy' && operationUnit?.status !== 'healthy') {
+  if (taskStatus === 'failed' && dispatchLoop?.status === 'healthy' && stateEventInboxLoop?.status === 'healthy' && operationUnit?.status !== 'healthy') {
     diagnoses.push({
       key: 'failed_with_operation_residue',
       severity: 'degraded',

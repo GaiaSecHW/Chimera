@@ -111,8 +111,8 @@ const runtimeLoopRelation = (loopKey?: string | null) => {
       return '负责归档运行态的补偿与 reconcile，避免 archive 卡住。';
     case 'state_repair_reconcile':
       return '负责状态修复与补偿，处理 retryable 漂移事件。';
-    case 'state_reducer':
-      return '负责消费 state events 并更新 task/stage/item 的最终权威状态。';
+    case 'state_event_inbox':
+      return '负责消费状态事件收件箱并更新 task/stage/item 的最终权威状态。';
     case 'readless_reconcile':
       return '负责只读投影相关的 reconcile，影响详情页与只读视图的一致性。';
     default:
@@ -264,7 +264,7 @@ export function BinarySecurityRuntimeHealthTab({
         {runtimeHealthHotLoops.length === 0 ? <div className="mt-3 rounded-2xl border border-dashed border-theme-border bg-theme-elevated px-4 py-6 text-sm text-theme-text-muted">当前没有观测到与该任务展示相关的控制面 loop 快照。</div> : null}
       </div>
       <div className="mt-6 overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
-        <div className="border-b border-theme-border px-4 py-3"><div className="text-sm font-semibold text-theme-text-primary">原始运行单元明细</div><div className="mt-1 text-[11px] text-theme-text-muted">保留完整表格，便于和 reducer / orchestrator / pod 日志逐项对照。</div></div>
+        <div className="border-b border-theme-border px-4 py-3"><div className="text-sm font-semibold text-theme-text-primary">原始运行单元明细</div><div className="mt-1 text-[11px] text-theme-text-muted">保留完整表格，便于和状态事件收件箱 / orchestrator / pod 日志逐项对照。</div></div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-theme-border text-left text-xs">
             <thead className="bg-theme-elevated text-[11px] font-semibold uppercase tracking-[0.12em] text-theme-text-muted"><tr><th className="min-w-[150px] px-4 py-3">名称</th><th className="w-24 px-4 py-3">类型</th><th className="w-24 px-4 py-3">状态</th><th className="min-w-[140px] px-4 py-3">Owner</th><th className="min-w-[150px] px-4 py-3">最近心跳</th><th className="w-24 px-4 py-3">持续/年龄</th><th className="min-w-[260px] px-4 py-3">原因 / 证据</th></tr></thead>

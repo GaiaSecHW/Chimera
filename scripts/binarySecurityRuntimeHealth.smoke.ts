@@ -98,7 +98,7 @@ const runSuccessDriftScenario = () => {
     task_lease_owner_instance_id: 'worker-b',
   });
   const units = [makeUnit('downstream_sync', 'degraded', 'sync stale')];
-  const loops = [makeLoop('state_reducer', 'healthy')];
+  const loops = [makeLoop('state_event_inbox', 'healthy')];
   const cards = [
     { card_key: 'local_task_runtime', rows: [{ label: 'local_worker_alive', value: 'false' }, { label: 'local_owner', value: 'false' }] },
     { card_key: 'local_stage_workers', rows: [{ label: 'local_stage_worker_count', value: '0' }, { label: 'active_stage_item_count', value: '0' }] },
@@ -111,7 +111,7 @@ const runSuccessDriftScenario = () => {
 const runHealthyScenario = () => {
   const detail = makeDetail({ status: 'running', dispatcher_instance_id: 'worker-a', task_lease_owner_instance_id: 'worker-a' });
   const units = [makeUnit('task_worker', 'healthy'), makeUnit('task_heartbeat', 'healthy')];
-  const loops = [makeLoop('task_dispatch', 'healthy'), makeLoop('state_reducer', 'healthy')];
+  const loops = [makeLoop('task_dispatch', 'healthy'), makeLoop('state_event_inbox', 'healthy')];
   const cards = [
     { card_key: 'local_task_runtime', rows: [{ label: 'local_worker_alive', value: 'true' }, { label: 'local_owner', value: 'true' }] },
     { card_key: 'local_stage_workers', rows: [{ label: 'local_stage_worker_count', value: '1' }, { label: 'active_stage_item_count', value: '1' }] },

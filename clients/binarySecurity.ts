@@ -867,7 +867,7 @@ export interface BinarySecuritySyncEventPage {
   items: BinarySecuritySyncEvent[];
 }
 
-export interface BinarySecurityReducerEventRecordSummary {
+export interface BinarySecurityStateEventInboxEventRecordSummary {
   pending_count: number;
   processing_count: number;
   retryable_count: number;
@@ -880,7 +880,7 @@ export interface BinarySecurityReducerEventRecordSummary {
   avg_processing_duration_ms?: number | null;
 }
 
-export interface BinarySecurityReducerEventRecord {
+export interface BinarySecurityStateEventInboxEventRecord {
   event_id: string;
   task_id: string;
   project_id: string;
@@ -906,14 +906,18 @@ export interface BinarySecurityReducerEventRecord {
   idempotency_key?: string | null;
 }
 
-export interface BinarySecurityReducerEventRecordPage {
+export interface BinarySecurityStateEventInboxEventRecordPage {
   total: number;
   page: number;
   page_size: number;
   truncated: boolean;
-  items: BinarySecurityReducerEventRecord[];
-  summary: BinarySecurityReducerEventRecordSummary;
+  items: BinarySecurityStateEventInboxEventRecord[];
+  summary: BinarySecurityStateEventInboxEventRecordSummary;
 }
+
+export type BinarySecurityReducerEventRecordSummary = BinarySecurityStateEventInboxEventRecordSummary;
+export type BinarySecurityReducerEventRecord = BinarySecurityStateEventInboxEventRecord;
+export type BinarySecurityReducerEventRecordPage = BinarySecurityStateEventInboxEventRecordPage;
 
 export interface BinarySecurityArtifacts {
   task_id: string;
@@ -1127,7 +1131,7 @@ export const binarySecurityApi = {
     return handleResponse(resp);
   },
 
-  getReducerEvents: async (params?: {
+  getStateEventInboxEvents: async (params?: {
     page?: number;
     page_size?: number;
     sort_by?: 'processed_at' | 'duration_ms' | 'created_at';
@@ -1153,7 +1157,7 @@ export const binarySecurityApi = {
     if (params?.failed_only) query.set('failed_only', 'true');
     if (params?.slow_only) query.set('slow_only', 'true');
     const q = query.size > 0 ? `?${query.toString()}` : '';
-    const resp = await fetch(`${API_BASE}/api/app/binary-security/reducer/events${q}`, {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/state-events${q}`, {
       headers: getHeaders(),
       cache: 'no-store',
     });

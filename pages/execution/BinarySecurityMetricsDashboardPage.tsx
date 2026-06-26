@@ -20,7 +20,7 @@ import {
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import { api } from '../../clients/api';
-import type { BinarySecurityReducerEventRecord, BinarySecurityReducerEventRecordPage } from '../../clients/binarySecurity';
+import type { BinarySecurityStateEventInboxEventRecord, BinarySecurityStateEventInboxEventRecordPage } from '../../clients/binarySecurity';
 import {
   BINARY_SECURITY_AI_DIMENSION_LABEL_KEYS,
   BINARY_SECURITY_CANONICAL_AI_METRICS,
@@ -173,9 +173,9 @@ type AggregateCoverageSummary = {
   attemptedByRole: Array<{ role: string; attempted: number; successful: number }>;
 };
 
-type ReducerEventState = {
+type StateEventInboxState = {
   loading: boolean;
-  data: BinarySecurityReducerEventRecordPage | null;
+  data: BinarySecurityStateEventInboxEventRecordPage | null;
   error: string | null;
   refreshedAt: number | null;
 };
@@ -210,8 +210,8 @@ type AgentKillHistoryEntry = {
   response: AgentProcessKillResponse;
 };
 
-type ReducerEventSortBy = 'processed_at' | 'duration_ms' | 'created_at';
-type ReducerEventSortOrder = 'asc' | 'desc';
+type StateEventInboxSortBy = 'processed_at' | 'duration_ms' | 'created_at';
+type StateEventInboxSortOrder = 'asc' | 'desc';
 
 type RestApiRouteSummary = {
   route: string;
@@ -416,7 +416,7 @@ type SystemAnalysisViewModel = {
   stagePressureRows: Array<{ stage: string; pressureScore: number; runningRuns: number; avgDurationSeconds: number | null; successRate: number | null; tone: string }>;
 };
 
-type BinarySecurityReducerSnapshot = {
+type BinarySecurityStateEventInboxSnapshot = {
   capturedAt: number;
   pendingDepth: number | null;
   processingDepth: number | null;
@@ -427,17 +427,17 @@ type BinarySecurityReducerSnapshot = {
   oldestProcessingAge: number | null;
   oldestRetryableAge: number | null;
   oldestDeadLetterAge: number | null;
-  reducerRunSuccess: number | null;
-  reducerRunFailed: number | null;
-  reducerRunLockBusy: number | null;
-  reducerRunSkipped: number | null;
-  reducerAvgDurationSeconds: number | null;
+  stateEventInboxRunSuccess: number | null;
+  stateEventInboxRunFailed: number | null;
+  stateEventInboxRunLockBusy: number | null;
+  stateEventInboxRunSkipped: number | null;
+  stateEventInboxAvgDurationSeconds: number | null;
   eventAvgLagSeconds: number | null;
   lockWaitAvgSeconds: number | null;
   lockHeldAvgSeconds: number | null;
 };
 
-type ReducerQueueCard = {
+type StateEventInboxQueueCard = {
   label: string;
   value: number | null;
   hint: string;
@@ -445,13 +445,13 @@ type ReducerQueueCard = {
   icon: React.ReactNode;
 };
 
-type ReducerBreakdownItem = {
+type StateEventInboxBreakdownItem = {
   label: string;
   value: number | null;
   tone: string;
 };
 
-type BinarySecurityReducerViewModel = {
+type BinarySecurityStateEventInboxViewModel = {
   snapshotMeta: {
     available: boolean;
     stale: boolean;
@@ -459,22 +459,22 @@ type BinarySecurityReducerViewModel = {
     sourcePod: string | null;
     generatedAtTimestamp: number | null;
   };
-  queueCards: ReducerQueueCard[];
+  queueCards: StateEventInboxQueueCard[];
   queueBarData: Array<{ name: string; value: number | null; tone: string }>;
   ageBarData: Array<{ name: string; value: number | null; tone: string }>;
   healthSummary: Array<{ label: string; value: string; tone: string; hint: string }>;
-  reducerRuns: ReducerBreakdownItem[];
-  reducerEventResults: ReducerBreakdownItem[];
-  deadLetters: ReducerBreakdownItem[];
-  fileWriteResults: ReducerBreakdownItem[];
-  activeLocks: ReducerBreakdownItem[];
+  stateEventInboxRuns: StateEventInboxBreakdownItem[];
+  stateEventInboxEventResults: StateEventInboxBreakdownItem[];
+  deadLetters: StateEventInboxBreakdownItem[];
+  fileWriteResults: StateEventInboxBreakdownItem[];
+  activeLocks: StateEventInboxBreakdownItem[];
   timeSeries: Array<{
     time: string;
     pending: number | null;
     retryable: number | null;
     deadLetter: number | null;
     oldestPendingAge: number | null;
-    reducerAvgDurationSeconds: number | null;
+    stateEventInboxAvgDurationSeconds: number | null;
     eventAvgLagSeconds: number | null;
   }>;
 };
@@ -482,9 +482,9 @@ type BinarySecurityReducerViewModel = {
 type BinarySecurityObservabilityViewModel = {
   overviewCards: Array<{ label: string; value: string; hint: string; tone: string; icon: React.ReactNode }>;
   alerts: Array<{ label: string; text: string; tone: string }>;
-  pipelineSummary: ReducerBreakdownItem[];
-  reducerSummary: ReducerBreakdownItem[];
-  syncSummary: ReducerBreakdownItem[];
+  pipelineSummary: StateEventInboxBreakdownItem[];
+  stateEventInboxSummary: StateEventInboxBreakdownItem[];
+  syncSummary: StateEventInboxBreakdownItem[];
   taskListPerformance: {
     topCards: Array<{ label: string; value: string; hint: string; tone: string }>;
     stageRows: Array<{ stage: string; p95Seconds: number | null; avgSeconds: number | null; count: number | null; tone: string }>;
@@ -496,7 +496,7 @@ type BinarySecurityObservabilityViewModel = {
 const GROUP_LABELS: Record<BinarySecurityMetricsGroup, string> = {
   health: '健康',
   orchestration: '编排',
-  reducer: 'Reducer',
+  'state-event-inbox': 'StateEventInbox',
   lock: '锁',
   http: 'HTTP',
   task: '任务',
@@ -513,7 +513,7 @@ const GROUP_LABELS: Record<BinarySecurityMetricsGroup, string> = {
 const GROUP_BADGE: Record<BinarySecurityMetricsGroup, { backgroundColor: string; borderColor: string; color: string }> = {
   health: { backgroundColor: LK.success, borderColor: LK.success, color: LK.ink },
   orchestration: { backgroundColor: '#14b8a6', borderColor: '#14b8a6', color: LK.ink },
-  reducer: { backgroundColor: '#06b6d4', borderColor: '#06b6d4', color: LK.ink },
+  'state-event-inbox': { backgroundColor: '#06b6d4', borderColor: '#06b6d4', color: LK.ink },
   lock: { backgroundColor: LK.warning, borderColor: LK.warning, color: LK.ink },
   http: { backgroundColor: LK.info, borderColor: LK.info, color: LK.ink },
   task: { backgroundColor: LK.surfaceRaised, borderColor: LK.border, color: LK.ink },
@@ -673,9 +673,9 @@ const metricGroupingFingerprint = (metric: ParsedMetricSample) => {
 };
 
 const BINARY_SECURITY_GROUP_RULES: Array<{ group: BinarySecurityMetricsGroup; pattern: RegExp }> = [
-  { group: 'health', pattern: /metrics_aggregate_(scrape|partial|last_success)|reducer_snapshot_(available|age|stale|generated_at|source_info)/u },
+  { group: 'health', pattern: /metrics_aggregate_(scrape|partial|last_success)|stateEventInbox_snapshot_(available|age|stale|generated_at|source_info)/u },
   { group: 'lock', pattern: /task_state_lock_(wait|held|active)|lock_busy/u },
-  { group: 'reducer', pattern: /state_(event|reducer|dead_letter|file_write)|archive_jobs_by_status/u },
+  { group: 'state-event-inbox', pattern: /state_(event|stateEventInbox|dead_letter|file_write)|archive_jobs_by_status/u },
   { group: 'orchestration', pattern: /downstream|dispatch|stage_duration|task_lifecycle|task_operations|archive_actions|downstream_reconcile/u },
   { group: 'queue', pattern: /queue_depth|queue_oldest_age|pending|backlog|retryable|dead_letter/u },
   { group: 'worker', pattern: /active_workers|slot_usage|scheduler|dispatcher|heartbeat|owner|runner|pod/u },
@@ -848,9 +848,9 @@ const buildBinarySecurityObservabilityViewModel = (
     { name: 'chimera_binary_security_health_oldest_pending_age_seconds' },
     { name: 'chimera_binary_security_state_event_oldest_age_seconds', labels: { status: 'pending' } },
   ]);
-  const reducerAvgDuration =
-    firstMetricValue(rows, [{ name: 'chimera_binary_security_health_reducer_avg_duration_seconds' }]) ??
-    histogramAverage(rows, 'chimera_binary_security_state_reducer_duration_seconds');
+  const stateEventInboxAvgDuration =
+    firstMetricValue(rows, [{ name: 'chimera_binary_security_health_stateEventInbox_avg_duration_seconds' }]) ??
+    histogramAverage(rows, 'chimera_binary_security_state_stateEventInbox_duration_seconds');
   const eventAvgLag =
     firstMetricValue(rows, [{ name: 'chimera_binary_security_health_event_avg_lag_seconds' }]) ??
     histogramAverage(rows, 'chimera_binary_security_state_event_lag_seconds');
@@ -862,8 +862,8 @@ const buildBinarySecurityObservabilityViewModel = (
     histogramAverage(rows, 'chimera_binary_security_task_state_lock_held_seconds');
   const activeLocks = sumMetric(rows, (row) => row.name === 'chimera_binary_security_task_state_lock_active');
   const deadLettersTotal = sumMetric(rows, (row) => row.name === 'chimera_binary_security_state_dead_letters_total');
-  const reducerRunFailed = sumMetric(rows, (row) => row.name === 'chimera_binary_security_state_reducer_runs_total' && row.labels.result === 'failed');
-  const reducerRunLockBusy = sumMetric(rows, (row) => row.name === 'chimera_binary_security_state_reducer_runs_total' && row.labels.result === 'lock_busy');
+  const stateEventInboxRunFailed = sumMetric(rows, (row) => row.name === 'chimera_binary_security_state_stateEventInbox_runs_total' && row.labels.result === 'failed');
+  const stateEventInboxRunLockBusy = sumMetric(rows, (row) => row.name === 'chimera_binary_security_state_stateEventInbox_runs_total' && row.labels.result === 'lock_busy');
   const archiveQueued =
     firstMetricValue(rows, [{ name: 'chimera_binary_security_health_archive_queued_jobs' }]) ??
     sumMetric(rows, (row) => row.name === 'chimera_binary_security_archive_jobs_by_status' && row.labels.status === 'queued');
@@ -946,7 +946,7 @@ const buildBinarySecurityObservabilityViewModel = (
   if ((deadLetterDepth || 0) > 0 || deadLettersTotal > 0) {
     alerts.push({
       label: '存在死信',
-      text:`当前死信队列 ${formatNumber(deadLetterDepth)}，累计死信 ${formatNumber(deadLettersTotal)}，需要优先排查 reducer 应用失败原因。`,
+      text:`当前死信队列 ${formatNumber(deadLetterDepth)}，累计死信 ${formatNumber(deadLettersTotal)}，需要优先排查 stateEventInbox 应用失败原因。`,
       tone: 'border-rose-500/20 bg-rose-500/15 text-rose-400',
     });
   }
@@ -1039,17 +1039,17 @@ const buildBinarySecurityObservabilityViewModel = (
         icon: <TimerReset size={16} />,
       },
       {
-        label: 'Reducer 平均耗时',
-        value: formatSeconds(reducerAvgDuration),
+        label: 'StateEventInbox 平均耗时',
+        value: formatSeconds(stateEventInboxAvgDuration),
         hint:`事件平均收口延迟 ${formatSeconds(eventAvgLag)}`,
-        tone: (reducerAvgDuration || 0) > 1 ? 'text-amber-400' : 'text-theme-text-primary',
+        tone: (stateEventInboxAvgDuration || 0) > 1 ? 'text-amber-400' : 'text-theme-text-primary',
         icon: <Activity size={16} />,
       },
       {
         label: '锁忙 / 失败',
-        value:`${formatNumber(reducerRunLockBusy)} / ${formatNumber(reducerRunFailed)}`,
-        hint: 'reducer run 结果',
-        tone: reducerRunFailed > 0 ? 'text-rose-400' : reducerRunLockBusy > 0 ? 'text-amber-400' : 'text-emerald-400',
+        value:`${formatNumber(stateEventInboxRunLockBusy)} / ${formatNumber(stateEventInboxRunFailed)}`,
+        hint: 'stateEventInbox run 结果',
+        tone: stateEventInboxRunFailed > 0 ? 'text-rose-400' : stateEventInboxRunLockBusy > 0 ? 'text-amber-400' : 'text-emerald-400',
         icon: <RefreshCw size={16} />,
       },
       {
@@ -1083,10 +1083,10 @@ const buildBinarySecurityObservabilityViewModel = (
       { label: 'retryable events', value: retryableDepth, tone: (retryableDepth || 0) > 0 ? 'text-amber-400' : 'text-theme-text-secondary' },
       { label: 'dead letters total', value: deadLettersTotal, tone: deadLettersTotal > 0 ? 'text-rose-400' : 'text-theme-text-secondary' },
     ],
-    reducerSummary: [
+    stateEventInboxSummary: [
       { label: 'oldest pending age', value: oldestPendingAge, tone: (oldestPendingAge || 0) > 60 ? 'text-rose-400' : 'text-theme-text-secondary' },
       { label: 'event avg lag', value: eventAvgLag, tone: (eventAvgLag || 0) > 30 ? 'text-rose-400' : 'text-theme-text-secondary' },
-      { label: 'reducer avg duration', value: reducerAvgDuration, tone: (reducerAvgDuration || 0) > 1 ? 'text-amber-400' : 'text-theme-text-secondary' },
+      { label: 'stateEventInbox avg duration', value: stateEventInboxAvgDuration, tone: (stateEventInboxAvgDuration || 0) > 1 ? 'text-amber-400' : 'text-theme-text-secondary' },
       { label: 'lock wait avg', value: lockWaitAvg, tone: (lockWaitAvg || 0) > 0.3 ? 'text-orange-400' : 'text-theme-text-secondary' },
       { label: 'lock held avg', value: lockHeldAvg, tone: (lockHeldAvg || 0) > 1.5 ? 'text-rose-400' : 'text-theme-text-secondary' },
       { label: 'active locks', value: activeLocks, tone: activeLocks > 0 ? 'text-orange-400' : 'text-theme-text-secondary' },
@@ -1691,7 +1691,7 @@ const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisV
   };
 };
 
-const buildBinarySecurityReducerSnapshot = (rows: DisplayMetricRow[]): BinarySecurityReducerSnapshot => ({
+const buildBinarySecurityStateEventInboxSnapshot = (rows: DisplayMetricRow[]): BinarySecurityStateEventInboxSnapshot => ({
   capturedAt: Date.now(),
   pendingDepth: metricValueByName(rows, 'chimera_binary_security_state_event_queue_depth', { status: 'pending' }),
   processingDepth: metricValueByName(rows, 'chimera_binary_security_state_event_queue_depth', { status: 'processing' }),
@@ -1702,22 +1702,22 @@ const buildBinarySecurityReducerSnapshot = (rows: DisplayMetricRow[]): BinarySec
   oldestProcessingAge: metricValueByName(rows, 'chimera_binary_security_state_event_oldest_age_seconds', { status: 'processing' }),
   oldestRetryableAge: metricValueByName(rows, 'chimera_binary_security_state_event_oldest_age_seconds', { status: 'retryable' }),
   oldestDeadLetterAge: metricValueByName(rows, 'chimera_binary_security_state_event_oldest_age_seconds', { status: 'dead_letter' }),
-  reducerRunSuccess: metricValueByName(rows, 'chimera_binary_security_state_reducer_runs_total', { result: 'success' }),
-  reducerRunFailed: metricValueByName(rows, 'chimera_binary_security_state_reducer_runs_total', { result: 'failed' }),
-  reducerRunLockBusy: metricValueByName(rows, 'chimera_binary_security_state_reducer_runs_total', { result: 'lock_busy' }),
-  reducerRunSkipped: metricValueByName(rows, 'chimera_binary_security_state_reducer_runs_total', { result: 'skipped' }),
-  reducerAvgDurationSeconds: histogramAverage(rows, 'chimera_binary_security_state_reducer_duration_seconds'),
+  stateEventInboxRunSuccess: metricValueByName(rows, 'chimera_binary_security_state_stateEventInbox_runs_total', { result: 'success' }),
+  stateEventInboxRunFailed: metricValueByName(rows, 'chimera_binary_security_state_stateEventInbox_runs_total', { result: 'failed' }),
+  stateEventInboxRunLockBusy: metricValueByName(rows, 'chimera_binary_security_state_stateEventInbox_runs_total', { result: 'lock_busy' }),
+  stateEventInboxRunSkipped: metricValueByName(rows, 'chimera_binary_security_state_stateEventInbox_runs_total', { result: 'skipped' }),
+  stateEventInboxAvgDurationSeconds: histogramAverage(rows, 'chimera_binary_security_state_stateEventInbox_duration_seconds'),
   eventAvgLagSeconds: histogramAverage(rows, 'chimera_binary_security_state_event_lag_seconds'),
   lockWaitAvgSeconds: histogramAverage(rows, 'chimera_binary_security_task_state_lock_wait_seconds'),
   lockHeldAvgSeconds: histogramAverage(rows, 'chimera_binary_security_task_state_lock_held_seconds'),
 });
 
-const buildBinarySecurityReducerSnapshotMeta = (rows: DisplayMetricRow[]) => ({
-  available: (metricValueByName(rows, 'chimera_binary_security_reducer_snapshot_available') || 0) > 0,
-  stale: (metricValueByName(rows, 'chimera_binary_security_reducer_snapshot_stale') || 0) > 0,
-  ageSeconds: metricValueByName(rows, 'chimera_binary_security_reducer_snapshot_age_seconds'),
-  sourcePod: rows.find((row) => row.name === 'chimera_binary_security_reducer_snapshot_source_info')?.labels.pod || null,
-  generatedAtTimestamp: metricValueByName(rows, 'chimera_binary_security_reducer_snapshot_generated_at_timestamp_seconds'),
+const buildBinarySecurityStateEventInboxSnapshotMeta = (rows: DisplayMetricRow[]) => ({
+  available: (metricValueByName(rows, 'chimera_binary_security_stateEventInbox_snapshot_available') || 0) > 0,
+  stale: (metricValueByName(rows, 'chimera_binary_security_stateEventInbox_snapshot_stale') || 0) > 0,
+  ageSeconds: metricValueByName(rows, 'chimera_binary_security_stateEventInbox_snapshot_age_seconds'),
+  sourcePod: rows.find((row) => row.name === 'chimera_binary_security_stateEventInbox_snapshot_source_info')?.labels.pod || null,
+  generatedAtTimestamp: metricValueByName(rows, 'chimera_binary_security_stateEventInbox_snapshot_generated_at_timestamp_seconds'),
 });
 
 const buildB2SBusinessViewModel = (rows: DisplayMetricRow[]): B2SBusinessViewModel => {
@@ -2268,8 +2268,8 @@ const buildDataflowAnalysisViewModel = (rows: DisplayMetricRow[]): DataflowAnaly
   };
 };
 
-const dedupeReducerHistory = (history: BinarySecurityReducerSnapshot[]) => {
-  const result: BinarySecurityReducerSnapshot[] = [];
+const dedupeStateEventInboxHistory = (history: BinarySecurityStateEventInboxSnapshot[]) => {
+  const result: BinarySecurityStateEventInboxSnapshot[] = [];
   for (const item of history) {
     const prev = result[result.length - 1];
     if (
@@ -2279,9 +2279,9 @@ const dedupeReducerHistory = (history: BinarySecurityReducerSnapshot[]) => {
       prev.retryableDepth === item.retryableDepth &&
       prev.deadLetterDepth === item.deadLetterDepth &&
       prev.oldestPendingAge === item.oldestPendingAge &&
-      prev.reducerRunSuccess === item.reducerRunSuccess &&
-      prev.reducerRunFailed === item.reducerRunFailed &&
-      prev.reducerAvgDurationSeconds === item.reducerAvgDurationSeconds &&
+      prev.stateEventInboxRunSuccess === item.stateEventInboxRunSuccess &&
+      prev.stateEventInboxRunFailed === item.stateEventInboxRunFailed &&
+      prev.stateEventInboxAvgDurationSeconds === item.stateEventInboxAvgDurationSeconds &&
       prev.eventAvgLagSeconds === item.eventAvgLagSeconds
     ) {
       result[result.length - 1] = item;
@@ -2292,9 +2292,9 @@ const dedupeReducerHistory = (history: BinarySecurityReducerSnapshot[]) => {
   return result.slice(-24);
 };
 
-const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: BinarySecurityReducerSnapshot[]): BinarySecurityReducerViewModel => {
-  const snapshot = buildBinarySecurityReducerSnapshot(rows);
-  const snapshotMeta = buildBinarySecurityReducerSnapshotMeta(rows);
+const buildBinarySecurityStateEventInboxViewModel = (rows: DisplayMetricRow[], history: BinarySecurityStateEventInboxSnapshot[]): BinarySecurityStateEventInboxViewModel => {
+  const snapshot = buildBinarySecurityStateEventInboxSnapshot(rows);
+  const snapshotMeta = buildBinarySecurityStateEventInboxSnapshotMeta(rows);
   const deadLetters = rows
     .filter((row) => row.name === 'chimera_binary_security_state_dead_letters_total')
     .sort((left, right) => right.value - left.value)
@@ -2304,8 +2304,8 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
       value: row.value,
       tone: (row.value || 0) > 0 ? 'text-rose-400' : 'text-theme-text-muted',
     }));
-  const reducerEventResults = rows
-    .filter((row) => row.name === 'chimera_binary_security_state_reducer_events_total')
+  const stateEventInboxEventResults = rows
+    .filter((row) => row.name === 'chimera_binary_security_state_stateEventInbox_events_total')
     .sort((left, right) => right.value - left.value)
     .slice(0, 8)
     .map((row) => ({
@@ -2331,7 +2331,7 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
       tone: (row.value || 0) > 0 ? 'text-indigo-400' : 'text-theme-text-muted',
     }));
 
-  const queueCards: ReducerQueueCard[] = [
+  const queueCards: StateEventInboxQueueCard[] = [
     {
       label: '待处理事件',
       value: snapshot.pendingDepth,
@@ -2362,7 +2362,7 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
     },
   ];
 
-  const mergedHistory = dedupeReducerHistory([...history, snapshot]);
+  const mergedHistory = dedupeStateEventInboxHistory([...history, snapshot]);
   return {
     snapshotMeta,
     queueCards,
@@ -2381,16 +2381,16 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
     ],
     healthSummary: [
       {
-        label: 'Reducer 平均单次耗时',
-        value: formatSeconds(snapshot.reducerAvgDurationSeconds),
-        tone: (snapshot.reducerAvgDurationSeconds || 0) > 1 ? 'text-amber-400' : 'text-theme-text-primary',
-        hint: '来自`state_reducer_duration_seconds` 均值',
+        label: 'StateEventInbox 平均单次耗时',
+        value: formatSeconds(snapshot.stateEventInboxAvgDurationSeconds),
+        tone: (snapshot.stateEventInboxAvgDurationSeconds || 0) > 1 ? 'text-amber-400' : 'text-theme-text-primary',
+        hint: '来自`state_stateEventInbox_duration_seconds` 均值',
       },
       {
         label: '事件平均收口延迟',
         value: formatSeconds(snapshot.eventAvgLagSeconds),
         tone: (snapshot.eventAvgLagSeconds || 0) > 30 ? 'text-rose-400' : 'text-theme-text-primary',
-        hint: '从事件创建到 reducer 应用完成',
+        hint: '从事件创建到 stateEventInbox 应用完成',
       },
       {
         label: '锁等待均值',
@@ -2405,13 +2405,13 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
         hint: '串行应用期间锁占用时长',
       },
     ],
-    reducerRuns: [
-      { label: 'success', value: snapshot.reducerRunSuccess, tone: 'text-emerald-400' },
-      { label: 'failed', value: snapshot.reducerRunFailed, tone: 'text-rose-400' },
-      { label: 'lock_busy', value: snapshot.reducerRunLockBusy, tone: 'text-amber-400' },
-      { label: 'skipped', value: snapshot.reducerRunSkipped, tone: 'text-theme-text-secondary' },
+    stateEventInboxRuns: [
+      { label: 'success', value: snapshot.stateEventInboxRunSuccess, tone: 'text-emerald-400' },
+      { label: 'failed', value: snapshot.stateEventInboxRunFailed, tone: 'text-rose-400' },
+      { label: 'lock_busy', value: snapshot.stateEventInboxRunLockBusy, tone: 'text-amber-400' },
+      { label: 'skipped', value: snapshot.stateEventInboxRunSkipped, tone: 'text-theme-text-secondary' },
     ],
-    reducerEventResults,
+    stateEventInboxEventResults,
     deadLetters,
     fileWriteResults,
     activeLocks,
@@ -2421,7 +2421,7 @@ const buildBinarySecurityReducerViewModel = (rows: DisplayMetricRow[], history: 
       retryable: item.retryableDepth,
       deadLetter: item.deadLetterDepth,
       oldestPendingAge: item.oldestPendingAge,
-      reducerAvgDurationSeconds: item.reducerAvgDurationSeconds,
+      stateEventInboxAvgDurationSeconds: item.stateEventInboxAvgDurationSeconds,
       eventAvgLagSeconds: item.eventAvgLagSeconds,
     })),
   };
@@ -2437,7 +2437,7 @@ const EmptyCard: React.FC<{ text: string }> = ({ text }) => (
   </div>
 );
 
-const INITIAL_REDUCER_EVENT_STATE: ReducerEventState = { loading: false, data: null, error: null, refreshedAt: null };
+const INITIAL_REDUCER_EVENT_STATE: StateEventInboxState = { loading: false, data: null, error: null, refreshedAt: null };
 
 const INITIAL_DFA_WORKER_DETAIL_STATE: DfaWorkerDetailState = {
   loading: false,
@@ -2492,7 +2492,7 @@ const buildAgentRuntimeSummaryFromState = (
   };
 };
 
-const ReducerMetricList: React.FC<{ title: string; items: ReducerBreakdownItem[]; emptyText: string }> = ({ title, items, emptyText }) => (
+const StateEventInboxMetricList: React.FC<{ title: string; items: StateEventInboxBreakdownItem[]; emptyText: string }> = ({ title, items, emptyText }) => (
   <div style={{ backgroundColor: LK.surface, borderColor: LK.border, borderWidth: '1px', borderStyle: 'solid', borderRadius: '12px', padding: '16px' }}>
     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>{title}</div>
     <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -2510,11 +2510,11 @@ const ReducerMetricList: React.FC<{ title: string; items: ReducerBreakdownItem[]
   </div>
 );
 
-const reducerFailedKinds = new Set(['retryable', 'dead_letter', 'reducer_failed', 'lease_expired', 'unknown']);
+const stateEventInboxFailedKinds = new Set(['retryable', 'dead_letter', 'stateEventInbox_failed', 'lease_expired', 'unknown']);
 
-function reducerRowStyle(item: BinarySecurityReducerEventRecord): React.CSSProperties {
+function stateEventInboxRowStyle(item: BinarySecurityStateEventInboxEventRecord): React.CSSProperties {
   const baseStyle = {};
-  if (reducerFailedKinds.has(item.failure_kind)) {
+  if (stateEventInboxFailedKinds.has(item.failure_kind)) {
     return { ...baseStyle, backgroundColor: 'rgba(241, 93, 93, 0.15)' };
   }
   return baseStyle;
@@ -2559,21 +2559,21 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
   const [restApiMethodFilter, setRestApiMethodFilter] = useState<'all' | string>('all');
   const [restApiSlowOnly, setRestApiSlowOnly] = useState(false);
   const [restApiHideInfra, setRestApiHideInfra] = useState(true);
-  const [reducerHistoryByService, setReducerHistoryByService] = useState<Record<BinarySecurityMetricsServiceKey, BinarySecurityReducerSnapshot[]>>(
-    Object.fromEntries(BINARY_SECURITY_METRICS_SERVICES.map((service) => [service.key, []])) as Record<BinarySecurityMetricsServiceKey, BinarySecurityReducerSnapshot[]>,
+  const [stateEventInboxHistoryByService, setStateEventInboxHistoryByService] = useState<Record<BinarySecurityMetricsServiceKey, BinarySecurityStateEventInboxSnapshot[]>>(
+    Object.fromEntries(BINARY_SECURITY_METRICS_SERVICES.map((service) => [service.key, []])) as Record<BinarySecurityMetricsServiceKey, BinarySecurityStateEventInboxSnapshot[]>,
   );
-  const [reducerMetricsState, setReducerMetricsState] = useState<MetricsState>(INITIAL_STATE);
-  const [reducerEventState, setReducerEventState] = useState<ReducerEventState>(INITIAL_REDUCER_EVENT_STATE);
-  const [reducerEventPage, setReducerEventPage] = useState(1);
-  const [reducerEventPageSize, setReducerEventPageSize] = useState(50);
-  const [reducerEventSortBy, setReducerEventSortBy] = useState<ReducerEventSortBy>('processed_at');
-  const [reducerEventSortOrder, setReducerEventSortOrder] = useState<ReducerEventSortOrder>('desc');
-  const [reducerEventStatusFilter, setReducerEventStatusFilter] = useState<string>('all');
-  const [reducerEventTypeFilter, setReducerEventTypeFilter] = useState('');
-  const [reducerEventHandlerFilter, setReducerEventHandlerFilter] = useState('');
-  const [reducerEventTaskFilter, setReducerEventTaskFilter] = useState('');
-  const [reducerEventFailedOnly, setReducerEventFailedOnly] = useState(false);
-  const [reducerEventSlowOnly, setReducerEventSlowOnly] = useState(false);
+  const [stateEventInboxMetricsState, setStateEventInboxMetricsState] = useState<MetricsState>(INITIAL_STATE);
+  const [stateEventInboxEventState, setStateEventInboxState] = useState<StateEventInboxState>(INITIAL_REDUCER_EVENT_STATE);
+  const [stateEventInboxEventPage, setStateEventInboxEventPage] = useState(1);
+  const [stateEventInboxEventPageSize, setStateEventInboxEventPageSize] = useState(50);
+  const [stateEventInboxEventSortBy, setStateEventInboxSortBy] = useState<StateEventInboxSortBy>('processed_at');
+  const [stateEventInboxEventSortOrder, setStateEventInboxSortOrder] = useState<StateEventInboxSortOrder>('desc');
+  const [stateEventInboxEventStatusFilter, setStateEventInboxEventStatusFilter] = useState<string>('all');
+  const [stateEventInboxEventTypeFilter, setStateEventInboxEventTypeFilter] = useState('');
+  const [stateEventInboxEventHandlerFilter, setStateEventInboxEventHandlerFilter] = useState('');
+  const [stateEventInboxEventTaskFilter, setStateEventInboxEventTaskFilter] = useState('');
+  const [stateEventInboxEventFailedOnly, setStateEventInboxEventFailedOnly] = useState(false);
+  const [stateEventInboxEventSlowOnly, setStateEventInboxEventSlowOnly] = useState(false);
   const [stateByService, setStateByService] = useState<Record<BinarySecurityMetricsServiceKey, MetricsState>>(
     Object.fromEntries(BINARY_SECURITY_METRICS_SERVICES.map((service) => [service.key, INITIAL_STATE])) as Record<BinarySecurityMetricsServiceKey, MetricsState>,
   );
@@ -2829,53 +2829,53 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
     }
   };
 
-  const loadReducerMetrics = async () => {
-    setReducerMetricsState((current) => ({ ...current, loading: true, error: null }));
+  const loadStateEventInboxMetrics = async () => {
+    setStateEventInboxMetricsState((current) => ({ ...current, loading: true, error: null }));
     try {
-      const rawText = await executionMetricsApi.getBinarySecurityReducerMetrics();
+      const rawText = await executionMetricsApi.getBinarySecurityStateEventMetrics();
       const rows = buildServiceViewModel(rawText, getBinarySecurityMetricsService('binary-security')).rows;
-      const snapshot = buildBinarySecurityReducerSnapshot(rows);
-      setReducerHistoryByService((current) => ({
+      const snapshot = buildBinarySecurityStateEventInboxSnapshot(rows);
+      setStateEventInboxHistoryByService((current) => ({
         ...current,
-        'binary-security': dedupeReducerHistory([...(current['binary-security'] || []), snapshot]),
+        'binary-security': dedupeStateEventInboxHistory([...(current['binary-security'] || []), snapshot]),
       }));
-      setReducerMetricsState({ loading: false, rawText, error: null, refreshedAt: Date.now() });
+      setStateEventInboxMetricsState({ loading: false, rawText, error: null, refreshedAt: Date.now() });
     } catch (error: any) {
-      setReducerMetricsState((current) => ({
+      setStateEventInboxMetricsState((current) => ({
         ...current,
         loading: false,
-        error: error?.message || 'Reducer 指标抓取失败',
+        error: error?.message || 'StateEventInbox 指标抓取失败',
         refreshedAt: Date.now(),
       }));
     }
   };
 
-  const loadReducerEvents = async () => {
-    setReducerEventState((current) => ({ ...current, loading: true, error: null }));
+  const loadStateEventInboxEvents = async () => {
+    setStateEventInboxState((current) => ({ ...current, loading: true, error: null }));
     try {
-      const data = await binarySecurityExecutionApi.getReducerEvents({
-        page: reducerEventPage,
-        page_size: reducerEventPageSize,
-        sort_by: reducerEventSortBy,
-        sort_order: reducerEventSortOrder,
-        status: reducerEventStatusFilter === 'all' ? [] : [reducerEventStatusFilter],
-        event_type: reducerEventTypeFilter.trim() || undefined,
-        handler_pod: reducerEventHandlerFilter.trim() || undefined,
-        task_id: reducerEventTaskFilter.trim() || undefined,
-        failed_only: reducerEventFailedOnly,
-        slow_only: reducerEventSlowOnly,
+      const data = await binarySecurityExecutionApi.getStateEventInboxEvents({
+        page: stateEventInboxEventPage,
+        page_size: stateEventInboxEventPageSize,
+        sort_by: stateEventInboxEventSortBy,
+        sort_order: stateEventInboxEventSortOrder,
+        status: stateEventInboxEventStatusFilter === 'all' ? [] : [stateEventInboxEventStatusFilter],
+        event_type: stateEventInboxEventTypeFilter.trim() || undefined,
+        handler_pod: stateEventInboxEventHandlerFilter.trim() || undefined,
+        task_id: stateEventInboxEventTaskFilter.trim() || undefined,
+        failed_only: stateEventInboxEventFailedOnly,
+        slow_only: stateEventInboxEventSlowOnly,
       });
-      setReducerEventState({
+      setStateEventInboxState({
         loading: false,
         data,
         error: null,
         refreshedAt: Date.now(),
       });
     } catch (error: any) {
-      setReducerEventState((current) => ({
+      setStateEventInboxState((current) => ({
         ...current,
         loading: false,
-        error: error?.message || 'Reducer 事件记录抓取失败',
+        error: error?.message || 'StateEventInbox 事件记录抓取失败',
         refreshedAt: Date.now(),
       }));
     }
@@ -3031,29 +3031,29 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
 
   useEffect(() => {
     if (activeServiceKey !== 'binary-security') return;
-    if (activeSecondaryTab !== 'reducer') return;
-    if (!reducerMetricsState.rawText && !reducerMetricsState.loading && !reducerMetricsState.error) {
-      void loadReducerMetrics();
+    if (activeSecondaryTab !== 'state-event-inbox') return;
+    if (!stateEventInboxMetricsState.rawText && !stateEventInboxMetricsState.loading && !stateEventInboxMetricsState.error) {
+      void loadStateEventInboxMetrics();
     }
-  }, [activeSecondaryTab, activeServiceKey, reducerMetricsState]);
+  }, [activeSecondaryTab, activeServiceKey, stateEventInboxMetricsState]);
 
   useEffect(() => {
     if (activeServiceKey !== 'binary-security') return;
-    if (activeSecondaryTab !== 'reducer') return;
-    void loadReducerEvents();
+    if (activeSecondaryTab !== 'state-event-inbox') return;
+    void loadStateEventInboxEvents();
   }, [
     activeSecondaryTab,
     activeServiceKey,
-    reducerEventPage,
-    reducerEventPageSize,
-    reducerEventSortBy,
-    reducerEventSortOrder,
-    reducerEventStatusFilter,
-    reducerEventTypeFilter,
-    reducerEventHandlerFilter,
-    reducerEventTaskFilter,
-    reducerEventFailedOnly,
-    reducerEventSlowOnly,
+    stateEventInboxEventPage,
+    stateEventInboxEventPageSize,
+    stateEventInboxEventSortBy,
+    stateEventInboxEventSortOrder,
+    stateEventInboxEventStatusFilter,
+    stateEventInboxEventTypeFilter,
+    stateEventInboxEventHandlerFilter,
+    stateEventInboxEventTaskFilter,
+    stateEventInboxEventFailedOnly,
+    stateEventInboxEventSlowOnly,
   ]);
 
   useEffect(() => {
@@ -3078,9 +3078,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
       } else if (activeSecondaryTab === 'ai-zone') {
         void (supportsSummaryApi(activeServiceKey) ? loadAiSummary(activeServiceKey) : loadMetrics(activeServiceKey));
       }
-      if (activeServiceKey === 'binary-security' && activeSecondaryTab === 'reducer') {
-        void loadReducerMetrics();
-        void loadReducerEvents();
+      if (activeServiceKey === 'binary-security' && activeSecondaryTab === 'state-event-inbox') {
+        void loadStateEventInboxMetrics();
+        void loadStateEventInboxEvents();
       }
     }, activeSecondaryTab === 'agent' ? 5000 : 30000);
     return () => window.clearInterval(timer);
@@ -3132,8 +3132,8 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             ? activeState.error
             : null;
   const activeRefreshTimestamp =
-    activeServiceKey === 'binary-security' && activeSecondaryTab === 'reducer'
-      ? reducerMetricsState.refreshedAt
+    activeServiceKey === 'binary-security' && activeSecondaryTab === 'state-event-inbox'
+      ? stateEventInboxMetricsState.refreshedAt
       : activeSecondaryTab === 'observability' && supportsSummaryApi(activeServiceKey)
         ? activeObservabilityState.refreshedAt
         : activeSecondaryTab === 'rest-api' && supportsSummaryApi(activeServiceKey)
@@ -3253,15 +3253,15 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
     if (!entryAnalysisViewModel || selectedEntryStage === 'all') return null;
     return entryAnalysisViewModel.stageRows.find((item) => item.stage === selectedEntryStage) || null;
   }, [entryAnalysisViewModel, selectedEntryStage]);
-  const reducerViewModel = useMemo(
+  const stateEventInboxViewModel = useMemo(
     () =>
       activeServiceKey === 'binary-security'
-        ? buildBinarySecurityReducerViewModel(
-            buildServiceViewModel(reducerMetricsState.rawText, getBinarySecurityMetricsService('binary-security')).rows,
-            reducerHistoryByService[activeServiceKey] || [],
+        ? buildBinarySecurityStateEventInboxViewModel(
+            buildServiceViewModel(stateEventInboxMetricsState.rawText, getBinarySecurityMetricsService('binary-security')).rows,
+            stateEventInboxHistoryByService[activeServiceKey] || [],
           )
         : null,
-    [activeServiceKey, reducerHistoryByService, reducerMetricsState.rawText],
+    [activeServiceKey, stateEventInboxHistoryByService, stateEventInboxMetricsState.rawText],
   );
   const binarySecurityObservabilityViewModel = useMemo(
     () => (activeServiceKey === 'binary-security' ? buildBinarySecurityObservabilityViewModel(observabilityRows, aggregateCoverage) : null),
@@ -3675,8 +3675,8 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             <button
               type="button"
               onClick={() => {
-                if (activeServiceKey === 'binary-security' && activeSecondaryTab === 'reducer') {
-                  void loadReducerMetrics();
+                if (activeServiceKey === 'binary-security' && activeSecondaryTab === 'state-event-inbox') {
+                  void loadStateEventInboxMetrics();
                   return;
                 }
                 if (activeSecondaryTab === 'agent' && agentObservabilityEnabled) {
@@ -3916,12 +3916,12 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               </div>
 
               <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: '1.05fr 0.95fr' }}>
-                <ReducerMetricList title="编排推进摘要" items={binarySecurityObservabilityViewModel.pipelineSummary} emptyText="暂无编排摘要。" />
-                <ReducerMetricList title="Reducer/锁摘要" items={binarySecurityObservabilityViewModel.reducerSummary} emptyText="暂无 reducer 摘要。" />
+                <StateEventInboxMetricList title="编排推进摘要" items={binarySecurityObservabilityViewModel.pipelineSummary} emptyText="暂无编排摘要。" />
+                <StateEventInboxMetricList title="StateEventInbox/锁摘要" items={binarySecurityObservabilityViewModel.stateEventInboxSummary} emptyText="暂无 stateEventInbox 摘要。" />
               </div>
 
               <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: '1.05fr 0.95fr' }}>
-                <ReducerMetricList title="后台同步摘要" items={binarySecurityObservabilityViewModel.syncSummary} emptyText="暂无后台同步摘要。" />
+                <StateEventInboxMetricList title="后台同步摘要" items={binarySecurityObservabilityViewModel.syncSummary} emptyText="暂无后台同步摘要。" />
                 <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '16px' }}>
                   <h3 style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>任务列表查询性能</h3>
                   <p style={{ marginTop: '8px', fontSize: '14px', color: LK.muted }}>
@@ -5414,37 +5414,37 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             </div>
           </section>
         </>
-      ) : activeSecondaryTab === 'reducer' ? (
+      ) : activeSecondaryTab === 'state-event-inbox' ? (
         activeServiceKey !== 'binary-security' ? (
           <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '48px 24px', textAlign: 'center' }}>
             <div className="mx-auto max-w-2xl">
-              <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>当前服务无独立 reducer 观测</h2>
-              <p className="mt-3 text-sm text-theme-text-muted">`Reducer` Tab 当前只对`二进制安全编排器` 开放，用来持续观测状态事件队列、收口时延、死信、锁竞争和落盘行为。
+              <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>当前服务无独立 stateEventInbox 观测</h2>
+              <p className="mt-3 text-sm text-theme-text-muted">`StateEventInbox` Tab 当前只对`二进制安全编排器` 开放，用来持续观测状态事件队列、收口时延、死信、锁竞争和落盘行为。
               </p>
             </div>
           </section>
-        ) : reducerMetricsState.loading && !reducerMetricsState.rawText ? (
+        ) : stateEventInboxMetricsState.loading && !stateEventInboxMetricsState.rawText ? (
           <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '48px 24px', textAlign: 'center' }}>
             <Loader2 className="mx-auto animate-spin text-theme-text-muted" size={24} />
-            <p className="mt-4 text-sm text-theme-text-muted">正在抓取 reducer 指标...</p>
+            <p className="mt-4 text-sm text-theme-text-muted">正在抓取 stateEventInbox 指标...</p>
           </section>
-        ) : reducerMetricsState.error && !reducerMetricsState.rawText ? (
+        ) : stateEventInboxMetricsState.error && !stateEventInboxMetricsState.rawText ? (
  <section className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-6 py-12 text-center">
-            <p className="text-sm font-semibold text-rose-400">{reducerMetricsState.error}</p>
+            <p className="text-sm font-semibold text-rose-400">{stateEventInboxMetricsState.error}</p>
           </section>
-        ) : reducerViewModel ? (
+        ) : stateEventInboxViewModel ? (
  <section className="space-y-4 rounded-xl border border-theme-border bg-theme-surface p-5">
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
               <div>
                 <h2 style={{ marginTop: '8px', fontSize: '24px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>状态收口观测</h2>
                 <p className="mt-2 max-w-3xl text-sm text-theme-text-muted">
-                  持续观测 reducer 是否在及时消费状态事件、是否出现队列积压、锁竞争、死信和文件落盘异常，专门对应“下游已恢复但父任务仍然失败/不收敛”的问题。
+                  持续观测 stateEventInbox 是否在及时消费状态事件、是否出现队列积压、锁竞争、死信和文件落盘异常，专门对应“下游已恢复但父任务仍然失败/不收敛”的问题。
                 </p>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
  <span className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
                   <TrendingUp size={12} />
-                  历史窗口 {formatNumber(reducerViewModel.timeSeries.length)} 点
+                  历史窗口 {formatNumber(stateEventInboxViewModel.timeSeries.length)} 点
                 </span>
  <span className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-elevated px-3 py-1 text-[11px] font-bold text-theme-text-secondary">
                   <GitBranch size={12} />
@@ -5457,21 +5457,21 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               {[
                 {
                   label: '快照可用性',
-                  value: reducerViewModel.snapshotMeta.available ? '可用' : '不可用',
-                  hint: reducerViewModel.snapshotMeta.sourcePod ?`来源 ${reducerViewModel.snapshotMeta.sourcePod}` : '暂无来源 Pod',
-                  tone: reducerViewModel.snapshotMeta.available ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-rose-500/20 bg-rose-500/15 text-rose-400',
+                  value: stateEventInboxViewModel.snapshotMeta.available ? '可用' : '不可用',
+                  hint: stateEventInboxViewModel.snapshotMeta.sourcePod ?`来源 ${stateEventInboxViewModel.snapshotMeta.sourcePod}` : '暂无来源 Pod',
+                  tone: stateEventInboxViewModel.snapshotMeta.available ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-rose-500/20 bg-rose-500/15 text-rose-400',
                 },
                 {
                   label: '快照新鲜度',
-                  value: reducerViewModel.snapshotMeta.stale ? '已过期' : '新鲜',
-                  hint: reducerViewModel.snapshotMeta.generatedAtTimestamp ?`生成于 ${formatTime(reducerViewModel.snapshotMeta.generatedAtTimestamp * 1000)}` : '暂无生成时间',
-                  tone: reducerViewModel.snapshotMeta.stale ? 'border-amber-500/20 bg-amber-500/15 text-amber-400' : 'border-sky-500/20 bg-sky-500/15 text-sky-400',
+                  value: stateEventInboxViewModel.snapshotMeta.stale ? '已过期' : '新鲜',
+                  hint: stateEventInboxViewModel.snapshotMeta.generatedAtTimestamp ?`生成于 ${formatTime(stateEventInboxViewModel.snapshotMeta.generatedAtTimestamp * 1000)}` : '暂无生成时间',
+                  tone: stateEventInboxViewModel.snapshotMeta.stale ? 'border-amber-500/20 bg-amber-500/15 text-amber-400' : 'border-sky-500/20 bg-sky-500/15 text-sky-400',
                 },
                 {
                   label: '快照年龄',
-                  value: formatSeconds(reducerViewModel.snapshotMeta.ageSeconds),
-                  hint: 'Redis reducer snapshot age',
-                  tone: (reducerViewModel.snapshotMeta.ageSeconds || 0) > 30 ? 'border-amber-500/20 bg-amber-500/15 text-amber-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary',
+                  value: formatSeconds(stateEventInboxViewModel.snapshotMeta.ageSeconds),
+                  hint: 'Redis stateEventInbox snapshot age',
+                  tone: (stateEventInboxViewModel.snapshotMeta.ageSeconds || 0) > 30 ? 'border-amber-500/20 bg-amber-500/15 text-amber-400' : 'border-theme-border bg-theme-elevated text-theme-text-secondary',
                 },
                 {
                   label: '历史曲线说明',
@@ -5489,7 +5489,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
             </div>
 
             <div className="grid gap-3 xl:grid-cols-4">
-              {reducerViewModel.queueCards.map((item) => (
+              {stateEventInboxViewModel.queueCards.map((item) => (
  <div key={item.label} className={`rounded-[1.4rem] border px-4 py-4 ${item.tone}`}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                     <div className="text-[11px] font-semibold uppercase tracking-[0.18em]">{item.label}</div>
@@ -5514,9 +5514,9 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                   </span>
                 </div>
                 <div style={{ marginTop: '16px', height: '288px' }}>
-                  {reducerViewModel.timeSeries.length ? (
+                  {stateEventInboxViewModel.timeSeries.length ? (
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
-                      <LineChart data={reducerViewModel.timeSeries} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                      <LineChart data={stateEventInboxViewModel.timeSeries} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
                         <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="time" tick={{ fontSize: 11, fill: '#64748b' }} />
                         <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
@@ -5527,7 +5527,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                       </LineChart>
                     </ResponsiveContainer>
                   ) : (
-                    <EmptyCard text="开启自动刷新后，这里会持续显示 reducer 队列走势。" />
+                    <EmptyCard text="开启自动刷新后，这里会持续显示 stateEventInbox 队列走势。" />
                   )}
                 </div>
               </div>
@@ -5536,20 +5536,20 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>收口时延</div>
                 <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>事件老化 / 平均耗时</h3>
                 <div style={{ marginTop: '16px', height: '288px' }}>
-                  {reducerViewModel.timeSeries.length ? (
+                  {stateEventInboxViewModel.timeSeries.length ? (
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
-                      <LineChart data={reducerViewModel.timeSeries} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                      <LineChart data={stateEventInboxViewModel.timeSeries} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
                         <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="time" tick={{ fontSize: 11, fill: '#64748b' }} />
                         <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
                         <Tooltip formatter={(value: number) => formatSeconds(Number(value))} />
                         <Line type="monotone" dataKey="oldestPendingAge" stroke="#f59e0b" strokeWidth={2.4} dot={false} />
                         <Line type="monotone" dataKey="eventAvgLagSeconds" stroke="#0f766e" strokeWidth={2.2} dot={false} />
-                        <Line type="monotone" dataKey="reducerAvgDurationSeconds" stroke="#7c3aed" strokeWidth={2.2} dot={false} />
+                        <Line type="monotone" dataKey="stateEventInboxAvgDurationSeconds" stroke="#7c3aed" strokeWidth={2.2} dot={false} />
                       </LineChart>
                     </ResponsiveContainer>
                   ) : (
-                    <EmptyCard text="这里会观察最老 pending 事件年龄、平均收口延迟和 reducer 平均处理耗时。" />
+                    <EmptyCard text="这里会观察最老 pending 事件年龄、平均收口延迟和 stateEventInbox 平均处理耗时。" />
                   )}
                 </div>
               </div>
@@ -5560,7 +5560,7 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                 <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>即时状态</div>
                 <h3 style={{ marginTop: '8px', fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: LK.ink }}>队列快照与处理均值</h3>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {reducerViewModel.healthSummary.map((item) => (
+                  {stateEventInboxViewModel.healthSummary.map((item) => (
                     <div key={item.label} style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '12px 16px' }}>
                       <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>{item.label}</div>
                       <div className={`mt-2 text-2xl font-bold ${item.tone}`}>{item.value}</div>
@@ -5574,13 +5574,13 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Queue Depth</div>
                     <div className="mt-3 h-48">
                       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
-                        <BarChart data={reducerViewModel.queueBarData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                        <BarChart data={stateEventInboxViewModel.queueBarData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
                           <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" vertical={false} />
                           <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
                           <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
                           <Tooltip formatter={(value: number) => formatMetricValue(Number(value))} />
                           <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                            {reducerViewModel.queueBarData.map((entry) => (
+                            {stateEventInboxViewModel.queueBarData.map((entry) => (
                               <Cell key={entry.name} fill={entry.tone} />
                             ))}
                           </Bar>
@@ -5593,13 +5593,13 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
                     <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em', color: LK.muted }}>Oldest Age</div>
                     <div className="mt-3 h-48">
                       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
-                        <BarChart data={reducerViewModel.ageBarData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                        <BarChart data={stateEventInboxViewModel.ageBarData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
                           <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" vertical={false} />
                           <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
                           <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
                           <Tooltip formatter={(value: number) => formatSeconds(Number(value))} />
                           <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                            {reducerViewModel.ageBarData.map((entry) => (
+                            {stateEventInboxViewModel.ageBarData.map((entry) => (
                               <Cell key={entry.name} fill={entry.tone} />
                             ))}
                           </Bar>
@@ -5611,16 +5611,16 @@ const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ p
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <ReducerMetricList title="Reducer Runs" items={reducerViewModel.reducerRuns} emptyText="暂无 reducer 运行统计。" />
-                <ReducerMetricList title="Reducer Event Result" items={reducerViewModel.reducerEventResults} emptyText="暂无事件应用结果。" />
-                <ReducerMetricList title="Dead Letters" items={reducerViewModel.deadLetters} emptyText="当前没有死信事件。" />
-                <ReducerMetricList title="Task State Lock / File Writes" items={[...reducerViewModel.activeLocks, ...reducerViewModel.fileWriteResults].slice(0, 8)} emptyText="暂无锁和文件落盘统计。" />
+                <StateEventInboxMetricList title="StateEventInbox Runs" items={stateEventInboxViewModel.stateEventInboxRuns} emptyText="暂无 stateEventInbox 运行统计。" />
+                <StateEventInboxMetricList title="StateEventInbox Event Result" items={stateEventInboxViewModel.stateEventInboxEventResults} emptyText="暂无事件应用结果。" />
+                <StateEventInboxMetricList title="Dead Letters" items={stateEventInboxViewModel.deadLetters} emptyText="当前没有死信事件。" />
+                <StateEventInboxMetricList title="Task State Lock / File Writes" items={[...stateEventInboxViewModel.activeLocks, ...stateEventInboxViewModel.fileWriteResults].slice(0, 8)} emptyText="暂无锁和文件落盘统计。" />
               </div>
             </div>
           </section>
         ) : (
           <section style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '48px 24px', textAlign: 'center' }}>
-            <p style={{ fontSize: '14px', color: LK.muted }}>Reducer 指标还没有准备好，请刷新后重试。</p>
+            <p style={{ fontSize: '14px', color: LK.muted }}>StateEventInbox 指标还没有准备好，请刷新后重试。</p>
           </section>
         )
       ) : activeSecondaryTab === 'agent' ? (

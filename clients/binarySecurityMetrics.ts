@@ -14,7 +14,7 @@ export type BinarySecurityMetricsServiceKey =
 export type BinarySecurityMetricsGroup =
   | 'health'
   | 'orchestration'
-  | 'reducer'
+  | 'state-event-inbox'
   | 'lock'
   | 'http'
   | 'task'
@@ -27,7 +27,7 @@ export type BinarySecurityMetricsGroup =
   | 'service-specific'
   | 'other';
 
-export type BinarySecurityMetricsSecondaryTab = 'observability' | 'rest-api' | 'reducer' | 'ai-zone' | 'agent';
+export type BinarySecurityMetricsSecondaryTab = 'observability' | 'rest-api' | 'state-event-inbox' | 'ai-zone' | 'agent';
 
 export type BinarySecurityCanonicalAiMetricKey =
   | 'request-total'
@@ -64,7 +64,7 @@ export interface BinarySecurityCanonicalAiMetricDefinition {
 export const BINARY_SECURITY_METRICS_SECONDARY_TABS: Array<{ key: BinarySecurityMetricsSecondaryTab; label: string }> = [
   { key: 'observability', label: '通用观测' },
   { key: 'rest-api', label: 'REST API' },
-  { key: 'reducer', label: 'Reducer' },
+  { key: 'state-event-inbox', label: '状态事件收件箱' },
   { key: 'ai-zone', label: 'AI专区' },
   { key: 'agent', label: '智能体' },
 ];
@@ -113,8 +113,8 @@ export const BINARY_SECURITY_METRICS_SERVICES: BinarySecurityMetricsServiceDefin
     label: '二进制安全编排器',
     serviceName: 'chimera-app-binary-security',
     metricsPath: `${API_BASE}/api/app/binary-security/metrics/aggregate`,
-    preferredGroups: ['health', 'orchestration', 'reducer', 'lock', 'queue', 'worker', 'task', 'error-retry-timeout', 'duration', 'http', 'ai-agent', 'llm-token-cost', 'service-specific', 'other'],
-    serviceSpecificKeywords: ['stage', 'dispatch', 'downstream', 'archive', 'module', 'state', 'reducer', 'lock', 'dead_letter'],
+    preferredGroups: ['health', 'orchestration', 'state-event-inbox', 'lock', 'queue', 'worker', 'task', 'error-retry-timeout', 'duration', 'http', 'ai-agent', 'llm-token-cost', 'service-specific', 'other'],
+    serviceSpecificKeywords: ['stage', 'dispatch', 'downstream', 'archive', 'module', 'state', 'state_event', 'state_event_inbox', 'lock', 'dead_letter'],
   },
   {
     key: 'binary-evolution',
@@ -317,9 +317,9 @@ export const binarySecurityMetricsApi = {
       { method: 'GET', headers: { ...getHeaders() } },
       { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 }, timeoutMs: AGENT_DETAIL_TIMEOUT_MS },
     ),
-  getBinarySecurityReducerMetrics: async (): Promise<string> => {
+  getBinarySecurityStateEventMetrics: async (): Promise<string> => {
     return getTextWithDedupe(
-      `${API_BASE}/api/app/binary-security/metrics/reducer`,
+      `${API_BASE}/api/app/binary-security/metrics/state-events`,
       {
         method: 'GET',
         headers: {
