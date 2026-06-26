@@ -139,6 +139,46 @@ const formatJsonBlock = (value?: string | null) => {
   }
 };
 
+const formatLatencyMs = (ms?: number) => {
+  const value = Number(ms || 0);
+  if (!value) return '-';
+  if (value < 1000) return `${Math.round(value)} ms`;
+  return `${(value / 1000).toFixed(2)} s`;
+};
+const formatScore = (score?: number) => {
+  const value = Number(score || 0);
+  if (!value) return '-';
+  return value >= 1000 ? value.toFixed(0) : value.toFixed(1);
+};
+const formatPercent = (rate?: number, hasData = true) => {
+  if (!hasData) return '-';
+  const value = Number(rate || 0);
+  return `${(value * 100).toFixed(1)}%`;
+};
+const formatCount = (n?: number) => {
+  const value = Number(n || 0);
+  if (!value) return '-';
+  return value.toLocaleString('en-US');
+};
+
+const BindingMetricCell: React.FC<{
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: 'default' | 'good' | 'warn' | 'bad';
+}> = ({ label, value, hint, tone = 'default' }) => {
+  const toneClass = tone === 'good' ? 'text-emerald-400'
+    : tone === 'warn' ? 'text-amber-400'
+    : tone === 'bad' ? 'text-rose-400'
+    : 'text-theme-text-primary';
+  return (
+    <div className="rounded-xl border border-theme-border bg-theme-elevated px-3 py-2" title={hint || label}>
+      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-theme-text-muted">{label}</div>
+      <div className={`mt-0.5 text-sm font-bold ${toneClass}`}>{value}</div>
+    </div>
+  );
+};
+
 export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-config', onNavigate }) => {
   const platformApi = api.domains.platform;
   const { notify, feedbackNodes } = useUiFeedback();
@@ -305,6 +345,15 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
     }
   };
 
+  const refreshProviderStats = async () => {
+    try {
+      const items = await platformApi.aigw.listProviderStats();
+      setProviderStats(Array.isArray(items) ? items : []);
+    } catch {
+      // 静默失败，避免打断用户操作
+    }
+  };
+
   const loadLogs = async () => {
     const requestId = ++loadLogsRequestIdRef.current;
     setLogsLoading(true);
@@ -387,6 +436,15 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
     logStartDate,
     logEndDate,
   ]);
+
+  useEffect(() => {
+    if (loading || entryView !== 'aigw-config') return;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
+      void refreshProviderStats();
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [loading, entryView]);
 
   useEffect(() => {
     if (!logDrawerOpen || detailOpen || replayOpen) return;
@@ -1413,22 +1471,65 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                       <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-muted">真实路由</div>
                       <div className="text-xs font-bold text-theme-text-muted">{selectedAliasBindingCards.length} 个 backend unit</div>
                     </div>
-                    <div className="grid gap-2 md:grid-cols-2">
-                      {selectedAliasBindingCards.map(({ binding, unit }) => (
-                        <div key={binding.id} className={`rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 transition hover:bg-theme-elevated ${binding.enabled ? '' : 'opacity-60'}`}>
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-semibold text-theme-text-primary">{unit?.model_name ||`U${binding.backend_unit_id}`}</div>
-                              <div className="mt-0.5 text-xs font-bold text-theme-text-muted">U{binding.backend_unit_id} · P{binding.priority} / W{binding.weight}{binding.enabled ? '' : ' · off'}</div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {selectedAliasBindingCards.map(({ binding, unit }) => {
+                        const stat = unit ? providerStatByBackendId.get(unit.id) : undefined;
+                        const maxConcurrency = Number(unit?.total_max_concurrency || 0);
+                        const activeRequests = Number(stat?.active_requests || 0);
+                        const waitingRequests = Number(stat?.waiting_requests || 0);
+                        const firstTokenLatency = Number(stat?.avg_first_token_latency || 0);
+                        const avgTokenLatency = Number(stat?.avg_token_latency || 0);
+                        const successRate = Number(stat?.success_rate || 0);
+                        const routingScore = Number(stat?.adaptive_routing_score || 0);
+                        const requestCount = Number(stat?.request_count || 0);
+                        const hasTelemetry = requestCount > 0 || activeRequests > 0;
+                        const concurrencyRatio = maxConcurrency > 0 ? Math.min(1, activeRequests / maxConcurrency) : 0;
+                        const concurrencyTone = concurrencyRatio >= 0.9 ? 'bad' : concurrencyRatio >= 0.7 ? 'warn' : 'good';
+                        const successTone = !hasTelemetry ? 'default' : successRate >= 0.95 ? 'good' : successRate >= 0.8 ? 'warn' : 'bad';
+                        const concurrencyBarColor = concurrencyTone === 'bad' ? 'bg-rose-500' : concurrencyTone === 'warn' ? 'bg-amber-500' : 'bg-sky-500';
+                        const concurrencyTextColor = concurrencyTone === 'bad' ? 'text-rose-400' : concurrencyTone === 'warn' ? 'text-amber-400' : 'text-theme-text-secondary';
+                        return (
+                          <div key={binding.id} className={`rounded-2xl border border-theme-border bg-theme-surface p-4 transition hover:bg-theme-elevated ${binding.enabled ? '' : 'opacity-60'}`}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <div className="truncate text-base font-semibold text-theme-text-primary">{unit?.model_name || `模型 #${binding.backend_unit_id}`}</div>
+                                  {unit?.provider_type ? <span className="shrink-0 rounded-full bg-theme-elevated px-2 py-0.5 text-[11px] font-bold text-theme-text-secondary">{unit.provider_type}</span> : null}
+                                  {binding.enabled ? <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-400">启用</span> : <span className="shrink-0 rounded-full bg-theme-elevated px-2 py-0.5 text-[11px] font-bold text-theme-text-muted">已停用</span>}
+                                </div>
+                                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-theme-text-muted">
+                                  <span>单元 #{binding.backend_unit_id}</span>
+                                  <span>优先级 {binding.priority}</span>
+                                  <span>权重 {binding.weight}</span>
+                                  {unit?.api_base_url ? <span className="max-w-[220px] truncate" title={unit.api_base_url}>{unit.api_base_url}</span> : null}
+                                </div>
+                              </div>
+                              <div className="flex shrink-0 flex-wrap gap-2">
+                                <button onClick={() => openBindingModal(binding)} className="rounded-xl bg-theme-elevated p-1.5 text-theme-text-secondary hover:bg-theme-elevated" aria-label={`编辑真实路由 #${binding.id}`}><Pencil className="h-3.5 w-3.5" /></button>
+                                {unit ? <button onClick={() => openLogsDrawer({ title:`${unit.model_name} 的请求日志`, aliasId: String(binding.model_alias_id), backendUnitId: String(binding.backend_unit_id) })} className="rounded-xl bg-theme-elevated p-1.5 text-theme-text-secondary hover:bg-theme-elevated" aria-label={`查看 ${unit.model_name} 的请求日志`}><FileText className="h-3.5 w-3.5" /></button> : null}
+                                <button onClick={() => void deleteItem('binding', binding.id,`真实路由绑定 #${binding.id}`)} className="rounded-xl bg-rose-500/15 p-1.5 text-rose-400 hover:bg-rose-200" aria-label={`删除真实路由 #${binding.id}`}><Trash2 className="h-3.5 w-3.5" /></button>
+                              </div>
                             </div>
-                            <div className="flex shrink-0 flex-wrap gap-2">
-                              <button onClick={() => openBindingModal(binding)} className="rounded-xl bg-theme-elevated p-1.5 text-theme-text-secondary hover:bg-theme-elevated" aria-label={`编辑真实路由 #${binding.id}`}><Pencil className="h-3.5 w-3.5" /></button>
-                              {unit ? <button onClick={() => openLogsDrawer({ title:`${unit.model_name} 的请求日志`, aliasId: String(binding.model_alias_id), backendUnitId: String(binding.backend_unit_id) })} className="rounded-xl bg-theme-elevated p-1.5 text-theme-text-secondary hover:bg-theme-elevated" aria-label={`查看 ${unit.model_name} 的请求日志`}><FileText className="h-3.5 w-3.5" /></button> : null}
-                              <button onClick={() => void deleteItem('binding', binding.id,`真实路由绑定 #${binding.id}`)} className="rounded-xl bg-rose-500/15 p-1.5 text-rose-400 hover:bg-rose-200" aria-label={`删除真实路由 #${binding.id}`}><Trash2 className="h-3.5 w-3.5" /></button>
+                            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                              <BindingMetricCell label="首 Token 延迟" value={formatLatencyMs(firstTokenLatency)} hint="最近 1 小时平均首 Token 延迟" />
+                              <BindingMetricCell label="平均 Token 延迟" value={formatLatencyMs(avgTokenLatency)} hint="最近 1 小时平均生成 Token 延迟" />
+                              <BindingMetricCell label="成功率" value={formatPercent(successRate, hasTelemetry)} tone={successTone} hint="成功请求数 / 总请求数" />
+                              <BindingMetricCell label="路由评分" value={formatScore(routingScore)} hint="自适应路由评分，数值越低越优先被选中" />
+                              <BindingMetricCell label="请求数" value={formatCount(requestCount)} hint="最近 1 小时请求总数" />
+                              <BindingMetricCell label="等待请求" value={waitingRequests ? String(waitingRequests) : '-'} hint="当前排队等待的请求数" />
+                            </div>
+                            <div className="mt-3">
+                              <div className="flex items-center justify-between text-[11px] font-bold text-theme-text-muted">
+                                <span>占用连接 / 最大并发</span>
+                                <span className={concurrencyTextColor}>{activeRequests} / {maxConcurrency || '∞'}</span>
+                              </div>
+                              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-theme-elevated">
+                                <div className={`h-full rounded-full ${concurrencyBarColor} transition-all`} style={{ width: `${concurrencyRatio * 100}%` }} />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                       {!selectedAliasBindingCards.length ? (
                         <div className="col-span-full rounded-xl border border-dashed border-theme-border bg-theme-surface px-4 py-16 text-center text-sm text-theme-text-muted">
                           当前公开模型还没有真实路由绑定。可拖动右侧模型到这里添加真实路由。
