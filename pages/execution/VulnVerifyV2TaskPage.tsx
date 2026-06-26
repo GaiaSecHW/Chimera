@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Ban, CheckCircle2, CircleHelp, Clock3, Loader2, PanelRightClose, RefreshCw, RotateCcw, Search, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle2, CircleHelp, Clock3, Loader2, Minus, PanelRightClose, RefreshCw, RotateCcw, Search, X } from 'lucide-react';
 import { vulnVerifyV2Api, VulnVerifyV2Attempt, VulnVerifyV2ProjectStats, VulnVerifyV2Result, VulnVerifyV2Task, VulnVerifyV2TaskDetail } from '../../clients/vulnVerifyV2';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { PageHeader } from '../../design-system';
@@ -106,12 +106,12 @@ const StatusBadge: React.FC<{ status?: string }> = ({ status }) => (
 function outcomeBadge(status?: string, verdict?: string | null): { label: string; iconCls: string; boxCls: string; fontCls?: string; plain?: boolean; iconOnly?: boolean; Icon?: React.ElementType; loading?: boolean } {
   if (status === 'running') return { label: '验证中', iconCls: 'text-emerald-300', boxCls: '', iconOnly: true, loading: true };
   if (status === 'pending') return { label: '等待中', iconCls: 'text-theme-text-faint', boxCls: '', fontCls: 'font-normal', plain: true, iconOnly: true, Icon: Clock3 };
-  if (status === 'failed') return { label: '验证失败', iconCls: 'text-rose-400', boxCls: 'border border-theme-border-subtle bg-rose-500/20', Icon: XCircle };
-  if (status === 'cancelled') return { label: '已取消', iconCls: 'text-amber-400', boxCls: 'border border-theme-border-subtle bg-amber-500/20', Icon: Ban };
-  if (verdict === 'confirmed') return { label: '已确认', iconCls: 'text-rose-400', boxCls: 'border border-theme-border-subtle bg-rose-500/20', Icon: AlertTriangle };
-  if (verdict === 'ruled_out') return { label: '已排除', iconCls: 'text-sky-400', boxCls: 'border border-theme-border-subtle bg-sky-500/20', Icon: CheckCircle2 };
-  if (verdict === 'unresolved') return { label: '不可证', iconCls: 'text-amber-400', boxCls: 'border border-theme-border-subtle bg-amber-500/20', Icon: CircleHelp };
-  return { label: '未产出结果', iconCls: 'text-theme-text-muted', boxCls: 'border-theme-border bg-theme-elevated', Icon: CircleHelp };
+  if (status === 'failed') return { label: '验证失败', iconCls: 'text-rose-400', boxCls: '', iconOnly: true, Icon: X };
+  if (status === 'cancelled') return { label: '已取消', iconCls: 'text-amber-400', boxCls: '', iconOnly: true, Icon: Minus };
+  if (verdict === 'confirmed') return { label: '已确认', iconCls: 'text-rose-400', boxCls: 'border border-rose-500/30 bg-rose-500/20', Icon: AlertTriangle };
+  if (verdict === 'ruled_out') return { label: '已排除', iconCls: 'text-sky-400', boxCls: 'border border-sky-500/30 bg-sky-500/20', Icon: CheckCircle2 };
+  if (verdict === 'unresolved') return { label: '不可证', iconCls: 'text-amber-400', boxCls: 'border border-amber-500/30 bg-amber-500/20', Icon: CircleHelp };
+  return { label: '未产出结果', iconCls: 'text-theme-text-muted', boxCls: '', iconOnly: true, Icon: Minus };
 }
 
 const OutcomePill: React.FC<{ item: ReturnType<typeof outcomeBadge>; size?: 'normal' | 'sm' }> = ({ item, size = 'normal' }) => {
@@ -119,7 +119,7 @@ const OutcomePill: React.FC<{ item: ReturnType<typeof outcomeBadge>; size?: 'nor
   const isSm = size === 'sm';
   const boxCls = item.boxCls;
   return (
-    <span className={`inline-flex w-auto items-center ${item.iconOnly ? `justify-center ${isSm ? 'px-2 py-1' : 'px-2.5 py-1.5'}` : `${isSm ? 'gap-1.5 py-1 pl-2 pr-3' : 'gap-1.5 pl-3 pr-4 py-1.5'} rounded-full ${boxCls}`} ${isSm ? 'text-xs' : 'text-sm'} ${item.fontCls || 'font-semibold'}`}>
+    <span className={`inline-flex w-auto items-center ${item.iconOnly ? `justify-center ${isSm ? 'px-2 py-1' : 'px-2.5 py-1.5'}` : `${isSm ? 'gap-1.5 py-1 pl-2 pr-3' : 'gap-1.5 pl-3 pr-4 py-1'} rounded-full ${boxCls}`} ${isSm ? 'text-xs' : 'text-sm'} ${item.fontCls || 'font-semibold'}`}>
       {item.loading ? (
         <Loader2 size={isSm ? 14 : 18} strokeWidth={isSm ? 2.5 : 2.8} className={`shrink-0 animate-spin ${item.iconCls}`} />
       ) : Icon ? (
@@ -136,7 +136,7 @@ const TaskOutcomeBadge: React.FC<{ status?: string; verdict?: string | null }> =
 
 const AttemptStatusBadge: React.FC<{ status?: string }> = ({ status }) => {
   if (status === 'success') {
-    return <OutcomePill size="sm" item={{ label: '成功', iconCls: 'text-emerald-400', boxCls: 'border border-theme-border-subtle bg-emerald-500/20', Icon: CheckCircle2 }} />;
+    return <OutcomePill size="sm" item={{ label: '成功', iconCls: 'text-emerald-400', boxCls: '', iconOnly: true, Icon: Check }} />;
   }
   return <OutcomePill size="sm" item={outcomeBadge(status, null)} />;
 };
@@ -149,27 +149,27 @@ function normalizeRuledOutBy(value: unknown): string[] {
 
 const EvidencePill: React.FC<{ children: React.ReactNode; tone?: 'rose' | 'emerald' | 'amber' | 'blue' | 'muted'; title?: string }> = ({ children, tone = 'muted', title }) => {
   const cls = tone === 'rose'
-    ? 'border-rose-500/20 bg-rose-500/10 text-rose-300'
+    ? 'border-theme-border bg-rose-500/10 text-theme-text-secondary'
     : tone === 'emerald'
-      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
+      ? 'border-theme-border bg-emerald-500/10 text-theme-text-secondary'
       : tone === 'amber'
-        ? 'border-amber-500/20 bg-amber-500/10 text-amber-300'
+        ? 'border-theme-border bg-amber-500/10 text-theme-text-secondary'
         : tone === 'blue'
-          ? 'border-blue-500/20 bg-blue-500/10 text-blue-300'
-          : 'border-theme-border bg-theme-elevated text-theme-text-muted';
+          ? 'border-theme-border bg-blue-500/10 text-theme-text-secondary'
+          : 'border-theme-border bg-theme-elevated text-theme-text-secondary';
   return <span title={title} className={`inline-flex items-center rounded-full border px-2.5 py-1 text-sm font-normal ${cls}`}>{children}</span>;
 };
 
 const TaskDecisionEvidence: React.FC<{ task: VulnVerifyV2Task }> = ({ task }) => {
-  if (task.status === 'running' || task.status === 'pending') return <span className="text-sm font-normal text-theme-text-faint">-</span>;
-  if (task.status === 'failed') return <EvidencePill tone="rose">执行失败</EvidencePill>;
+  if (task.status === 'running' || task.status === 'pending') return <span className="text-sm font-normal text-theme-text-secondary">-</span>;
+  if (task.status === 'failed') return <span className="text-sm font-normal text-theme-text-secondary">执行失败</span>;
   if (task.status === 'cancelled') return <EvidencePill tone="amber">已取消</EvidencePill>;
 
   if (task.verdict === 'confirmed') {
     const summary = task.root_cause_summary || '';
     return summary
       ? <div className="line-clamp-2 text-sm font-normal text-theme-text-secondary" title={summary}>{summary}</div>
-      : <span className="text-sm font-normal text-theme-text-faint">-</span>;
+      : <span className="text-sm font-normal text-theme-text-secondary">-</span>;
   }
 
   if (task.verdict === 'ruled_out') {
