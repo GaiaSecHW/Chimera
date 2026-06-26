@@ -537,6 +537,9 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             <div className="text-lg font-semibold leading-7" style={{ color: LK.ink }}>
               创建任务
             </div>
+            <div className="mt-1 text-xs leading-5" style={{ color: LK.muted }}>
+              当前项目为<span className="font-semibold" style={{ color: LK.inkSoft }}>「{projectName || selectedProjectId || '—'}」</span>如需为其他项目创建任务，请在顶部导航右上角切换项目空间。
+            </div>
           </div>
           <button
             onClick={handleClose}
@@ -554,49 +557,29 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           className="min-h-0 flex-1 overflow-y-auto px-6 py-4"
         >
             <div className="flex h-full flex-col space-y-3">
-              {/* 项目 */}
-              <div>
-                {projects.length === 0 ? (
-                  <>
-                    <div className="text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                      项目 <span style={{ color: LK.error }}>*</span>
-                    </div>
-                    <div
-                      className="mt-1 rounded-lg px-4 py-3 text-sm"
-                      style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
-                    >
-                      当前没有可用项目，请先到
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sessionStorage.setItem('chimera:pendingNav', JSON.stringify({
-                            view: 'project-mgmt',
-                            openCreateProject: true,
-                          }));
-                          window.open(window.location.href, '_blank');
-                        }}
-                        className="mx-1 font-semibold underline underline-offset-2 transition-opacity hover:opacity-80"
-                        style={{ color: LK.warning }}
-                      >
-                        资产管理 → 项目管理
-                      </button>
-                      初始化项目。
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    <div className="shrink-0 text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                      项目 <span style={{ color: LK.error }}>*</span>
-                    </div>
-                    <div className="rounded-lg px-3 py-2 text-sm font-semibold" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.ink }}>
-                      {projectName || selectedProjectId || '—'}
-                    </div>
-                    <div className="text-xs" style={{ color: LK.muted }}>
-                      如需为其他项目创建任务，请在右上角切换项目空间。
-                    </div>
-                  </div>
-                )}
-              </div>
+              {projects.length === 0 ? (
+                <div
+                  className="rounded-lg px-4 py-3 text-sm"
+                  style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
+                >
+                  当前没有可用项目，请先到
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sessionStorage.setItem('chimera:pendingNav', JSON.stringify({
+                        view: 'project-mgmt',
+                        openCreateProject: true,
+                      }));
+                      window.open(window.location.href, '_blank');
+                    }}
+                    className="mx-1 font-semibold underline underline-offset-2 transition-opacity hover:opacity-80"
+                    style={{ color: LK.warning }}
+                  >
+                    资产管理 → 项目管理
+                  </button>
+                  初始化项目。
+                </div>
+              ) : null}
 
               {/* 任务名称 */}
               <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
