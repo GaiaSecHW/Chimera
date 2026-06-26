@@ -169,6 +169,11 @@ export function DataTable<T>({
                     'group transition-colors hover:bg-theme-elevated',
                     onRowClick && 'cursor-pointer',
                   )}
+                  style={
+                    selectedRowKey && key === selectedRowKey
+                      ? { backgroundColor: 'var(--brand-primary-mask)' }
+                      : undefined
+                  }
                 >
                   {showRowNumber && (
                     <ExecutionTableTd className="w-12 text-center tabular-nums text-theme-text-faint" align="center">
