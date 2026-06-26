@@ -5,7 +5,7 @@ import { cx } from '../../utils/cx';
 
 export interface PaginationProps {
   page: number;
-  perPage: number;
+  perPage?: number;
   total: number;
   onPageChange: (page: number) => void;
   onPerPageChange?: (perPage: number) => void;
@@ -15,11 +15,11 @@ export interface PaginationProps {
 
 export const Pagination: React.FC<PaginationProps> = ({
   page,
-  perPage,
+  perPage = 10,
   total,
   onPageChange,
   onPerPageChange,
-  perPageOptions = [20, 50, 100],
+  perPageOptions = [10, 20, 50, 100],
   className,
 }) => {
   const totalPages = Math.max(1, Math.ceil(total / Math.max(1, perPage)));
