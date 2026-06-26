@@ -943,10 +943,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    onClose();
-                    window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
-                      detail: { view: 'env-management' },
-                    }));
+                    window.open('#/env-management', '_blank', 'noopener,noreferrer');
                   }}
                   className="mx-1 font-semibold underline underline-offset-2 transition-opacity hover:opacity-80"
                   style={{ color: LK.primary }}
