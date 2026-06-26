@@ -66,6 +66,10 @@ const USER_STATUS_LABEL: Record<string, string> = {
   partial_success: '成功',
   failed: '失败',
   cancelled: '已取消',
+  completed: '已完成',
+  pending: '等待中',
+  stopped: '已暂停',
+  deleted: '已在黑板删除',
 };
 const getUserStatusLabel = (task: ScheduleCenterUserTask) => USER_STATUS_LABEL[getDisplayStatus(task)] ?? '进行中';
 const getUserStatusLabelFromValue = (status?: string | null) => USER_STATUS_LABEL[String(status || '')] ?? '进行中';
@@ -218,11 +222,15 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
               const running = (cp as any).working_intent_count > 0;
               if (cp.status === 'completed') {
                 t.display_status = 'completed';
+              } else if (cp.status === 'stopped') {
+                t.display_status = 'stopped';
               } else if (cp.status === 'active' && running) {
                 t.display_status = 'running';
               } else if (cp.status === 'active') {
                 t.display_status = 'pending';
               }
+            } else {
+              t.display_status = 'deleted';
             }
           }
         }
