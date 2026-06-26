@@ -1056,7 +1056,6 @@ export const binarySecurityApi = {
     if (query?.sortOrder) params.set('sort_order', query.sortOrder);
     if (query?.page) params.set('page', String(query.page));
     if (query?.pageSize) params.set('page_size', String(query.pageSize));
-    if (scope === 'all' && projectId) params.set('project_id', projectId);
     const q = params.size > 0 ? `?${params.toString()}` : '';
     const url = scope === 'all'
       ? `${API_BASE}/api/app/binary-security/tasks${q}`

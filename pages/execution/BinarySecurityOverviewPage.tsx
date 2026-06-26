@@ -510,7 +510,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   }, []);
 
   const load = async (options?: { silent?: boolean; skipIfInFlight?: boolean }) => {
-    if (!projectId) return;
+    if (!projectId && scopeFilter !== 'all') return;
     if (options?.skipIfInFlight && loadInFlightRef.current) return;
     const requestId = loadRequestIdRef.current + 1;
     loadRequestIdRef.current = requestId;
