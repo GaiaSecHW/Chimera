@@ -33,7 +33,7 @@
 | 8 | 任务闸门契约 | 创建任务请求体显式带 `tool_id` |
 | 9 | 健康探测 | AgentManage 内置探测(单一真相源) |
 | 10 | 版本治理 | 轻治理:`current_version` 指针 + 升版不重审,任务表不关注版本 |
-| 11 | 数据建模 | 类表继承三表:`tool` 父表 + `tool_microservice` / `tool_agent` 子表;agent 经 `tool_agent` 持外键 join `agent_app`,后者零侵入 |
+| 11 | 数据建模 | 类表继承:`tool` 父表 + `tool_microservice` 子表;agent 一对一,复用 `agent_app` 加 `tool_id` 列回指,不另建关联表 |
 
 ## 设计 1:整体架构与定位
 
@@ -63,25 +63,30 @@ AgentManage 升级为全平台**唯一**的「工具注册中心」,既是系统
 
 结论:菜单可见性完全由准生证决定。这正是「只有注册并审核上线后才能开放给用户」诉求的落地点。
 
-## 设计 2:数据模型(类表继承,三表分离)
+## 设计 2:数据模型(类表继承)
 
-采用**类表继承**:一张父表 `tool` 存所有工具类型共享的治理层(准生证/审核/菜单/版本/健康),按 `kind` 分到不同子表存各自的实现细节。这样解决两个问题:(1)父表窄而稳定,不被某一类工具的字段撑大,也不会出现大片 NULL;(2)agent 类不复制 `agent_app` 字段,而是子表持外键 join,`agent_app` 表零侵入。
+采用**类表继承**:一张父表 `tool` 存所有工具类型共享的治理层(准生证/审核/菜单/版本/健康),实现细节按 `kind` 分流。这样解决两个问题:(1)父表窄而稳定,不被某一类工具的字段撑大,也不会出现大片 NULL;(2)各类工具的特有字段各归各处,互不干扰。
+
+两类工具的实现细节挂法不同:
+- **微服务** → 新建 `tool_microservice` 子表(部署/探活信息),`tool_id` 1:1。
+- **agent** → 一个 agent 一对一只有一个工具,故**不另建关联表**,直接给现有 `agent_app` 加一列 `tool_id` 回指父表;engine/harness 等字段原样复用,不复制。
 
 ```
           tool (父表 / 共享治理层)
           id, name, kind, status, 审核轨迹,
           view_id/icon/menu_group/order, catalog,
           current_version, health_status, ...
-                        │ 1:1 (by tool_id)
+                        ▲
             ┌───────────┴────────────┐
-            ▼                        ▼
-   tool_microservice          tool_agent
-   tool_id (PK/FK)            tool_id (PK/FK)
-   namespace/deployment       agent_app_id (FK→agent_app)
-   api_prefix/health_path     (实现细节 join agent_app,不复制字段)
+            │ 1:1 (by tool_id)        │ 1:1 (agent_app.tool_id 回指)
+            ▼                         │
+   tool_microservice          agent_app (现有表, 加 tool_id 列)
+   tool_id (PK/FK)            tool_id (FK→tool, nullable)
+   namespace/deployment       engine/harness/start_command... (原样复用)
+   api_prefix/health_path
 ```
 
-`kind` 告诉应用层去哪张子表 join。一对一建模:盖亚固件/源码/模块 = `tool` 三行 + `tool_microservice` 三行,`namespace/deployment` 相同但 `view_id`+`catalog` 不同。
+`kind` 告诉应用层去哪取实现细节:`microservice` join `tool_microservice`,`agent` join `agent_app`(按 `tool_id`)。一对一建模:盖亚固件/源码/模块 = `tool` 三行 + `tool_microservice` 三行,`namespace/deployment` 相同但 `view_id`+`catalog` 不同。
 
 ### 父表:`tool`(共享治理层)
 
@@ -141,20 +146,19 @@ CREATE TABLE `tool_microservice` (
   COMMENT='微服务类工具的部署与探活信息';
 ```
 
-### 子表:`tool_agent`(agent 注册层)
+### agent 子类型:复用 `agent_app`(加一列回指)
+
+agent 与工具一对一,无需独立关联表。给现有 `agent_app` 加一列 `tool_id`:
 
 ```sql
-CREATE TABLE `tool_agent` (
-  `tool_id`       VARCHAR(36)  NOT NULL COMMENT '主键兼外键 → tool.id',
-  `agent_app_id`  VARCHAR(36)  NOT NULL COMMENT '外键 → agent_app.id,实现细节 join 该表',
-  PRIMARY KEY (`tool_id`),
-  KEY `idx_ta_agent_app` (`agent_app_id`),
-  CONSTRAINT `fk_ta_tool` FOREIGN KEY (`tool_id`) REFERENCES `tool`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='agent 类工具的注册层:仅持 agent_app 外键,engine/harness 等不复制,用时 join agent_app';
+ALTER TABLE `agent_app`
+  ADD COLUMN `tool_id` VARCHAR(36) NULL
+    COMMENT '回指 tool.id;NULL=已上传但未注册为平台工具,有值=已注册',
+  ADD CONSTRAINT `fk_agent_app_tool`
+    FOREIGN KEY (`tool_id`) REFERENCES `tool`(`id`) ON DELETE SET NULL;
 ```
 
-> `tool_agent` 不复制 `agent_app` 的 `engine/agent_harness_path/start_command` 等 16 个字段。需要这些信息时,应用层用 `agent_app_id` join `agent_app` 取。`agent_app` 表本身完全不动(零侵入)。`agent_app_id` 是否设物理外键由实现阶段定(agent_app 现有数据可能有脏引用),默认设外键。
+> 仅新增一个可空列 + 外键,不改 `agent_app` 任何现有字段、不动现有数据(低风险)。engine/harness/start_command 等 16 个字段原样复用,无复制。`ON DELETE SET NULL`:删工具时把 agent_app 退回"未注册"状态,保留 agent 本身。`tool_id` 唯一性(一个 agent 只对一个工具)由应用层保证,或加唯一索引 `UNIQUE KEY uk_tool_id (tool_id)`(忽略多个 NULL)。
 
 ### 字段说明(父表 `tool`)
 
@@ -162,7 +166,7 @@ CREATE TABLE `tool_agent` (
 |---|---|---|
 | `id` | varchar(36) | 主键,工具唯一标识(如 `binary-security`) |
 | `name` | varchar(255) | 显示名(如 盖亚-二进制固件) |
-| `kind` | varchar(20) | `microservice` / `agent`,决定 join 哪张子表 |
+| `kind` | varchar(20) | `microservice`(join `tool_microservice`)/ `agent`(经 `agent_app.tool_id` 关联) |
 | `status` | varchar(20) | 准生证状态机:`draft→pending→online→offline` |
 | `is_builtin` | tinyint(1) | 内置种子工具,迁移时直接 online,闸门兜底 fail-open |
 | `submitted_by`/`reviewed_by`/`review_note`/`reviewed_at` | — | 审核轨迹 |
@@ -174,10 +178,11 @@ CREATE TABLE `tool_agent` (
 
 ### 关联与约束
 
-- 子表 `tool_id` 既是主键也是指向 `tool.id` 的外键(1:1),`ON DELETE CASCADE`:删工具自动清子表。
-- `kind` 决定子表归属由应用层保证:`kind=microservice` 必有 `tool_microservice` 行,`kind=agent` 必有 `tool_agent` 行。
-- `tool_agent.agent_app_id` → `agent_app.id`,实现细节 join,不复制字段;`agent_app` 表零侵入。
-- 一个 agent 可被注册为工具,也可未注册(`agent_app` 中无对应 `tool_agent` 行即未注册)。
+- `tool_microservice.tool_id` 既是主键也是指向 `tool.id` 的外键(1:1),`ON DELETE CASCADE`:删工具自动清子表。
+- `agent_app.tool_id` → `tool.id`(nullable),`ON DELETE SET NULL`:删工具时 agent_app 退回未注册,保留 agent 本身。
+- `kind` 决定实现细节归属由应用层保证:`kind=microservice` 必有 `tool_microservice` 行;`kind=agent` 必有一个 `agent_app` 行的 `tool_id` 指向它。
+- agent 与工具一对一:`agent_app` 的 `engine/harness/start_command` 等字段原样复用,不复制;`agent_app` 仅新增一个可空列,现有字段与数据不动。
+- 一个 agent 可被注册为工具(`tool_id` 有值),也可未注册(`tool_id` 为 NULL)。
 - 种子迁移:9 个系统工具 `kind='microservice', is_builtin=1, status='online'` 灌入 `tool`,对应部署信息灌入 `tool_microservice`,`catalog` 取自 `toolCatalog.ts`。
 
 要点:
@@ -275,12 +280,12 @@ MVP 范围:
 2. `navigation.tsx`「开发者工具」分组:改为运行时拉取 `GET /api/tools?status=online&group=开发者工具`,按 `order` 渲染,健康徽标读 `healthStatus`。黑板等 iframe 类工具同样纳入(MVP 不动黑板实现)。
 3. `toolCatalog.ts`:删除硬编码常量,`ToolOverviewPage` 改读注册中心 `catalog` 字段。
 4. `CreateTaskDialog`:提交带 `tool_id`;未上线工具不展示创建入口。
-5. 新增工具注册/审核页:开发者提交注册(微服务填部署信息→`tool_microservice`,agent 选已上传 app→`tool_agent`),管理员审核列表(pending → online/驳回)。
+5. 新增工具注册/审核页:开发者提交注册(微服务填部署信息→`tool_microservice`,agent 选已上传 app→回写 `agent_app.tool_id`),管理员审核列表(pending → online/驳回)。
 
 迁移步骤(顺序,可回滚):
 
 ```
-1. AgentManage: 建 tool + tool_microservice + tool_agent 三表 migration → 验证: 表结构存在
+1. AgentManage: 建 tool + tool_microservice 两表 + ALTER agent_app 加 tool_id → 验证: 表结构存在
 2. 种子 migration: 9个系统工具灌入 tool(online/builtin) + tool_microservice → 验证: GET /api/tools 返回9条
 3. AgentManage: /api/tools CRUD + 状态机 + gate   → 验证: gate 对 online 返 allowed
 4. AgentManage: 内置健康探测调度器               → 验证: online 微服务工具 healthStatus 被刷新
