@@ -197,6 +197,43 @@ export interface VulnAutoVerifyTaskBatchSyncResponse {
   }>;
 }
 
+// 一键重派（告警中心）。详见 secflow-platform-vuln/doc/REDISPATCH_FEATURE.md
+export interface RedispatchCandidate {
+  case_id: string;
+  global_vuln_id?: string | null;
+  title: string;
+  report_id?: string | null;
+  current_status?: string | null;
+  created_at: string;
+}
+
+export interface RedispatchItem {
+  case_id: string;
+  status:
+    | 'dispatched'
+    | 'skipped:has_record'
+    | 'skipped:not_receive'
+    | 'skipped:task_missing'
+    | 'skipped:no_engine'
+    | 'skipped:payload_invalid'
+    | 'skipped:case_missing'
+    | 'failed'
+    | string;
+  reason?: string | null;
+}
+
+export interface RedispatchResponse {
+  dry_run: boolean;
+  matched: number;
+  preview_limit?: number | null;
+  truncated?: boolean;
+  candidates?: RedispatchCandidate[];
+  dispatched?: number;
+  skipped?: number;
+  failed?: number;
+  items?: RedispatchItem[];
+}
+
 const asRecord = (value: unknown): Record<string, unknown> => (
   value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
 );
@@ -664,5 +701,14 @@ export const vulnApi = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(payload),
+    })),
+
+  // 一键重派：当前项目下卡在「已接收」的 case（任意工具）重新派发确认引擎。
+  // dryRun=true 返回候选预览；dryRun=false 并发 dispatch 后返回结果统计。
+  redispatchCases: async (projectId: string, dryRun: boolean): Promise<RedispatchResponse> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/redispatch`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ project_id: projectId, dry_run: dryRun }),
     })),
 };
