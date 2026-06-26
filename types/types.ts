@@ -4708,6 +4708,9 @@ export interface AppDfaTaskItem {
   rerun_count?: number | null;
   lease_lost_count?: number | null;
   dispatch_status?: string | null;
+  vuln_total_count?: number | null;
+  vuln_reported_count?: number | null;
+  vuln_unreported_count?: number | null;
 }
 
 export interface AppDfaTaskListStats {
