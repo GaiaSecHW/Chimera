@@ -118,13 +118,13 @@ export function DataTable<T>({
   return (
     <div className={cx('space-y-2', className)}>
       {bulkActions && bulkActions.selectedKeys.length > 0 && (
-        <div className="flex items-center gap-3 rounded-xl border border-theme-border bg-theme-elevated px-4 py-2 text-sm text-theme-text-secondary">
+        <div className="flex items-center gap-3 border border-theme-border bg-theme-elevated px-4 py-2 text-sm text-theme-text-secondary">
           <span className="tabular-nums">已选 {bulkActions.selectedKeys.length} 项</span>
           <div className="flex items-center gap-2">{bulkActions.render(bulkActions.selectedKeys)}</div>
         </div>
       )}
 
-      <ExecutionTable minWidth={minWidth}>
+      <ExecutionTable minWidth={minWidth} className="!rounded-none !shadow-none">
         <thead className="border-b border-theme-border bg-theme-elevated text-sm font-bold uppercase tracking-[0.18em] text-theme-text-primary">
           <tr>
             {showRowNumber && (
