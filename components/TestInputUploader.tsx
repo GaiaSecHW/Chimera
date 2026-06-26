@@ -56,6 +56,7 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
   ({ projectId, displayName, compact = false, defaultInputType = 'document', onUploadStateChange }, ref) => {
     const fileserverApi = api.domains.assets.fileserver;
     const [inputType, setInputType] = useState<InputType>(defaultInputType);
+    const [keepOriginal, setKeepOriginal] = useState(false);
     const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
@@ -63,7 +64,7 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
     const addFilesToQueue = (files: FileList | null) => {
       if (!files) return;
       const next: UploadQueueItem[] = Array.from(files).map((file) => {
-        const allowed = isAllowedArchiveFileName(file.name || '');
+        const allowed = keepOriginal || isAllowedArchiveFileName(file.name || '');
         return {
           id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2)}`,
           file,
@@ -86,6 +87,7 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
       reset: () => {
         setUploadQueue([]);
         setInputType(defaultInputType);
+        setKeepOriginal(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
       },
       cancel: () => {
@@ -109,8 +111,8 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
             {
               project_id: projectId,
               input_type: inputType,
-              keep_original: false,
-              upload_mode: 'archive',
+              keep_original: keepOriginal,
+              upload_mode: keepOriginal ? 'raw' : 'archive',
               files: readyFiles,
             },
             {
@@ -189,6 +191,17 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
           />
         </div>
 
+        {/* 是否解压 */}
+        <label className="flex items-center gap-2 text-sm font-medium text-theme-text-secondary">
+          <input
+            type="checkbox"
+            checked={keepOriginal}
+            onChange={(e) => setKeepOriginal(e.target.checked)}
+            className="h-4 w-4 rounded border-theme-border"
+          />
+          保留原始文件，不自动解压
+        </label>
+
         {/* 文件选择 */}
         <div
           role="button"
@@ -207,16 +220,18 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
             className="mx-auto text-theme-text-muted transition-colors group-hover:text-theme-text-primary"
           />
           <div className="mt-1 text-sm font-semibold text-theme-text-primary">
-            点击上传压缩包
+            {keepOriginal ? '点击上传原始文件' : '点击上传压缩包'}
           </div>
           <div className="mt-1 text-xs leading-5 text-theme-text-muted">
-            支持 zip / tar / tar.gz / tgz / tar.bz2 / tbz2 / tar.xz / txz，一次可选择多个文件。
+            {keepOriginal
+              ? '当前保留原始文件模式下，支持上传任意文件，一次可选择多个文件。'
+              : '支持 zip / tar / tar.gz / tgz / tar.bz2 / tbz2 / tar.xz / txz，一次可选择多个文件。'}
           </div>
           <input
             ref={fileInputRef}
             type="file"
             multiple
-            accept='.zip,.tar,.tar.gz,.tgz,.tar.bz2,.tbz2,.tar.xz,.txz'
+            accept={keepOriginal ? undefined : '.zip,.tar,.tar.gz,.tgz,.tar.bz2,.tbz2,.tar.xz,.txz'}
             className="hidden"
             onChange={(e) => addFilesToQueue(e.target.files)}
           />
