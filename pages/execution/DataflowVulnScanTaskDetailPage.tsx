@@ -851,6 +851,23 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
   };
 
   const [reportingFindingId, setReportingFindingId] = useState<string | null>(null);
+  const [reportingAll, setReportingAll] = useState(false);
+
+  const handleReportAll = async () => {
+    if (!taskId || reportingAll) return;
+    setReportingAll(true);
+    try {
+      const result = await appApi.reportAllFindings(taskId);
+      const ok = result.results?.filter((r: any) => r.status === 'reported').length || 0;
+      const fail = result.results?.filter((r: any) => r.status !== 'reported').length || 0;
+      notify(`一键上报完成: ${ok} 成功${fail > 0 ? `, ${fail} 失败` : ''}`, fail > 0 ? 'warning' : 'success');
+      await loadVulnGraph();
+    } catch (err: any) {
+      notify(`一键上报失败: ${err?.message || err}`, 'error');
+    } finally {
+      setReportingAll(false);
+    }
+  };
 
   const handleManualReport = async (findingId: string) => {
     if (!taskId || reportingFindingId) return;
@@ -1687,9 +1704,30 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
                           <div className="flex items-center justify-between">
                             <div>
                               <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">漏洞列表</h2>
-                              <p className="mt-1 text-xs text-theme-text-muted">共 {findings.length} 个漏洞发现</p>
+                              {(() => {
+                                const reported = findings.filter((f: any) => f.report_status === 'reported').length;
+                                const unreported = findings.length - reported;
+                                return (
+                                  <p className="mt-1 text-xs text-theme-text-muted">
+                                    共 {findings.length} 个漏洞发现
+                                    {reported > 0 ? <span className="ml-2 text-emerald-400">✅ 已上报 {reported}</span> : null}
+                                    {unreported > 0 ? <span className="ml-2 text-amber-400">⏳ 未上报 {unreported}</span> : null}
+                                  </p>
+                                );
+                              })()}
                             </div>
-                            <button onClick={() => void loadVulnGraph()} className="inline-flex items-center gap-1 rounded-xl border border-theme-border px-3 py-1.5 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"><RefreshCw size={12} className={vulnGraphLoading ? 'animate-spin' : ''} />刷新</button>
+                            <div className="flex items-center gap-2">
+                              {findings.some((f: any) => f.report_status !== 'reported') && (
+                                <button
+                                  onClick={() => handleReportAll()}
+                                  disabled={reportingAll}
+                                  className="inline-flex items-center gap-1 rounded-xl border border-lime-500/30 bg-lime-500/10 px-3 py-1.5 text-xs font-semibold text-lime-400 hover:bg-lime-500/20 transition disabled:opacity-50"
+                                >
+                                  {reportingAll ? '⏳ 上报中...' : '📤 一键上报未提交'}
+                                </button>
+                              )}
+                              <button onClick={() => void loadVulnGraph()} className="inline-flex items-center gap-1 rounded-xl border border-theme-border px-3 py-1.5 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"><RefreshCw size={12} className={vulnGraphLoading ? 'animate-spin' : ''} />刷新</button>
+                            </div>
                           </div>
                         </div>
                         <div className="divide-y divide-theme-border">
