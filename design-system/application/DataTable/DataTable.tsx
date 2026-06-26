@@ -67,8 +67,28 @@ export function DataTable<T>({
   selectedRowKey,
 }: DataTableProps<T>) {
   const rowNumberBase = pagination ? (pagination.page - 1) * (pagination.perPage ?? 10) : 0;
-  const [internalSelectedKey, setInternalSelectedKey] = useState<string | undefined>(undefined);
-  const activeSelectedKey = selectedRowKey ?? internalSelectedKey;
+  const [internalKey, setInternalKey] = useState<string | undefined>(undefined);
+  const multi = bulkActions != null;
+  const isControlled = selectedRowKey !== undefined;
+
+  const isHighlighted = (k: string) => {
+    if (multi && bulkActions) return bulkActions.selectedKeys.includes(k);
+    if (isControlled) return k === selectedRowKey;
+    return internalKey === k;
+  };
+
+  const handleRowClick = (row: T, k: string) => {
+    if (multi && bulkActions) {
+      const sel = bulkActions.selectedKeys;
+      const next = sel.includes(k) ? sel.filter((x) => x !== k) : [...sel, k];
+      bulkActions.onSelectChange(next);
+      return;
+    }
+    if (!isControlled) {
+      setInternalKey((prev) => (prev === k ? undefined : k));
+    }
+    onRowClick?.(row);
+  };
 
   const colSpan = columns.length + (showRowNumber ? 1 : 0) + (bulkActions ? 1 : 0);
   const allKeys = data.map(rowKey);
@@ -166,20 +186,12 @@ export function DataTable<T>({
               return (
                 <tr
                   key={key}
-                  onClick={
-                    onRowClick
-                      ? () => {
-                          setInternalSelectedKey(key);
-                          onRowClick(row);
-                        }
-                      : undefined
-                  }
+                  onClick={() => handleRowClick(row, key)}
                   className={cx(
-                    'group transition-colors hover:bg-theme-elevated',
-                    onRowClick && 'cursor-pointer',
+                    'group cursor-pointer transition-colors hover:bg-theme-elevated',
                   )}
                   style={
-                    key === activeSelectedKey
+                    isHighlighted(key)
                       ? { backgroundColor: 'var(--brand-primary-mask)' }
                       : undefined
                   }
