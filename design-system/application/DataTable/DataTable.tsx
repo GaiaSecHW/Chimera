@@ -62,7 +62,7 @@ export function DataTable<T>({
   pagination,
   bulkActions,
   className,
-  showRowNumber = false,
+  showRowNumber = true,
   sort,
   onSortChange,
   selectedRowKey,
