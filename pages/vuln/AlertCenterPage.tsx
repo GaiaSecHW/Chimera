@@ -304,8 +304,9 @@ const getCaseSortValue = (item: any, field: SortField) => {
   if (field === 'created_at') return parseTimeMs(item?.created_at);
   if (field === 'confidence' || field === 'cvss_score') return Number(item?.[field] || 0);
   if (field === 'conclusion') {
-    const isTerminal = item?.is_human_finished === true;
-    const effective = isTerminal ? String(item?.finished_reason || item?.validation_result || '').trim() : '';
+    const conclusion = getEffectiveConclusion(item);
+    const isTerminal = item?.is_human_finished === true || !!conclusion;
+    const effective = isTerminal ? (conclusion || getEffectiveResult(item)) : '';
     if (effective === 'vulnerable') return 4;
     if (effective === 'not_vulnerable' || effective === 'non_vulnerable') return 3;
     if (effective === 'inconclusive' || effective === 'manual_terminated') return 2;
@@ -318,9 +319,19 @@ const getEffectiveResult = (item: any) => String(item?.finished_reason || item?.
 
 const isHumanFinishedCase = (item: any) => item?.is_human_finished === true;
 
+// 引擎或人工给出的有效定论（vulnerable / not_vulnerable）。
+// inconclusive、manual_terminated、空值都不算 —— 这些情况继续显示"研判中"。
+const getEffectiveConclusion = (item: any): string => {
+  const raw = String(item?.finished_reason || item?.validation_result || '').trim();
+  if (raw === 'vulnerable' || raw === 'not_vulnerable') return raw;
+  if (raw === 'non_vulnerable') return 'not_vulnerable';
+  return '';
+};
+
 const matchesFinalResultFilter = (item: any, filters: string[]) => {
   if (!filters || filters.length === 0) return true;
-  const effective = isHumanFinishedCase(item) ? getEffectiveResult(item) : '';
+  const conclusion = getEffectiveConclusion(item);
+  const effective = conclusion || (isHumanFinishedCase(item) ? getEffectiveResult(item) : '');
   const isVulnerable = effective === 'vulnerable';
   const isRuledOut = effective === 'not_vulnerable' || effective === 'non_vulnerable';
   return filters.some((f) => {
@@ -332,8 +343,13 @@ const matchesFinalResultFilter = (item: any, filters: string[]) => {
 };
 
 const getCaseListStats = (items: any[]) => {
-  const confirmed = items.filter((item) => isHumanFinishedCase(item) && getEffectiveResult(item) === 'vulnerable').length;
+  const confirmed = items.filter((item) => {
+    const c = getEffectiveConclusion(item);
+    return c === 'vulnerable' || (isHumanFinishedCase(item) && getEffectiveResult(item) === 'vulnerable');
+  }).length;
   const ruledOut = items.filter((item) => {
+    const c = getEffectiveConclusion(item);
+    if (c === 'not_vulnerable') return true;
     if (!isHumanFinishedCase(item)) return false;
     const effective = getEffectiveResult(item);
     return effective === 'not_vulnerable' || effective === 'non_vulnerable';
@@ -440,7 +456,11 @@ const CONCLUSION_TEXT: Record<string, string> = {
 
 const toUserVulnStatusText = (itemOrStage?: any, status?: string) => {
   if (itemOrStage && typeof itemOrStage === 'object') {
-    if (itemOrStage.current_stage === 'finished' || itemOrStage.finished_reason) return '已结束';
+    if (
+      itemOrStage.current_stage === 'finished' ||
+      itemOrStage.finished_reason ||
+      getEffectiveConclusion(itemOrStage)
+    ) return '已结束';
     if (itemOrStage.confirm_engine_name) return '研判中';
     status = itemOrStage.current_status;
     itemOrStage = itemOrStage.current_stage;
@@ -2248,11 +2268,11 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
                       <div className="rounded-xl p-4 bg-theme-elevated">
                         <div className="text-xs font-semibold text-theme-text-muted-soft">当前结论</div>
                         <div className={`mt-1 text-sm font-semibold ${(selectedDetail.finished_reason || selectedDetail.validation_result) === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-primary'}`}>
-                          {(selectedDetail.current_stage === 'finished' || selectedDetail.finished_reason)
+                          {(selectedDetail.current_stage === 'finished' || selectedDetail.finished_reason || getEffectiveConclusion(selectedDetail))
                             ? (toConclusionText(selectedDetail.finished_reason || selectedDetail.validation_result) || '—')
                             : '—'}
                         </div>
-                        {(selectedDetail.current_stage === 'finished' || selectedDetail.finished_reason) && (conclusionReason.source === 'engine' || conclusionReason.source === 'human') ? (
+                        {(selectedDetail.current_stage === 'finished' || selectedDetail.finished_reason || getEffectiveConclusion(selectedDetail)) && (conclusionReason.source === 'engine' || conclusionReason.source === 'human') ? (
                           <div className="mt-1 text-[11px] font-medium text-theme-text-muted">
                             来源: {conclusionReason.source === 'engine'
                               ? `${conclusionReason.engineName || '引擎'}判定`
@@ -2872,20 +2892,23 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
                         ) : null}
                       </div>
                       <div className="min-w-0">
-                        {item.is_human_finished ? (
-                          <>
-                            <div className={`text-sm font-semibold ${(item.finished_reason || item.validation_result) === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-secondary'}`}>
-                              {toConclusionText(item.finished_reason || item.validation_result)}
-                            </div>
-                            {item.confirm_engine_name ? (
-                              <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
-                                {item.confirm_engine_name}
+                        {(() => {
+                          const conclusion = getEffectiveConclusion(item)
+                            || (item.is_human_finished ? String(item.finished_reason || item.validation_result || '').trim() : '');
+                          if (!conclusion) return <span className="text-sm text-theme-text-faint">—</span>;
+                          return (
+                            <>
+                              <div className={`text-sm font-semibold ${conclusion === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-secondary'}`}>
+                                {toConclusionText(conclusion)}
                               </div>
-                            ) : null}
-                          </>
-                        ) : (
-                          <span className="text-sm text-theme-text-faint">—</span>
-                        )}
+                              {item.confirm_engine_name ? (
+                                <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
+                                  {item.confirm_engine_name}
+                                </div>
+                              ) : null}
+                            </>
+                          );
+                        })()}
                       </div>
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold text-theme-text-secondary">{item.reporter?.name || 'unknown'}</div>
