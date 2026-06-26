@@ -33,6 +33,7 @@
 | 8 | 任务闸门契约 | 创建任务请求体显式带 `tool_id` |
 | 9 | 健康探测 | AgentManage 内置探测(单一真相源) |
 | 10 | 版本治理 | 轻治理:`current_version` 指针 + 升版不重审,任务表不关注版本 |
+| 11 | 数据建模 | 类表继承三表:`tool` 父表 + `tool_microservice` / `tool_agent` 子表;agent 经 `tool_agent` 持外键 join `agent_app`,后者零侵入 |
 
 ## 设计 1:整体架构与定位
 
@@ -48,7 +49,7 @@ AgentManage 升级为全平台**唯一**的「工具注册中心」,既是系统
 边界(全部收敛进 AgentManage):
 - 工具档案 + 准生证状态(慢变、需审批历史)→ 持久化在 MySQL
 - 菜单可见性 → 完全由准生证状态(status=online)决定
-- 微服务工具健康 → AgentManage 后台调度器按 `runtime.healthPath` 定时探活,结果写回 `tool` 记录
+- 微服务工具健康 → AgentManage 后台调度器按 `tool_microservice.health_path` 定时探活,结果写回 `tool.health_status`
 - 前端「工具」页 → 只调 AgentManage:一个接口同时拿到档案、状态、健康
 
 ### 菜单可见性规则
@@ -62,11 +63,27 @@ AgentManage 升级为全平台**唯一**的「工具注册中心」,既是系统
 
 结论:菜单可见性完全由准生证决定。这正是「只有注册并审核上线后才能开放给用户」诉求的落地点。
 
-## 设计 2:数据模型
+## 设计 2:数据模型(类表继承,三表分离)
 
-在 AgentManage 的 MySQL 库 `agent_market` 新增 `tool` 表,只放通用治理层 + 前端入口层,实现层按 `kind` 多态:`kind='agent'` 用 `agent_app_id` 关联已有 `agent_app` 表;`kind='microservice'` 用 `runtime` JSON 内联部署信息。一对一建模:盖亚固件/源码/模块 = 三条记录,`runtime` 内 `namespace/deployment` 相同但 `view_id` + `catalog` 不同。
+采用**类表继承**:一张父表 `tool` 存所有工具类型共享的治理层(准生证/审核/菜单/版本/健康),按 `kind` 分到不同子表存各自的实现细节。这样解决两个问题:(1)父表窄而稳定,不被某一类工具的字段撑大,也不会出现大片 NULL;(2)agent 类不复制 `agent_app` 字段,而是子表持外键 join,`agent_app` 表零侵入。
 
-### 建表 DDL
+```
+          tool (父表 / 共享治理层)
+          id, name, kind, status, 审核轨迹,
+          view_id/icon/menu_group/order, catalog,
+          current_version, health_status, ...
+                        │ 1:1 (by tool_id)
+            ┌───────────┴────────────┐
+            ▼                        ▼
+   tool_microservice          tool_agent
+   tool_id (PK/FK)            tool_id (PK/FK)
+   namespace/deployment       agent_app_id (FK→agent_app)
+   api_prefix/health_path     (实现细节 join agent_app,不复制字段)
+```
+
+`kind` 告诉应用层去哪张子表 join。一对一建模:盖亚固件/源码/模块 = `tool` 三行 + `tool_microservice` 三行,`namespace/deployment` 相同但 `view_id`+`catalog` 不同。
+
+### 父表:`tool`(共享治理层)
 
 ```sql
 CREATE TABLE `tool` (
@@ -90,10 +107,8 @@ CREATE TABLE `tool` (
   `order`             INT          NOT NULL DEFAULT 0 COMMENT '菜单排序',
   `catalog`           JSON         NULL COMMENT '总览页元数据 summary/tags/usageSections',
 
-  -- 实现层(按 kind 解释)
-  `runtime`           JSON         NULL COMMENT 'kind=microservice: namespace/deployment/apiPrefix/healthPath',
-  `agent_app_id`      VARCHAR(36)  NULL COMMENT 'kind=agent: 关联 agent_app.id',
-  `current_version`   VARCHAR(128) NULL COMMENT '当前上线版本: 镜像tag(微服务)/commit(agent),升版直接覆盖',
+  -- 版本(轻治理,见下)
+  `current_version`   VARCHAR(128) NULL COMMENT '当前上线版本: 镜像tag/commit,升版直接覆盖',
 
   -- 健康(由内置探测器写回)
   `health_status`     VARCHAR(20)  NOT NULL DEFAULT 'unknown'
@@ -106,35 +121,64 @@ CREATE TABLE `tool` (
   PRIMARY KEY (`id`),
   KEY `idx_status`      (`status`),
   KEY `idx_kind`        (`kind`),
-  KEY `idx_menu_group`  (`menu_group`, `order`),
-  KEY `idx_agent_app`   (`agent_app_id`)
+  KEY `idx_menu_group`  (`menu_group`, `order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='工具注册中心:统一纳管微服务工具与开发者 Agent 的准生证档案';
+  COMMENT='工具注册中心父表:所有工具类型共享的准生证/菜单/健康治理层';
 ```
 
-### 字段说明
+### 子表:`tool_microservice`(微服务特有)
+
+```sql
+CREATE TABLE `tool_microservice` (
+  `tool_id`      VARCHAR(36)  NOT NULL COMMENT '主键兼外键 → tool.id',
+  `namespace`    VARCHAR(64)  NOT NULL COMMENT 'K8s 命名空间,如 secflow-ns',
+  `deployment`   VARCHAR(128) NOT NULL COMMENT 'K8s deployment 名',
+  `api_prefix`   VARCHAR(255) NOT NULL COMMENT 'API 前缀,如 /api/binary-security',
+  `health_path`  VARCHAR(255) NOT NULL COMMENT '健康检查路径,内置探测器据此探活',
+  PRIMARY KEY (`tool_id`),
+  CONSTRAINT `fk_tms_tool` FOREIGN KEY (`tool_id`) REFERENCES `tool`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='微服务类工具的部署与探活信息';
+```
+
+### 子表:`tool_agent`(agent 注册层)
+
+```sql
+CREATE TABLE `tool_agent` (
+  `tool_id`       VARCHAR(36)  NOT NULL COMMENT '主键兼外键 → tool.id',
+  `agent_app_id`  VARCHAR(36)  NOT NULL COMMENT '外键 → agent_app.id,实现细节 join 该表',
+  PRIMARY KEY (`tool_id`),
+  KEY `idx_ta_agent_app` (`agent_app_id`),
+  CONSTRAINT `fk_ta_tool` FOREIGN KEY (`tool_id`) REFERENCES `tool`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='agent 类工具的注册层:仅持 agent_app 外键,engine/harness 等不复制,用时 join agent_app';
+```
+
+> `tool_agent` 不复制 `agent_app` 的 `engine/agent_harness_path/start_command` 等 16 个字段。需要这些信息时,应用层用 `agent_app_id` join `agent_app` 取。`agent_app` 表本身完全不动(零侵入)。`agent_app_id` 是否设物理外键由实现阶段定(agent_app 现有数据可能有脏引用),默认设外键。
+
+### 字段说明(父表 `tool`)
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `id` | varchar(36) | 主键,工具唯一标识(如 `binary-security`) |
 | `name` | varchar(255) | 显示名(如 盖亚-二进制固件) |
-| `kind` | varchar(20) | `microservice`(K8s 微服务)/ `agent`(开发者上传) |
+| `kind` | varchar(20) | `microservice` / `agent`,决定 join 哪张子表 |
 | `status` | varchar(20) | 准生证状态机:`draft→pending→online→offline` |
 | `is_builtin` | tinyint(1) | 内置种子工具,迁移时直接 online,闸门兜底 fail-open |
 | `submitted_by`/`reviewed_by`/`review_note`/`reviewed_at` | — | 审核轨迹 |
 | `view_id` | varchar(128) | 前端路由 view,取代 `navigation.tsx` 硬编码 |
 | `icon`/`menu_group`/`order` | — | 菜单渲染元数据,取代 `navigation.tsx` 硬编码 |
 | `catalog` | json | 总览页卡片元数据,取代 `toolCatalog.ts` 硬编码 |
-| `runtime` | json | `kind=microservice` 时存 `{namespace,deployment,apiPrefix,healthPath}` |
-| `agent_app_id` | varchar(36) | `kind=agent` 时关联 `agent_app.id` |
 | `current_version` | varchar(128) | 当前上线版本(镜像 tag / commit),升版直接覆盖 |
 | `health_status`/`last_health_check` | — | 由内置探测器(设计 3)维护,前端直接读 |
 
 ### 关联与约束
 
-- 与 `agent_app` 软关联:`agent_app_id` 不设外键(允许 agent 工具档案独立于具体 app 存在),由应用层保证一致性。
-- `kind` 与实现层字段的互斥由应用层校验:`microservice` 必填 `runtime`、`agent` 必填 `agent_app_id`。
-- 种子迁移:9 个系统工具以 `kind='microservice', is_builtin=1, status='online'` 灌入,`runtime` 取自现有部署信息,`catalog` 取自 `toolCatalog.ts`。
+- 子表 `tool_id` 既是主键也是指向 `tool.id` 的外键(1:1),`ON DELETE CASCADE`:删工具自动清子表。
+- `kind` 决定子表归属由应用层保证:`kind=microservice` 必有 `tool_microservice` 行,`kind=agent` 必有 `tool_agent` 行。
+- `tool_agent.agent_app_id` → `agent_app.id`,实现细节 join,不复制字段;`agent_app` 表零侵入。
+- 一个 agent 可被注册为工具,也可未注册(`agent_app` 中无对应 `tool_agent` 行即未注册)。
+- 种子迁移:9 个系统工具 `kind='microservice', is_builtin=1, status='online'` 灌入 `tool`,对应部署信息灌入 `tool_microservice`,`catalog` 取自 `toolCatalog.ts`。
 
 要点:
 - `catalog` 吃掉 `toolCatalog.ts` 的 summary/tags/usageSections。
@@ -170,12 +214,12 @@ CREATE TABLE `tool` (
 ### 内置健康探测
 
 AgentManage 后台起一个定时调度器(NestJS `@Interval` 或 cron):
-- 周期(如 30s)遍历所有 `kind=microservice && status=online` 的工具
-- 按 `runtime.apiPrefix + runtime.healthPath` 发起 HTTP 探活,超时/非 2xx 记一次失败
-- 连续失败达阈值(如 2 次)置 `healthStatus=unhealthy`,成功置 `healthy`,写回 `tool` 记录
-- `kind=agent` 工具不参与微服务探活(健康语义不同,MVP 不探,`healthStatus=unknown`)
+- 周期(如 30s)遍历所有 `kind=microservice && status=online` 的工具(join `tool_microservice`)
+- 按 `tool_microservice.api_prefix + health_path` 发起 HTTP 探活,超时/非 2xx 记一次失败
+- 连续失败达阈值(如 2 次)置 `health_status=unhealthy`,成功置 `healthy`,写回 `tool.health_status`
+- `kind=agent` 工具不参与微服务探活(健康语义不同,MVP 不探,`health_status=unknown`)
 
-前端直接读 `tool.healthStatus`,无需再调任何其它后端。
+前端直接读 `tool.health_status`,无需再调任何其它后端。
 
 ### REST API(`/api/tools`)
 
@@ -231,13 +275,13 @@ MVP 范围:
 2. `navigation.tsx`「开发者工具」分组:改为运行时拉取 `GET /api/tools?status=online&group=开发者工具`,按 `order` 渲染,健康徽标读 `healthStatus`。黑板等 iframe 类工具同样纳入(MVP 不动黑板实现)。
 3. `toolCatalog.ts`:删除硬编码常量,`ToolOverviewPage` 改读注册中心 `catalog` 字段。
 4. `CreateTaskDialog`:提交带 `tool_id`;未上线工具不展示创建入口。
-5. 新增工具注册/审核页:开发者提交注册(填 runtime 或关联 agentApp),管理员审核列表(pending → online/驳回)。
+5. 新增工具注册/审核页:开发者提交注册(微服务填部署信息→`tool_microservice`,agent 选已上传 app→`tool_agent`),管理员审核列表(pending → online/驳回)。
 
 迁移步骤(顺序,可回滚):
 
 ```
-1. AgentManage: 建 tool 表 + migration          → 验证: 表结构存在
-2. 种子 migration: 9个系统工具灌为 online/builtin → 验证: GET /api/tools 返回9条
+1. AgentManage: 建 tool + tool_microservice + tool_agent 三表 migration → 验证: 表结构存在
+2. 种子 migration: 9个系统工具灌入 tool(online/builtin) + tool_microservice → 验证: GET /api/tools 返回9条
 3. AgentManage: /api/tools CRUD + 状态机 + gate   → 验证: gate 对 online 返 allowed
 4. AgentManage: 内置健康探测调度器               → 验证: online 微服务工具 healthStatus 被刷新
 5. schedule: createUserTask 前加 gate + fail 策略 → 验证: 下线工具建任务被拒
