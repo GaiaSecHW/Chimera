@@ -130,7 +130,7 @@ export function DataTable<T>({
           <tr>
             {showRowNumber && (
               <ExecutionTableTh className="w-12 text-center" align="center">
-                #
+                序号
               </ExecutionTableTh>
             )}
             {bulkActions && (
