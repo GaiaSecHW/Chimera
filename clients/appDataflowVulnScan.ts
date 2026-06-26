@@ -183,6 +183,16 @@ export const appDataflowVulnScanApi = {
       headers: getHeaders(),
     })),
 
+  // ── Project-level vuln stats ───────────────────────────────────────────
+  getVulnStats: async (projectId: string): Promise<{ project_id: string; total_findings: number; reported: number; unreported: number }> =>
+    getJsonWithDedupe(`${BASE}/vuln-stats?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() }),
+
+  reportAllProjectFindings: async (projectId: string): Promise<{ project_id: string; total_unreported: number; reported_ok: number; failed: number; results: any[] }> =>
+    handleResponse(await fetch(`${BASE}/vuln-stats/report-all?project_id=${encodeURIComponent(projectId)}`, {
+      method: 'POST',
+      headers: getHeaders(),
+    })),
+
   listTaskSessions: async (taskId: string): Promise<{ task_id: string; items: AppDfaSessionMeta[] }> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions`, { headers: getHeaders() })),
 

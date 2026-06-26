@@ -638,6 +638,8 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
   const [tasks, setTasks] = useState<AppDfaTaskItem[]>([]);
   const [total, setTotal] = useState(0);
   const [taskStats, setTaskStats] = useState<AppDfaTaskListStats>({ total: 0, pending: 0, running: 0, passed: 0, failed: 0, error: 0, cancelled: 0 });
+  const [vulnStats, setVulnStats] = useState<{ total_findings: number; reported: number; unreported: number } | null>(null);
+  const [projectReportingAll, setProjectReportingAll] = useState(false);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(50);
   const [statusFilter, setStatusFilter] = useState('');
@@ -792,6 +794,30 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
     }
   }, [appApi, projectId, statusFilter, modeFilter, parentTaskIdFilter, notify]);
 
+  const loadVulnStats = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const stats = await appApi.getVulnStats(projectId);
+      setVulnStats(stats);
+    } catch (err: any) {
+      // silently ignore
+    }
+  }, [appApi, projectId]);
+
+  const handleProjectReportAll = async () => {
+    if (!projectId || projectReportingAll) return;
+    setProjectReportingAll(true);
+    try {
+      const result = await appApi.reportAllProjectFindings(projectId);
+      notify(`一键上报完成: ${result.reported_ok} 成功${result.failed > 0 ? `, ${result.failed} 失败` : ''}`, result.failed > 0 ? 'warning' : 'success');
+      await loadVulnStats();
+    } catch (err: any) {
+      notify(`一键上报失败: ${err?.message || err}`, 'error');
+    } finally {
+      setProjectReportingAll(false);
+    }
+  };
+
   const loadSlotSummary = useCallback(async () => {
     setSlotSummaryLoading(true);
     setSlotSummaryError('');
@@ -816,8 +842,9 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
       loadTasks(p),
       loadTaskStats(),
       loadSlotSummary(),
+      loadVulnStats(),
     ]);
-  }, [loadTasks, loadTaskStats, loadSlotSummary, page]);
+  }, [loadTasks, loadTaskStats, loadSlotSummary, loadVulnStats, page]);
 
   useEffect(() => { void loadAll(page); }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
@@ -1623,6 +1650,37 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
               <p className="mt-1 text-[11px] text-theme-text-muted">{s.label}</p>
             </div>
           ))}
+        </div>
+        {/* ── 漏洞上报统计 ───────────────────────────────── */}
+        <div className="mt-4 rounded-xl border border-theme-border bg-theme-surface p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">漏洞上报统计</h2>
+              <p className="mt-1 text-xs text-theme-text-muted">
+                共 <span className="font-bold text-theme-text-primary">{vulnStats?.total_findings || 0}</span> 个漏洞发现
+                {(vulnStats?.reported || 0) > 0 ? <span className="ml-2 text-emerald-400 font-bold">✅ 已上报 {vulnStats.reported}</span> : null}
+                {(vulnStats?.unreported || 0) > 0 ? <span className="ml-2 text-amber-400 font-bold">⏳ 未上报 {vulnStats.unreported}</span> : null}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {(vulnStats?.unreported || 0) > 0 && (
+                <button
+                  onClick={() => handleProjectReportAll()}
+                  disabled={projectReportingAll}
+                  className="inline-flex items-center gap-1 rounded-xl border border-lime-500/30 bg-lime-500/10 px-3 py-1.5 text-xs font-semibold text-lime-400 hover:bg-lime-500/20 transition disabled:opacity-50"
+                >
+                  {projectReportingAll ? '⏳ 上报中...' : '📤 一键上报项目全部未提交'}
+                </button>
+              )}
+              <button
+                onClick={() => loadVulnStats()}
+                className="inline-flex items-center gap-1 rounded-xl border border-theme-border px-3 py-1.5 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"
+              >
+                <RefreshCw size={12} />
+                刷新
+              </button>
+            </div>
+          </div>
         </div>
  <div className="mt-4 rounded-xl border border-theme-border bg-theme-surface p-5">
           <button
