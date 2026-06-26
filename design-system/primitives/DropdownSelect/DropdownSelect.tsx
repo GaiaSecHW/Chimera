@@ -135,7 +135,7 @@ export const DropdownSelect = function DropdownSelect({
         onClick={() => setOpen((v) => !v)}
         className={cx('form-select flex w-full items-center justify-between gap-2 text-left', className)}
       >
-        <span className="truncate flex-1 text-left">{triggerLabel}</span>
+        <span className="truncate flex-1 text-left font-normal">{triggerLabel}</span>
         <ChevronDown size={14} className={cx('shrink-0 text-theme-text-faint transition-transform', open && 'rotate-180')} />
       </button>
       {open && (
@@ -171,7 +171,7 @@ export const DropdownSelect = function DropdownSelect({
                     disabled={opt.disabled}
                     onClick={() => handleSelect(opt)}
                     className={cx(
-                      'w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors',
+                      'w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors',
                       selected
                         ? 'theme-shell-active'
                         : opt.disabled

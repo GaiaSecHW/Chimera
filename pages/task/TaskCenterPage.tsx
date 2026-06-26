@@ -535,17 +535,17 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                   </button>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, color: LK.inkSoft }}>
-                  <div className="font-semibold">{task.name}</div>
+                  <div className="text-sm">{task.name}</div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}` }}>
-                  <div className="font-semibold" style={{ color: LK.inkSoft }}>{getTaskHarnessLabel(task)}</div>
+                  <div className="text-sm" style={{ color: LK.inkSoft }}>{getTaskHarnessLabel(task)}</div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}` }}>
                   {(() => {
                     const uploadId = task.inputs?.[0]?.input_upload_id;
                     const label = getTaskTestObjectLabel(task);
                     if (!uploadId) {
-                      return <div className="font-semibold" style={{ color: LK.inkSoft }}>{label}</div>;
+                      return <div className="text-sm" style={{ color: LK.inkSoft }}>{label}</div>;
                     }
                     return (
                       <a
@@ -553,7 +553,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                         target="_blank"
                         rel="noopener noreferrer"
                         title={`查看测试对象：${label}`}
-                        className="font-semibold hover:underline"
+                        className="text-sm hover:underline"
                         style={{ color: LK.primary }}
                       >
                         {label}
@@ -562,7 +562,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                   })()}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}` }}>
-                  <div className="font-semibold" style={{ color: LK.inkSoft }}>{getUserStatusLabel(task)}</div>
+                  <div className="text-sm" style={{ color: LK.inkSoft }}>{getUserStatusLabel(task)}</div>
                 </td>
                 <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, color: LK.muted }}>
                   {formatDateTime(task.updated_at)}

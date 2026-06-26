@@ -256,7 +256,7 @@
     border-color: var(--border-default);
   }
   .form-input {
-    @apply rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors;
+    @apply rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors font-normal;
     background-color: var(--bg-surface);
     border-color: var(--border-default);
     color: var(--text-secondary);
@@ -269,7 +269,7 @@
     box-shadow: 0 0 0 2px var(--brand-soft);
   }
   .form-textarea {
-    @apply rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors;
+    @apply rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors font-normal;
     background-color: var(--bg-surface);
     border-color: var(--border-default);
     color: var(--text-secondary);
