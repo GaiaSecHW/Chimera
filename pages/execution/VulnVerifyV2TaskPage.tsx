@@ -466,11 +466,6 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
           className="border-b-0 !pb-0"
           title={<ServicePageTitle title={<span className="inline-flex items-baseline gap-1.5 py-2">漏洞验证<span className="text-xs font-medium text-theme-text-muted">v2</span></span>} version={buildVersion} />}
           description="基于漏洞报告、代码上下文与威胁模型，由 AI 围绕代码定位、路径可达性、缓解措施和安全影响进行四维判定，产出确认漏洞、排除漏洞或不可证结论。"
-          actions={
-            <button type="button" onClick={() => void loadOverview()} className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-3.5 py-2 text-sm font-semibold text-theme-text-secondary hover:bg-theme-elevated">
-              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />刷新
-            </button>
-          }
         />
 
         <section>
@@ -490,7 +485,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <div className="relative min-w-[260px] flex-1">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" />
-                  <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索标题 / ID" className="form-input h-10 w-full py-2 pl-9 pr-9 text-sm text-theme-text-primary" />
+                  <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索标题 / ID" className="form-input h-9 w-full py-1.5 pl-9 pr-9 text-sm text-theme-text-primary" />
                   {search ? (
                     <button
                       type="button"
@@ -520,13 +515,22 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                         key={option.value || 'all'}
                         type="button"
                         onClick={() => handleResultFilterChange(option.value)}
-                        className={`shrink-0 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${active ? activeCls : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated hover:text-theme-text-primary'}`}
+                        className={`inline-flex h-9 shrink-0 items-center rounded-lg border px-2.5 text-sm font-medium transition ${active ? activeCls : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated hover:text-theme-text-primary'}`}
                       >
                         {option.label}
                       </button>
                     );
                   })}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => void loadOverview()}
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-theme-border bg-theme-surface text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-primary sm:ml-2"
+                  aria-label="刷新任务列表"
+                  title="刷新任务列表"
+                >
+                  <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                </button>
               </div>
 
             <div className="overflow-hidden bg-theme-surface">
