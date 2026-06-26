@@ -639,7 +639,6 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
   const [total, setTotal] = useState(0);
   const [taskStats, setTaskStats] = useState<AppDfaTaskListStats>({ total: 0, pending: 0, running: 0, passed: 0, failed: 0, error: 0, cancelled: 0 });
   const [vulnStats, setVulnStats] = useState<{ total_findings: number; reported: number; unreported: number } | null>(null);
-  const [projectReportingAll, setProjectReportingAll] = useState(false);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(50);
   const [statusFilter, setStatusFilter] = useState('');
@@ -799,24 +798,23 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
     try {
       const stats = await appApi.getVulnStats(projectId);
       setVulnStats(stats);
-    } catch (err: any) {
-      // silently ignore
-    }
+    } catch (_) {}
   }, [appApi, projectId]);
 
-  const handleProjectReportAll = async () => {
+  const [projectReportingAll, setProjectReportingAll] = useState(false);
+  const handleProjectReportAll = useCallback(async () => {
     if (!projectId || projectReportingAll) return;
     setProjectReportingAll(true);
     try {
       const result = await appApi.reportAllProjectFindings(projectId);
-      notify(`一键上报完成: ${result.reported_ok} 成功${result.failed > 0 ? `, ${result.failed} 失败` : ''}`, result.failed > 0 ? 'warning' : 'success');
+      notify(`上报完成: ${result.reported_ok} 成功${result.failed > 0 ? '，' + result.failed + ' 失败' : ''}`, result.failed > 0 ? 'warning' : 'success');
       await loadVulnStats();
     } catch (err: any) {
-      notify(`一键上报失败: ${err?.message || err}`, 'error');
+      notify(`上报失败: ${err?.message || err}`, 'error');
     } finally {
       setProjectReportingAll(false);
     }
-  };
+  }, [projectId, projectReportingAll, appApi, notify, loadVulnStats]);
 
   const loadSlotSummary = useCallback(async () => {
     setSlotSummaryLoading(true);
@@ -1666,7 +1664,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
         {(vulnStats?.unreported || 0) > 0 && (
           <div className="mt-3 flex justify-end">
             <button
-              onClick={() => handleProjectReportAll()}
+              onClick={handleProjectReportAll}
               disabled={projectReportingAll}
               className="inline-flex items-center gap-1 rounded-xl border border-lime-500/30 bg-lime-500/10 px-3 py-1.5 text-xs font-semibold text-lime-400 hover:bg-lime-500/20 transition disabled:opacity-50"
             >

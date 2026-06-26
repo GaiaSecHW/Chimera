@@ -183,7 +183,6 @@ export const appDataflowVulnScanApi = {
       headers: getHeaders(),
     })),
 
-  // ── Project-level vuln stats ───────────────────────────────────────────
   getVulnStats: async (projectId: string): Promise<{ project_id: string; total_findings: number; reported: number; unreported: number }> =>
     getJsonWithDedupe(`${BASE}/vuln-stats?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() }),
 
