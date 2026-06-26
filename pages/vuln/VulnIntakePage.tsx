@@ -1926,8 +1926,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       key: 'taskName',
       header: '任务名称',
       render: (item) => (
-        <div className="min-w-0" title={getTaskName(item)}>
-          <div className="truncate text-sm font-semibold text-theme-text-secondary">{getTaskName(item)}</div>
+        <div className="min-w-0 cursor-pointer text-sm font-semibold text-brand-primary hover:underline" title={getTaskName(item)}>
+          <div className="truncate">{getTaskName(item)}</div>
         </div>
       ),
     },
