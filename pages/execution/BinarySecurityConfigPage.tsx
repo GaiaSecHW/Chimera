@@ -41,7 +41,8 @@ const DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT = Object.fromEntries(
 ) as Record<string, boolean>;
 
 const DEFAULT_BINARY_SECURITY_GLOBAL_CONFIG = {
-  max_concurrent_tasks: 50,
+  worker_task_concurrency: 40,
+  max_concurrent_tasks: 40,
   dispatch_timeout_seconds: 60,
   max_stage_parallelism: 4,
   max_retries_per_item: 2,
@@ -136,7 +137,8 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
   const [savingPanel, setSavingPanel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [maxConcurrentTasks, setMaxConcurrentTasks] = useState(50);
+  const [workerTaskConcurrency, setWorkerTaskConcurrency] = useState(40);
+  const [maxConcurrentTasks, setMaxConcurrentTasks] = useState(40);
   const [dispatchTimeoutSeconds, setDispatchTimeoutSeconds] = useState(60);
   const [maxRetriesPerItem, setMaxRetriesPerItem] = useState(2);
   const [continueOnItemFailure, setContinueOnItemFailure] = useState(true);
@@ -176,6 +178,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
         }
       }
       setSavedEvolutionConfig(evolutionConfig);
+      setWorkerTaskConcurrency(mergedConfig.worker_task_concurrency);
       setMaxConcurrentTasks(mergedConfig.max_concurrent_tasks);
       setDispatchTimeoutSeconds(mergedConfig.dispatch_timeout_seconds);
       setMaxRetriesPerItem(mergedConfig.max_retries_per_item);
@@ -212,6 +215,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
   }, [initialTab]);
 
   const syncServiceDraft = (serviceConfig: Record<string, any>) => {
+    setWorkerTaskConcurrency(serviceConfig.worker_task_concurrency);
     setMaxConcurrentTasks(serviceConfig.max_concurrent_tasks);
     setDispatchTimeoutSeconds(serviceConfig.dispatch_timeout_seconds);
   };
@@ -237,7 +241,8 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
     setMessage(null);
     try {
       const serviceData = await executionApi.binarySecurity.updateConfig({
-        max_concurrent_tasks: Math.max(1, Math.min(200, Number(maxConcurrentTasks) || 50)),
+        worker_task_concurrency: Math.max(1, Math.min(200, Number(workerTaskConcurrency) || 40)),
+        max_concurrent_tasks: Math.max(1, Math.min(200, Number(maxConcurrentTasks) || 40)),
         dispatch_timeout_seconds: Math.max(10, Math.min(600, Number(dispatchTimeoutSeconds) || 60)),
         max_stage_parallelism: Math.max(...Object.values(stageParallelism)),
         max_retries_per_item: Math.max(0, Math.min(20, Number(maxRetriesPerItem) || 0)),
@@ -260,7 +265,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
       const normalizedServiceData = normalizeBinarySecurityServiceConfig(serviceData);
       syncServiceDraft(normalizedServiceData);
       syncProjectDraft(normalizedServiceData);
-      setMessage('队列控制配置已保存');
+      setMessage('队列控制配置已保存，实时生效；调小不会主动缩容，只影响后续新任务领取。');
     } catch (e: any) {
       setError(e?.message || '保存失败');
     } finally {
@@ -282,7 +287,8 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
         ]),
       );
       const projectData = await executionApi.binarySecurity.updateConfig({
-        max_concurrent_tasks: Math.max(1, Math.min(200, Number(maxConcurrentTasks) || 50)),
+        worker_task_concurrency: Math.max(1, Math.min(200, Number(workerTaskConcurrency) || 40)),
+        max_concurrent_tasks: Math.max(1, Math.min(200, Number(maxConcurrentTasks) || 40)),
         dispatch_timeout_seconds: Math.max(10, Math.min(600, Number(dispatchTimeoutSeconds) || 60)),
         max_stage_parallelism: Math.max(...Object.values(normalizedStageParallelism)),
         max_retries_per_item: Math.max(0, Math.min(20, Number(maxRetriesPerItem) || 0)),
@@ -536,20 +542,33 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
           <div className="mt-5 grid grid-cols-1 gap-4">
             <SectionCard
               title="队列控制"
-              subtitle="范围 1-200，默认 50。全局限制`running + dispatching` 的总任务数，并控制 dispatching 回收超时。"
+              subtitle="两项并发值都实时生效。调小允许低于当前实际运行数，但不会主动缩容，只影响后续新任务领取。"
               actions={<PanelActions saving={savingPanel === 'binary-security-queue'} onSave={() => { void saveBinarySecurityQueue(); }} onReset={resetBinarySecurityQueue} />}
             >
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
                 <div>
-                  <div className="text-sm font-bold text-theme-text-secondary">最大并发总任务数</div>
-                  <div className="mt-2 text-xs text-theme-text-muted">范围 1-200，默认 50。全局限制`running + dispatching` 的总任务数。</div>
+                  <div className="text-sm font-bold text-theme-text-secondary">单 Worker 最大父任务并发</div>
+                  <div className="mt-2 text-xs text-theme-text-muted">范围 1-200，默认 40。限制单个 worker 实例本地最多同时持有多少个父任务 runtime。</div>
+                  <input
+                    type="number"
+                    min={1}
+                    max={200}
+                    disabled={loading || saving}
+                    value={workerTaskConcurrency}
+                    onChange={(e) => setWorkerTaskConcurrency(Number(e.target.value || 40))}
+                    className="form-input mt-4 w-full"
+                  />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-theme-text-secondary">服务级最大运行任务数</div>
+                  <div className="mt-2 text-xs text-theme-text-muted">范围 1-200，默认 40。全局限制`running + dispatching` 的总父任务数。</div>
                   <input
                     type="number"
                     min={1}
                     max={200}
                     disabled={loading || saving}
                     value={maxConcurrentTasks}
-                    onChange={(e) => setMaxConcurrentTasks(Number(e.target.value || 50))}
+                    onChange={(e) => setMaxConcurrentTasks(Number(e.target.value || 40))}
                     className="form-input mt-4 w-full"
                   />
                 </div>

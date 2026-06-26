@@ -956,6 +956,7 @@ export interface BinarySecurityArtifacts {
 
 export interface BinarySecurityGlobalConfig {
   config: {
+    worker_task_concurrency: number;
     max_concurrent_tasks: number;
     dispatch_timeout_seconds: number;
     lease_timeout_seconds?: number;
@@ -990,13 +991,16 @@ export type BinarySecurityDeleteQueueTaskType =
 export interface BinarySecurityDeleteQueueItem {
   id: string;
   project_id: string;
+  project_name?: string | null;
   name: string;
   task_type: BinarySecurityDeleteQueueTaskType | string;
+  task_status?: string;
+  delete_mode?: string | null;
   display_status: string;
   delete_status: 'queued' | 'running' | 'blocked' | 'failed' | 'deleted' | string;
   delete_error?: string | null;
   last_error?: string | null;
-  downstream_task_id?: string | null;
+  delete_operation_id?: string | null;
   delete_requested_at?: string | null;
   delete_started_at?: string | null;
   delete_finished_at?: string | null;
@@ -1373,8 +1377,8 @@ export const binarySecurityApi = {
   },
 
   listDeleteQueue: async (
-    projectId: string,
     query?: {
+      projectId?: string;
       page?: number;
       pageSize?: number;
       taskType?: BinarySecurityDeleteQueueTaskType;
@@ -1386,6 +1390,7 @@ export const binarySecurityApi = {
     },
   ): Promise<BinarySecurityDeleteQueueResponse> => {
     const params = new URLSearchParams();
+    if (query?.projectId) params.set('project_id', query.projectId);
     if (query?.page) params.set('page', String(query.page));
     if (query?.pageSize) params.set('page_size', String(query.pageSize));
     if (query?.taskType) params.set('task_type', query.taskType);
@@ -1395,7 +1400,7 @@ export const binarySecurityApi = {
     if (query?.sortDirection) params.set('sort_direction', query.sortDirection);
     if (query?.hasError) params.set('has_error', 'true');
     const suffix = params.toString() ? `?${params.toString()}` : '';
-    const resp = await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/user-task-delete-queue${suffix}`, {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/delete-queue${suffix}`, {
       headers: getHeaders(),
       cache: 'no-store',
     });
