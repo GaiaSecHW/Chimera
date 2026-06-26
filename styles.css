@@ -601,7 +601,7 @@
   :root .hover\:bg-gray-100:hover { background-color: var(--brand-soft); }
   :root .hover\:border-blue-200:hover,
   :root .hover\:border-blue-300:hover { border-color: var(--brand-border); }
-  :root .text-white { color: var(--text-inverse); }
+  :root .text-white { color: "#FFFFFF"; }
   :root .text-slate-200 { color: var(--text-soft); }
   :root .text-slate-300 { color: var(--text-soft); }
   :root .text-slate-400 { color: var(--text-muted); }
@@ -687,29 +687,6 @@
   :root .after\:bg-white::after { background-color: var(--bg-elevated); }
   :root .after\:border-white::after { border-color: var(--border-strong); }
   :root .peer:checked ~ .peer-checked\:after\:border-white::after { border-color: var(--brand-primary); }
-
-  :root[data-theme='chimera'] .bg-white\/5 { background-color: rgba(255, 253, 248, 0.68); }
-  :root[data-theme='chimera'] .bg-white\/10 { background-color: rgba(255, 253, 248, 0.78); }
-  :root[data-theme='chimera'] .bg-white\/20 { background-color: rgba(255, 253, 248, 0.86); }
-  :root[data-theme='chimera'] .bg-white\/30 { background-color: rgba(255, 253, 248, 0.92); }
-  :root[data-theme='chimera'] .bg-white\/40 { background-color: rgba(255, 253, 248, 0.96); }
-  :root[data-theme='chimera'] .bg-white\/50 { background-color: rgba(255, 253, 248, 0.98); }
-  :root[data-theme='chimera'] .bg-slate-800 { background-color: #6b5136; }
-  :root[data-theme='chimera'] .bg-slate-900 { background-color: #4b3724; }
-  :root[data-theme='chimera'] .bg-slate-900\/60,
-  :root[data-theme='chimera'] .bg-slate-950\/60 { background-color: rgba(46, 33, 19, 0.68); }
-  :root[data-theme='chimera'] .hover\:bg-white\/10:hover { background-color: rgba(255, 253, 248, 0.86); }
-  :root[data-theme='chimera'] .border-white\/10,
-  :root[data-theme='chimera'] .border-white\/20,
-  :root[data-theme='chimera'] .border-white\/30,
-  :root[data-theme='chimera'] .border-white\/40,
-  :root[data-theme='chimera'] .border-white\/50,
-  :root[data-theme='chimera'] .border-white\/60,
-  :root[data-theme='chimera'] .border-white\/70,
-  :root[data-theme='chimera'] .border-white\/80,
-  :root[data-theme='chimera'] .border-white\/90 { border-color: rgba(120, 88, 43, 0.18); }
-  :root[data-theme='chimera'] .text-emerald-50,
-  :root[data-theme='chimera'] .text-emerald-100 { color: #fff6e8; }
 
   :root[data-theme='dark'] .bg-slate-50,
   :root[data-theme='dark'] .bg-slate-50\/30,

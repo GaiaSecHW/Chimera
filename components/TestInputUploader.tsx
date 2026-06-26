@@ -1,5 +1,5 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { X } from 'lucide-react';
+import { UploadCloud, X } from 'lucide-react';
 import { api } from '../clients/api';
 import { DropdownSelect } from '../design-system';
 import { formatUploadBytes, isAllowedArchiveFileName } from '../pages/assets/baseResourcePageModel';
@@ -181,7 +181,7 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
       <div className="space-y-4">
         {/* 输入类型 */}
         <div className="space-y-1.5">
-          <label className="form-label">输入类型</label>
+          <div className="mb-2 text-sm font-semibold">输入类型</div>
           <DropdownSelect
             value={inputType}
             onChange={(v) => setInputType(v as InputType)}
@@ -190,30 +190,36 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
         </div>
 
         {/* 文件选择 */}
-        <div className="rounded-xl border border-dashed border-theme-border px-4 py-4 text-center">
-          <div className="text-sm font-semibold text-theme-text-primary">
-            上传压缩包
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => fileInputRef.current?.click()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
+          className="group cursor-pointer rounded-xl border border-dashed border-theme-border bg-theme-elevated/30 p-4 text-center transition-colors hover:border-theme-text-muted hover:bg-theme-elevated focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-text-muted"
+        >
+          <UploadCloud
+            size={24}
+            className="mx-auto text-theme-text-muted transition-colors group-hover:text-theme-text-primary"
+          />
+          <div className="mt-1 text-sm font-semibold text-theme-text-primary">
+            点击上传压缩包
           </div>
           <div className="mt-1 text-xs leading-5 text-theme-text-muted">
             支持 zip / tar / tar.gz / tgz / tar.bz2 / tbz2 / tar.xz / txz，一次可选择多个文件。
           </div>
-          <div className="mt-2">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="btn btn-secondary"
-            >
-              选择文件
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept='.zip,.tar,.tar.gz,.tgz,.tar.bz2,.tbz2,.tar.xz,.txz'
-              className="hidden"
-              onChange={(e) => addFilesToQueue(e.target.files)}
-            />
-          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept='.zip,.tar,.tar.gz,.tgz,.tar.bz2,.tbz2,.tar.xz,.txz'
+            className="hidden"
+            onChange={(e) => addFilesToQueue(e.target.files)}
+          />
         </div>
 
         {/* 上传队列 */}

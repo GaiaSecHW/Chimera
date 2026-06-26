@@ -597,7 +597,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     className="form-input mt-1.5 w-full rounded-lg px-3 text-sm outline-none transition-colors"
                   />
                 </label>
-                <div className="w-60 shrink-0">
+                <div className="flex-1 shrink-0">
                   <div className="mb-1.5 text-sm font-semibold" style={{ color: LK.inkSoft }}>模式</div>
                   <div className="flex gap-1 rounded-lg p-1" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}>
                     {MODE_OPTIONS.map((item) => (
@@ -632,7 +632,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               ) : null}
 
               {isKgSourceTask ? (
-                <div className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.body }}>
+                <div className="rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.body }}>
                   知识图谱-漏洞挖掘会直接使用所选测试对象记录的 <span style={{ color: LK.ink, fontFamily: MONO }}>upload_id</span> 作为知识图谱定位参数，不需要手工填写。
                 </div>
               ) : null}
@@ -722,7 +722,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               <div>
                 <div className="mb-2 text-sm font-semibold" style={{ color: LK.inkSoft }}>测试对象</div>
                 {/* sub-mode toggle */}
-                <div className="mb-3 flex gap-2">
+                <div
+                  className="mb-3 flex gap-1 rounded-lg p-1 w-1/2"
+                  style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+                >
                   {(isKgSourceTask ? (['existing'] as const) : (['upload', 'existing'] as const)).map((src) => {
                     const active = inputSource === src;
                     return (
@@ -730,14 +733,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                         key={src}
                         type="button"
                         onClick={() => setInputSource(src)}
-                        className="rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-                        style={{
-                          backgroundColor: active ? LK.primaryMuted : LK.surfaceRaised,
-                          color: active ? LK.primary : LK.body,
-                          border: active ? `1px solid ${LK.primary}` : `1px solid ${LK.border}`,
-                        }}
-                        onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = LK.ink; }}
-                        onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = LK.body; }}
+                        className="flex-1 rounded-md px-3 py-1.5 text-sm font-bold transition-all"
+                        style={active
+                          ? { backgroundColor: LK.primary, color: '#fff' }
+                          : { color: LK.body }}
                       >
                         {src === 'existing' ? '选择已有' : '直接上传'}
                       </button>
