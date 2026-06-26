@@ -202,7 +202,32 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
     setError('');
     try {
       const taskResp = await scheduleApi.listUserTasks(projectId, {});
-      const taskItems = taskResp.items || [];
+      const taskItems = (taskResp.items || []) as any[];
+
+      try {
+        const cairnProjects = await api.domains.cairn.listProjects();
+        const cairnMap = new Map<string, any>();
+        for (const p of cairnProjects) {
+          cairnMap.set(String(p.id), p);
+        }
+        for (const t of taskItems) {
+          const m = String(t.description || '').match(/\[黑板:cairn:([^\]]+)\]/);
+          if (m) {
+            const cp = cairnMap.get(m[1]);
+            if (cp) {
+              const running = (cp as any).working_intent_count > 0;
+              if (cp.status === 'completed') {
+                t.display_status = 'completed';
+              } else if (cp.status === 'active' && running) {
+                t.display_status = 'running';
+              } else if (cp.status === 'active') {
+                t.display_status = 'pending';
+              }
+            }
+          }
+        }
+      } catch { /* nazhua 不可达时不影响列表加载 */ }
+
       setTasks(taskItems);
       setStats(taskResp.stats || {});
       void fetchTaskVulnCounts(taskItems);
