@@ -63,58 +63,83 @@ AgentManage 升级为全平台**唯一**的「工具注册中心」,既是系统
 
 ## 设计 2:数据模型
 
-在 AgentManage MySQL 新增 `tool` 表,只放通用治理层 + 前端入口层,实现层按 `kind` 多态内联。`kind=agent` 关联已有 `agent_app`;`kind=microservice` 内联 `runtime`。一对一建模:盖亚固件/源码/模块 = 三条记录,共享相同 `namespace/deployment` 但不同 `viewId` + `catalog`。
+在 AgentManage 的 MySQL 库 `agent_market` 新增 `tool` 表,只放通用治理层 + 前端入口层,实现层按 `kind` 多态:`kind='agent'` 用 `agent_app_id` 关联已有 `agent_app` 表;`kind='microservice'` 用 `runtime` JSON 内联部署信息。一对一建模:盖亚固件/源码/模块 = 三条记录,`runtime` 内 `namespace/deployment` 相同但 `view_id` + `catalog` 不同。
 
-```ts
-@Entity('tool')
-export class Tool {
-  @PrimaryColumn('varchar', 36) id: string;        // 'binary-security' / 'source-security' ...
-  @Column() name: string;
-  @Column() kind: 'microservice' | 'agent';
+### 建表 DDL
 
-  // —— 治理层(两类共享)——
-  @Column({ default: 'draft' })
-  status: 'draft' | 'pending' | 'online' | 'offline';
-  @Column({ name: 'is_builtin', default: false }) isBuiltin: boolean;
-  @Column('simple-json', { nullable: true })
-  capabilities?: {
-    createTask?: boolean;
-    reportVuln?: boolean;
-    gatewayKey?: boolean;
-    userVisible?: boolean;
-  };
-  @Column({ nullable: true }) submittedBy?: string;
-  @Column({ nullable: true }) reviewedBy?: string;
-  @Column('text', { nullable: true }) reviewNote?: string;
-  @Column('datetime', { nullable: true }) reviewedAt?: Date;
+```sql
+CREATE TABLE `tool` (
+  `id`                VARCHAR(36)  NOT NULL COMMENT '工具ID,如 binary-security',
+  `name`              VARCHAR(255) NOT NULL COMMENT '工具显示名',
+  `kind`              VARCHAR(20)  NOT NULL COMMENT '载体类型: microservice / agent',
 
-  // —— 前端入口层(两类共享)——
-  @Column() viewId: string;
-  @Column({ nullable: true }) icon?: string;
-  @Column({ nullable: true }) menuGroup?: string;
-  @Column('int', { default: 0 }) order: number;
-  @Column('simple-json', { nullable: true }) catalog?: ToolCatalogMeta; // summary/tags/usageSections
+  -- 治理层
+  `status`            VARCHAR(20)  NOT NULL DEFAULT 'draft'
+                      COMMENT '准生证状态: draft/pending/online/offline',
+  `is_builtin`        TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '是否内置种子工具',
+  `capabilities`      JSON         NULL COMMENT '能力开关位 createTask/reportVuln/gatewayKey/userVisible',
+  `submitted_by`      VARCHAR(64)  NULL COMMENT '提交人',
+  `reviewed_by`       VARCHAR(64)  NULL COMMENT '审核人',
+  `review_note`       TEXT         NULL COMMENT '审核意见/驳回原因',
+  `reviewed_at`       DATETIME     NULL COMMENT '审核时间',
 
-  // —— 实现层(内联,按 kind 解释)——
-  @Column('simple-json', { nullable: true })
-  runtime?: { namespace: string; deployment: string; apiPrefix: string; healthPath: string }; // kind=microservice
-  @Column({ name: 'agent_app_id', nullable: true }) agentAppId?: string; // kind=agent
+  -- 前端入口层
+  `view_id`           VARCHAR(128) NOT NULL COMMENT '前端路由 view',
+  `icon`              VARCHAR(64)  NULL COMMENT '图标名',
+  `menu_group`        VARCHAR(64)  NULL COMMENT '所属菜单分组,如 开发者工具',
+  `order`             INT          NOT NULL DEFAULT 0 COMMENT '菜单排序',
+  `catalog`           JSON         NULL COMMENT '总览页元数据 summary/tags/usageSections',
 
-  // —— 健康(由内置探测器写回)——
-  @Column({ name: 'health_status', default: 'unknown' })
-  healthStatus: 'healthy' | 'unhealthy' | 'unknown';
-  @Column('datetime', { name: 'last_health_check', nullable: true }) lastHealthCheck?: Date;
+  -- 实现层(按 kind 解释)
+  `runtime`           JSON         NULL COMMENT 'kind=microservice: namespace/deployment/apiPrefix/healthPath',
+  `agent_app_id`      VARCHAR(36)  NULL COMMENT 'kind=agent: 关联 agent_app.id',
 
-  createdAt: Date; updatedAt: Date;
-}
+  -- 健康(由内置探测器写回)
+  `health_status`     VARCHAR(20)  NOT NULL DEFAULT 'unknown'
+                      COMMENT 'healthy / unhealthy / unknown',
+  `last_health_check` DATETIME     NULL COMMENT '最近一次探活时间',
+
+  `created_at`        DATETIME     NOT NULL,
+  `updated_at`        DATETIME     NOT NULL,
+
+  PRIMARY KEY (`id`),
+  KEY `idx_status`      (`status`),
+  KEY `idx_kind`        (`kind`),
+  KEY `idx_menu_group`  (`menu_group`, `order`),
+  KEY `idx_agent_app`   (`agent_app_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='工具注册中心:统一纳管微服务工具与开发者 Agent 的准生证档案';
 ```
+
+### 字段说明
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `id` | varchar(36) | 主键,工具唯一标识(如 `binary-security`) |
+| `name` | varchar(255) | 显示名(如 盖亚-二进制固件) |
+| `kind` | varchar(20) | `microservice`(K8s 微服务)/ `agent`(开发者上传) |
+| `status` | varchar(20) | 准生证状态机:`draft→pending→online→offline` |
+| `is_builtin` | tinyint(1) | 内置种子工具,迁移时直接 online,闸门兜底 fail-open |
+| `capabilities` | json | 能力开关 `{createTask,reportVuln,gatewayKey,userVisible}`,闸门据此判定 |
+| `submitted_by`/`reviewed_by`/`review_note`/`reviewed_at` | — | 审核轨迹 |
+| `view_id` | varchar(128) | 前端路由 view,取代 `navigation.tsx` 硬编码 |
+| `icon`/`menu_group`/`order` | — | 菜单渲染元数据,取代 `navigation.tsx` 硬编码 |
+| `catalog` | json | 总览页卡片元数据,取代 `toolCatalog.ts` 硬编码 |
+| `runtime` | json | `kind=microservice` 时存 `{namespace,deployment,apiPrefix,healthPath}` |
+| `agent_app_id` | varchar(36) | `kind=agent` 时关联 `agent_app.id` |
+| `health_status`/`last_health_check` | — | 由内置探测器(设计 3)维护,前端直接读 |
+
+### 关联与约束
+
+- 与 `agent_app` 软关联:`agent_app_id` 不设外键(允许 agent 工具档案独立于具体 app 存在),由应用层保证一致性。
+- `kind` 与实现层字段的互斥由应用层校验:`microservice` 必填 `runtime`、`agent` 必填 `agent_app_id`。
+- 种子迁移:9 个系统工具以 `kind='microservice', is_builtin=1, status='online'` 灌入,`runtime` 取自现有部署信息,`catalog` 取自 `toolCatalog.ts`。
 
 要点:
 - `catalog` 吃掉 `toolCatalog.ts` 的 summary/tags/usageSections。
-- `viewId/icon/menuGroup/order` 吃掉 `navigation.tsx` 的硬编码菜单项。
-- `capabilities` 是闸门数据基础:下游校验既看 `status===online` 也看对应能力位。
-- `healthStatus/lastHealthCheck` 由内置探测器(设计 3)维护,前端直接读。
-- 种子迁移:9 个系统工具以 `kind='microservice', isBuiltin=true, status='online'` 灌入。
+- `view_id/icon/menu_group/order` 吃掉 `navigation.tsx` 的硬编码菜单项。
+- `capabilities` 是闸门数据基础:下游校验既看 `status='online'` 也看对应能力位。
+- `health_status/last_health_check` 由内置探测器(设计 3)维护,前端直接读。
 
 ## 设计 3:准生证状态机 + 健康探测 + API
 
