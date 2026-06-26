@@ -1228,7 +1228,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                       </thead>
                       <tbody className="divide-y divide-theme-border">
                         {tasksList.map((task) => {
-                          const statusKey = String(task.business_status || '').toLowerCase();
+                          const statusKey = String(task.display_status || task.business_status || '').toLowerCase();
                           const statusMeta = TASK_STATUS_META[statusKey] || { label: statusKey || '—', className: 'text-theme-text-secondary bg-theme-elevated border-theme-border' };
                           return (
                             <tr key={task.task_id} className="hover:bg-theme-surface">

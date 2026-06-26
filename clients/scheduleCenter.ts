@@ -6,6 +6,7 @@ export interface ScheduleCenterUploadTask {
   task_type: string;
   updated_at?: string;
   business_status?: string;
+  display_status?: string;
 }
 
 export interface ScheduleCenterUploadTaskListResponse {
