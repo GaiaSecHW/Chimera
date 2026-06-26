@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, CircleHelp, RefreshCw, Search, X } from 'lucide-react';
 import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
 import { PageHeader } from '../../design-system';
@@ -23,6 +23,17 @@ interface WebVulnListResponse {
   total: number;
   page: number;
   page_size: number;
+}
+
+interface WebVulnStats {
+  total: number;
+  vulnerable: number;
+  not_vulnerable: number;
+  pending: number;
+  exploitable: number;
+  not_exploitable: number;
+  failed_analysis: number;
+  failed_verification: number;
 }
 
 const fmtTime = (value?: string | null): string => {
@@ -81,6 +92,36 @@ const fetchWebVulns = async (projectId: string, page: number, pageSize: number, 
   };
 };
 
+const emptyStats = (): WebVulnStats => ({
+  total: 0,
+  vulnerable: 0,
+  not_vulnerable: 0,
+  pending: 0,
+  exploitable: 0,
+  not_exploitable: 0,
+  failed_analysis: 0,
+  failed_verification: 0,
+});
+
+const fetchWebVulnStats = async (projectId: string, search?: string): Promise<WebVulnStats> => {
+  const query = new URLSearchParams();
+  if (search && search.trim()) {
+    query.set('search_text', search.trim());
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  const raw = await requestGaia(`${WEB_E2E_API_BASE}/vulnerabilities/projects/${encodeURIComponent(projectId)}/stats${suffix}`);
+  return {
+    total: Number(raw?.total || 0),
+    vulnerable: Number(raw?.vulnerable || 0),
+    not_vulnerable: Number(raw?.not_vulnerable || raw?.notVulnerable || 0),
+    pending: Number(raw?.pending || 0),
+    exploitable: Number(raw?.exploitable || 0),
+    not_exploitable: Number(raw?.not_exploitable || raw?.notExploitable || 0),
+    failed_analysis: Number(raw?.failed_analysis || raw?.failedAnalysis || 0),
+    failed_verification: Number(raw?.failed_verification || raw?.failedVerification || 0),
+  };
+};
+
 const AI_ANALYSIS_STATUS_LABEL: Record<string, string> = {
   PENDING: '待分析',
   RUNNING: '分析中',
@@ -132,9 +173,10 @@ const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: Reac
 };
 
 export const WebVulnVerifyPage: React.FC<{ projectId: string }> = ({ projectId }) => {
-  const { feedbackNodes, notify } = useUiFeedback();
+  const { feedbackNodes } = useUiFeedback();
 
   const [vulns, setVulns] = useState<WebVuln[]>([]);
+  const [stats, setStats] = useState<WebVulnStats>(emptyStats);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -147,37 +189,18 @@ export const WebVulnVerifyPage: React.FC<{ projectId: string }> = ({ projectId }
   const pageStart = total === 0 ? 0 : offset + 1;
   const pageEnd = total === 0 ? 0 : Math.min(total, offset + vulns.length);
 
-  const stats = useMemo(() => {
-    const vulnerable = vulns.filter(v => v.ai_analysis_status?.toUpperCase() === 'VULNERABLE').length;
-    const notVulnerable = vulns.filter(v => v.ai_analysis_status?.toUpperCase() === 'NOT_VULNERABLE').length;
-    const pending = vulns.filter(v => v.ai_analysis_status?.toUpperCase() === 'PENDING' || !v.ai_analysis_status).length;
-    const exploitable = vulns.filter(v => 
-      ['EXTERNAL_REQUEST_EXPLOITABLE', 'INTERNAL_REQUEST_EXPLOITABLE', 'UNIT_TEST_EXPLOITABLE'].includes(v.ai_verification_status?.toUpperCase() || '')
-    ).length;
-    const notExploitable = vulns.filter(v => v.ai_verification_status?.toUpperCase() === 'NOT_EXPLOITABLE').length;
-    const failedAnalysis = vulns.filter(v => v.ai_analysis_status?.toUpperCase() === 'FAILED').length;
-    const failedVerification = vulns.filter(v => v.ai_verification_status?.toUpperCase() === 'FAILED').length;
-    
-    return {
-      total,
-      vulnerable,
-      notVulnerable,
-      pending,
-      exploitable,
-      notExploitable,
-      failedAnalysis,
-      failedVerification,
-    };
-  }, [vulns, total]);
-
   const loadVulns = useCallback(async () => {
     if (!projectId) return;
     setLoading(true);
     try {
       const searchText = search.trim() || undefined;
-      const response = await fetchWebVulns(projectId, page, perPage, searchText);
+      const [response, statsResponse] = await Promise.all([
+        fetchWebVulns(projectId, page, perPage, searchText),
+        fetchWebVulnStats(projectId, searchText),
+      ]);
       setVulns(response.items || []);
       setTotal(Number(response.total || 0));
+      setStats(statsResponse);
       setMessage(null);
     } catch (e: any) {
       setMessage(e?.message || String(e));
@@ -219,10 +242,10 @@ export const WebVulnVerifyPage: React.FC<{ projectId: string }> = ({ projectId }
           <div className="grid gap-5 md:grid-cols-3 lg:grid-cols-4">
             <SummaryCard label="漏洞总数" value={stats.total} accent="slate" Icon={AlertTriangle} hint="所有WEB漏洞数量" />
             <SummaryCard label="确认漏洞" value={stats.vulnerable} accent="rose" Icon={AlertTriangle} hint="AI分析确认存在漏洞" />
-            <SummaryCard label="排除漏洞" value={stats.notVulnerable} accent="sky" Icon={CheckCircle2} hint="AI分析排除漏洞风险" />
+            <SummaryCard label="排除漏洞" value={stats.not_vulnerable} accent="sky" Icon={CheckCircle2} hint="AI分析排除漏洞风险" />
             <SummaryCard label="待分析" value={stats.pending} accent="amber" Icon={CircleHelp} hint="等待AI分析或未分析" />
             <SummaryCard label="可利用" value={stats.exploitable} accent="rose" Icon={AlertTriangle} hint="AI验证确认可利用" />
-            <SummaryCard label="无利用" value={stats.notExploitable} accent="sky" Icon={CheckCircle2} hint="AI验证无利用价值" />
+            <SummaryCard label="无利用" value={stats.not_exploitable} accent="sky" Icon={CheckCircle2} hint="AI验证无利用价值" />
           </div>
         </section>
 
