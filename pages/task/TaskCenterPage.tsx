@@ -508,7 +508,27 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                   <div className="font-semibold" style={{ color: LK.inkSoft }}>{getTaskHarnessLabel(task)}</div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}` }}>
-                  <div className="font-semibold" style={{ color: LK.inkSoft }}>{getTaskTestObjectLabel(task)}</div>
+                  {(() => {
+                    const uploadId = task.inputs?.[0]?.input_upload_id;
+                    const label = getTaskTestObjectLabel(task);
+                    if (!uploadId) {
+                      return <div className="font-semibold" style={{ color: LK.inkSoft }}>{label}</div>;
+                    }
+                    return (
+                      <a
+                        href={`#/test-input-root?upload=${encodeURIComponent(uploadId)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`查看测试对象：${label}`}
+                        className="font-semibold transition-colors hover:underline"
+                        style={{ color: LK.inkSoft }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = LK.primary; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = LK.inkSoft; }}
+                      >
+                        {label}
+                      </a>
+                    );
+                  })()}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}` }}>
                   <div className="font-semibold" style={{ color: LK.inkSoft }}>{getUserStatusLabel(task)}</div>

@@ -16,7 +16,7 @@ import {
   Upload,
   X,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../clients/api';
 import type { ScheduleCenterUploadTask } from '../clients/scheduleCenter';
 import { DropdownSelect, PageHeader } from '../design-system';
@@ -116,13 +116,14 @@ const emptyStats = (projectId: string, inputType: InputType): ProjectInputUpload
 
 export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId, user = null, projects = [] }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const fileserverApi = api.domains.assets.fileserver;
   const projectId = selectedProjectId || localStorage.getItem('last_project_id') || localStorage.getItem('selectedProjectId') || '';
   const [overview, setOverview] = useState<ProjectInputOverview | null>(null);
   const [records, setRecords] = useState<ProjectInputUploadRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [overviewLoading, setOverviewLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get('upload') || '');
   const [selectedType, setSelectedType] = useState<InputType | 'all'>('all');
   const [selectedStatus, setSelectedStatus] = useState<'all' | string>('all');
   const [page, setPage] = useState(1);
