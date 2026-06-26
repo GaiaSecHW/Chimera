@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Archive, BarChart3, ChevronRight, Layers3, Loader2, Plus, RefreshCw, Search, ShieldAlert, Upload } from 'lucide-react';
+import { Archive, BarChart3, ChevronRight, Layers3, Loader2, Plus, RefreshCw, Search, Shield, ShieldAlert, Upload } from 'lucide-react';
 
-import { BinarySecurityInputFile, BinarySecurityPipelineMode, BinarySecurityPipelineProfile, BinarySecurityProjectStageAggregate, BinarySecurityProjectStats, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
+import { BinarySecurityDeleteQueueTaskType, BinarySecurityInputFile, BinarySecurityPipelineMode, BinarySecurityPipelineProfile, BinarySecurityProjectStageAggregate, BinarySecurityProjectStats, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
 import { fileserverApi } from '../../clients/fileserver';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { PageHeader } from '../../design-system';
+import { BinarySecurityDeleteQueueDrawer } from './BinarySecurityDeleteQueueDrawer';
 
 interface Props {
   projectId: string;
@@ -434,6 +435,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [createResult, setCreateResult] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createDialogTab, setCreateDialogTab] = useState<CreateDialogTab>('basic');
+  const [deleteQueueOpen, setDeleteQueueOpen] = useState(false);
   const [name, setName] = useState('');
   const [nameEdited, setNameEdited] = useState(false);
   const [description, setDescription] = useState('');
@@ -475,6 +477,12 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const isSourceTask = taskType === 'source';
   const isBinaryModuleTask = taskType === 'binary_module';
   const isKgSourcePage = isSourceTask && sourcePipelineProfileMode === 'kg_source_vuln_scan';
+  const deleteQueueTaskType = useMemo<BinarySecurityDeleteQueueTaskType>(
+    () => (isSourceTask
+      ? (isKgSourcePage ? 'kg_source_vuln_scan_e2e' : 'source_scan_e2e')
+      : (isBinaryModuleTask ? 'binary_module_e2e' : 'binary_firmware_e2e')),
+    [isBinaryModuleTask, isKgSourcePage, isSourceTask],
+  );
   const showSourcePipelinePicker = isSourceTask && sourcePipelineProfileMode === 'select';
   const pageTitle = isKgSourcePage ? '知识图谱-源码漏洞挖掘' : isSourceTask ? '源码扫描' : isBinaryModuleTask ? '二进制模块扫描' : '二进制安全';
   const createTitle = isKgSourcePage ? '创建知识图谱源码漏洞挖掘任务' : isSourceTask ? '创建源码扫描任务' : isBinaryModuleTask ? '创建二进制模块任务' : '创建二进制安全任务';
@@ -928,6 +936,14 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
           <div className="flex items-center gap-3">
             <button
               type="button"
+              onClick={() => setDeleteQueueOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+            >
+              <Shield size={16} />
+              删除队列
+            </button>
+            <button
+              type="button"
               onClick={() => void openCreateDialog()}
               disabled={createDefaultsLoading}
               className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
@@ -953,6 +969,16 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
           {createResult}
         </div>
       )}
+
+      <BinarySecurityDeleteQueueDrawer
+        open={deleteQueueOpen}
+        projectId={projectId}
+        taskType={deleteQueueTaskType}
+        onClose={() => setDeleteQueueOpen(false)}
+        onForceDeleteAccepted={async () => {
+          await load();
+        }}
+      />
 
  <section className="rounded-xl border border-theme-border bg-theme-elevated p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">

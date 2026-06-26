@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Copy, ExternalLink, FileText, Info, Loader2, RefreshCw, SlidersHorizontal, Trash2, X, Shield } from 'lucide-react';
+import { Copy, ExternalLink, FileText, Info, Loader2, RefreshCw, SlidersHorizontal, Trash2, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useNavigate } from 'react-router-dom';
@@ -4678,17 +4678,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         back={{ label: '返回任务列表', onClick: onBack }}
         actions={
           <div className="flex flex-wrap justify-end gap-3">
-            <button
-              type="button"
-              onClick={openDeleteQueue}
-              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
-            >
-              <Shield size={16} />
-              删除队列
-              <span className="rounded-full bg-theme-elevated px-2 py-0.5 text-xs text-theme-text-primary">
-                {deleteQueueStats.queued_total + deleteQueueStats.running_total}
-              </span>
-            </button>
             <button
               type="button"
               onClick={() => void refreshActiveTab()}
