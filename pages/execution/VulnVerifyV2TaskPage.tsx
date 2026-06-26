@@ -7,41 +7,11 @@ import { useUiFeedback } from '../../components/UiFeedback';
 
 const PAGE_SIZE_OPTIONS = [50, 100, 200] as const;
 
-const STATUS_LABEL: Record<string, string> = {
-  pending: '等待中',
-  running: '执行中',
-  success: '成功',
-  failed: '失败',
-  cancelled: '已取消',
-};
-
-const STATUS_CLASS: Record<string, string> = {
-  pending: 'bg-theme-elevated text-theme-text-secondary border-theme-border',
-  running: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
-  success: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
-  failed: 'bg-rose-500/15 text-rose-400 border-rose-500/20',
-  cancelled: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
-};
-
-const VERDICT_LABEL: Record<string, string> = {
-  confirmed: '确认漏洞',
-  ruled_out: '排除漏洞',
-  unresolved: '不可证',
-  no_result: '未产出结果',
-};
-
 const DIMENSION_LABEL: Record<string, string> = {
   code_accurate: '代码定位准确',
   path_reachable: '路径可达',
   unmitigated: '无缓解措施',
   security_impact: '存在安全影响',
-};
-
-const DIMENSION_SHORT_LABEL: Record<string, string> = {
-  code_accurate: '定位',
-  path_reachable: '可达',
-  unmitigated: '无缓解',
-  security_impact: '影响',
 };
 
 interface TaskRuntime {
@@ -77,35 +47,9 @@ function fmtTime(value?: string | null): string {
   return Number.isFinite(d.getTime()) ? d.toLocaleString('zh-CN') : value;
 }
 
-function statusClass(status?: string): string {
-  return STATUS_CLASS[status || ''] || 'bg-theme-elevated text-theme-text-secondary border-theme-border';
-}
-
-function fmtStatus(status?: string): string {
-  return STATUS_LABEL[status || ''] || status || '-';
-}
-
-const VerdictBadge: React.FC<{ verdict?: string | null }> = ({ verdict }) => {
-  const item = outcomeBadge(undefined, verdict);
-  const Icon = item.Icon;
-  return (
-    <span className={`inline-flex w-auto items-center gap-1.5 rounded-full py-1.5 pl-3 pr-4 text-sm ${item.fontCls || 'font-semibold'} ${item.boxCls}`}>
-      {Icon ? <Icon size={16} strokeWidth={2.2} className={`shrink-0 ${item.iconCls}`} /> : null}
-      <span className={item.iconCls}>{item.label}</span>
-    </span>
-  );
-};
-
-const StatusBadge: React.FC<{ status?: string }> = ({ status }) => (
-  <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-sm font-normal ${statusClass(status)}`}>
-    {status === 'running' ? <Loader2 size={12} className="mr-1 animate-spin" /> : null}
-    {fmtStatus(status)}
-  </span>
-);
-
-function outcomeBadge(status?: string, verdict?: string | null): { label: string; iconCls: string; boxCls: string; fontCls?: string; plain?: boolean; iconOnly?: boolean; Icon?: React.ElementType; loading?: boolean } {
+function outcomeBadge(status?: string, verdict?: string | null): { label: string; iconCls: string; boxCls: string; fontCls?: string; iconOnly?: boolean; Icon?: React.ElementType; loading?: boolean } {
   if (status === 'running') return { label: '验证中', iconCls: 'text-emerald-300', boxCls: '', iconOnly: true, loading: true };
-  if (status === 'pending') return { label: '等待中', iconCls: 'text-theme-text-faint', boxCls: '', fontCls: 'font-normal', plain: true, iconOnly: true, Icon: Clock3 };
+  if (status === 'pending') return { label: '等待中', iconCls: 'text-theme-text-faint', boxCls: '', fontCls: 'font-normal', iconOnly: true, Icon: Clock3 };
   if (status === 'failed') return { label: '验证失败', iconCls: 'text-rose-400', boxCls: '', iconOnly: true, Icon: X };
   if (status === 'cancelled') return { label: '已取消', iconCls: 'text-amber-400', boxCls: '', iconOnly: true, Icon: Minus };
   if (verdict === 'confirmed') return { label: '已确认', iconCls: 'text-rose-400', boxCls: 'border border-rose-500/30 bg-rose-500/20', Icon: AlertTriangle };
@@ -147,23 +91,14 @@ function normalizeRuledOutBy(value: unknown): string[] {
   return [];
 }
 
-const EvidencePill: React.FC<{ children: React.ReactNode; tone?: 'rose' | 'emerald' | 'amber' | 'blue' | 'muted'; title?: string }> = ({ children, tone = 'muted', title }) => {
-  const cls = tone === 'rose'
-    ? 'border-theme-border bg-rose-500/10 text-theme-text-secondary'
-    : tone === 'emerald'
-      ? 'border-theme-border bg-emerald-500/10 text-theme-text-secondary'
-      : tone === 'amber'
-        ? 'border-theme-border bg-amber-500/10 text-theme-text-secondary'
-        : tone === 'blue'
-          ? 'border-theme-border bg-blue-500/10 text-theme-text-secondary'
-          : 'border-theme-border bg-theme-elevated text-theme-text-secondary';
-  return <span title={title} className={`inline-flex items-center rounded-full border px-2.5 py-1 text-sm font-normal ${cls}`}>{children}</span>;
-};
+const EvidencePill: React.FC<{ children: React.ReactNode; title?: string }> = ({ children, title }) => (
+  <span title={title} className="inline-flex items-center rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-sm font-normal text-theme-text-secondary">{children}</span>
+);
 
 const TaskDecisionEvidence: React.FC<{ task: VulnVerifyV2Task }> = ({ task }) => {
   if (task.status === 'running' || task.status === 'pending') return <span className="text-sm font-normal text-theme-text-secondary">-</span>;
   if (task.status === 'failed') return <span className="text-sm font-normal text-theme-text-secondary">执行失败</span>;
-  if (task.status === 'cancelled') return <EvidencePill tone="amber">已取消</EvidencePill>;
+  if (task.status === 'cancelled') return <span className="text-sm font-normal text-theme-text-secondary">已取消</span>;
 
   if (task.verdict === 'confirmed') {
     const summary = task.root_cause_summary || '';
@@ -174,7 +109,7 @@ const TaskDecisionEvidence: React.FC<{ task: VulnVerifyV2Task }> = ({ task }) =>
 
   if (task.verdict === 'ruled_out') {
     const reasons = normalizeRuledOutBy(task.ruled_out_by);
-    if (!reasons.length) return <EvidencePill>排除原因见详情</EvidencePill>;
+    if (!reasons.length) return <span className="text-sm font-normal text-theme-text-secondary">排除原因见详情</span>;
     return (
       <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         {reasons.map((key) => (
@@ -187,7 +122,7 @@ const TaskDecisionEvidence: React.FC<{ task: VulnVerifyV2Task }> = ({ task }) =>
   }
 
   if (task.verdict === 'unresolved') return <span className="text-sm font-normal text-theme-text-secondary">证据不足</span>;
-  return <EvidencePill>未产出判定</EvidencePill>;
+  return <span className="text-sm font-normal text-theme-text-secondary">未产出判定</span>;
 };
 
 const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'emerald' | 'sky' | 'rose' | 'amber' | 'slate'; Icon?: React.ElementType }> = ({ label, value, hint, accent = 'slate', Icon }) => {
@@ -258,7 +193,7 @@ const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[] }> = ({ attemp
         const isFailed = att.status === 'failed';
         const dotCls = att.status === 'success' ? 'bg-emerald-400'
           : att.status === 'failed' ? 'bg-rose-400'
-          : att.status === 'running' ? 'bg-blue-400'
+          : att.status === 'running' ? 'bg-emerald-400'
           : att.status === 'cancelled' ? 'bg-amber-400'
           : 'bg-theme-border';
         const duration = att.started_at
@@ -455,8 +390,6 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const detailRaw = (detailResult?.raw_result || {}) as Record<string, any>;
   const detailDimensions = (detailRaw.dimensions || detailResult?.dimensions || {}) as Record<string, { status?: boolean | null; detail?: string }>;
   const detailAttempts = detail?.attempts || [];
-  const ruledOutByRaw = detailRaw.ruled_out_by;
-  const ruledOutByList = Array.isArray(ruledOutByRaw) ? ruledOutByRaw.map(String) : ruledOutByRaw ? [String(ruledOutByRaw)] : [];
 
   return (
     <div className="min-h-full bg-theme-bg-app text-theme-text-primary">
@@ -637,7 +570,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                     <div className="min-w-0">
                       <div className="whitespace-normal break-words text-lg font-bold leading-6 text-theme-text-primary" title={detail.name}>{detail.name}</div>
                       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-                        <VerdictBadge verdict={detail.verdict} />
+                        <OutcomePill item={outcomeBadge(undefined, detail.verdict)} />
                         <button onClick={() => void handleRerun(detail.id)} aria-label="重新执行" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated">
                           <RotateCcw size={13} />重试
                         </button>
