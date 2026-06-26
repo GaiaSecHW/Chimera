@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowDown, ArrowUp, Loader2 } from 'lucide-react';
 
 import {
@@ -67,6 +67,9 @@ export function DataTable<T>({
   selectedRowKey,
 }: DataTableProps<T>) {
   const rowNumberBase = pagination ? (pagination.page - 1) * (pagination.perPage ?? 10) : 0;
+  const [internalSelectedKey, setInternalSelectedKey] = useState<string | undefined>(undefined);
+  const activeSelectedKey = selectedRowKey ?? internalSelectedKey;
+
   const colSpan = columns.length + (showRowNumber ? 1 : 0) + (bulkActions ? 1 : 0);
   const allKeys = data.map(rowKey);
   const allSelected = bulkActions != null && allKeys.length > 0 && allKeys.every((k) => bulkActions.selectedKeys.includes(k));
@@ -163,13 +166,20 @@ export function DataTable<T>({
               return (
                 <tr
                   key={key}
-                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  onClick={
+                    onRowClick
+                      ? () => {
+                          setInternalSelectedKey(key);
+                          onRowClick(row);
+                        }
+                      : undefined
+                  }
                   className={cx(
                     'group transition-colors hover:bg-theme-elevated',
                     onRowClick && 'cursor-pointer',
                   )}
                   style={
-                    selectedRowKey && key === selectedRowKey
+                    key === activeSelectedKey
                       ? { backgroundColor: 'var(--brand-primary-mask)' }
                       : undefined
                   }
