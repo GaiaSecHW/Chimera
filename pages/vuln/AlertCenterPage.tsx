@@ -36,6 +36,7 @@ import { authApi } from '../../clients/auth';
 import { API_BASE } from '../../clients/base';
 import { MarkdownViewer, Modal, PageHeader, PageSection, StatisticCard } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
+import type { RedispatchResponse } from '../../clients/vuln';
 
 const vulnApi = api.domains.vuln;
 const assetApi = api.domains.assets;
@@ -673,6 +674,10 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
   const [detailEditMode, setDetailEditMode] = useState(false);
   const [detailSaving, setDetailSaving] = useState(false);
   const [editableDetail, setEditableDetail] = useState<EditableCaseIntake | null>(null);
+  // 一键重派（告警中心）：dry-run 预览 + 正式执行
+  const [redispatchLoading, setRedispatchLoading] = useState(false);
+  const [redispatchPreview, setRedispatchPreview] = useState<RedispatchResponse | null>(null);
+  const [redispatchExecuting, setRedispatchExecuting] = useState(false);
   const [detailActiveTab, setDetailActiveTab] = useState<IntakeDetailTab>('overview');
   const [reportItems, setReportItems] = useState<any[]>([]);
   const [selectedReportId, setSelectedReportId] = useState('');
@@ -1836,6 +1841,46 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
     setSortDirection(field === 'updated_at' || field === 'confidence' || field === 'conclusion' ? 'desc' : 'asc');
   };
 
+  // ===== 一键重派（告警中心）=====
+  // dry-run 预览当前项目下卡在「已接收」的 case（任意工具）；确认后正式并发 dispatch。
+  const handleRedispatchPreview = async () => {
+    if (!projectId || redispatchLoading || redispatchExecuting) return;
+    setError(null);
+    setSuccessMessage(null);
+    setRedispatchLoading(true);
+    try {
+      const resp = await vulnApi.vuln.redispatchCases(projectId, true);
+      setRedispatchPreview(resp);
+    } catch (err: any) {
+      setError(err?.message || '一键重派预览失败');
+    } finally {
+      setRedispatchLoading(false);
+    }
+  };
+
+  const handleRedispatchExecute = async () => {
+    if (!projectId || redispatchExecuting) return;
+    setError(null);
+    setSuccessMessage(null);
+    setRedispatchExecuting(true);
+    try {
+      const resp = await vulnApi.vuln.redispatchCases(projectId, false);
+      const { dispatched = 0, skipped = 0, failed = 0, matched = 0 } = resp;
+      if (failed > 0) {
+        setError(`重派完成：成功 ${dispatched} 条，跳过 ${skipped} 条，失败 ${failed} 条（共 ${matched}）`);
+      } else {
+        setSuccessMessage(`重派完成：成功 ${dispatched} 条，跳过 ${skipped} 条（共 ${matched} 条）`);
+      }
+      setRedispatchPreview(null);
+      // 刷新列表，让重派后的 case 状态更新
+      loadSuspicions();
+    } catch (err: any) {
+      setError(err?.message || '一键重派执行失败');
+    } finally {
+      setRedispatchExecuting(false);
+    }
+  };
+
   const selectedTaskFilterLabel = taskFilter.length === 0
     ? '全部任务'
     : taskFilter.length === 1
@@ -2714,7 +2759,17 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
                   ) : null}
                 </div>
               </div>
-              <div className="relative ml-auto">
+              <div className="relative ml-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleRedispatchPreview}
+                  disabled={!projectId || redispatchLoading || redispatchExecuting}
+                  className="btn btn-secondary btn-sm inline-flex items-center gap-1"
+                  title="重新派发当前项目下卡在「已接收」的漏洞给确认引擎"
+                >
+                  <RefreshCw size={12} className={redispatchLoading ? 'animate-spin' : ''} />
+                  {redispatchLoading ? '查询中...' : redispatchExecuting ? '重派中...' : '一键重派'}
+                </button>
                 <button
                   type="button"
                   onClick={() => setExportMenuOpen((v) => !v)}
@@ -3069,6 +3124,76 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
               </button>
             </div>
           </form>
+        </DialogShell>
+      )}
+
+      {redispatchPreview && (
+        <DialogShell
+          title="一键重派确认"
+          subtitle={`当前项目下有 ${redispatchPreview.matched} 条卡在「已接收」的漏洞可重派给确认引擎。`}
+          onClose={() => setRedispatchPreview(null)}
+        >
+          <div className="grid gap-4">
+            <div className="rounded-xl border border-theme-border bg-theme-elevated/60 p-3 text-sm text-theme-text-secondary">
+              重派会把这批漏洞重新派发给各自绑定的确认引擎，使其进入「研判中」。重复派发不会产生新的漏洞 case。
+              {redispatchPreview.truncated && (
+                <span className="mt-1 block text-xs text-theme-text-muted">
+                  下方仅预览前 {redispatchPreview.preview_limit} 条，共 {redispatchPreview.matched} 条；确认后将处理全部。
+                </span>
+              )}
+              {redispatchPreview.matched > 200 && (
+                <span className="mt-1 block text-xs text-state-warning">
+                  数量较大，同步重派可能耗时数秒至数十秒，请耐心等待。
+                </span>
+              )}
+            </div>
+            <div className="max-h-72 overflow-auto rounded-xl border border-theme-border bg-theme-surface">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-theme-elevated text-theme-text-muted">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-semibold">全局编号</th>
+                    <th className="px-3 py-2 text-left font-semibold">标题</th>
+                    <th className="px-3 py-2 text-left font-semibold">report_id</th>
+                    <th className="px-3 py-2 text-left font-semibold">当前状态</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(redispatchPreview.candidates || []).map((c) => (
+                    <tr key={c.case_id} className="border-t border-theme-border-subtle">
+                      <td className="px-3 py-2 font-mono text-theme-text-faint">{c.global_vuln_id || c.case_id}</td>
+                      <td className="px-3 py-2 text-theme-text-primary">{c.title}</td>
+                      <td className="px-3 py-2 font-mono text-theme-text-faint">{c.report_id || '-'}</td>
+                      <td className="px-3 py-2 text-theme-text-muted">{c.current_status || '-'}</td>
+                    </tr>
+                  ))}
+                  {(!redispatchPreview.candidates || redispatchPreview.candidates.length === 0) && (
+                    <tr>
+                      <td colSpan={4} className="px-3 py-6 text-center text-theme-text-faint">无可重派候选</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setRedispatchPreview(null)}
+                disabled={redispatchExecuting}
+                className="btn btn-secondary btn-sm"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={handleRedispatchExecute}
+                disabled={redispatchExecuting || redispatchPreview.matched === 0}
+                className="btn btn-primary btn-sm inline-flex items-center gap-1"
+              >
+                <RefreshCw size={12} className={redispatchExecuting ? 'animate-spin' : ''} />
+                {redispatchExecuting ? '重派中...' : `确认重派 ${redispatchPreview.matched} 条`}
+              </button>
+            </div>
+          </div>
         </DialogShell>
       )}
     </div>
