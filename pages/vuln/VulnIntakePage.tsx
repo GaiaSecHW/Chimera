@@ -533,9 +533,8 @@ const DialogShell: React.FC<{
   subtitle?: string;
   onClose: () => void;
   children: React.ReactNode;
-  className?: string;
-}> = ({ title, subtitle, onClose, children, className }) => (
-  <Modal open onClose={onClose} size="xl" title={title} description={subtitle} className={className}>
+}> = ({ title, subtitle, onClose, children }) => (
+  <Modal open onClose={onClose} size="xl" title={title} description={subtitle}>
     {children}
   </Modal>
 );
@@ -678,7 +677,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [reportDocument, setReportDocument] = useState<any | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
-  const [rawReportModalOpen, setRawReportModalOpen] = useState(false);
   const reportScrollRef = useRef<HTMLDivElement | null>(null);
   const taskFilterRef = useRef<HTMLDivElement | null>(null);
   const suspicionRequestSeq = useRef(0);
@@ -981,19 +979,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       setReportError(err?.message || '加载漏洞报告失败');
     } finally {
       setReportLoading(false);
-    }
-  };
-
-  const openRawReportModal = () => {
-    if (!selectedDetail) return;
-    setRawReportModalOpen(true);
-    const rawReportId =
-      selectedDetail.raw_report_summary?.report_id ||
-      selectedDetail.raw_report?.report_id ||
-      selectedDetail.display_summary?.current_report_id ||
-      '';
-    if (rawReportId) {
-      loadSuspicionReport(selectedDetail.id, rawReportId);
     }
   };
 
@@ -2277,18 +2262,54 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     return (
       <div className="overflow-hidden rounded-xl bg-theme-surface border border-theme-border">
         <div className="px-5 py-4 xl:px-6 border-b border-theme-border-subtle bg-gradient-radial">
-          <button
-            type="button"
-            onClick={() => setSelectedSuspicionId('')}
-            className="btn btn-secondary btn-sm inline-flex items-center gap-2"
-          >
-            <ArrowLeft size={14} />
-            返回漏洞列表
-          </button>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setSelectedSuspicionId('')}
+              className="btn btn-secondary btn-sm inline-flex items-center gap-2"
+            >
+              <ArrowLeft size={14} />
+              返回漏洞列表
+            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-state-danger-soft text-state-danger">
+                {selectedDetail.severity}
+              </span>
+              <span className="rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-state-info-soft text-state-info">
+                {toUserVulnStatusText(selectedDetail)}
+              </span>
+              <span className="rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-state-warning-soft text-state-warning">
+                {toDecisionText(selectedDetail.decision_status)}
+              </span>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="truncate text-xl font-semibold text-theme-text-primary">{selectedDetail.title}</h3>
+              <div className="mt-1 text-xs font-semibold font-mono text-theme-text-faint">ID: {selectedDetail.id}</div>
+              <p className="mt-1 line-clamp-2 text-sm leading-6 text-theme-text-muted">{selectedDetail.summary || '暂无摘要'}</p>
+            </div>
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">状态</div>
+              <div className="mt-1 text-sm font-semibold text-theme-text-primary">{toUserVulnStatusText(selectedDetail)}</div>
+            </div>
+            <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">置信度</div>
+              <div className="mt-1 text-sm font-semibold tabular-nums text-theme-text-primary">{selectedDetail.confidence}</div>
+            </div>
+            <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">CVSS</div>
+              <div className="mt-1 text-sm font-semibold tabular-nums text-theme-text-primary">{Number(selectedDetail.cvss_score || 0).toFixed(1)}</div>
+            </div>
+            <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">开放任务</div>
+              <div className="mt-1 text-sm font-semibold tabular-nums text-theme-text-primary">{stats.openTasks}</div>
+            </div>
+          </div>
         </div>
 
-        {/* [隐藏] 原页签布局（漏洞总览/漏洞报告/证据与文件/处置过程/关联上下文）— 代码保留，暂不展示 */}
-        <div className="hidden">
         <div className="px-5 pt-4 xl:px-6 border-b border-theme-border-subtle bg-theme-elevated/80">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
@@ -2723,85 +2744,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
             </div>
           )}
         </div>
-        </div>
-
-        {/* 新布局：左右 7:3 卡片 */}
-        <div className="p-6 xl:p-8">
-          <div className="grid gap-4 xl:grid-cols-[7fr_3fr]">
-            {/* 左：漏洞摘要 */}
-            <DetailSectionCard title="漏洞摘要" subtitle="先看本条漏洞的结论、摘要和对象定位。">
-              <div className="mt-3 space-y-3 text-sm leading-7 text-theme-text-secondary">
-                <div>{displaySummary?.subtitle || selectedDetail.summary || '暂无摘要说明'}</div>
-                <div className="rounded-xl p-4 bg-theme-elevated">
-                  <div className="text-xs font-semibold text-theme-text-muted-soft">当前结论</div>
-                  <div className={`mt-1 text-sm font-semibold ${(selectedDetail.finished_reason || selectedDetail.validation_result) === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-primary'}`}>
-                    {(selectedDetail.current_stage === 'finished' || selectedDetail.finished_reason)
-                      ? (toConclusionText(selectedDetail.finished_reason || selectedDetail.validation_result) || '—')
-                      : '—'}
-                  </div>
-                  {(selectedDetail.current_stage === 'finished' || selectedDetail.finished_reason) && (conclusionReason.source === 'engine' || conclusionReason.source === 'human') ? (
-                    <div className="mt-1 text-[11px] font-medium text-theme-text-muted">
-                      来源: {conclusionReason.source === 'engine'
-                        ? `${conclusionReason.engineName || '引擎'}判定`
-                        : '人工判定'}
-                    </div>
-                  ) : null}
-                  {conclusionReason.text ? (
-                    <div className="mt-3">
-                      <div className="text-xs font-semibold text-theme-text-muted-soft">判定理由</div>
-                      <MarkdownViewer content={conclusionReason.text} emptyText="暂无判定理由" />
-                    </div>
-                  ) : null}
-                </div>
-                <div className="rounded-xl p-4 bg-theme-elevated">
-                  <div className="text-xs font-semibold text-theme-text-muted-soft">对象定位</div>
-                  <div className="mt-1 break-all text-sm font-semibold text-theme-text-primary">{selectedDetail.subject?.locator || '未提供定位信息'}</div>
-                </div>
-              </div>
-              <div className="mt-4 border-t border-theme-border-subtle pt-3">
-                <button
-                  type="button"
-                  onClick={openRawReportModal}
-                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-primary hover:opacity-80 transition-opacity"
-                >
-                  <ScrollText size={14} />
-                  查看原始漏洞报告
-                </button>
-              </div>
-            </DetailSectionCard>
-
-            {/* 右：属性 */}
-            <DetailSectionCard title="属性" subtitle="当前状态、置信度与识别信息。">
-              <div className="mt-3 space-y-2.5 text-sm text-theme-text-secondary">
-                <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">当前状态</div>
-                  <div className="mt-1 text-sm font-semibold text-theme-text-primary">{toUserVulnStatusText(selectedDetail)}</div>
-                </div>
-                <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">置信度</div>
-                  <div className="mt-1 text-sm font-semibold tabular-nums text-theme-text-primary">{selectedDetail.confidence ?? 'n/a'}</div>
-                </div>
-                <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">CVSS</div>
-                  <div className="mt-1 text-sm font-semibold tabular-nums text-theme-text-primary">{Number(selectedDetail.cvss_score || 0).toFixed(1)}</div>
-                </div>
-                <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">上报者</div>
-                  <div className="mt-1 text-sm font-semibold text-theme-text-primary">{selectedDetail.reporter?.name || '未提供'}</div>
-                </div>
-                <div className="border-t border-theme-border-subtle pt-3 mt-1">
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft mb-2">识别信息</div>
-                  <div className="space-y-2 text-sm text-theme-text-secondary">
-                    <div><span className="font-semibold text-theme-text-primary">漏洞 ID：</span><span className="font-mono">{selectedDetail.id}</span></div>
-                    <div><span className="font-semibold text-theme-text-primary">报告更新时间：</span>{formatTime(displaySummary?.current_report_updated_at || selectedDetail.current_report_updated_at)}</div>
-                    <div><span className="font-semibold text-theme-text-primary">创建时间：</span>{formatTime(selectedDetail.created_at)}</div>
-                    <div><span className="font-semibold text-theme-text-primary">最近更新：</span>{formatTime(selectedDetail.updated_at)}</div>
-                  </div>
-                </div>
-              </div>
-            </DetailSectionCard>
-          </div>
-        </div>
       </div>
     );
   };
@@ -2816,42 +2758,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
             {successMessage}
           </div>
         </div>
-      )}
-      {rawReportModalOpen && selectedDetail && (
-        <DialogShell
-          title="原始漏洞报告"
-          subtitle="查看 Markdown 格式的原始漏洞报告内容"
-          onClose={() => setRawReportModalOpen(false)}
-          className="!max-w-[90vw] [&>div:last-child]:!max-h-[85vh]"
-        >
-          <div className="rounded-xl p-5 bg-theme-surface border border-theme-border">
-            <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-theme-border-subtle">
-              <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">漏洞报告</div>
-                <div className="mt-1 text-lg font-semibold text-theme-text-primary">{reportDocument?.title || '原始漏洞报告'}</div>
-                <div className="mt-1 text-xs text-theme-text-muted">
-                  类型：{reportDocument?.report_kind || 'imported_raw'} · 阶段：{toStageText(reportDocument?.stage)} · 来源：{reportDocument?.source_service_id || selectedDetail.created_by || '未提供'}
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {reportDocument?.generated_at ? <div className="rounded-lg px-3 py-2 text-xs bg-theme-elevated text-theme-text-muted">生成时间：{formatTime(reportDocument.generated_at)}</div> : null}
-              </div>
-            </div>
-            <div className="mt-5 min-h-[28rem] max-h-[70vh] overflow-auto pr-1">
-              {reportLoading ? (
-                <div className="flex items-center gap-2 text-sm text-theme-text-muted"><Loader2 size={16} className="animate-spin" /> 正在加载原始漏洞报告...</div>
-              ) : reportError ? (
-                <div className="rounded-lg px-4 py-3 text-sm bg-state-danger-soft text-state-danger border border-state-danger-border">{reportError}</div>
-              ) : (selectedDetail.raw_report?.markdown || reportDocument?.content) ? (
-                <MarkdownContent content={selectedDetail.raw_report?.markdown || reportDocument?.content || ''} />
-              ) : (
-                <div className="rounded-xl px-6 py-12 text-center text-sm border border-dashed border-theme-border text-theme-text-muted">
-                  暂无原始漏洞报告内容
-                </div>
-              )}
-            </div>
-          </div>
-        </DialogShell>
       )}
       <div className="space-y-4 px-5 py-5 md:px-6 2xl:px-8">
       {!selectedSuspicionId ? (
