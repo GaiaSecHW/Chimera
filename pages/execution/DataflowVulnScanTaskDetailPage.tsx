@@ -1711,6 +1711,8 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
                               if (next.has(fid)) next.delete(fid); else next.add(fid);
                               return next;
                             });
+                            const isReported = finding.report_status === 'reported';
+                            const reportCaseId = finding.report_case_id || '';
                             return (
                               <div key={fid} className="px-5 py-4 hover:bg-theme-elevated/50 transition-colors">
                                 <div
@@ -1727,8 +1729,14 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
                                     <div className="flex flex-wrap items-center gap-2">
                                       <span className="text-sm font-bold text-theme-text-primary">{finding.title || finding.finding_id || '-'}</span>
                                       <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${sevTone}`}>{sevLabel[sev] || sev}</span>
+                                      {isReported ? (
+                                        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400" title={`漏洞中心 Case ID: ${reportCaseId}`}>
+                                          ✅ 已上报 {reportCaseId ? `(${reportCaseId.slice(-8)})` : ''}
+                                        </span>
+                                      ) : null}
                                       {finding.confidence != null ? <span className="rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[10px] font-bold text-theme-text-muted">置信度 {typeof finding.confidence === 'number' ? `${Math.round(finding.confidence * 100)}%` : finding.confidence}</span> : null}
                                       <span className="flex-1" />
+                                      {isReported ? null : (
                                       <button
                                         type="button"
                                         disabled={reportingFindingId === (finding.finding_id || fid)}
@@ -1738,6 +1746,7 @@ const DataflowVulnScanTaskDetailPageInner: React.FC<{ projectId: string; taskId:
                                       >
                                         {reportingFindingId === (finding.finding_id || fid) ? '⏳ 上报中...' : '📤 上报'}
                                       </button>
+                                      )}
                                       {expanded ? <ChevronUp size={14} className="text-theme-text-muted shrink-0" /> : <ChevronDown size={14} className="text-theme-text-muted shrink-0" />}
                                     </div>
                                     <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-theme-text-muted">
