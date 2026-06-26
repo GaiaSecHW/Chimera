@@ -103,7 +103,7 @@ const MODE_ICONS: Record<string, React.ReactNode> = {
 
 // 宣传轮播：image 字段暂留空，后续补充宣传图 URL 即可显示；link 默认 '#'，补充后点击在新标签打开。
 const PROMO_SLIDES = [
-  { title: '第一章 · 降生', subtitle: '四世神裔，融源之子的来历', image: '', link: 'https://www.baidu.com' },
+  { title: '第一章 · 降生', subtitle: '四世神裔，融源之子的来历', image: 'https://pic.ibaotu.com/01/87/87/09N888piCU8v.jpg-0.jpg!wwuo340v2', link: 'https://www.baidu.com' },
   { title: '第二章 · 三身', subtitle: '一体三面，各司其职的完美共生', image: '', link: '#' },
   { title: '第三章 · 吐息', subtitle: '烈焰淬炼，重塑万物本真', image: '', link: '#' },
   { title: '第四章 · 破局', subtitle: '旧维失效，新序诞生的必然', image: '', link: '#' },
@@ -156,7 +156,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
         ))}
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-6 py-12 space-y-12 md:px-8 md:py-16">
+      <div className="relative z-10 mx-auto max-w-7xl px-6 py-12 space-y-10 md:px-8">
         {/* hero */}
         <header className="flex flex-col gap-6">
           <div className="flex items-center gap-4">
@@ -206,7 +206,6 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
                 background: 'linear-gradient(120deg, color-mix(in srgb, var(--brand-primary) 18%, var(--bg-surface)) 0%, color-mix(in srgb, var(--brand-secondary) 12%, var(--bg-surface)) 100%)',
               }}
             >
-              {/* TODO: 后续补充宣传图，给 PROMO_SLIDES[i].image 赋值即显示 */}
               <img src={slide.image} alt={slide.title} className="absolute inset-0 h-full w-full object-cover" style={{ display: slide.image ? 'block' : 'none' }} />
               <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, color-mix(in srgb, var(--bg-app) 70%, transparent) 0%, transparent 55%)' }} />
               <div className="relative flex h-full max-w-xl flex-col justify-center gap-1.5 p-6 md:p-8">
