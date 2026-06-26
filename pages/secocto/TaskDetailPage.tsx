@@ -32,6 +32,19 @@ const FINDING_PAGE_SIZE = 10;
 const SKILL_PAGE_SIZE = 5;
 const PROPOSAL_PAGE_SIZE = 5;
 
+// 把后端返回的 trace_url / bundle_url 剥成纯 path（含 search/hash），
+// 浏览器以当前页面 origin 发起，由 vite/nginx 反代到上游，与接口走完全相同的访问方式。
+// 已是相对路径则原样返回（开头补 '/'）；'#' 占位保留。
+const toPathOnlyUrl = (raw?: string): string | undefined => {
+  if (!raw || raw === '#') return raw;
+  try {
+    const u = new URL(raw, 'http://_');
+    return `${u.pathname}${u.search}${u.hash}`;
+  } catch {
+    return raw.startsWith('/') ? raw : `/${raw}`;
+  }
+};
+
 interface TaskDetailProps {
   taskId: string;
   onBack: () => void;
@@ -380,8 +393,8 @@ export const SecOctoTaskDetailPage: React.FC<TaskDetailProps> = ({ taskId, onBac
           reasoning={task.score_reasoning}
           createdAt={task.created_at}
           duration={duration}
-          traceUrl={task.trace_url}
-          bundleUrl={task.bundle_url}
+          traceUrl={toPathOnlyUrl(task.trace_url)}
+          bundleUrl={toPathOnlyUrl(task.bundle_url)}
         />
       </div>
     </div>
