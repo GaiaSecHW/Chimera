@@ -169,28 +169,23 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
     };
   }, [appApi, isOpen, loadProjectDefaultsOnOpen, projectId]);
 
-  // 拉取模型配置中心可选模型（手动任务用，sk）
+  // 拉取可选模型（来源1：配置中心 /service/llm/providers，手动任务用）
   const [modelOptions, setModelOptions] = useState<SystemAnalysisModelOption[]>([]);
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
-    appApi.getModels()
-      .then((cfg) => {
+    api.configCenter.listLlmProviders()
+      .then((res: { items?: any[] }) => {
         if (cancelled) return;
-        const opts: SystemAnalysisModelOption[] = [];
-        const providers = cfg.providers || {};
-        for (const [pkey, pcfg] of Object.entries(providers)) {
-          for (const m of (pcfg.models || [])) {
-            const mid = String(m.id || '').trim();
-            if (!mid) continue;
-            opts.push({ value: `${pkey}/${mid}`, label: `${pkey}/${mid}` });
-          }
-        }
+        const items = Array.isArray(res?.items) ? res.items : [];
+        const opts: SystemAnalysisModelOption[] = items
+          .filter((p: any) => p.enabled && p.provider_key && p.model)
+          .map((p: any) => { const v = `${p.provider_key}/${p.model}`; return { value: v, label: v }; });
         setModelOptions(opts);
       })
       .catch(() => undefined);
     return () => { cancelled = true; };
-  }, [appApi, isOpen]);
+  }, [isOpen]);
 
   const canSubmit = useMemo(
     () => Boolean(form.task_name.trim() && form.input_path.trim() && form.output_path.trim()),

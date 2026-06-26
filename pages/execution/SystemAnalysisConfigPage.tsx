@@ -703,17 +703,13 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
   };
 
   useEffect(() => {
-    // 模型选项来自模型配置中心（手动任务默认用 sk，与建任务表单一致）
-    api.domains.execution.appSystemAnalyse.getModels()
-      .then((cfg) => {
-        const providers = cfg?.providers || {};
-        const opts: string[] = [];
-        for (const [pkey, pcfg] of Object.entries(providers)) {
-          for (const m of (pcfg?.models || [])) {
-            const mid = String(m?.id || '').trim();
-            if (mid) opts.push(`${pkey}/${mid}`);
-          }
-        }
+    // 手动配置只展示来源1（配置中心 /service/llm/providers）
+    api.configCenter.listLlmProviders()
+      .then((res: { items?: LlmProviderSummary[] }) => {
+        const items = Array.isArray(res?.items) ? res.items : [];
+        const opts = items
+          .filter((p) => p.enabled && p.provider_key && p.model)
+          .map((p) =>`${p.provider_key}/${p.model}`);
         setModelOptions(opts);
       })
       .catch(() => { /* 静默忽略，手动输入仍可用 */ });
