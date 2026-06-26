@@ -71,6 +71,7 @@ const emptyUserTaskSyncPolicy = (): ScheduleRuntimeUserTaskSyncPolicy => ({
 const emptyToolDefault = (taskType: ScheduleRuntimeTaskType, label: string): ScheduleRuntimeToolDefault => ({
   task_type: taskType,
   label,
+  create_task_enabled: !['binary_firmware_e2e', 'binary_module_e2e'].includes(taskType),
   root_task_key_max_concurrency: 0,
   capacity_pool_ids: [...(DEFAULT_CAPACITY_POOL_IDS[taskType] || [])],
   root_task_key_expires_at: '',
@@ -156,7 +157,6 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-
   const load = async () => {
     setLoading(true);
     setError('');
@@ -175,7 +175,10 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
     void load();
   }, []);
 
-  const dirty = useMemo(() => JSON.stringify(config) !== JSON.stringify(draft), [config, draft]);
+  const dirty = useMemo(
+    () => JSON.stringify(config) !== JSON.stringify(draft),
+    [config, draft],
+  );
 
   const updateSchedulerPolicy = (key: keyof ScheduleRuntimeSchedulerPolicy, value: string) => {
     setDraft((current) => current ? {
@@ -460,14 +463,28 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
           </div>
         </section>
 
- <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
+        <section className="overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
           <div className="border-b border-theme-border bg-theme-elevated px-4 py-4 md:px-5">
             <h2 className="text-lg font-semibold text-theme-text-primary">工具默认配置</h2>
+            <p className="mt-1 text-sm text-theme-text-muted">“允许在测试任务中新建”仅影响前端新建任务弹窗的可选状态，不控制后端服务是否运行。</p>
           </div>
           <div className="grid gap-4 p-4 md:p-5 xl:grid-cols-2">
             {draft.tool_defaults.map((item) => (
               <div key={item.task_type} className="rounded-2xl border border-theme-border bg-theme-surface p-5">
-                <div className="text-lg font-semibold text-theme-text-primary">{item.label}</div>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="text-lg font-semibold text-theme-text-primary">{item.label}</div>
+                    <div className="mt-1 text-xs text-theme-text-muted">仅控制“测试任务 → 新建任务”里该工具是否可选。</div>
+                  </div>
+                  <label className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-elevated px-3 py-1.5 text-sm font-semibold text-theme-text-secondary">
+                    <input
+                      type="checkbox"
+                      checked={item.create_task_enabled ?? true}
+                      onChange={(event) => updateToolDefault(item.task_type, { create_task_enabled: event.target.checked })}
+                    />
+                    允许前端新建
+                  </label>
+                </div>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <label className="block">
                     <div className="text-sm font-bold text-theme-text-secondary">Task Key 最大并发</div>

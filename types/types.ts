@@ -2534,6 +2534,7 @@ export interface ScheduleRuntimeUserTaskSyncPolicy {
 export interface ScheduleRuntimeToolDefault {
   task_type: ScheduleRuntimeTaskType;
   label: string;
+  create_task_enabled?: boolean | null;
   root_task_key_max_concurrency: number;
   capacity_pool_ids: number[];
   root_task_key_expires_at?: string | null;

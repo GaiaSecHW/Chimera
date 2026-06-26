@@ -51,14 +51,13 @@ type TaskTypeOption = {
   label: string;
   downstreamView?: string;
   modes: readonly TaskMode[];
-  disabled?: boolean;
 };
 
 const TASK_TYPES: readonly TaskTypeOption[] = [
-  { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail', modes: ['dragon-tail', 'ram-horn'], disabled: true },
+  { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'kg_source_vuln_scan_e2e', label: '知识图谱-漏洞挖掘', downstreamView: 'kg-source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
-  { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail', modes: ['dragon-tail', 'ram-horn'], disabled: true },
+  { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'ai4app_fast', label: 'AI4APP 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
   { value: 'ai4web_fast', label: 'AI4WEB 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
   { value: 'ai4app_deep', label: 'AI4APP 扫描（深度）', downstreamView: 'app-security-scan-detail', modes: ['ram-horn'] },
@@ -67,7 +66,7 @@ const TASK_TYPES: readonly TaskTypeOption[] = [
   { value: 'sechps_tool', label: 'Agent Harness 任务', modes: ['dragon-tail', 'ram-horn'] },
 ];
 
-const DISABLED_TASK_TYPE_MESSAGE = '该任务类型已临时禁用，请勿从调度中心创建。';
+const DISABLED_TASK_TYPE_MESSAGE = '该工具已在系统管理 -> 任务调度 -> 调度参数中禁用前端创建。';
 
 const MODE_OPTIONS = [
   { value: 'dragon-tail', label: '龙尾' },
@@ -175,6 +174,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [kgEligibilityByUploadId, setKgEligibilityByUploadId] = useState<Record<string, KgInputEligibility>>({});
   const [kgEligibilityLoading, setKgEligibilityLoading] = useState(false);
   const [kgEligibilityError, setKgEligibilityError] = useState('');
+  const [toolCreateEnabledByTaskType, setToolCreateEnabledByTaskType] = useState<Record<string, boolean>>({});
 
   /* --- sechps-specific state --- */
   const [moduleName, setModuleName] = useState('');
@@ -206,11 +206,15 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     () => (selectedInputId ? kgEligibilityByUploadId[selectedInputId] || null : null),
     [kgEligibilityByUploadId, selectedInputId],
   );
-  const taskTypeMeta = useMemo(() => TASK_TYPES.find((item) => item.value === taskType) || TASK_TYPES[0], [taskType]);
-  const taskTypeDisabled = Boolean(taskTypeMeta?.disabled);
+  const isTaskTypeDisabled = (value: ScheduleCenterUserTaskType) => !(toolCreateEnabledByTaskType[value] ?? true);
+  const taskTypeDisabled = isTaskTypeDisabled(taskType);
   const availableTaskTypes = useMemo(
     () => TASK_TYPES.filter((item) => item.modes.includes(mode as TaskMode)),
     [mode],
+  );
+  const enabledTaskTypes = useMemo(
+    () => availableTaskTypes.filter((item) => !isTaskTypeDisabled(item.value)),
+    [availableTaskTypes, toolCreateEnabledByTaskType],
   );
   const kgEligibleItems = useMemo(
     () => codeInputs.filter((item) => kgEligibilityByUploadId[item.upload_id]?.allowed === true),
@@ -228,7 +232,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     if (taskType === 'sechps_tool') return '选择一个已注册的 Agent Harness。调度中心会在分发时自动申请 Task Key，并把所选记录根目录直接传给下游。';
     if (taskType === 'ai4app_fast' || taskType === 'ai4app_deep') return '选择一个 APK/HAP 安装包或 zip/rar/tar.gz/gz 压缩包记录；压缩包将作为 APK/HAP 的源码包处理，提交时固定使用记录根目录。';
     if (taskType === 'ai4web_fast' || taskType === 'ai4web_deep') return '选择一个 Web 源码包（zip/rar/tar.gz/gz 等压缩包）记录，提交时固定使用记录根目录。';
-    if (taskType === 'kg_source_vuln_scan_e2e') return '仅展示源码类型且入口分析已完成并识别到至少 1 个入口的记录，提交时固定使用上传记录根目录。';
+    if (taskType === 'kg_source_vuln_scan_e2e') return '仅展示源码类型且已识别到至少 1 个入口的记录；即使入口分析状态为 failed，只要入口数量满足条件也可选，提交时固定使用上传记录根目录。';
     return '选择一个上传记录作为测试对象，提交时固定使用其根目录。';
   }, [isLionHead, taskType]);
 
@@ -281,6 +285,18 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     if (!selectedProjectId) return;
     setAgentAppsLoadError('');
     try {
+      const runtimeConfig = await api.domains.platform.scheduleCenter.getRuntimeConfig();
+      const nextToolCreateEnabledByTaskType = Object.fromEntries(
+        ((runtimeConfig?.tool_defaults || []) as Array<{ task_type?: string; create_task_enabled?: boolean | null }>).map((item) => [
+          String(item.task_type || ''),
+          item.create_task_enabled !== false,
+        ]),
+      );
+      setToolCreateEnabledByTaskType(nextToolCreateEnabledByTaskType);
+    } catch {
+      setToolCreateEnabledByTaskType({});
+    }
+    try {
       const inputResp = await fileserverApi.listProjectInputUploads(selectedProjectId, { pageSize: 200 });
       const nextInputs = inputResp.items || [];
       setInputs(nextInputs);
@@ -331,11 +347,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   /* --- keep taskType valid for the selected mode --- */
   useEffect(() => {
     if (mode === 'lion-head') return;
-    const enabledTaskTypes = availableTaskTypes.filter((item) => !item.disabled);
     if (!enabledTaskTypes.some((item) => item.value === taskType)) {
-      setTaskType(enabledTaskTypes[0]?.value || 'source_scan_e2e');
+      setTaskType(enabledTaskTypes[0]?.value || availableTaskTypes[0]?.value || 'source_scan_e2e');
     }
-  }, [mode, availableTaskTypes, taskType]);
+  }, [mode, availableTaskTypes, enabledTaskTypes, taskType]);
 
   /* --- reset on task-type change --- */
   useEffect(() => {
@@ -686,7 +701,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                           严格筛选结果
                         </div>
                         <div className="mt-1 text-xs" style={{ color: LK.muted }}>
-                          共发现 {codeInputs.length} 条源码上传记录，当前仅 {kgEligibleItems.length} 条满足“入口分析已完成 + 至少 1 个入口”。
+                          共发现 {codeInputs.length} 条源码上传记录，当前仅 {kgEligibleItems.length} 条满足“至少 1 个入口”。
                         </div>
                       </div>
                     ) : null}
@@ -700,7 +715,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                         options={selectableInputs.map((item) => {
                           const eligibility = kgEligibilityByUploadId[item.upload_id];
                           const label = isKgSourceTask
-                            ? `${getUploadRecordDisplayName(item)} · 入口分析完成 · 入口 ${eligibility?.attackEntries ?? 0}`
+                            ? `${getUploadRecordDisplayName(item)} · ${eligibility?.attackStatus || 'unknown'} · 入口 ${eligibility?.attackEntries ?? 0}`
                             : `${getUploadRecordDisplayName(item)} · ${item.status}`;
                           return { value: item.upload_id, label };
                         })}
@@ -732,7 +747,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                         style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
                       >
                         {isKgSourceTask
-                          ? '当前没有满足“入口分析已完成 + 至少 1 个入口”的源码上传记录，请先到'
+                          ? '当前没有满足“至少 1 个入口”的源码上传记录，请先到'
                           : '没有可用输入，请先到'}
                         <button
                           type="button"
@@ -841,8 +856,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   onChange={(v) => setTaskType(v as (typeof TASK_TYPES)[number]['value'])}
                   options={availableTaskTypes.map((item) => ({
                     value: item.value,
-                    label: `${item.label}${item.disabled ? '（已禁用）' : ''}`,
-                    disabled: item.disabled,
+                    label: `${item.label}${isTaskTypeDisabled(item.value) ? '（已禁用）' : ''}`,
+                    disabled: isTaskTypeDisabled(item.value),
                   }))}
                   placeholder="请选择工具"
                   emptyText="暂无可用工具"

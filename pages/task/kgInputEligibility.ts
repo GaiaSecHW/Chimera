@@ -32,11 +32,11 @@ export interface KgInputEligibility {
 }
 
 const REASON_TEXT: Record<KgInputEligibilityReasonCode, string> = {
-  ok: '入口分析已完成且识别到可用入口',
+  ok: '已识别到可用入口',
   upload_not_ready: '上传记录尚未处理完成，暂不可用于知识图谱漏洞挖掘',
   entry_analysis_unavailable: '当前无法获取入口分析结果',
   entry_analysis_running: '入口分析仍在进行中',
-  entry_analysis_failed: '入口分析失败',
+  entry_analysis_failed: '入口分析失败且未识别到可用入口',
   entry_analysis_not_ready: '入口分析尚未完成',
   entry_analysis_empty: '入口分析已完成，但未识别到可用入口',
 };
@@ -120,6 +120,19 @@ export const buildKgInputEligibility = async (
   const graphStatus = audit.graph_status ? String(audit.graph_status).trim() : null;
   const attackEntries = Number(audit.analysis?.attack_entries ?? 0);
 
+  if (attackEntries > 0) {
+    return makeEligibility(record, {
+      allowed: true,
+      reasonCode: 'ok',
+      reasonText: REASON_TEXT.ok,
+      codemapTaskStatus: taskStatus,
+      graphStatus,
+      attackStatus,
+      attackEntries,
+      dbName,
+    });
+  }
+
   if (attackStatus === 'running') {
     return makeEligibility(record, {
       codemapTaskStatus: taskStatus,
@@ -166,9 +179,6 @@ export const buildKgInputEligibility = async (
   }
 
   return makeEligibility(record, {
-    allowed: true,
-    reasonCode: 'ok',
-    reasonText: REASON_TEXT.ok,
     codemapTaskStatus: taskStatus,
     graphStatus,
     attackStatus,
