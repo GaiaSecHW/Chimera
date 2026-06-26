@@ -42,7 +42,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           <select
             value={perPage}
             onChange={(e) => onPerPageChange(Number(e.target.value))}
-            className="form-select px-2 py-1 text-xs"
+            className="form-select px-2 py-2.5 text-xs"
           >
             {perPageOptions.map((n) => (
               <option key={n} value={n}>

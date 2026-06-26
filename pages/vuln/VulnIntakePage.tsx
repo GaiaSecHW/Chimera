@@ -1941,7 +1941,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       key: 'taskName',
       header: '任务名称',
       render: (item) => (
-        <div className="min-w-0 cursor-pointer text-sm font-semibold text-brand-primary hover:underline" title={getTaskName(item)}>
+        <div className="min-w-0 cursor-pointer text-sm text-brand-primary hover:underline" title={getTaskName(item)}>
           <div className="truncate">{getTaskName(item)}</div>
         </div>
       ),
@@ -1952,7 +1952,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       sortable: true,
       sortKey: 'title',
       defaultDirection: 'asc',
-      render: (item) => <div className="text-sm font-semibold text-theme-text-primary">{item.title}</div>,
+      render: (item) => <div className="text-sm text-theme-text-primary">{item.title}</div>,
     },
     {
       key: 'conclusion',
@@ -1962,7 +1962,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       defaultDirection: 'desc',
       render: (item) =>
         item.is_human_finished ? (
-          <div className={`text-sm font-semibold ${(item.finished_reason || item.validation_result) === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-secondary'}`}>
+          <div className={`text-sm ${(item.finished_reason || item.validation_result) === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-secondary'}`}>
             {toConclusionText(item.finished_reason || item.validation_result)}
           </div>
         ) : (
@@ -1977,7 +1977,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       defaultDirection: 'asc',
       render: (item) => (
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold text-theme-text-secondary">{item.reporter?.name || 'unknown'}</div>
+          <div className="truncate text-sm text-theme-text-secondary">{item.reporter?.name || 'unknown'}</div>
           <div className="mt-0.5 text-xs text-theme-text-faint">{item.reporter?.version || 'n/a'}</div>
         </div>
       ),
@@ -3014,28 +3014,30 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               </div>
             </div>
 
-            <DataTable
-              columns={caseColumns}
-              data={pagedSuspicions}
-              rowKey={(item) => item.id}
-              loading={loading}
-              empty={<EmptyState title="当前筛选条件下没有漏洞。" />}
-              onRowClick={(item) => setSelectedSuspicionId(item.id)}
-              selectedRowKey={selectedSuspicionId}
-              sort={{ field: sortField, direction: sortDirection }}
-              onSortChange={({ field, direction }) => {
-                setSortField(field as SortField);
-                setSortDirection(direction);
-              }}
-              pagination={{
-                page: currentPage,
-                perPage: pageSize,
-                total: listTotal,
-                onPageChange: (p) => setCurrentPage(p),
-                onPerPageChange: (s) => setPageSize(s),
-                perPageOptions: [10, 20, 50, 100, 200, 500, 1000],
-              }}
-            />
+            <div className="px-4">
+              <DataTable
+                columns={caseColumns}
+                data={pagedSuspicions}
+                rowKey={(item) => item.id}
+                loading={loading}
+                empty={<EmptyState title="当前筛选条件下没有漏洞。" />}
+                onRowClick={(item) => setSelectedSuspicionId(item.id)}
+                selectedRowKey={selectedSuspicionId}
+                sort={{ field: sortField, direction: sortDirection }}
+                onSortChange={({ field, direction }) => {
+                  setSortField(field as SortField);
+                  setSortDirection(direction);
+                }}
+                pagination={{
+                  page: currentPage,
+                  perPage: pageSize,
+                  total: listTotal,
+                  onPageChange: (p) => setCurrentPage(p),
+                  onPerPageChange: (s) => setPageSize(s),
+                  perPageOptions: [10, 20, 50, 100, 200, 500, 1000],
+                }}
+              />
+            </div>
           </div>
         </>
         )}

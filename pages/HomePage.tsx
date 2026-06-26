@@ -156,7 +156,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
         ))}
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-6 py-12 space-y-10 md:px-8">
+      <div className="relative z-10 mx-auto max-w-7xl px-6 pt-12 pb-10 space-y-10 md:px-8">
         {/* hero */}
         <header className="flex flex-col gap-6">
           <div className="flex items-center gap-4">
