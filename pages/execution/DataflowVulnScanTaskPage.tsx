@@ -1638,15 +1638,24 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
             参数配置
           </button>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
             { label: '总任务', value: taskStats.total, bg: 'bg-theme-elevated', text: 'text-theme-text-primary', border: 'border-theme-border' },
             { label: '运行中', value: taskStats.running + taskStats.pending, bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/20' },
             { label: '已通过', value: taskStats.passed, bg: 'bg-violet-500/15', text: 'text-violet-400', border: 'border-violet-500/20' },
             { label: '失败/取消', value: taskStats.failed + taskStats.error + taskStats.cancelled, bg: 'bg-red-500/15', text: 'text-red-400', border: 'border-red-500/20' },
+          ].map((s) => (
+            <div key={s.label} className={`min-w-[96px] rounded-xl border ${s.border} ${s.bg} px-3 py-2`}>
+              <p className={`text-lg font-semibold ${s.text}`}>{s.value}</p>
+              <p className="mt-1 text-[11px] text-theme-text-muted">{s.label}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[
             { label: '漏洞总数', value: vulnStats?.total_findings || 0, bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/20' },
-            { label: '已上报', value: vulnStats?.reported || 0, bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/20' },
-            { label: '未上报', value: vulnStats?.unreported || 0, bg: 'bg-rose-500/15', text: 'text-rose-400', border: 'border-rose-500/20' },
+            { label: '漏洞已上报', value: vulnStats?.reported || 0, bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+            { label: '漏洞未上报', value: vulnStats?.unreported || 0, bg: 'bg-rose-500/15', text: 'text-rose-400', border: 'border-rose-500/20' },
           ].map((s) => (
             <div key={s.label} className={`min-w-[96px] rounded-xl border ${s.border} ${s.bg} px-3 py-2`}>
               <p className={`text-lg font-semibold ${s.text}`}>{s.value}</p>
