@@ -7,35 +7,49 @@ import { useUiFeedback } from '../../components/UiFeedback';
 
 const PAGE_SIZE_OPTIONS = [50, 100, 200] as const;
 
-// 隐藏的开发者模式：连续点击 v2 胶囊 7 次切换，纯内存态，刷新即关闭。无任何视觉提示。
+// 隐藏的开发者模式：首次点击 v2 胶囊后的 2 秒内连续点击 7 次切换；纯内存态，刷新即关闭；触发成功时一次性提示。
 function useDevMode() {
   const clickCountRef = useRef(0);
-  const timerRef = useRef<number | null>(null);
+  const clickTimerRef = useRef<number | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
   const [enabled, setEnabled] = useState(false);
-  const [toast, setToast] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
-  const onClick = useCallback(() => {
-    clickCountRef.current += 1;
-    if (timerRef.current) window.clearTimeout(timerRef.current);
-    timerRef.current = window.setTimeout(() => {
-      clickCountRef.current = 0;
-    }, 2000);
-    if (clickCountRef.current >= 7) {
-      clickCountRef.current = 0;
-      if (timerRef.current) { window.clearTimeout(timerRef.current); timerRef.current = null; }
-      setEnabled((v) => {
-        const next = !v;
-        if (next) {
-          setToast(true);
-          window.setTimeout(() => setToast(false), 1600);
-        }
-        return next;
-      });
+  const showToast = useCallback((message: string) => {
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    setToast(message);
+    toastTimerRef.current = window.setTimeout(() => {
+      setToast(null);
+      toastTimerRef.current = null;
+    }, 1600);
+  }, []);
+
+  const resetClicks = useCallback(() => {
+    clickCountRef.current = 0;
+    if (clickTimerRef.current) {
+      window.clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
     }
   }, []);
 
+  const onClick = useCallback(() => {
+    if (clickCountRef.current === 0) {
+      clickTimerRef.current = window.setTimeout(resetClicks, 2000);
+    }
+    clickCountRef.current += 1;
+    if (clickCountRef.current >= 7) {
+      resetClicks();
+      setEnabled((v) => {
+        const next = !v;
+        showToast(next ? '开发者模式已开启' : '开发者模式已关闭');
+        return next;
+      });
+    }
+  }, [resetClicks, showToast]);
+
   useEffect(() => () => {
-    if (timerRef.current) window.clearTimeout(timerRef.current);
+    if (clickTimerRef.current) window.clearTimeout(clickTimerRef.current);
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
   }, []);
 
   return { enabled, onClick, toast };
@@ -217,20 +231,22 @@ const DimensionCard: React.FC<{ dimKey: string; status?: boolean | null; detail?
   );
 };
 
-const AttemptJson: React.FC<{ attempt: VulnVerifyV2Attempt }> = ({ attempt }) => {
-  const json = React.useMemo(() => {
+const AttemptDevJson: React.FC<{ attempt: VulnVerifyV2Attempt }> = ({ attempt }) => {
+  const [opened, setOpened] = useState(false);
+  let json = '';
+  if (opened) {
     try {
-      return JSON.stringify(attempt, null, 2);
+      json = JSON.stringify(attempt, null, 2);
     } catch {
-      return String(attempt);
+      json = String(attempt);
     }
-  }, [attempt]);
+  }
   return (
-    <details className="mt-2 group">
+    <details className="mt-2 group" onToggle={(event) => setOpened(event.currentTarget.open)}>
       <summary className="inline-flex cursor-pointer select-none text-xs font-medium text-theme-text-muted transition hover:text-theme-text-secondary">
         原始 JSON
       </summary>
-      <pre className="mt-2 max-h-80 overflow-auto rounded-lg border border-theme-border bg-theme-elevated p-3 text-xs font-mono leading-5 text-theme-text-secondary break-words whitespace-pre-wrap">{json}</pre>
+      {opened ? <pre className="mt-2 max-h-80 overflow-auto rounded-lg border border-theme-border bg-theme-elevated p-3 text-xs font-mono leading-5 text-theme-text-secondary break-words whitespace-pre-wrap">{json}</pre> : null}
     </details>
   );
 };
@@ -273,7 +289,7 @@ const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[]; devMode?: boo
               {isFailed && failureMsg ? (
                 <div className="mt-2 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm font-normal text-rose-300 break-words">{failureMsg}</div>
               ) : null}
-              {devMode ? <AttemptJson attempt={att} /> : null}
+              {devMode ? <AttemptDevJson attempt={att} /> : null}
             </div>
           </li>
         );
@@ -448,7 +464,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   return (
     <div className="min-h-full bg-theme-bg-app text-theme-text-primary">
       {devToast ? (
-        <div className="fixed bottom-6 right-6 z-[60] rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300 shadow-md">开发者模式已开启</div>
+        <div className="fixed bottom-6 right-6 z-[60] rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300 shadow-md">{devToast}</div>
       ) : null}
       <div className="w-full space-y-8 px-4 pt-8 pb-10 lg:px-6 xl:px-8">
         {feedbackNodes}
