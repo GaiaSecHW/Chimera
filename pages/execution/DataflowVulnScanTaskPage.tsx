@@ -639,6 +639,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
   const [total, setTotal] = useState(0);
   const [taskStats, setTaskStats] = useState<AppDfaTaskListStats>({ total: 0, pending: 0, running: 0, passed: 0, failed: 0, error: 0, cancelled: 0 });
   const [vulnStats, setVulnStats] = useState<{ total_findings: number; reported: number; unreported: number } | null>(null);
+  const [taskVulnMap, setTaskVulnMap] = useState<Record<string, { total: number; reported: number; unreported: number }>>({});
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(50);
   const [statusFilter, setStatusFilter] = useState('');
@@ -771,6 +772,13 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
       });
       setTasks(resp.items || []);
       setTotal(resp.total || 0);
+      const tids = (resp.items || []).map((t: AppDfaTaskItem) => t.task_id).filter(Boolean);
+      if (tids.length > 0) {
+        try {
+          const map = await appApi.getTasksVulnStatsBatch(tids);
+          setTaskVulnMap(map || {});
+        } catch (_) {}
+      }
     } catch (err: any) {
       notify(`加载任务列表失败: ${err?.message || err}`, 'error');
     } finally {
@@ -2205,6 +2213,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                   onClick={() => handleHeaderSort('task')}
                 />
                 <ExecutionTableTh>模式</ExecutionTableTh>
+                <ExecutionTableTh>漏洞</ExecutionTableTh>
                 <SortableHeader
                   label="状态"
                   active={sortBy === 'status'}
@@ -2275,6 +2284,19 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                     >
                       {getTaskModeLabel(t)}
                     </button>
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="whitespace-nowrap text-xs">
+                    {(() => {
+                      const vs = taskVulnMap[t.task_id];
+                      if (!vs || vs.total === 0) return <span className="text-theme-text-muted">-</span>;
+                      return (
+                        <span>
+                          <span className="font-semibold text-theme-text-primary">{vs.total}</span>
+                          {vs.reported > 0 && <span className="ml-1 text-emerald-400">+{vs.reported}</span>}
+                          {vs.unreported > 0 && <span className="ml-1 text-rose-400">-{vs.unreported}</span>}
+                        </span>
+                      );
+                    })()}
                   </ExecutionTableTd>
                   <ExecutionTableTd>
                     <button

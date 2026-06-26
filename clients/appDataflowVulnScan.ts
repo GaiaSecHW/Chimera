@@ -192,6 +192,11 @@ export const appDataflowVulnScanApi = {
       headers: getHeaders(),
     })),
 
+  getTasksVulnStatsBatch: async (taskIds: string[]): Promise<Record<string, { total: number; reported: number; unreported: number }>> => {
+    if (!taskIds.length) return {};
+    return getJsonWithDedupe(`${BASE}/tasks/vuln-stats-batch?task_ids=${encodeURIComponent(taskIds.join(','))}`, { headers: getHeaders() });
+  },
+
   listTaskSessions: async (taskId: string): Promise<{ task_id: string; items: AppDfaSessionMeta[] }> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions`, { headers: getHeaders() })),
 
