@@ -187,17 +187,25 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
 
   const fetchTaskVulnCounts = async (taskItems: ScheduleCenterUserTask[]) => {
     if (!projectId || taskItems.length === 0) return;
-    const entries = await Promise.all(
-      taskItems.map(async (t) => {
-        try {
-          const resp = await api.vuln.listCases({ project_id: projectId, source_task_id: t.id, page: 1, page_size: 1 });
-          return [t.id, Number(resp.total || 0)] as const;
-        } catch {
-          return [t.id, 0] as const;
+    try {
+      const resp = await api.vuln.getSuspectCountsPerTask(projectId);
+      const counts = resp.counts || {};
+      setTaskVulnCounts((prev) => {
+        const next = { ...prev };
+        for (const t of taskItems) {
+          next[t.id] = counts[t.id] || 0;
         }
-      }),
-    );
-    setTaskVulnCounts((prev) => entries.reduce((acc, [id, n]) => { acc[id] = n; return acc; }, { ...prev }));
+        return next;
+      });
+    } catch {
+      setTaskVulnCounts((prev) => {
+        const next = { ...prev };
+        for (const t of taskItems) {
+          next[t.id] = 0;
+        }
+        return next;
+      });
+    }
   };
 
   const loadData = async () => {

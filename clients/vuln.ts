@@ -423,6 +423,10 @@ export const vulnApi = {
     return handleResponse(await fetch(`${API_BASE}/api/vuln/cases?${query}`, { headers: getHeaders() }));
   },
 
+  getSuspectCountsPerTask: async (projectId: string): Promise<{ project_id: string; counts: Record<string, number> }> => {
+    return handleResponse(await fetch(`${API_BASE}/api/vuln/cases/ops/suspect-counts?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() }));
+  },
+
   getCaseDetail: async (caseId: string): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}`, { headers: getHeaders() })),
 
