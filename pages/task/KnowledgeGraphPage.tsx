@@ -14,7 +14,6 @@ import {
   IN_PROGRESS_STATUSES,
   STATUS_LABELS,
   USABLE_UPLOAD_STATUSES,
-  buildCodemapTaskId,
   buildManagerTargetDir,
 } from '../../clients/codemapManager';
 import type { SecurityProject } from '../../types/types';
@@ -87,9 +86,9 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
     () => projects.find((item) => item.id === projectId)?.product_id || projectId,
     [projectId, projects],
   );
-  // task_id 下沉到「每条上传一图」:由 bootstrap 选中的最新 code 上传的 upload_id
-  // 决定(kg-<uploadId>)。null = 尚未确定(还没拉到上传记录)。
-  const [taskId, setTaskId] = useState<string | null>(null);
+  // SS5: 身份下沉到「每条上传一图」,前端只持 upload_id(kg- 合成在 client 内部)。
+  // 由 bootstrap 选中的最新 code 上传的 upload_id 决定。null = 尚未确定。
+  const [uploadId, setUploadId] = useState<string | null>(null);
 
   // 起 serve → iframe。serve 子进程端口立即绑定,即使库还空着也能起,
   // 图谱随后台 analyze/repair 进度渐进填充。幂等:已在起则跳过。
@@ -131,13 +130,12 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
       const latest = [...items].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       )[0];
-      const uploadTaskId = buildCodemapTaskId(latest.upload_id);
-      setTaskId(uploadTaskId);
+      setUploadId(latest.upload_id);
 
       // 查构建状态;404 表示这条上传还没构建过。
       let current: CodemapTaskStatus | null = null;
       try {
-        current = await api.codemapManager.getTaskStatus(uploadTaskId);
+        current = await api.codemapManager.getTaskStatus(latest.upload_id);
       } catch (error) {
         if ((error as any)?.status !== 404) throw error;
       }
@@ -149,7 +147,6 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
           return;
         }
         const triggered = await api.codemapManager.triggerBuild({
-          task_id: uploadTaskId,
           product_id: productId,
           product_name: projectName,
           target_dir: buildManagerTargetDir(projectId, latest.target_path),
@@ -159,6 +156,7 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
         current = {
           task_id: triggered.task_id,
           status: triggered.status,
+          overall: triggered.overall ?? triggered.status,
           mode: 'full',
           db_name: triggered.db_name,
           error: null,
@@ -182,10 +180,10 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
   // failed 红色横幅旁的"重新构建"按钮:bootstrap 里只在 status===null 时 trigger,
   // 老 failed task 一直存在 → 永远不会重派。先 DELETE 清掉再 bootstrap。
   const handleRebuild = useCallback(async () => {
-    if (rebuilding || !taskId) return;
+    if (rebuilding || !uploadId) return;
     setRebuilding(true);
     try {
-      await api.codemapManager.deleteTask(taskId);
+      await api.codemapManager.deleteBuild(uploadId);
       setStatus(null);
       await bootstrap();
     } catch (error) {
@@ -193,7 +191,7 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
     } finally {
       setRebuilding(false);
     }
-  }, [taskId, bootstrap, rebuilding]);
+  }, [uploadId, bootstrap, rebuilding]);
 
   // 「图谱为空」横幅旁的「更正代码目录」按钮:status=completed 但 0 函数
   // (target_dir 写错时 analyze 静默成功的失败模式)。purge 销毁旧空项目
@@ -206,9 +204,9 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
       const dbName = status?.db_name;
       if (dbName) {
         await api.codemapManager.purgeProject(dbName);
-      } else if (taskId) {
-        // 兜底:没有 db_name 也尝试删 task,后续 bootstrap 仍能重派。
-        await api.codemapManager.deleteTask(taskId).catch(() => {});
+      } else if (uploadId) {
+        // 兜底:没有 db_name 也尝试软删,后续 bootstrap 仍能重派。
+        await api.codemapManager.deleteBuild(uploadId).catch(() => {});
       }
       setStatus(null);
       setEmptyGraph(false);
@@ -219,7 +217,7 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
     } finally {
       setCorrecting(false);
     }
-  }, [status, taskId, bootstrap, correcting]);
+  }, [status, uploadId, bootstrap, correcting]);
 
   useEffect(() => {
     void bootstrap();
@@ -229,13 +227,13 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
   // 到达终态(completed/failed)即停止。
   useEffect(() => {
     if (phase !== 'ready') return undefined;
-    if (!taskId) return undefined;
-    if (status && !IN_PROGRESS_STATUSES.has(status.status)) return undefined;
+    if (!uploadId) return undefined;
+    if (status && !IN_PROGRESS_STATUSES.has(status.overall ?? status.status)) return undefined;
     const timer = window.setInterval(async () => {
       try {
-        const next = await api.codemapManager.getTaskStatus(taskId);
+        const next = await api.codemapManager.getTaskStatus(uploadId);
         setStatus(next);
-        if (!IN_PROGRESS_STATUSES.has(next.status)) {
+        if (!IN_PROGRESS_STATUSES.has(next.overall ?? next.status)) {
           window.clearInterval(timer);
         }
       } catch (error) {
@@ -243,14 +241,14 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
       }
     }, POLL_INTERVAL_MS);
     return () => window.clearInterval(timer);
-  }, [phase, status, taskId]);
+  }, [phase, status, uploadId]);
 
   // 零节点探测:任务到达终态后拉一次 serve 的 /api/v1/stats,
   // total_functions===0 视为「图谱为空」(target_dir 错位的 silent-success
   // 失败模式)。仅在 ready + 终态时触发,且只跑一次(emptyGraph 已 true 则跳过)。
   useEffect(() => {
     if (phase !== 'ready' || !serveUrl || !status) return;
-    if (IN_PROGRESS_STATUSES.has(status.status)) return;
+    if (IN_PROGRESS_STATUSES.has(status.overall ?? status.status)) return;
     if (emptyGraph) return;
     let cancelled = false;
     (async () => {
@@ -283,8 +281,10 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
 
   // serve 就绪:全屏 iframe 展示图谱。构建未完时顶部显示非阻塞进度横幅。
   if (phase === 'ready' && serveUrl) {
-    const building = status ? IN_PROGRESS_STATUSES.has(status.status) : false;
-    const failed = status?.status === 'failed';
+    // SS4: 整体态读 overall(aggregate_overall);回退 status 兼容旧后端。
+    const overall = status?.overall ?? status?.status ?? '';
+    const building = overall ? IN_PROGRESS_STATUSES.has(overall) : false;
+    const failed = overall === 'failed';
     const progress = status?.progress;
     const pct =
       progress && progress.total > 0
@@ -311,8 +311,8 @@ export const KnowledgeGraphPage: React.FC<Props> = ({ projectId, projects }) => 
           <div className="flex items-center gap-3 px-5 py-2.5 text-xs" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: `${LK.info}14`, color: LK.info }}>
             <Loader2 size={14} className="animate-spin" />
             <span>
-              图谱构建中 · {STATUS_LABELS[status?.status || ''] || '处理中'}
-              {status?.status === 'building_attack_surface' && (status?.attack?.entries ?? 0) > 0
+              图谱构建中 · {STATUS_LABELS[overall] || '处理中'}
+              {overall === 'building_attack_surface' && (status?.attack?.entries ?? 0) > 0
                 ? ` · 已识别 ${status?.attack?.entries} 入口`
                 : ''}
               {pct !== null ?` · ${progress?.completed}/${progress?.total}（${pct}%）` : ''}

@@ -30,11 +30,17 @@ const STATE_TEXT: Record<StageState, string> = {
 //   否则若 status 显式 failed 则 failed,其余视为仍在修复(active)。
 function deriveStages(status: CodemapTaskStatus | null): StageState[] {
   if (!status) return ['pending', 'pending', 'pending'];
-  const s = status.status;
+  // SS4: 顶层阶段信号读 overall(aggregate_overall);回退 status 兼容旧后端。
+  // attack/repair 仍各看自己的权威信号(重跑只动子阶段,不动 overall 主线)。
+  const s = status.overall ?? status.status;
   const prog = status.progress;
   const hasRepair = !!prog && prog.total > 0;
-  const repairDone = hasRepair && (prog!.completed + prog!.failed) >= prog!.total;
+  const repairAllProcessed = hasRepair && (prog!.completed + prog!.failed) >= prog!.total;
   const attack = status.attack?.status ?? null;
+  // repair 失败信号:后端把 repair 退出失败记到 task.error("repair failed")。repair
+  // 进程异常退出(被杀/崩溃)时 progress 计数填不满(completed+failed<total),不能据
+  // 此判"仍在修复",必须结合 error / 是否已离开 repair 阶段判终态。
+  const repairErrored = /repair/i.test(status.error || '');
 
   let st1: StageState;
   if (s === 'queued' || s === 'accepted' || s === 'building_analyze') st1 = 'active';
@@ -45,24 +51,28 @@ function deriveStages(status: CodemapTaskStatus | null): StageState[] {
   if (st1 !== 'done') st2 = 'pending';
   // attack.status 是入口分析的权威信号(重跑入口分析只动 attack.status,顶层 status
   // 会被抢成 building_attack_surface)。优先信任它,与详情页 KnowledgeGraphPanel 同口径。
-  else if (attack === 'ok') st2 = 'done';
+  // SS3: ok→done 改名,两者都认(过渡兼容)。
+  else if (attack === 'done' || attack === 'ok') st2 = 'done';
   else if (attack === 'failed') st2 = 'failed';
   else if (attack === 'running' || s === 'building_attack_surface') st2 = 'active';
   else st2 = 'pending';
 
   let st3: StageState;
   if (st1 !== 'done') st3 = 'pending';
-  // repair 段只看自己的真实信号,绝不因顶层 status 被入口重跑抢走而误判:
+  // repair 进程只在 building_repair 态运行;一旦顶层 status 离开该态,repair 就已停止
+  // (正常结束 / 失败退出 / 被入口重跑抢走 status),绝不能再显示 active 转圈。
   else if (s === 'building_repair') st3 = 'active';
-  else if (hasRepair) {
-    // 有修复进度:按计数判定。全部处理完(completed+failed>=total)→ 完成(有失败
-    // 计为部分失败 failed,否则 done);未处理完 → 仍在修复(active),即便顶层 status
-    // 此刻被入口重跑占成 building_attack_surface。
-    if (repairDone) st3 = prog!.failed > 0 ? 'failed' : 'done';
-    else st3 = 'active';
-  }
-  else if (s === 'completed') st3 = 'done';      // completed 但无进度(空图等),不阻塞展示
+  // 已离开 building_repair:repair 不在跑了,按终态判。
+  // - error 标记 repair 失败(异常退出,计数可能没填满)→ 失败
+  // - 有失败计数 → 部分失败
+  // - 进度全部处理完且无失败 → 完成
+  // - completed 态(空图等无进度场景)→ 完成
+  else if (repairErrored) st3 = 'failed';
+  else if (hasRepair && prog!.failed > 0) st3 = 'failed';
+  else if (repairAllProcessed) st3 = 'done';
+  else if (s === 'completed') st3 = 'done';
   else if (s === 'failed') st3 = 'failed';
+  // 尚无任何修复信号(static/attack 刚完成、repair 还没起)→ 未开始。
   else st3 = 'pending';
 
   return [st1, st2, st3];

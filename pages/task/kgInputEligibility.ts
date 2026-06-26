@@ -1,7 +1,6 @@
 import { api } from '../../clients/api';
 import {
   USABLE_UPLOAD_STATUSES,
-  buildCodemapTaskId,
 } from '../../clients/codemapManager';
 import type {
   CodemapAuditSources,
@@ -62,7 +61,7 @@ const makeEligibility = (
 
 const fetchTaskStatus = async (uploadId: string): Promise<CodemapTaskStatus | null> => {
   try {
-    return await api.codemapManager.getTaskStatus(buildCodemapTaskId(uploadId));
+    return await api.codemapManager.getTaskStatus(uploadId);
   } catch (error: any) {
     if (error?.status === 404) return null;
     throw error;
