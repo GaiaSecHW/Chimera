@@ -67,7 +67,8 @@ export function DataTable<T>({
   onSortChange,
   selectedRowKey,
 }: DataTableProps<T>) {
-  const colSpan = columns.length + (bulkActions ? 1 : 0);
+  const rowNumberBase = pagination ? (pagination.page - 1) * (pagination.perPage ?? 10) : 0;
+  const colSpan = columns.length + (showRowNumber ? 1 : 0) + (bulkActions ? 1 : 0);
   const allKeys = data.map(rowKey);
   const allSelected = bulkActions != null && allKeys.length > 0 && allKeys.every((k) => bulkActions.selectedKeys.includes(k));
 
@@ -127,6 +128,11 @@ export function DataTable<T>({
       <ExecutionTable minWidth={minWidth}>
         <ExecutionTableHead>
           <tr>
+            {showRowNumber && (
+              <ExecutionTableTh className="w-12 text-center" align="center">
+                #
+              </ExecutionTableTh>
+            )}
             {bulkActions && (
               <ExecutionTableTh className="w-10">
                 <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="全选" />
@@ -164,6 +170,11 @@ export function DataTable<T>({
                     onRowClick && 'cursor-pointer',
                   )}
                 >
+                  {showRowNumber && (
+                    <ExecutionTableTd className="w-12 text-center tabular-nums text-theme-text-faint" align="center">
+                      {rowNumberBase + index + 1}
+                    </ExecutionTableTd>
+                  )}
                   {bulkActions && (
                     <ExecutionTableTd className="w-10" onClick={(e) => e.stopPropagation()}>
                       <input
