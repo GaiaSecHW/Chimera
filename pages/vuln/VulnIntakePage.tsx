@@ -33,6 +33,7 @@ import { api } from '../../clients/api';
 import { authApi } from '../../clients/auth';
 import { API_BASE } from '../../clients/base';
 import { DataTable, DataTableColumn, EmptyState, MarkdownViewer, Modal, PageHeader, PageSection, StatisticCard } from '../../design-system';
+import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 
 const vulnApi = api.domains.vuln;
@@ -596,6 +597,7 @@ const DetailSectionCard: React.FC<{
 );
 
 export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateToView, pageTitle = '漏洞中心', initialTaskFilter }) => {
+  const buildVersion = useServiceBuildVersion(vulnApi.vuln.getHealth);
   const [rootTab, setRootTab] = useState<IntakeRootTab>('cases');
   const { confirm, feedbackNodes } = useUiFeedback();
   const [loading, setLoading] = useState(true);
@@ -2707,7 +2709,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       {!selectedSuspicionId ? (
         <>
           <PageHeader
-            title={pageTitle}
+            title={<ServicePageTitle title={pageTitle} version={buildVersion} />}
             description="统一管理当前项目的漏洞生命周期，覆盖上报、研判、验证与处置全流程"
             actions={
               rootTab === 'download-center' ? (
