@@ -24,19 +24,24 @@ export interface CodemapBuildProgress {
 export interface CodemapTaskStatus {
   task_id: string;
   status: string;
+  // SS4: 整体态真相源 = aggregate_overall(三阶段 + deleted)。值域同 status
+  // (building_*/completed/failed/accepted/deleted)。前端整体态消费方(横幅/
+  // 地铁条/showCorrect)改读 overall;status 仅兼容 standalone 旧调用方。
+  overall?: string;
   mode: string;
   db_name: string | null;
   error: string | null;
   progress?: CodemapBuildProgress | null;
-  // 攻击入口识别(基础版)子阶段。status: running | ok | failed(非阻塞,
-  // 即便失败主构建仍继续 repair)。entries: 已识别攻击入口数(实时累计)。
-  // 仅当该阶段已启动时后端才返回此字段。
+  // 攻击入口识别(基础版)子阶段。status: running | done | failed(SS3 起四态,
+  // 旧 ok 已并入 done;非阻塞,即便失败主构建仍继续 repair)。entries: 已识别攻击
+  // 入口数(实时累计)。仅当该阶段已启动时后端才返回此字段。
   attack?: { status: string; entries: number } | null;
 }
 
 export interface CodemapTriggerResponse {
   task_id: string;
   status: string;
+  overall?: string;
   db_name: string | null;
 }
 
@@ -56,11 +61,55 @@ export interface CodemapServeResponse {
 // files 文件节点数 / repaired_edges LLM 修复新建的 CALLS 边数 /
 // repair_total 调用链修复进度分母(T1-T5 函数全集,排除 T6/excluded)/
 // repair_done 已完成修复函数(complete + partial_complete,至少跑过一轮)。
+// GET /uploads/{id}/build/analyze 的返回(SS1:构建状态模型按阶段拆分,静态分析
+// 阶段独立接口)。analyze_status 是该阶段真相源(pending|running|done|failed);
+// overall 是三阶段聚合出的对外整体态(沿用旧 status 值域,前端徽标只认它);
+// scale.functions/files 由 manager 的 reconciler 收口进 task 行(读单行 O(1),
+// 不查图;本地无 reconciler 时接口即时回退一次)。error 仅 failed 时有内容。
+export interface CodemapBuildAnalyze {
+  task_id: string;
+  overall: string;
+  analyze_status: string;   // pending | running | done | failed
+  scale: { functions: number; files: number };
+  error: string | null;
+}
+
+// GET /uploads/{id}/build/repair 的返回(SS2:调用链修复阶段独立接口)。
+// repair_status 是阶段真相源(pending|running|done|failed)。mode 决定前端口径:
+// 增量(incremental)用 progress(分母=本次跑的 source 数,避免 50/50000 失真),
+// 全量(full)用 scale 的 repair_done/repair_total。repair_total 是 analyze 末
+// 封存的入队全集分母(repair 期间不重算);reconciler 只刷 repair_done 分子 +
+// repaired_edges(LLM 新建 CALLS 边)。error 仅 failed 时有内容。
+export interface CodemapBuildRepair {
+  task_id: string;
+  overall: string;
+  repair_status: string;    // pending | running | done | failed
+  mode: string;             // full | incremental
+  progress: CodemapBuildProgress | null;
+  repair_total: number;
+  repair_done: number;
+  repaired_edges: number;
+  error: string | null;
+}
+
+// GET /uploads/{id}/build/attack-surface 的返回(SS3:攻击入口识别阶段独立接口)。
+// attack_status 是阶段真相源(四态 pending|running|done|failed,旧 ok 已并入
+// done)。entries 是全图绝对计数(同 count_attack_entries 口径,增量/全量不切口径,
+// 取 manager 收口的 task 单行)。identification 是零-Cypher 的进展 headline。attack
+// 非阻塞:failed 不带 error、不拖垮 overall;failed 但 entries>0 → 前端「结果可用
+// (上次报错)」友好态。
+export interface CodemapBuildAttackSurface {
+  task_id: string;
+  overall: string;
+  attack_status: string | null;   // pending | running | done | failed
+  entries: number;
+  identification: { state: string; attack_status: string | null };
+}
+
 export interface CodemapAuditSources {
   db_name: string;
   graph_status: string;
-  analysis: {
-    total: number;
+  analysis: {    total: number;
     attack_entries: number;
   };
   scale?: {
@@ -75,31 +124,34 @@ export interface CodemapAuditSources {
 
 
 export const codemapManagerApi = {
-  // POST /tasks — 提交构建(按 task_id 幂等)。target_dir 是 manager 可见的
-  // 文件系统路径(与 fileserver 共享卷),来自 fileserver 的 resolve.target_path。
-  // 多图谱(每条上传一图):task_id=kg-<uploadId>,携带真 product_id(空回退
-  // projectId)、project_id、upload_id,manager 据 upload_id 走匹配→clone→增量。
+  // POST /uploads/{id}/build — 提交构建(SS5 uploads 化,幂等按 PK + 未软删放行)。
+  // task_id 由后端从 upload_id 合成(kg-<id>),前端不再传。target_dir 是 manager
+  // 可见的文件系统路径(与 fileserver 共享卷)。多图谱:manager 据 upload_id 走
+  // 匹配→clone→增量。返回 { task_id, overall, db_name }。
   triggerBuild: async (payload: {
-    task_id: string;
+    upload_id: string;
     product_id: string;
     product_name: string;
     target_dir: string;
     project_id?: string;
-    upload_id?: string;
     mode?: string;
   }): Promise<CodemapTriggerResponse> => {
-    const response = await fetch(`${MANAGER_BASE}/tasks`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(payload),
-    });
+    const { upload_id, ...body } = payload;
+    const response = await fetch(
+      `${MANAGER_BASE}/uploads/${encodeURIComponent(upload_id)}/build`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(body),
+      });
     return handleResponse(response);
   },
 
-  // GET /tasks/{id} — 查询构建状态 + repair 进度。任务不存在时后端返回 404,
-  // handleResponse 会 throw(error.status === 404),由调用方区分“尚未构建”。
-  // 轮询场景:带 x-chimera-no-request-dedupe 绕过 base.ts 的 GET 去重缓存。
-  getTaskStatus: async (taskId: string): Promise<CodemapTaskStatus> => {
+  // GET /tasks/{id} — 查询整体构建状态(overall + repair 进度 + attack 子阶段)。
+  // 供地铁条/横幅取"整体到哪了";单阶段详情走 getBuildAnalyze/AttackSurface/Repair。
+  // SS5: 入参改 uploadId,kg- 合成在内部。404=尚未构建(调用方区分"未构建")。
+  // 轮询场景带 no-dedupe 绕过 base.ts 的 GET 去重缓存。
+  getTaskStatus: async (uploadId: string): Promise<CodemapTaskStatus> => {
+    const taskId = _buildTaskId(uploadId);
     const response = await fetch(`${MANAGER_BASE}/tasks/${encodeURIComponent(taskId)}`, {
       headers: { ...getHeaders(), 'x-chimera-no-request-dedupe': '1' },
     });
@@ -116,13 +168,15 @@ export const codemapManagerApi = {
     return handleResponse(response);
   },
 
-  // DELETE /tasks/{id} — 清掉脏 task(例如 422 拒绝 / 0 函数失败后),前端紧接
-  // setCodemapStatus(null) 即可让自动派发 effect 用当前正确的 target_path 重派。
-  deleteTask: async (taskId: string): Promise<void> => {
-    const response = await fetch(`${MANAGER_BASE}/tasks/${encodeURIComponent(taskId)}`, {
-      method: 'DELETE',
-      headers: getHeaders(),
-    });
+  // DELETE /uploads/{id}/build — 软删除构建(SS5):置 deleted 标记、杀进程组、归还
+  // key,保留库/目录/task 行。前端紧接 setCodemapStatus(null) 即可让自动派发 effect
+  // 用当前正确的 target_path 重派(POST 对 deleted 行放行)。与 purgeByUpload(销毁
+  // 式)严格区分。
+  deleteBuild: async (uploadId: string): Promise<void> => {
+    const response = await fetch(
+      `${MANAGER_BASE}/uploads/${encodeURIComponent(uploadId)}/build`,
+      { method: 'DELETE', headers: getHeaders() },
+    );
     await handleResponse(response);
   },
 
@@ -161,34 +215,66 @@ export const codemapManagerApi = {
     return handleResponse(response);
   },
 
-  // POST /uploads/{id}/reidentify — 只重跑攻击入口识别(不动 repair),回写
-  // attack_status(running→ok/failed)。也是「手动 /sources/run 后 manager 状态
-  // 停在 failed」的恢复出口。building 中后端返回 409。
+  // GET /uploads/{id}/build/analyze — 静态分析阶段独立接口(SS1)。读 manager
+  // task 单行(O(1),稳态不查图):阶段态 analyze_status + 规模 scale.functions/
+  // files + 聚合 overall。404=尚未构建。轮询带 no-dedupe 绕过 GET 去重缓存。
+  getBuildAnalyze: async (uploadId: string): Promise<CodemapBuildAnalyze> => {
+    const response = await fetch(
+      `${MANAGER_BASE}/uploads/${encodeURIComponent(uploadId)}/build/analyze`,
+      { headers: { ...getHeaders(), 'x-chimera-no-request-dedupe': '1' } },
+    );
+    return handleResponse(response);
+  },
+
+  // GET /uploads/{id}/build/repair — 调用链修复阶段独立接口(SS2)。读 manager
+  // task 单行(O(1)):阶段态 repair_status + mode + progress 快照 + 封存/同步的
+  // scale(repair_total/repair_done/repaired_edges)。404=尚未构建。轮询带
+  // no-dedupe 绕过 GET 去重缓存。
+  getBuildRepair: async (uploadId: string): Promise<CodemapBuildRepair> => {
+    const response = await fetch(
+      `${MANAGER_BASE}/uploads/${encodeURIComponent(uploadId)}/build/repair`,
+      { headers: { ...getHeaders(), 'x-chimera-no-request-dedupe': '1' } },
+    );
+    return handleResponse(response);
+  },
+
+  // GET /uploads/{id}/build/attack-surface — 攻击入口识别阶段独立接口(SS3)。
+  // 读 manager task 单行(O(1)):attack_status + entries(全图绝对计数)+ 零-
+  // Cypher 的 identification headline。404=尚未构建。轮询带 no-dedupe。
+  getBuildAttackSurface: async (uploadId: string): Promise<CodemapBuildAttackSurface> => {
+    const response = await fetch(
+      `${MANAGER_BASE}/uploads/${encodeURIComponent(uploadId)}/build/attack-surface`,
+      { headers: { ...getHeaders(), 'x-chimera-no-request-dedupe': '1' } },
+    );
+    return handleResponse(response);
+  },
+
+  // POST /uploads/{id}/build/attack-surface — 只重跑攻击入口识别(不动 repair),
+  // 回写 attack_status(running→done/failed)。也是「手动 /sources/run 后 manager
+  // 状态停在 failed」的恢复出口。building 中后端返回 409。
   reidentify: async (uploadId: string): Promise<void> => {
     const response = await fetch(
-      `${MANAGER_BASE}/uploads/${encodeURIComponent(uploadId)}/reidentify`,
+      `${MANAGER_BASE}/uploads/${encodeURIComponent(uploadId)}/build/attack-surface`,
       { method: 'POST', headers: getHeaders() },
     );
     await handleResponse(response);
   },
 
-  // POST /uploads/{id}/rerepair — 只重跑 repair(跳过 analyze;已修 gap 跳过,
+  // POST /uploads/{id}/build/repair — 只重跑 repair(跳过 analyze;已修 gap 跳过,
   // 不浪费 token),与攻击面重跑互相独立。building 中后端返回 409。
   rerepair: async (uploadId: string): Promise<void> => {
     const response = await fetch(
-      `${MANAGER_BASE}/uploads/${encodeURIComponent(uploadId)}/rerepair`,
+      `${MANAGER_BASE}/uploads/${encodeURIComponent(uploadId)}/build/repair`,
       { method: 'POST', headers: getHeaders() },
     );
     await handleResponse(response);
   },
 };
 
-// 知识图谱身份下沉到「每条代码上传一图」(多图谱模型)。task_id = kg-<uploadId>,
-// 每条 code 上传记录各自独立的构建状态与图;被 superseded 的历史上传点进去即历史
-// 快照。manager 据 upload_id 在该 product 的 active 图里按路径相似度匹配,命中则
-// clone 源图 + 增量复用,未命中则全量新建。KnowledgeGraphPage 与 TestInputPage
-// 都用同一 uploadId 算 task_id,切 tab 不重复派发(POST /tasks 幂等兜底)。
-export const buildCodemapTaskId = (uploadId: string): string => `kg-${uploadId}`;
+// 知识图谱身份下沉到「每条代码上传一图」(多图谱模型)。task_id = kg-<uploadId>
+// 是 manager 内部寻址用的合成 id;SS5 起前端只传 upload_id,合成下沉到本模块内部
+// (不再对外导出)。被 superseded 的历史上传点进去即历史快照。
+const _buildTaskId = (uploadId: string): string => `kg-${uploadId}`;
 
 // manager 读取代码的文件系统根。manager 挂载了平台 fileserver 的共享卷到 /data,
 // 上传代码物理路径是 /data/files/<projectId>/<target_path>;而 fileserver API 返回的

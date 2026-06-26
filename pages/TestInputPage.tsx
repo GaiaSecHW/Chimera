@@ -22,7 +22,6 @@ import { DropdownSelect, PageHeader } from '../design-system';
 import {
   IN_PROGRESS_STATUSES,
   USABLE_UPLOAD_STATUSES,
-  buildCodemapTaskId,
   buildManagerTargetDir,
 } from '../clients/codemapManager';
 import type { CodemapTaskStatus } from '../clients/codemapManager';
@@ -205,7 +204,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
         const uid = record.upload_id;
         if (uid in codemapStatusByUpload) return;   // 已知(含 null),不重复查
         try {
-          const s = await api.codemapManager.getTaskStatus(buildCodemapTaskId(uid));
+          const s = await api.codemapManager.getTaskStatus(uid);
           if (!aborted) setCodemapStatusByUpload((cur) => ({ ...cur, [uid]: s }));
         } catch (error) {
           if ((error as any)?.status === 404) {
@@ -233,7 +232,6 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
         if (!USABLE_UPLOAD_STATUSES.has(record.status)) return;
         try {
           const triggered = await api.codemapManager.triggerBuild({
-            task_id: buildCodemapTaskId(uid),
             product_id: codemapProductId,
             product_name: productName,
             target_dir: buildManagerTargetDir(projectId, record.target_path),
@@ -246,6 +244,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
             [uid]: {
               task_id: triggered.task_id,
               status: triggered.status,
+              overall: triggered.overall ?? triggered.status,
               mode: 'full',
               db_name: triggered.db_name,
               error: null,
@@ -277,13 +276,13 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
     const inProgress = Object.entries(codemapStatusByUpload)
       // 顶层 FSM 进行中,或攻击面子阶段 running(重跑入口分析不动顶层 status,必须
       // 单独纳入,否则重跑期间地铁条不刷新——与详情页 KnowledgeGraphPanel 同口径)。
-      .filter(([, s]) => s && (IN_PROGRESS_STATUSES.has(s.status) || s.attack?.status === 'running'))
+      .filter(([, s]) => s && (IN_PROGRESS_STATUSES.has(s.overall ?? s.status) || s.attack?.status === 'running'))
       .map(([uid]) => uid);
     if (inProgress.length === 0) return undefined;
     const timer = window.setInterval(async () => {
       await Promise.all(inProgress.map(async (uid) => {
         try {
-          const next = await api.codemapManager.getTaskStatus(buildCodemapTaskId(uid));
+          const next = await api.codemapManager.getTaskStatus(uid);
           setCodemapStatusByUpload((cur) => ({ ...cur, [uid]: next }));
         } catch (error) {
           if ((error as any)?.status === 404) return; // 瞬时,下一拍重试
@@ -303,7 +302,6 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
     setCodemapRebuildingIds((cur) => [...cur, uploadId]);
     try {
       const triggered = await api.codemapManager.triggerBuild({
-        task_id: buildCodemapTaskId(uploadId),
         product_id: codemapProductId,
         product_name: productName,
         target_dir: buildManagerTargetDir(projectId, record.target_path),
@@ -315,6 +313,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
         [uploadId]: {
           task_id: triggered.task_id,
           status: triggered.status,
+          overall: triggered.overall ?? triggered.status,
           mode: 'full',
           db_name: triggered.db_name,
           error: null,
@@ -343,11 +342,11 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
     if (codemapRebuildingIds.includes(uploadId)) return;
     setCodemapRebuildingIds((cur) => [...cur, uploadId]);
     try {
-      await api.codemapManager.deleteTask(buildCodemapTaskId(uploadId));
+      await api.codemapManager.deleteBuild(uploadId);
       setCodemapStatusByUpload((cur) => ({ ...cur, [uploadId]: null }));
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.warn('[codemap] deleteTask failed', error);
+      console.warn('[codemap] deleteBuild failed', error);
     } finally {
       setCodemapRebuildingIds((cur) => cur.filter((id) => id !== uploadId));
     }
@@ -364,7 +363,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
       if (status?.db_name) {
         await api.codemapManager.purgeProject(status.db_name);
       } else {
-        await api.codemapManager.deleteTask(buildCodemapTaskId(uploadId)).catch(() => {});
+        await api.codemapManager.deleteBuild(uploadId).catch(() => {});
       }
       setCodemapStatusByUpload((cur) => ({ ...cur, [uploadId]: null }));
     } catch (error) {
@@ -381,7 +380,8 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   // 函数就由用户手动点按钮决定下一步(或检查上传)。
   useEffect(() => {
     Object.entries(codemapStatusByUpload).forEach(([uid, status]) => {
-      if (!status || status.status !== 'completed') return;
+      // SS4: 整体完成读 overall(回退 status)。
+      if (!status || (status.overall ?? status.status) !== 'completed') return;
       if (status.progress && status.progress.total > 0) return;  // 有结果,不动
       const taskId = status.task_id;
       if (autoCorrectedRef.current.has(taskId)) return;  // 已自动试过,不再循环

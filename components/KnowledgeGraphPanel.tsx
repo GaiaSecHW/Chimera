@@ -3,10 +3,12 @@ import { ChevronRight, ExternalLink, Loader2, Network, RefreshCw, RotateCw, Shie
 import { api } from '../clients/api';
 import {
   IN_PROGRESS_STATUSES,
-  buildCodemapTaskId,
 } from '../clients/codemapManager';
 import type {
   CodemapAuditSources,
+  CodemapBuildAnalyze,
+  CodemapBuildAttackSurface,
+  CodemapBuildRepair,
   CodemapTaskStatus,
 } from '../clients/codemapManager';
 
@@ -110,6 +112,16 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
 }) => {
   const [audit, setAudit] = useState<CodemapAuditSources | null>(null);
   const [auditError, setAuditError] = useState<string | null>(null);
+  // SS1:静态分析阶段独立接口(/build/analyze)。analyze_status 是该阶段真相源,
+  // scale.functions/files 来自 manager 收口的 task 单行。section ① 优先读它,
+  // 旧的 task.status + audit.scale 派生仅作回退(接口 404 / 尚未构建)。
+  const [analyze, setAnalyze] = useState<CodemapBuildAnalyze | null>(null);
+  // SS2:调用链修复阶段独立接口(/build/repair)。repair_status 是阶段真相源,
+  // mode 决定 section ③ 口径(增量 progress / 全量 scale)。优先读它,回退旧派生。
+  const [repair, setRepair] = useState<CodemapBuildRepair | null>(null);
+  // SS3:攻击入口识别阶段独立接口(/build/attack-surface)。attack_status 四态,
+  // entries 全图绝对计数。section ② 优先读它,回退旧 effective.attack + audit。
+  const [attack, setAttack] = useState<CodemapBuildAttackSurface | null>(null);
   const [reidentifying, setReidentifying] = useState(false);
   const [rerepairing, setRerepairing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -131,12 +143,13 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
 
   const loadTask = useCallback(async () => {
     try {
-      const t = await api.codemapManager.getTaskStatus(buildCodemapTaskId(uploadId));
+      const t = await api.codemapManager.getTaskStatus(uploadId);
       setTask(t);
       onStatusChangeRef.current?.(t);
       // 后台已进入对应进行中态(攻击面 running / repair building_repair)→ 乐观态
       // 使命完成,撤掉,后续完全以真实 task 为准(含 running→ok/failed 的终态)。
-      if (t.status === 'building_repair' || t.attack?.status === 'running') {
+      if (t.overall === 'building_repair' || t.status === 'building_repair'
+          || t.attack?.status === 'running') {
         setLocalStatus(null);
       }
       return t;
@@ -163,25 +176,61 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
     }
   }, [uploadId]);
 
+  // SS1:拉静态分析阶段接口。404=尚未构建,留空回退旧派生。
+  const loadAnalyze = useCallback(async () => {
+    try {
+      const a = await api.codemapManager.getBuildAnalyze(uploadId);
+      setAnalyze(a);
+    } catch (error) {
+      if ((error as any)?.status === 404) setAnalyze(null);
+    }
+  }, [uploadId]);
+
+  // SS2:拉调用链修复阶段接口。404=尚未构建,留空回退旧派生。
+  const loadRepair = useCallback(async () => {
+    try {
+      const r = await api.codemapManager.getBuildRepair(uploadId);
+      setRepair(r);
+    } catch (error) {
+      if ((error as any)?.status === 404) setRepair(null);
+    }
+  }, [uploadId]);
+
+  // SS3:拉攻击入口识别阶段接口。404=尚未构建,留空回退旧派生。
+  const loadAttack = useCallback(async () => {
+    try {
+      const a = await api.codemapManager.getBuildAttackSurface(uploadId);
+      setAttack(a);
+    } catch (error) {
+      if ((error as any)?.status === 404) setAttack(null);
+    }
+  }, [uploadId]);
+
   // 打开时各拉一次真实状态(不靠父组件的陈旧 prop)。
   useEffect(() => {
     void loadTask();
     void loadAudit();
-  }, [loadTask, loadAudit]);
+    void loadAnalyze();
+    void loadRepair();
+    void loadAttack();
+  }, [loadTask, loadAudit, loadAnalyze, loadRepair, loadAttack]);
 
   // 进行中判定:顶层 status 在进行态,或攻击面子阶段 running(reidentify 不移动
   // 顶层 status,必须单独把它纳入,否则重跑攻击面期间不会轮询)。
   const inProgress = !!effective && (
-    IN_PROGRESS_STATUSES.has(effective.status) || effective.attack?.status === 'running'
+    IN_PROGRESS_STATUSES.has(effective.overall ?? effective.status) || effective.attack?.status === 'running'
   );
   useEffect(() => {
     if (!inProgress) return undefined;
     const timer = window.setInterval(() => {
       void loadTask();
       void loadAudit();
+      void loadAnalyze();
+      void loadRepair();
+      void loadAttack();
     }, 3000);
     return () => window.clearInterval(timer);
-  }, [inProgress, loadTask, loadAudit]);
+  }, [inProgress, loadTask, loadAudit, loadAnalyze, loadRepair, loadAttack]);
 
   const handleReidentify = async () => {
     if (reidentifying) return;
@@ -256,42 +305,65 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
     );
   }
 
-  const s = effective.status;
+  // SS4/SS5: 整体态 s 读 overall(回退 status);各阶段段已优先读三接口,s 仅作
+  // 回退与 building_repair 等整体判定。
+  const s = effective.overall ?? effective.status;
   const progress = effective.progress;
   const analysis = audit?.analysis;
   const scale = audit?.scale;
   // 调用链修复 T1-T5 函数口径(scale):repair 入队全集>0 即有修复进度可展示。
   const hasRepairProgress = (scale?.repair_total ?? 0) > 0;
 
-  // ① 静态分析:building_analyze=进行中;到了攻击面/修复/完成都意味着静态已成功;
-  //    failed 且无任何 repair 进度=静态分析失败。规模以 scale 为准(真实 Function/
-  //    File 数);旧版误用 audit.total(SourcePoint 条数)当函数数,与入口识别的
-  //    identified 同源——多数 SP 判为入口时两数相等,故彻底改读 scale.functions。
+  // ① 静态分析:SS1 起以 /build/analyze 的 analyze_status 为阶段真相源,scale
+  //    取该接口的 functions/files(manager 收口单行)。接口未就绪(404)时回退旧
+  //    派生:building_attack_surface/building_repair/completed 或有 repair 进度都
+  //    意味着静态已成功;failed 且无 repair 进度=静态失败。规模回退 audit.scale。
+  const az = analyze?.analyze_status ?? null;
   const staticDone =
-    s === 'building_attack_surface' ||
-    s === 'building_repair' ||
-    s === 'completed' ||
-    hasRepairProgress;
-  const staticFailed = s === 'failed' && !hasRepairProgress;
-  const funcCount = scale?.functions ?? 0;
-  const fileCount = scale?.files ?? 0;
+    az === 'done' ||
+    (!az && (
+      s === 'building_attack_surface' ||
+      s === 'building_repair' ||
+      s === 'completed' ||
+      hasRepairProgress));
+  const staticRunning = az === 'running' ||
+    (!az && (s === 'building_analyze' || s === 'queued' || s === 'accepted'));
+  const staticFailed = az === 'failed' || (!az && s === 'failed' && !hasRepairProgress);
+  const funcCount = analyze?.scale.functions ?? scale?.functions ?? 0;
+  const fileCount = analyze?.scale.files ?? scale?.files ?? 0;
 
-  // ② 入口分析:attack.status 为主,但「攻击入口数」以图为准(audit.analysis
-  //    .attack_entries 优先,回退 attack.entries)。failed 但 >0 → 友好文案。
-  //    口径统一后后端只给 attack_entries 一个数(待办不计算)。
-  const attackStatus = effective.attack?.status ?? null;
-  const identified = analysis?.attack_entries ?? effective.attack?.entries ?? 0;
+  // ② 入口分析:SS3 起以 /build/attack-surface 为真相源(attack_status 四态:
+  //    pending/running/done/failed,旧 ok 已并入 done;entries 全图绝对计数)。
+  //    接口未就绪(404)时回退旧 effective.attack + audit.analysis。failed 但
+  //    entries>0 → 「结果可用(上次报错)」友好态(非阻塞,结果仍在图里)。
+  const attackStatus = attack?.attack_status ?? effective.attack?.status ?? null;
+  const identified =
+    attack?.entries ?? analysis?.attack_entries ?? effective.attack?.entries ?? 0;
+  const attackDone = attackStatus === 'done' || attackStatus === 'ok';
   const attackRecoverable = attackStatus === 'failed' && identified > 0;
 
-  // ③ 调用链修复:口径只认 T1-T5 函数(scale.repair_total / repair_done,与 serve
-  //    「函数分类」角标 + cli repair 取数统一):分母=repair 入队全集(T1-T5,排除
-  //    T6/excluded),分子=已完成修复=complete+partial_complete(都至少跑过一轮)。
-  //    不再用 progress 的 per-source 旧口径。
-  const repairTotal = scale?.repair_total ?? 0;
-  const repairDone = scale?.repair_done ?? 0;
-  const repairFailed = progress?.failed ?? 0;
+  // ③ 调用链修复:SS2 起以 /build/repair 为真相源,按 mode 选口径:
+  //    - 全量(full):scale 口径 repair_done/repair_total(T1-T5 入队全集,与
+  //      serve「函数分类」角标 + cli repair 统一);
+  //    - 增量(incremental):progress 口径(分母=本次跑的 source 数),避免把
+  //      50 个改动函数显示成 50/50000 的全图失真。
+  //    接口未就绪(404)时回退旧 audit.scale 全量口径。
+  const repairMode = repair?.mode ?? effective.mode ?? null;
+  const repairUseProgress = repairMode === 'incremental';
+  const repairProg = repair?.progress ?? progress;
+  const repairTotal = repair
+    ? (repairUseProgress ? (repairProg?.total ?? 0) : repair.repair_total)
+    : (scale?.repair_total ?? 0);
+  const repairDone = repair
+    ? (repairUseProgress ? (repairProg?.completed ?? 0) : repair.repair_done)
+    : (scale?.repair_done ?? 0);
+  const repairFailed = repairProg?.failed ?? progress?.failed ?? 0;
   const repairPct = repairTotal > 0 ? Math.round((repairDone / repairTotal) * 100) : 0;
-  const repairedEdges = scale?.repaired_edges ?? 0;
+  const repairedEdges = repair?.repaired_edges ?? scale?.repaired_edges ?? 0;
+  // repair 阶段是否有可展示进度:有分母即可展示(增量=progress.total,全量=
+  // repair_total);回退口径沿用旧的 scale.repair_total>0。
+  const repairStatus = repair?.repair_status ?? null;
+  const repairHasProgress = repair ? repairTotal > 0 : hasRepairProgress;
 
   // 重跑按钮在任一构建阶段进行中时禁用(后端也会 409 兜底)。
   const busy = IN_PROGRESS_STATUSES.has(s);
@@ -313,12 +385,12 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
           label="静态分析"
           done={staticDone}
           badge={
-            s === 'building_analyze' || s === 'queued' || s === 'accepted' ? (
+            staticRunning ? (
               <Pill tone={toneProgress}>
                 <Loader2 size={12} className="animate-spin" /> 分析中
               </Pill>
             ) : staticFailed ? (
-              <Pill tone={toneFail} title={effective.error || undefined}>
+              <Pill tone={toneFail} title={analyze?.error || effective.error || undefined}>
                 失败
               </Pill>
             ) : staticDone ? (
@@ -336,7 +408,7 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
         {/* ② 入口分析 */}
         <StageCard
           label="入口分析"
-          done={attackStatus === 'ok'}
+          done={attackDone}
           badge={
             attackStatus === 'running' ? (
               <Pill tone={toneProgress}>
@@ -348,14 +420,14 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
               </Pill>
             ) : attackStatus === 'failed' ? (
               <Pill tone={toneFail}>识别失败</Pill>
-            ) : attackStatus === 'ok' ? (
+            ) : attackDone ? (
               <Pill tone={toneSuccess}>识别结束</Pill>
             ) : (
               <Pill tone={toneNeutral}>未开始</Pill>
             )
           }
           primary={
-            analysis || identified > 0 ? `攻击入口 ${analysis?.attack_entries ?? identified}` : null
+            identified > 0 || analysis ? `攻击入口 ${identified}` : null
           }
           secondary={null}
         />
@@ -365,13 +437,13 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
         {/* ③ 调用链修复 */}
         <StageCard
           label="调用链修复"
-          done={hasRepairProgress && repairPct === 100}
+          done={(repairStatus === 'done') || (repairHasProgress && repairPct === 100)}
           badge={
-            hasRepairProgress ? (
-              <Pill tone={s === 'failed' ? toneWarn : repairPct === 100 ? toneSuccess : toneProgress}>
+            repairHasProgress ? (
+              <Pill tone={repairStatus === 'failed' || s === 'failed' ? toneWarn : repairPct === 100 ? toneSuccess : toneProgress}>
                 {repairPct}%
               </Pill>
-            ) : s === 'building_repair' ? (
+            ) : repairStatus === 'running' || s === 'building_repair' ? (
               <Pill tone={toneProgress}>
                 <Loader2 size={12} className="animate-spin" /> 修复启动中
               </Pill>
@@ -379,9 +451,9 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
               <Pill tone={toneNeutral}>暂无进度</Pill>
             )
           }
-          primary={hasRepairProgress ? `修复 ${repairDone}/${repairTotal}` : null}
+          primary={repairHasProgress ? `修复 ${repairDone}/${repairTotal}` : null}
           secondary={
-            hasRepairProgress ? (
+            repairHasProgress ? (
               <>
                 {repairedEdges > 0 ? `已修复 ${repairedEdges} 条边` : '已修复 0 条边'}
                 {repairFailed > 0 ? ` · 失败 ${repairFailed}` : ''}
@@ -392,7 +464,7 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
       </div>
 
       {/* 调用链修复进度条(有进度且统计就绪时贯穿底部) */}
-      {hasRepairProgress ? (
+      {repairHasProgress ? (
         <div className="mt-3 h-1.5 rounded-full bg-theme-elevated">
           <div
             className={`h-1.5 rounded-full transition-[width] ${
