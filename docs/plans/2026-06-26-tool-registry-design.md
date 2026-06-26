@@ -40,13 +40,37 @@
 | 组件 | 改造前 | 改造后 |
 |---|---|---|
 | `toolCatalog.ts` + `navigation.tsx` | 静态写死 4+9 项 | 删除硬编码,运行时拉取注册中心 |
-| AgentManage | 只管开发者上传 Agent | 权威后端:统一 `tool` 实体 + 准生证状态机 + 审核 |
-| menu 服务 | 动态菜单 + 健康聚合 | 职责不变:运行时健康/心跳,不存治理数据 |
+| AgentManage | 只管开发者上传 Agent | 权威后端:统一 `tool` 实体 + 准生证状态机 + 审核 + **菜单唯一真相源** |
+| menu 服务 | 动态菜单 + 健康聚合 | **降级为纯健康探测服务**(路线 B):不再作为菜单来源 |
 
 边界:
-- 注册中心(AgentManage)= 持久化的「工具档案 + 准生证状态」(慢变、需审批历史)
-- menu 服务 = 运行时「这工具现在健康吗」(快变、靠心跳)
-- 前端「工具」页 = 两者合并视图(档案来自注册中心,健康徽标来自 menu)
+- 注册中心(AgentManage)= 持久化的「工具档案 + 准生证状态」(慢变、需审批历史),**菜单的唯一真相源**
+- menu 服务 = 运行时「这工具现在健康吗」(快变、靠心跳),**纯健康探测**
+- 前端「工具」页 = 两者合并视图(档案/菜单项来自注册中心,健康徽标来自 menu,靠 `service_id` 关联)
+
+### 现状事实订正(实现前必读)
+
+核实代码后纠正两处之前文档的不准确假设:
+
+1. **前端从未消费 menu 的菜单树**。`clients/menu.ts` 只调 `/api/menu/health` 与 `/api/menu/services/health/summary` 两个接口,只拿健康数据。menu 的 `/api/menu/menu`(动态菜单树)前端从未调用。
+2. 因此**现状菜单 100% 来自硬编码 `navigation.tsx`**;menu 服务当前仅给已写死的菜单项叠加健康徽标。menu 的"动态菜单"能力实际未被使用。
+
+### menu / AgentManage 关系(路线 B:收敛)
+
+- **AgentManage 是唯一注册入口和菜单真相源**。微服务工具上线(status=online)时,由 AgentManage 把 `runtime`(service_id / health_path / namespace 等)**同步推给 menu** 去探活。微服务不再自己调 menu 注册菜单项。
+- menu 退化为「给定 service_id + health_path,定时探活并返回健康状态」的纯探测服务,不承载任何治理/菜单语义。
+- 关联键:`tool.runtime.serviceId` ↔ menu 的 `service_id`。前端用它把档案与健康拼成一个视图。
+
+### 「注册了 menu 但未在工具中心注册」的菜单可见性
+
+| 注册 menu | 工具中心状态 | 菜单是否展示 |
+|---|---|---|
+| ✓ | 未注册 | **不展示**(无准生证,进不了菜单) |
+| ✓ | pending / draft | **不展示**(未过审) |
+| ✗ | online | 展示,健康徽标显示「未知/离线」 |
+| ✓ | online | 展示 + 健康徽标正常 |
+
+结论:菜单可见性完全由工具注册中心的准生证决定,menu 注册与否不影响"是否进菜单",只影响"健康徽标"。这正是「只有注册并审核上线后才能开放给用户」诉求的落地点。
 
 ## 设计 2:数据模型
 
@@ -188,4 +212,6 @@ MVP 范围:
 - 漏洞上报(secflow-platform-vuln)接入 `gate?cap=reportVuln`
 - 网关密钥(aigw/configcenter)接入 `gate?cap=gatewayKey`
 - 用户可见性(`userVisible`)全面接管前端门控
-- menu 服务与注册中心的健康数据合并视图优化
+- **menu 收敛(路线 B)落地**:AgentManage 在工具 online 时把 `runtime.serviceId / healthPath` 同步推给 menu(新增内部接口,如 `POST /api/menu/probe-targets`),微服务移除自带的 menu 注册/心跳逻辑,menu 不再接受业务方直接注册菜单项。
+  - MVP 阶段:不动 menu,沿用现有 `service_id` 关联拿健康(松耦合),前端按 `tool.runtime.serviceId` 去 `/api/menu/services/health/summary` 取健康。
+  - 收敛阶段:切换为 AgentManage → menu 单向推送,统一注册入口。
