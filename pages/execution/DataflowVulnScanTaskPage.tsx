@@ -1638,12 +1638,15 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
             参数配置
           </button>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
           {[
             { label: '总任务', value: taskStats.total, bg: 'bg-theme-elevated', text: 'text-theme-text-primary', border: 'border-theme-border' },
             { label: '运行中', value: taskStats.running + taskStats.pending, bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/20' },
             { label: '已通过', value: taskStats.passed, bg: 'bg-violet-500/15', text: 'text-violet-400', border: 'border-violet-500/20' },
             { label: '失败/取消', value: taskStats.failed + taskStats.error + taskStats.cancelled, bg: 'bg-red-500/15', text: 'text-red-400', border: 'border-red-500/20' },
+            { label: '漏洞总数', value: vulnStats?.total_findings || 0, bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/20' },
+            { label: '已上报', value: vulnStats?.reported || 0, bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+            { label: '未上报', value: vulnStats?.unreported || 0, bg: 'bg-rose-500/15', text: 'text-rose-400', border: 'border-rose-500/20' },
           ].map((s) => (
             <div key={s.label} className={`min-w-[96px] rounded-xl border ${s.border} ${s.bg} px-3 py-2`}>
               <p className={`text-lg font-semibold ${s.text}`}>{s.value}</p>
@@ -1651,37 +1654,17 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
             </div>
           ))}
         </div>
-        {/* ── 漏洞上报统计 ───────────────────────────────── */}
-        <div className="mt-4 rounded-xl border border-theme-border bg-theme-surface p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-text-muted">漏洞上报统计</h2>
-              <p className="mt-1 text-xs text-theme-text-muted">
-                共 <span className="font-bold text-theme-text-primary">{vulnStats?.total_findings || 0}</span> 个漏洞发现
-                {(vulnStats?.reported || 0) > 0 ? <span className="ml-2 text-emerald-400 font-bold">✅ 已上报 {vulnStats.reported}</span> : null}
-                {(vulnStats?.unreported || 0) > 0 ? <span className="ml-2 text-amber-400 font-bold">⏳ 未上报 {vulnStats.unreported}</span> : null}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {(vulnStats?.unreported || 0) > 0 && (
-                <button
-                  onClick={() => handleProjectReportAll()}
-                  disabled={projectReportingAll}
-                  className="inline-flex items-center gap-1 rounded-xl border border-lime-500/30 bg-lime-500/10 px-3 py-1.5 text-xs font-semibold text-lime-400 hover:bg-lime-500/20 transition disabled:opacity-50"
-                >
-                  {projectReportingAll ? '⏳ 上报中...' : '📤 一键上报项目全部未提交'}
-                </button>
-              )}
-              <button
-                onClick={() => loadVulnStats()}
-                className="inline-flex items-center gap-1 rounded-xl border border-theme-border px-3 py-1.5 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"
-              >
-                <RefreshCw size={12} />
-                刷新
-              </button>
-            </div>
+        {(vulnStats?.unreported || 0) > 0 && (
+          <div className="mt-3 flex justify-end">
+            <button
+              onClick={() => handleProjectReportAll()}
+              disabled={projectReportingAll}
+              className="inline-flex items-center gap-1 rounded-xl border border-lime-500/30 bg-lime-500/10 px-3 py-1.5 text-xs font-semibold text-lime-400 hover:bg-lime-500/20 transition disabled:opacity-50"
+            >
+              {projectReportingAll ? '⏳ 上报中...' : '📤 一键上报全部未提交'}
+            </button>
           </div>
-        </div>
+        )}
  <div className="mt-4 rounded-xl border border-theme-border bg-theme-surface p-5">
           <button
             type="button"
