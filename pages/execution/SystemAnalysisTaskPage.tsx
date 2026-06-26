@@ -51,6 +51,11 @@ const SORT_OPTIONS = [
   { value: 'task_name', label: '任务名称' },
 ];
 
+const SCOPE_OPTIONS = [
+  { value: 'current', label: '当前项目' },
+  { value: 'all', label: '全部项目' },
+];
+
 const HEADER_SORT_FIELDS: Partial<Record<'task' | 'status' | 'created_at' | 'duration', string>> = {
   task: 'task_name',
   status: 'status',
@@ -159,7 +164,7 @@ function getExecutionSlotPresentation(
   };
 }
 
-export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (taskId: string) => void }> = ({ projectId, onOpenTask }) => {
+export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (target: { taskId: string; projectId: string }) => void }> = ({ projectId, onOpenTask }) => {
   const appApi = api.domains.execution.appSystemAnalyse;
   const buildVersion = useServiceBuildVersion(appApi.getHealth);
   const { notify, feedbackNodes } = useUiFeedback();
@@ -179,6 +184,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const [statusFilter, setStatusFilter] = useState('');
   const [analysisModeFilter, setAnalysisModeFilter] = useState<'' | 'binary' | 'source'>('');
   const [parentTaskIdFilter, setParentTaskIdFilter] = useState('');
+  const [scopeFilter, setScopeFilter] = useState<'current' | 'all'>('current');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
@@ -225,6 +231,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     }
     return mapping;
   }, [clusterCapacityDetail]);
+  const isAllProjectsScope = scopeFilter === 'all';
 
   const handleHeaderSort = (field: 'task' | 'status' | 'created_at' | 'duration') => {
     const mapped = HEADER_SORT_FIELDS[field];
@@ -273,18 +280,19 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     const storedTaskId = sessionStorage.getItem('chimera:systemAnalysisTaskId');
     if (!storedTaskId) return;
     sessionStorage.removeItem('chimera:systemAnalysisTaskId');
-    onOpenTask(storedTaskId);
-  }, [onOpenTask]);
+    if (!projectId) return;
+    onOpenTask({ taskId: storedTaskId, projectId });
+  }, [onOpenTask, projectId]);
 
   // ── Load task list ────────────────────────────────────────────────────────
 
   const loadTasks = useCallback(async (p = page, options?: { silent?: boolean }) => {
-    if (!projectId) return;
+    if (!projectId && !isAllProjectsScope) return;
     const silent = options?.silent === true;
     if (!silent) setLoading(true);
     try {
       const resp = await appApi.listTasks({
-        project_id: projectId,
+        project_id: isAllProjectsScope ? undefined : projectId,
         page: p,
         per_page: perPage,
         status: statusFilter,
@@ -302,13 +310,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [projectId, page, perPage, statusFilter, analysisModeFilter, parentTaskIdFilter, sortBy, sortOrder]);
+  }, [projectId, isAllProjectsScope, page, perPage, statusFilter, analysisModeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
   const loadTaskStats = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId && !isAllProjectsScope) return;
     try {
       const resp = await appApi.getTaskStats({
-        project_id: projectId,
+        project_id: isAllProjectsScope ? undefined : projectId,
         status: statusFilter,
         analysis_mode: analysisModeFilter,
         parent_task_id: parentTaskIdFilter.trim() || undefined,
@@ -319,7 +327,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     } catch (err: any) {
       setTaskStatsError(err?.message || '加载任务统计失败');
     }
-  }, [appApi, projectId, statusFilter, analysisModeFilter, parentTaskIdFilter, notify]);
+  }, [appApi, projectId, isAllProjectsScope, statusFilter, analysisModeFilter, parentTaskIdFilter, notify]);
 
   const loadClusterCapacity = useCallback(async () => {
     setSlotLoading(true);
@@ -350,17 +358,17 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     }
   }, [appApi]);
 
-  useEffect(() => { void loadTasks(page); }, [projectId, page, perPage, statusFilter, analysisModeFilter, parentTaskIdFilter, sortBy, sortOrder]);
+  useEffect(() => { void loadTasks(page); }, [projectId, scopeFilter, page, perPage, statusFilter, analysisModeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId && !isAllProjectsScope) return;
     const timer = window.setTimeout(() => {
       void loadTaskStats();
       void loadClusterCapacity();
       void loadClusterCapacityDetail();
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [projectId, statusFilter, analysisModeFilter, parentTaskIdFilter, loadTaskStats, loadClusterCapacity]);
+  }, [projectId, scopeFilter, isAllProjectsScope, statusFilter, analysisModeFilter, parentTaskIdFilter, loadTaskStats, loadClusterCapacity]);
 
   useEffect(() => {
     const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
@@ -629,7 +637,9 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
 
  <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
         <ServicePageTitle title="分析任务" version={buildVersion} />
-        <p className="mt-2 text-sm text-theme-text-muted">指定分析路径，启动安全分析任务。</p>
+        <p className="mt-2 text-sm text-theme-text-muted">
+          {isAllProjectsScope ? '跨项目查看系统分析任务；详情会自动切换到任务所属项目。' : '指定分析路径，启动安全分析任务。'}
+        </p>
         <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {[
               { label: '总任务', value: taskStats.total, bg: 'bg-theme-surface', text: 'text-theme-text-primary', border: 'border-theme-border' },
@@ -926,6 +936,16 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               title="按主任务 ID 筛选"
             />
             <select
+              value={scopeFilter}
+              onChange={(e) => { setScopeFilter(e.target.value === 'all' ? 'all' : 'current'); setPage(1); setSelectedTaskIds(new Set()); }}
+              className="form-select text-xs"
+              title="查看范围"
+            >
+              {SCOPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
               className="form-select text-xs"
@@ -958,11 +978,24 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <button onClick={() => { void loadTasks(page); void loadTaskStats(); void loadClusterCapacity(); }} className="rounded-lg border border-theme-border p-2 text-theme-text-muted hover:bg-theme-elevated">
               <RefreshCw size={14} />
             </button>
-            <button onClick={() => { setCreateModalInitialForm(buildDefaultSystemAnalysisTaskForm(projectId)); setCreateModalOpen(true); }}
+            <button
+              onClick={() => { setCreateModalInitialForm(buildDefaultSystemAnalysisTaskForm(projectId)); setCreateModalOpen(true); }}
+              disabled={!projectId || isAllProjectsScope}
               className="inline-flex items-center gap-1.5 rounded-lg bg-theme-surface px-3 py-1.5 text-xs font-semibold text-white hover:bg-theme-elevated">
               <Plus size={13} />新建任务
             </button>
           </div>
+        </div>
+
+        <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-theme-text-muted">
+          <span>
+            范围：<span className="font-semibold text-theme-text-primary">{isAllProjectsScope ? '全部项目任务' : '当前项目任务'}</span>
+          </span>
+          {isAllProjectsScope ? (
+            <span>跨项目模式下已禁用新建任务和项目级副作用操作。</span>
+          ) : projectId ? (
+            <span>当前项目 ID：<span className="font-mono text-theme-text-secondary">{projectId}</span></span>
+          ) : null}
         </div>
 
         <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-theme-text-muted">
@@ -996,7 +1029,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => void handleBatchCancel()}
-                disabled={batchCancelling || batchDeleting || batchRestarting}
+                disabled={isAllProjectsScope || batchCancelling || batchDeleting || batchRestarting}
                 className="inline-flex items-center gap-2 rounded-xl border border-amber-500/20 bg-theme-surface px-4 py-2 text-sm font-semibold text-amber-400 hover:bg-amber-500/15 disabled:opacity-50"
               >
                 {batchCancelling ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
@@ -1004,7 +1037,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               </button>
               <button
                 onClick={() => void handleBatchRestart()}
-                disabled={batchRestarting || batchCancelling || batchDeleting}
+                disabled={isAllProjectsScope || batchRestarting || batchCancelling || batchDeleting}
                 className="inline-flex items-center gap-2 rounded-xl border border-violet-500/20 bg-theme-surface px-4 py-2 text-sm font-semibold text-violet-400 hover:bg-violet-500/15 disabled:opacity-50"
               >
                 {batchRestarting ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
@@ -1033,12 +1066,16 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
           <div className="flex items-center justify-center py-12 text-theme-text-muted">
             <Loader2 size={20} className="mr-2 animate-spin" /> 加载中...
           </div>
+        ) : !projectId && !isAllProjectsScope ? (
+          <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface py-10 text-center text-xs text-theme-text-muted">
+            请先在右上角选择项目，再查看该项目下的系统分析任务
+          </div>
         ) : tasks.length === 0 ? (
           <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface py-10 text-center text-xs text-theme-text-muted">
-            暂无任务，点击右上角「新建任务」创建
+            {isAllProjectsScope ? '当前没有符合筛选条件的跨项目任务' : '暂无任务，点击右上角「新建任务」创建'}
           </div>
         ) : (
-          <ExecutionTable minWidth={1200}>
+          <ExecutionTable minWidth={isAllProjectsScope ? 1360 : 1200}>
             <ExecutionTableHead>
               <tr>
                 <ExecutionTableTh className="w-12">
@@ -1055,6 +1092,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                   direction={sortOrder}
                   onClick={() => handleHeaderSort('task')}
                 />
+                {isAllProjectsScope ? <ExecutionTableTh>所属项目</ExecutionTableTh> : null}
                 <ExecutionTableTh>分析模式</ExecutionTableTh>
                 <SortableHeader
                   label="状态"
@@ -1099,7 +1137,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                       type="button"
                       onClick={() => {
                         saveExecutionReturnContext({ view: 'system-analysis-task' });
-                        onOpenTask(t.task_id);
+                        onOpenTask({ taskId: t.task_id, projectId: t.project_id || projectId });
                       }}
                       className="text-left text-sm font-bold text-theme-text-primary hover:text-cyan-400"
                       title={`查看任务 ${t.task_name}`}
@@ -1113,6 +1151,12 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                       </div>
                     ) : null}
                   </ExecutionTableTd>
+                  {isAllProjectsScope ? (
+                    <ExecutionTableTd className="min-w-[180px]">
+                      <div className="text-sm font-semibold text-theme-text-secondary">{t.project_name || t.project_id || '-'}</div>
+                      <div className="mt-1 font-mono text-[11px] text-theme-text-muted">{t.project_id || '-'}</div>
+                    </ExecutionTableTd>
+                  ) : null}
                   <ExecutionTableTd className="whitespace-nowrap">
                     <button
                       type="button"

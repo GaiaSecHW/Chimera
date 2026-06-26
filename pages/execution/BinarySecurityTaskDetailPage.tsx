@@ -2541,12 +2541,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   };
 
   const loadDeleteQueue = async (page = deleteQueuePage) => {
-    if (!projectId) return;
     setDeleteQueueLoading(true);
     setDeleteQueueError(null);
     setDeleteQueuePage(page);
     try {
-      const payload: BinarySecurityDeleteQueueResponse = await executionApi.binarySecurity.listDeleteQueue(projectId, {
+      const payload: BinarySecurityDeleteQueueResponse = await executionApi.binarySecurity.listDeleteQueue({
         page,
         pageSize: DELETE_QUEUE_PAGE_SIZE,
         taskType: deleteQueueTaskType,
@@ -4644,7 +4643,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             <td className="px-4 py-3 text-xs text-theme-text-secondary" title={item.delete_error || item.last_error || ''}>
                               {truncateText(item.delete_error || item.last_error)}
                             </td>
-                            <td className="px-4 py-3 font-mono text-xs text-theme-text-secondary">{item.downstream_task_id || '—'}</td>
+                            <td className="px-4 py-3 font-mono text-xs text-theme-text-secondary">{item.delete_operation_id || '—'}</td>
                             <td className="px-4 py-3 whitespace-nowrap text-xs text-theme-text-muted">{fmt(item.delete_requested_at)}</td>
                             <td className="px-4 py-3 whitespace-nowrap text-xs text-theme-text-muted">{fmt(item.delete_started_at)}</td>
                             <td className="px-4 py-3 whitespace-nowrap text-xs text-theme-text-muted">{fmt(item.delete_finished_at)}</td>

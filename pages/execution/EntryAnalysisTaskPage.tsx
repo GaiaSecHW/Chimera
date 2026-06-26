@@ -399,7 +399,12 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({ label, active, directio
   );
 };
 
-export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (taskId: string) => void }> = ({ projectId, onOpenTask }) => {
+const SCOPE_OPTIONS = [
+  { value: 'current', label: '当前项目' },
+  { value: 'all', label: '全部项目' },
+];
+
+export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (target: { taskId: string; projectId: string }) => void }> = ({ projectId, onOpenTask }) => {
   const appApi = api.domains.execution.appEntryAnalyse;
   const buildVersion = useServiceBuildVersion(appApi.getHealth);
   const { notify, feedbackNodes } = useUiFeedback();
@@ -422,6 +427,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const [statusFilter, setStatusFilter] = useState('');
   const [modeFilter, setModeFilter] = useState<'' | 'manual' | 'binary' | 'source'>('');
   const [parentTaskIdFilter, setParentTaskIdFilter] = useState('');
+  const [scopeFilter, setScopeFilter] = useState<'current' | 'all'>('current');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
@@ -461,6 +467,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const [pickerTarget, setPickerTarget] = useState<'input' | 'source' | 'output'>('input');
   const logScrollRef = useRef<HTMLDivElement>(null);
   const riskPresetAppliedRef = useRef('');
+  const isAllProjectsScope = scopeFilter === 'all';
 
   const handleHeaderSort = (field: 'task' | 'module' | 'status' | 'origin' | 'created_at' | 'duration') => {
     const mapped = HEADER_SORT_FIELDS[field];
@@ -508,8 +515,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     const storedTaskId = sessionStorage.getItem('chimera:entryAnalysisTaskId');
     if (!storedTaskId) return;
     sessionStorage.removeItem('chimera:entryAnalysisTaskId');
-    if (onOpenTask) onOpenTask(storedTaskId);
-  }, [onOpenTask]);
+    if (onOpenTask && projectId) onOpenTask({ taskId: storedTaskId, projectId });
+  }, [onOpenTask, projectId]);
 
   useEffect(() => {
     const stored = sessionStorage.getItem(stageFocusStorageKey) || '';
@@ -540,13 +547,13 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   // ── Load task list ──────────────────────────────────────────────────────
 
   const loadTasks = useCallback(async (p = page) => {
-    if (!projectId) return;
+    if (!projectId && !isAllProjectsScope) return;
     const requestSeq = ++taskListLoadSeqRef.current;
     taskListLoadingSeqRef.current = requestSeq;
     setLoading(true);
     try {
       const resp = await appApi.listTasks({
-        project_id: projectId,
+        project_id: isAllProjectsScope ? undefined : projectId,
         page: p,
         per_page: perPage,
         status: statusFilter,
@@ -568,7 +575,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
         setLoading(false);
       }
     }
-  }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
+  }, [projectId, isAllProjectsScope, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
   const loadSlotCluster = useCallback(async () => {
     if (!projectId) return;
@@ -582,7 +589,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     }
   }, [appApi, projectId]);
 
-  useEffect(() => { void loadTasks(page); }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
+  useEffect(() => { void loadTasks(page); }, [projectId, scopeFilter, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
   useEffect(() => { void loadSlotCluster(); }, [loadSlotCluster]);
 
   useEffect(() => {
@@ -663,7 +670,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
 
   const handleSelectTask = (taskId: string) => {
     if (onOpenTask) {
-      onOpenTask(taskId);
+      const task = tasks.find((item) => item.task_id === taskId);
+      onOpenTask({ taskId, projectId: task?.project_id || projectId });
       return;
     }
     saveExecutionReturnContext({ view: 'entry-analysis-task' });
@@ -1789,6 +1797,16 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               title="按主任务 ID 筛选"
             />
             <select
+              value={scopeFilter}
+              onChange={(e) => { setScopeFilter(e.target.value === 'all' ? 'all' : 'current'); setPage(1); setSelectedTaskIds(new Set()); }}
+              className="form-select text-xs"
+              title="查看范围"
+            >
+              {SCOPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            <select
               value={sortBy}
               onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
               className="form-select text-xs"
@@ -1820,11 +1838,23 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
             </button>
             <button
               onClick={() => { setCreateModalOpen(true); setAvailableModules([]); setForm({ ...emptyForm, output_path: `/data/files/${projectId}/app/chimera-app-entry-analyse` }); void loadProviders(); }}
+              disabled={!projectId || isAllProjectsScope}
               className="inline-flex items-center gap-1.5 rounded-lg bg-theme-surface px-3 py-1.5 text-xs font-semibold text-white hover:bg-theme-elevated"
             >
               <Plus size={13} />新建任务
             </button>
           </div>
+        </div>
+
+        <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-theme-text-muted">
+          <span>
+            范围：<span className="font-semibold text-theme-text-primary">{isAllProjectsScope ? '全部项目任务' : '当前项目任务'}</span>
+          </span>
+          {isAllProjectsScope ? (
+            <span>跨项目模式下仅支持查看、筛选和进入详情。</span>
+          ) : projectId ? (
+            <span>当前项目 ID：<span className="font-mono text-theme-text-secondary">{projectId}</span></span>
+          ) : null}
         </div>
 
         <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-theme-text-muted">
@@ -1855,7 +1885,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => void handleBatchCancel()}
-                disabled={batchCancelling || batchDeleting || batchRestarting}
+                disabled={isAllProjectsScope || batchCancelling || batchDeleting || batchRestarting}
                 className="inline-flex items-center gap-2 rounded-xl border border-amber-500/20 bg-theme-surface px-4 py-2 text-sm font-semibold text-amber-400 hover:bg-amber-500/15 disabled:opacity-50"
               >
                 {batchCancelling ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
@@ -1863,7 +1893,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               </button>
               <button
                 onClick={() => void handleBatchRestart()}
-                disabled={batchRestarting || batchCancelling || batchDeleting}
+                disabled={isAllProjectsScope || batchRestarting || batchCancelling || batchDeleting}
                 className="inline-flex items-center gap-2 rounded-xl border border-violet-500/20 bg-theme-surface px-4 py-2 text-sm font-semibold text-violet-400 hover:bg-violet-500/15 disabled:opacity-50"
               >
                 {batchRestarting ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
@@ -1890,10 +1920,12 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
 
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-theme-text-muted py-6"><Loader2 size={14} className="animate-spin" />加载中...</div>
+        ) : !projectId && !isAllProjectsScope ? (
+          <div className="py-10 text-center text-sm text-theme-text-muted">请先选择项目，再查看入口分析任务。</div>
         ) : tasks.length === 0 ? (
-          <div className="py-10 text-center text-sm text-theme-text-muted">暂无任务，点击右上角「新建任务」创建</div>
+          <div className="py-10 text-center text-sm text-theme-text-muted">{isAllProjectsScope ? '当前没有符合筛选条件的跨项目任务' : '暂无任务，点击右上角「新建任务」创建'}</div>
         ) : (
-          <ExecutionTable minWidth={1560}>
+          <ExecutionTable minWidth={isAllProjectsScope ? 1720 : 1560}>
             <ExecutionTableHead>
               <tr>
                 <ExecutionTableTh className="w-12">
@@ -1910,6 +1942,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                   direction={sortOrder}
                   onClick={() => handleHeaderSort('task')}
                 />
+                {isAllProjectsScope ? <ExecutionTableTh>所属项目</ExecutionTableTh> : null}
                 <ExecutionTableTh>模块</ExecutionTableTh>
                 <ExecutionTableTh>模式</ExecutionTableTh>
                 <SortableHeader
@@ -2031,6 +2064,12 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                       </div>
                     ) : null}
                   </ExecutionTableTd>
+                  {isAllProjectsScope ? (
+                    <ExecutionTableTd className="min-w-[180px]">
+                      <div className="text-sm font-semibold text-theme-text-secondary">{t.project_name || t.project_id || '-'}</div>
+                      <div className="mt-1 font-mono text-[11px] text-theme-text-muted">{t.project_id || '-'}</div>
+                    </ExecutionTableTd>
+                  ) : null}
                   <ExecutionTableTd className="min-w-[150px]">
                     <div className="text-sm font-semibold text-theme-text-secondary">{t.module_name || '-'}</div>
                   </ExecutionTableTd>

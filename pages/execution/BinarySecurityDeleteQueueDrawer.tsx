@@ -17,6 +17,7 @@ const LK = {
 
 const DELETE_QUEUE_PAGE_SIZE = 20;
 const DELETE_QUEUE_POLL_MS = 15000;
+const ALL_DELETE_QUEUE_TASK_TYPES = '__all__';
 
 const getDeleteQueueTypeLabel = (taskType?: string | null) => {
   switch (String(taskType || '').trim()) {
@@ -63,7 +64,7 @@ const fmt = (value?: string | null) => {
 
 interface Props {
   open: boolean;
-  projectId: string;
+  projectId?: string;
   taskType: BinarySecurityDeleteQueueTaskType;
   onClose: () => void;
   onForceDeleteAccepted?: (item: BinarySecurityDeleteQueueItem) => void | Promise<void>;
@@ -91,19 +92,22 @@ export const BinarySecurityDeleteQueueDrawer: React.FC<Props> = ({
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [rowActionId, setRowActionId] = useState<string | null>(null);
+  const [taskTypeFilter, setTaskTypeFilter] = useState<string>(taskType);
 
-  const typeLabel = useMemo(() => getDeleteQueueTypeLabel(taskType), [taskType]);
+  const typeLabel = useMemo(
+    () => (taskTypeFilter === ALL_DELETE_QUEUE_TASK_TYPES ? '全局' : getDeleteQueueTypeLabel(taskTypeFilter)),
+    [taskTypeFilter],
+  );
 
   const loadDeleteQueue = async (nextPage = page) => {
-    if (!projectId) return;
     setLoading(true);
     setError(null);
     setPage(nextPage);
     try {
-      const payload = await executionApi.binarySecurity.listDeleteQueue(projectId, {
+      const payload = await executionApi.binarySecurity.listDeleteQueue({
         page: nextPage,
         pageSize: DELETE_QUEUE_PAGE_SIZE,
-        taskType,
+        taskType: taskTypeFilter === ALL_DELETE_QUEUE_TASK_TYPES ? undefined : (taskTypeFilter as BinarySecurityDeleteQueueTaskType),
         deleteStatus: statusFilter || undefined,
         search: search.trim() || undefined,
         sortBy: 'delete_requested_at',
@@ -140,12 +144,13 @@ export const BinarySecurityDeleteQueueDrawer: React.FC<Props> = ({
     setSearch('');
     setStatusFilter('');
     setRowActionId(null);
+    setTaskTypeFilter(taskType);
   }, [open, projectId, taskType]);
 
   useEffect(() => {
     if (!open) return;
     void loadDeleteQueue(1);
-  }, [open, taskType]);
+  }, [open, taskType, taskTypeFilter]);
 
   useEffect(() => {
     if (!open) return;
@@ -153,10 +158,15 @@ export const BinarySecurityDeleteQueueDrawer: React.FC<Props> = ({
       void loadDeleteQueue(page);
     }, DELETE_QUEUE_POLL_MS);
     return () => window.clearInterval(timer);
-  }, [open, page, projectId, search, statusFilter, taskType]);
+  }, [open, page, projectId, search, statusFilter, taskType, taskTypeFilter]);
 
   const forceDeleteQueueItem = async (item: BinarySecurityDeleteQueueItem) => {
-    if (!projectId || !item?.id || rowActionId) return;
+    if (!item?.id || rowActionId) return;
+    const targetProjectId = String(item.project_id || '').trim();
+    if (!targetProjectId) {
+      setError(`任务 ${item.id} 缺少项目上下文，无法强制删除`);
+      return;
+    }
     const confirmed = await showConfirm({
       title: '强制删除队列任务',
       message: `将对任务“${item.name || item.id}”发起强制删除，忽略当前删除阻塞或下游删除失败并继续清理主任务。该操作不可恢复，是否继续？`,
@@ -168,7 +178,7 @@ export const BinarySecurityDeleteQueueDrawer: React.FC<Props> = ({
     setRowActionId(item.id);
     setError(null);
     try {
-      await executionApi.binarySecurity.deleteTask(projectId, item.id, { force: true });
+      await executionApi.binarySecurity.deleteTask(targetProjectId, item.id, { force: true });
       await loadDeleteQueue(page);
       await onForceDeleteAccepted?.(item);
     } catch (e: any) {
@@ -192,7 +202,7 @@ export const BinarySecurityDeleteQueueDrawer: React.FC<Props> = ({
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-theme-text-muted">Delete Queue</div>
                 <h3 className="mt-2 text-2xl font-bold tracking-tight text-theme-text-primary">{typeLabel} 删除队列</h3>
-                <p className="mt-2 text-sm text-theme-text-secondary">按当前任务类型查看后台异步删除队列，并对阻塞项直接发起强制删除。</p>
+                <p className="mt-2 text-sm text-theme-text-secondary">支持查看当前类型或全部类型的全局异步删除队列，并对阻塞项直接发起强制删除。</p>
                 <div className="mt-3 flex flex-wrap gap-2 text-xs">
                   <span className="rounded-full px-3 py-1 font-semibold" style={{ backgroundColor: `${LK.warning}22`, color: LK.warning }}>排队中 {stats.queued_total}</span>
                   <span className="rounded-full px-3 py-1 font-semibold" style={{ backgroundColor: `${LK.info}22`, color: LK.info }}>删除中 {stats.running_total}</span>
@@ -223,7 +233,7 @@ export const BinarySecurityDeleteQueueDrawer: React.FC<Props> = ({
           </div>
 
           <div className="border-b border-theme-border px-6 py-4">
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_auto]">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_180px_auto]">
               <label className="block text-sm font-semibold text-theme-text-secondary">
                 搜索
                 <input
@@ -232,6 +242,20 @@ export const BinarySecurityDeleteQueueDrawer: React.FC<Props> = ({
                   placeholder="任务名 / 任务ID / 删除错误"
                   className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary outline-none transition focus:border-sky-500"
                 />
+              </label>
+              <label className="block text-sm font-semibold text-theme-text-secondary">
+                任务类型
+                <select
+                  value={taskTypeFilter}
+                  onChange={(event) => setTaskTypeFilter(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary outline-none transition focus:border-sky-500"
+                >
+                  <option value={ALL_DELETE_QUEUE_TASK_TYPES}>全部类型</option>
+                  <option value="binary_firmware_e2e">盖亚-二进制固件</option>
+                  <option value="source_scan_e2e">盖亚-源码</option>
+                  <option value="kg_source_vuln_scan_e2e">知识图谱-漏洞挖掘</option>
+                  <option value="binary_module_e2e">盖亚-二进制模块</option>
+                </select>
               </label>
               <label className="block text-sm font-semibold text-theme-text-secondary">
                 删除状态
@@ -260,6 +284,7 @@ export const BinarySecurityDeleteQueueDrawer: React.FC<Props> = ({
                   onClick={() => {
                     setSearch('');
                     setStatusFilter('');
+                    setTaskTypeFilter(taskType);
                     void loadDeleteQueue(1);
                   }}
                   className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
@@ -304,7 +329,9 @@ export const BinarySecurityDeleteQueueDrawer: React.FC<Props> = ({
                     ) : null}
                     {!loading && items.length === 0 ? (
                       <tr>
-                        <td colSpan={12} className="px-4 py-10 text-center text-theme-text-secondary">当前类型暂无删除队列任务</td>
+                        <td colSpan={12} className="px-4 py-10 text-center text-theme-text-secondary">
+                          {taskTypeFilter === ALL_DELETE_QUEUE_TASK_TYPES ? '当前暂无全局删除队列任务' : '当前类型暂无删除队列任务'}
+                        </td>
                       </tr>
                     ) : null}
                     {!loading && items.map((item) => {
@@ -330,7 +357,7 @@ export const BinarySecurityDeleteQueueDrawer: React.FC<Props> = ({
                           <td className="px-4 py-3 text-theme-text-secondary">{item.display_status || '—'}</td>
                           <td className="px-4 py-3"><span style={{ color: statusColor }}>{formatDeleteQueueStatus(item.delete_status)}</span></td>
                           <td className="px-4 py-3 text-xs text-theme-text-secondary" title={item.delete_error || item.last_error || ''}>{truncateText(item.delete_error || item.last_error)}</td>
-                          <td className="px-4 py-3 font-mono text-xs text-theme-text-secondary">{item.downstream_task_id || '—'}</td>
+                          <td className="px-4 py-3 font-mono text-xs text-theme-text-secondary">{item.delete_operation_id || '—'}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-xs text-theme-text-muted">{fmt(item.delete_requested_at)}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-xs text-theme-text-muted">{fmt(item.delete_started_at)}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-xs text-theme-text-muted">{fmt(item.delete_finished_at)}</td>

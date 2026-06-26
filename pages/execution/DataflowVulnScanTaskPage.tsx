@@ -621,7 +621,11 @@ function getWorkerJobModeLabel(job: Pick<AppDfaWorkerActiveJob, 'task_origin_typ
   return mode === 'source' ? '源码模式' : '二进制模式';
 }
 
-export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?: (taskId: string) => void }> = ({ projectId, onOpenTask }) => {
+export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?: (target: { taskId: string; projectId: string }) => void }> = ({ projectId, onOpenTask }) => {
+  const SCOPE_OPTIONS = [
+    { value: 'current', label: '当前项目' },
+    { value: 'all', label: '全部项目' },
+  ] as const;
   const appApi = api.domains.execution.appDataflowVulnScan;
   const buildVersion = useServiceBuildVersion(appApi.getHealth);
   const { notify, feedbackNodes } = useUiFeedback();
@@ -644,6 +648,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
   const [statusFilter, setStatusFilter] = useState('');
   const [modeFilter, setModeFilter] = useState<'' | 'manual' | 'binary' | 'source'>('');
   const [parentTaskIdFilter, setParentTaskIdFilter] = useState('');
+  const [scopeFilter, setScopeFilter] = useState<'current' | 'all'>('current');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
@@ -676,6 +681,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<'input' | 'output' | 'entrylist'>('input');
   const logScrollRef = useRef<HTMLDivElement>(null);
+  const isAllProjectsScope = scopeFilter === 'all';
 
   const handleHeaderSort = (field: 'task' | 'status' | 'created_at' | 'duration') => {
     const mapped = HEADER_SORT_FIELDS[field];
@@ -756,11 +762,11 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
   // ── Load task list ────────────────────────────────────────────────────────
 
   const loadTasks = useCallback(async (p = page) => {
-    if (!projectId) return;
+    if (!projectId && !isAllProjectsScope) return;
     setLoading(true);
     try {
       const resp = await appApi.listTasks({
-        project_id: projectId,
+        project_id: isAllProjectsScope ? undefined : projectId,
         page: p,
         per_page: perPage,
         status: statusFilter,
@@ -776,13 +782,13 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
     } finally {
       setLoading(false);
     }
-  }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
+  }, [projectId, isAllProjectsScope, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
   const loadTaskStats = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId && !isAllProjectsScope) return;
     try {
       const resp = await appApi.getTaskStats({
-        project_id: projectId,
+        project_id: isAllProjectsScope ? undefined : projectId,
         status: statusFilter,
         mode: modeFilter || undefined,
         parent_task_id: parentTaskIdFilter.trim() || undefined,
@@ -791,7 +797,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
     } catch (err: any) {
       notify(`加载任务统计失败: ${err?.message || err}`, 'error');
     }
-  }, [appApi, projectId, statusFilter, modeFilter, parentTaskIdFilter, notify]);
+  }, [appApi, projectId, isAllProjectsScope, statusFilter, modeFilter, parentTaskIdFilter, notify]);
 
   const loadVulnStats = useCallback(async () => {
     if (!projectId) return;
@@ -803,7 +809,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
 
   const [projectReportingAll, setProjectReportingAll] = useState(false);
   const handleProjectReportAll = useCallback(async () => {
-    if (!projectId || projectReportingAll) return;
+    if (!projectId || isAllProjectsScope || projectReportingAll) return;
     setProjectReportingAll(true);
     try {
       const result = await appApi.reportAllProjectFindings(projectId);
@@ -814,7 +820,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
     } finally {
       setProjectReportingAll(false);
     }
-  }, [projectId, projectReportingAll, appApi, notify, loadVulnStats]);
+  }, [projectId, isAllProjectsScope, projectReportingAll, appApi, notify, loadVulnStats]);
 
   const loadSlotSummary = useCallback(async () => {
     setSlotSummaryLoading(true);
@@ -844,7 +850,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
     ]);
   }, [loadTasks, loadTaskStats, loadSlotSummary, loadVulnStats, page]);
 
-  useEffect(() => { void loadAll(page); }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
+  useEffect(() => { void loadAll(page); }, [projectId, scopeFilter, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
   useEffect(() => {
     const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
@@ -893,7 +899,8 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
 
   const handleSelectTask = (taskId: string) => {
     if (onOpenTask) {
-      onOpenTask(taskId);
+      const task = tasks.find((item) => item.task_id === taskId);
+      onOpenTask({ taskId, projectId: task?.project_id || projectId });
       return;
     }
     saveExecutionReturnContext({ view: 'dataflow-vuln-scan-task' });
@@ -2079,6 +2086,16 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
               title="按主任务 ID 筛选"
             />
             <select
+              value={scopeFilter}
+              onChange={(e) => { setScopeFilter(e.target.value === 'all' ? 'all' : 'current'); setPage(1); setSelectedTaskIds(new Set()); }}
+              className="form-select text-xs"
+              title="查看范围"
+            >
+              {SCOPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            <select
               value={sortBy}
               onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
               className="form-select text-xs"
@@ -2114,11 +2131,23 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                 setEntryList([]);
                 setForm({ ...emptyForm, output_path:`/data/files/${projectId}/app/chimera-app-dataflow-vuln-scan` });
               }}
+              disabled={!projectId || isAllProjectsScope}
               className="inline-flex items-center gap-1.5 rounded-lg bg-violet-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-800"
             >
               <Plus size={13} />新建任务
             </button>
           </div>
+        </div>
+
+        <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-theme-text-muted">
+          <span>
+            范围：<span className="font-semibold text-theme-text-primary">{isAllProjectsScope ? '全部项目任务' : '当前项目任务'}</span>
+          </span>
+          {isAllProjectsScope ? (
+            <span>跨项目模式下仅支持查看、筛选和进入详情。</span>
+          ) : projectId ? (
+            <span>当前项目 ID：<span className="font-mono text-theme-text-secondary">{projectId}</span></span>
+          ) : null}
         </div>
 
         <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-theme-text-muted">
@@ -2149,7 +2178,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => void handleBatchCancel()}
-                disabled={batchCancelling || batchDeleting || batchRestarting}
+                disabled={isAllProjectsScope || batchCancelling || batchDeleting || batchRestarting}
                 className="inline-flex items-center gap-2 rounded-xl border border-amber-500/20 bg-theme-surface px-4 py-2 text-sm font-semibold text-amber-400 hover:bg-amber-500/15 disabled:opacity-50"
               >
                 {batchCancelling ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
@@ -2157,7 +2186,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
               </button>
               <button
                 onClick={() => void handleBatchRestart()}
-                disabled={batchRestarting || batchCancelling || batchDeleting}
+                disabled={isAllProjectsScope || batchRestarting || batchCancelling || batchDeleting}
                 className="inline-flex items-center gap-2 rounded-xl border border-violet-500/20 bg-theme-surface px-4 py-2 text-sm font-semibold text-violet-400 hover:bg-violet-500/15 disabled:opacity-50"
               >
                 {batchRestarting ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
@@ -2184,10 +2213,12 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
 
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-theme-text-muted py-6"><Loader2 size={14} className="animate-spin" />加载中...</div>
+        ) : !projectId && !isAllProjectsScope ? (
+          <div className="py-10 text-center text-sm text-theme-text-muted">请先选择项目，再查看数据流漏洞挖掘任务。</div>
         ) : tasks.length === 0 ? (
-          <div className="py-10 text-center text-sm text-theme-text-muted">暂无任务，点击右上角「新建任务」创建</div>
+          <div className="py-10 text-center text-sm text-theme-text-muted">{isAllProjectsScope ? '当前没有符合筛选条件的跨项目任务' : '暂无任务，点击右上角「新建任务」创建'}</div>
         ) : (
-          <ExecutionTable minWidth={1280}>
+          <ExecutionTable minWidth={isAllProjectsScope ? 1440 : 1280}>
             <ExecutionTableHead>
               <tr>
                 <ExecutionTableTh className="w-12">
@@ -2204,6 +2235,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                   direction={sortOrder}
                   onClick={() => handleHeaderSort('task')}
                 />
+                {isAllProjectsScope ? <ExecutionTableTh>所属项目</ExecutionTableTh> : null}
                 <ExecutionTableTh>模式</ExecutionTableTh>
                 <ExecutionTableTh>漏洞</ExecutionTableTh>
                 <SortableHeader
@@ -2265,6 +2297,12 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                       </div>
                     ) : null}
                   </ExecutionTableTd>
+                  {isAllProjectsScope ? (
+                    <ExecutionTableTd className="min-w-[180px]">
+                      <div className="text-sm font-semibold text-theme-text-secondary">{t.project_name || t.project_id || '-'}</div>
+                      <div className="mt-1 font-mono text-[11px] text-theme-text-muted">{t.project_id || '-'}</div>
+                    </ExecutionTableTd>
+                  ) : null}
                   <ExecutionTableTd className="whitespace-nowrap">
                     <button
                       type="button"

@@ -403,8 +403,11 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return (
         <SystemAnalysisTaskPage
           projectId={ctx.selectedProjectId}
-          onOpenTask={(taskId) => {
+          onOpenTask={({ taskId, projectId }) => {
             saveExecutionReturnContext({ view: 'system-analysis-task' });
+            if (projectId && projectId !== ctx.selectedProjectId) {
+              ctx.setSelectedProjectId(projectId);
+            }
             ctx.setActiveSystemAnalysisTaskId(taskId);
             ctx.setCurrentView('system-analysis-detail');
           }}
@@ -435,8 +438,11 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return (
         <DataflowVulnScanTaskPage
           projectId={ctx.selectedProjectId}
-          onOpenTask={(taskId) => {
+          onOpenTask={({ taskId, projectId }) => {
             saveExecutionReturnContext({ view: 'dataflow-vuln-scan-task' });
+            if (projectId && projectId !== ctx.selectedProjectId) {
+              ctx.setSelectedProjectId(projectId);
+            }
             ctx.setActiveDataflowVulnScanTaskId(taskId);
             ctx.setCurrentView('dataflow-vuln-scan-detail');
           }}
@@ -570,9 +576,12 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return (
         <EntryAnalysisTaskPage
           projectId={ctx.selectedProjectId}
-          onOpenTask={(id) => {
+          onOpenTask={({ taskId, projectId }) => {
             saveExecutionReturnContext({ view: 'entry-analysis-task' });
-            ctx.setActiveEntryAnalysisTaskId(id);
+            if (projectId && projectId !== ctx.selectedProjectId) {
+              ctx.setSelectedProjectId(projectId);
+            }
+            ctx.setActiveEntryAnalysisTaskId(taskId);
             ctx.setCurrentView('entry-analysis-detail');
           }}
         />
@@ -612,8 +621,11 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return (
         <B2SOverviewPage
           projectId={ctx.selectedProjectId}
-          onOpenTask={(taskId) => {
+          onOpenTask={({ taskId, projectId }) => {
             saveExecutionReturnContext({ view: 'pentest-exec-b2s' });
+            if (projectId && projectId !== ctx.selectedProjectId) {
+              ctx.setSelectedProjectId(projectId);
+            }
             ctx.setActiveB2STaskId(taskId);
             ctx.setCurrentView('pentest-exec-b2s-detail');
           }}

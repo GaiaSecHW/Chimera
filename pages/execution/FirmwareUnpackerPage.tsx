@@ -66,6 +66,10 @@ const ORIGIN_MODE_OPTIONS = [
   { value: 'manual', label: '手动任务' },
   { value: 'linked', label: '总任务关联' },
 ];
+const SCOPE_OPTIONS = [
+  { value: 'current', label: '当前项目' },
+  { value: 'all', label: '全部项目' },
+] as const;
 const PAGE_SIZE_OPTIONS = [10, 50, 100, 200, 500, 1000];
 
 const FILESERVER_CONTAINER_ROOT = '/data/files';
@@ -905,11 +909,13 @@ function phaseDisplayLabel(phaseKey: string | null | undefined) {
 }
 
 function TaskRow({
-  task, selected, active, onSelect, onOpenDetail,
+  task, selected, active, projectName, showProjectColumn, onSelect, onOpenDetail,
 }: {
   task: FirmwareUnpackTask;
   selected: boolean;
   active: boolean;
+  projectName?: string | null;
+  showProjectColumn: boolean;
   onSelect: (id: string, checked: boolean) => void;
   onOpenDetail: (id: string) => void;
 }) {
@@ -937,6 +943,12 @@ function TaskRow({
         <div className="truncate font-mono text-xs text-theme-text-secondary" title={task.firmware_path}>{basename(task.firmware_path)}</div>
         <div className="mt-1 font-mono text-[11px] text-theme-text-muted">{task.id}</div>
       </ExecutionTableTd>
+      {showProjectColumn ? (
+        <ExecutionTableTd className="min-w-[180px] text-xs text-theme-text-muted">
+          <div className="font-semibold text-theme-text-secondary">{projectName || task.project_id || '-'}</div>
+          <div className="mt-1 font-mono text-[11px] text-theme-text-muted">{task.project_id || '-'}</div>
+        </ExecutionTableTd>
+      ) : null}
       <ExecutionTableTd className="min-w-[170px]">
         <TaskOriginInline origin={task} compact />
       </ExecutionTableTd>
@@ -3543,6 +3555,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [resultRefreshingTaskId, setResultRefreshingTaskId] = useState('');
   const [detailActiveTab, setDetailActiveTab] = useState<DetailTab>('overview');
   const [detailRefreshRequest, setDetailRefreshRequest] = useState(0);
+  const [scopeFilter, setScopeFilter] = useState<'current' | 'all'>('current');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterOriginMode, setFilterOriginMode] = useState('');
   const [filterSearch, setFilterSearch] = useState('');
@@ -3553,9 +3566,14 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pageEffectMountedRef = useRef(false);
   const taskItems = Array.isArray(tasks) ? tasks : [];
+  const isAllProjectsScope = scopeFilter === 'all';
   const activeProject = useMemo(
     () => projects.find((item) => item.id === projectId) || null,
     [projects, projectId],
+  );
+  const projectNameById = useMemo(
+    () => new Map(projects.map((item) => [item.id, item.name || item.id])),
+    [projects],
   );
   const workspacePreview = useMemo(
     () => (projectId ? buildWorkspacePreview(projectId) : null),
@@ -3583,8 +3601,11 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     originModeOverride?: string;
     searchOverride?: string;
     workerOverride?: string;
+    scopeOverride?: 'current' | 'all';
   }) => {
-    if (!projectId) {
+    const currentScope = options?.scopeOverride ?? scopeFilter;
+    const requiresProject = currentScope !== 'all';
+    if (requiresProject && !projectId) {
       if (resetPage) setPage(0);
       setTasks([]);
       setTotal(0);
@@ -3607,10 +3628,10 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     if (resetPage) setPage(0);
     try {
       const query: TaskListQuery = {
-        project_id: projectId,
         limit: currentPageSize,
         offset: currentPage * currentPageSize,
       };
+      if (currentScope !== 'all' && projectId) query.project_id = projectId;
       if (currentStatus) query.status = currentStatus;
       if (currentWorker) query.worker_id = currentWorker;
       if (currentOriginMode) query.origin_mode = currentOriginMode;
@@ -3623,7 +3644,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     } finally {
       if (!options?.silent) setLoading(false);
     }
-  }, [page, pageSize, projectId, filterStatus, filterOriginMode, filterSearch, filterWorker]);
+  }, [page, pageSize, projectId, scopeFilter, filterStatus, filterOriginMode, filterSearch, filterWorker]);
 
   const refreshOne = useCallback(async (id: string, options?: {
     showDetailLoading?: boolean;
@@ -3705,7 +3726,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     setSelected(new Set());
     setActiveTaskId('');
     setDetailActiveTab('overview');
-  }, [projectId]);
+  }, [projectId, scopeFilter]);
 
   useEffect(() => {
     if (!pageEffectMountedRef.current) {
@@ -4095,7 +4116,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       {showingDetail ? (
         <TaskDetailPanel
           projectId={projectId}
-          task={projectId ? activeTask : null}
+          task={activeTask}
           loading={detailLoading}
           resourceUsage={resourceUsage}
           resourceLoading={resourceLoading}
@@ -4149,7 +4170,13 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                 <span className="text-sm font-normal text-theme-text-muted">({total})</span>
               </div>
               <p className="mt-1 text-xs text-theme-text-muted">
-                {activeProject?.name ?`当前项目：${activeProject.name}` : projectId ?`当前项目 ID：${projectId}` : '当前未选择项目'}
+                范围：<span className="font-semibold text-theme-text-primary">{isAllProjectsScope ? '全部项目任务' : '当前项目任务'}</span>
+                {!isAllProjectsScope ? (
+                  <>
+                    {' · '}
+                    {activeProject?.name ? `当前项目：${activeProject.name}` : projectId ? `当前项目 ID：${projectId}` : '当前未选择项目'}
+                  </>
+                ) : null}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -4161,7 +4188,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
               </button>
               <button
                 onClick={openCreateModal}
-                disabled={!projectId}
+                disabled={!projectId || isAllProjectsScope}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-theme-surface px-3 py-1.5 text-xs font-semibold text-white hover:bg-theme-elevated disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 <Plus size={13} /> 新建任务
@@ -4170,6 +4197,20 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
           </div>
 
           <div className="mb-3 flex flex-wrap items-center gap-2">
+            <select
+              value={scopeFilter}
+              onChange={(e) => {
+                const nextScope = e.target.value === 'all' ? 'all' : 'current';
+                setScopeFilter(nextScope);
+                fetchTasks(true, { scopeOverride: nextScope });
+              }}
+              className="form-select text-xs"
+            >
+              {SCOPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+
             <select
               value={filterStatus}
               onChange={(e) => {
@@ -4263,7 +4304,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
             </div>
           )}
 
-          {!projectId ? (
+          {!projectId && !isAllProjectsScope ? (
             <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface py-10 text-center text-xs text-theme-text-muted">
               请先在右上角选择项目，再查看该项目下的固件解包任务
             </div>
@@ -4273,10 +4314,10 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
             </div>
           ) : taskItems.length === 0 ? (
             <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface py-10 text-center text-xs text-theme-text-muted">
-              暂无任务记录
+              {isAllProjectsScope ? '当前没有符合筛选条件的跨项目任务' : '暂无任务记录'}
             </div>
           ) : (
-            <ExecutionTable minWidth={1320}>
+            <ExecutionTable minWidth={isAllProjectsScope ? 1480 : 1320}>
               <ExecutionTableHead>
                 <tr>
                   <ExecutionTableTh className="w-12">
@@ -4289,6 +4330,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                   </ExecutionTableTh>
                   <ExecutionTableTh className="w-[104px]">状态</ExecutionTableTh>
                   <ExecutionTableTh>固件路径</ExecutionTableTh>
+                  {isAllProjectsScope ? <ExecutionTableTh>所属项目</ExecutionTableTh> : null}
                   <ExecutionTableTh>来源</ExecutionTableTh>
                   <ExecutionTableTh>Worker</ExecutionTableTh>
                   <ExecutionTableTh>耗时</ExecutionTableTh>
@@ -4304,6 +4346,8 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                     task={task}
                     selected={selected.has(task.id)}
                     active={activeTaskId === task.id}
+                    projectName={task.project_id ? (projectNameById.get(task.project_id) || null) : null}
+                    showProjectColumn={isAllProjectsScope}
                     onSelect={toggleSelect}
                     onOpenDetail={handleOpenDetail}
                   />

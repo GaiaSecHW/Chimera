@@ -14,7 +14,7 @@ import { PageHeader } from '../../design-system';
 
 interface Props {
   projectId: string;
-  onOpenTask: (taskId: string) => void;
+  onOpenTask: (target: { taskId: string; projectId: string }) => void;
 }
 
 const B2S_APP_ROOT = 'app/chimera-app-binary-to-source';
@@ -54,6 +54,11 @@ const B2S_MODE_LABELS: Record<B2SRunMode, string> = {
   deep: '深度模式',
 };
 
+const SCOPE_OPTIONS = [
+  { value: 'current', label: '当前项目' },
+  { value: 'all', label: '全部项目' },
+];
+
 const formatDurationMs = (durationMs?: number | null) => {
   if (durationMs === undefined || durationMs === null || Number.isNaN(durationMs) || durationMs < 0) return '-';
   const seconds = Math.round(durationMs / 1000);
@@ -89,6 +94,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(50);
+  const [scopeFilter, setScopeFilter] = useState<'current' | 'all'>('current');
   const [statusFilter, setStatusFilter] = useState('');
   const [parentTaskFilter, setParentTaskFilter] = useState('');
   const [inputFileFilter, setInputFileFilter] = useState('');
@@ -125,8 +131,10 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const piClusterSnapshotTime = piClusterCapacity?.snapshot_refreshed_at || piClusterCapacity?.updated_at || null;
   const piClusterSnapshotExpired = Boolean(piClusterCapacity?.snapshot_stale);
   const piClusterSnapshotError = piClusterCapacity?.snapshot_last_error || '';
+  const isAllProjectsScope = scopeFilter === 'all';
 
   const listQuery = useMemo(() => ({
+    scope: scopeFilter,
     status: statusFilter || undefined,
     search: searchText.trim() || undefined,
     parent_task_id: parentTaskFilter.trim() || undefined,
@@ -136,10 +144,10 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     sort_order: 'desc' as const,
     limit: perPage,
     offset: Math.max(0, (page - 1) * perPage),
-  }), [inputFileFilter, originFilter, page, perPage, parentTaskFilter, searchText, statusFilter]);
+  }), [inputFileFilter, originFilter, page, perPage, parentTaskFilter, scopeFilter, searchText, statusFilter]);
 
   const load = useCallback(async (showLoading = true) => {
-    if (!projectId) return;
+    if (!projectId && !isAllProjectsScope) return;
     if (showLoading) setLoading(true);
     else setRefreshing(true);
     try {
@@ -156,17 +164,17 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       if (showLoading) setLoading(false);
       else setRefreshing(false);
     }
-  }, [executionApi.binaryToSource, listQuery, projectId]);
+  }, [executionApi.binaryToSource, isAllProjectsScope, listQuery, projectId]);
 
   const loadPiClusterCapacity = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId || isAllProjectsScope) return;
     try {
       const snapshot = await executionApi.binaryToSource.getPiClusterCapacity();
       setPiClusterCapacity(snapshot);
     } catch {
       return;
     }
-  }, [executionApi.binaryToSource, projectId]);
+  }, [executionApi.binaryToSource, isAllProjectsScope, projectId]);
 
   useEffect(() => {
     void load(true);
@@ -180,8 +188,9 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     const storedTaskId = sessionStorage.getItem('chimera:b2sTaskId');
     if (!storedTaskId) return;
     sessionStorage.removeItem('chimera:b2sTaskId');
-    onOpenTask(storedTaskId);
-  }, [onOpenTask]);
+    if (!projectId) return;
+    onOpenTask({ taskId: storedTaskId, projectId });
+  }, [onOpenTask, projectId]);
 
   useEffect(() => {
     if (!showCreateDialog) return;
@@ -215,14 +224,14 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   }, [refreshIntervalSec, refreshIntervalStorageKey]);
 
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId || isAllProjectsScope) return;
     const timer = window.setInterval(() => {
       if (!autoRefreshEnabled) return;
       void load(false);
       void loadPiClusterCapacity();
     }, Math.max(5, refreshIntervalSec) * 1000);
     return () => window.clearInterval(timer);
-  }, [autoRefreshEnabled, load, loadPiClusterCapacity, projectId, refreshIntervalSec]);
+  }, [autoRefreshEnabled, isAllProjectsScope, load, loadPiClusterCapacity, projectId, refreshIntervalSec]);
 
   const stats = useMemo(() => {
     const hasProjectItemStats = typeof taskStats.total_items === 'number';
@@ -262,7 +271,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, parentTaskFilter, inputFileFilter, originFilter, searchText, perPage]);
+  }, [statusFilter, parentTaskFilter, inputFileFilter, originFilter, searchText, perPage, scopeFilter]);
 
   useEffect(() => {
     const visible = new Set(pagedTaskIds);
@@ -531,12 +540,15 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     <div className="px-8 pb-10 pt-8 space-y-6">
       <PageHeader
         title={<ServicePageTitle title="二进制逆向" version={buildVersion} className="" />}
-        description="集中查看当前项目关联的代码逆向还原任务，统一管理状态、进度、阶段与结果，并从同一入口创建新的逆向任务。"
+        description={isAllProjectsScope
+          ? '跨项目查看代码逆向还原任务，统一管理状态、进度、阶段与结果，并安全进入任务详情。'
+          : '集中查看当前项目关联的代码逆向还原任务，统一管理状态、进度、阶段与结果，并从同一入口创建新的逆向任务。'}
         actions={
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={openCreateDialog}
+              disabled={!projectId || isAllProjectsScope}
               className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated"
             >
               <Plus size={16} />
@@ -569,7 +581,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       )}
 
  <section className="rounded-xl border border-theme-border bg-theme-elevated p-5">
-        <B2SStatsHeader stats={stats} title="当前项目逆向统计" />
+        <B2SStatsHeader stats={stats} title={isAllProjectsScope ? '全部项目逆向统计' : '当前项目逆向统计'} />
       </section>
 
  <section className="rounded-xl border border-theme-border bg-theme-surface p-5">
@@ -822,7 +834,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                                               type="button"
                                               onClick={() => {
                                                 setShowSlotDetailModal(false);
-                                                onOpenTask(job.task_id as string);
+                                                onOpenTask({ taskId: job.task_id as string, projectId: projectId || '' });
                                               }}
                                               className="mt-2 text-left text-sm font-bold text-cyan-400 hover:text-cyan-300"
                                             >
@@ -890,12 +902,23 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
             <Loader2 size={16} className="animate-spin" />
             加载中...
           </div>
+        ) : !projectId && !isAllProjectsScope ? (
+          <div className="py-12 text-center text-sm text-theme-text-muted">请先选择项目，再查看二进制逆向任务。</div>
         ) : items.length === 0 ? (
-          <div className="py-12 text-center text-sm text-theme-text-muted">当前项目暂无二进制逆向任务。</div>
+          <div className="py-12 text-center text-sm text-theme-text-muted">{isAllProjectsScope ? '当前没有符合筛选条件的跨项目任务。' : '当前项目暂无二进制逆向任务。'}</div>
         ) : (
           <div className="mt-5">
             <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
               <div className="flex flex-wrap items-center justify-end gap-2">
+                <select
+                  value={scopeFilter}
+                  onChange={(e) => { setScopeFilter(e.target.value === 'all' ? 'all' : 'current'); setSelectedTaskIds([]); }}
+                  className="form-select text-xs"
+                >
+                  {SCOPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
                 <label className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs text-theme-text-secondary">
                   <input
                     type="checkbox"
@@ -922,6 +945,9 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
               </div>
             </div>
             <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-theme-text-muted">
+              <span>
+                范围：<span className="font-semibold text-theme-text-primary">{isAllProjectsScope ? '全部项目任务' : '当前项目任务'}</span>
+              </span>
               <span>自动刷新：{autoRefreshEnabled ?`开启（${Math.max(5, refreshIntervalSec)}s）` : '关闭'}</span>
               {autoRefreshEnabled ? (
                 <span className="text-cyan-400">任务列表与执行槽位按设定间隔自动刷新</span>
@@ -981,7 +1007,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                   <button
                     type="button"
                     onClick={() => void handleBatchDelete()}
-                    disabled={batchDeleting}
+                    disabled={batchDeleting || isAllProjectsScope}
  className="btn-danger-soft"
                   >
                     {batchDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
@@ -995,7 +1021,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 当前筛选条件下没有匹配的任务。
               </div>
             ) : (
-              <ExecutionTable minWidth={1540}>
+              <ExecutionTable minWidth={isAllProjectsScope ? 1700 : 1540}>
                 <ExecutionTableHead>
                   <tr>
                     <ExecutionTableTh>
@@ -1021,6 +1047,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         />
                       </div>
                     </ExecutionTableTh>
+                    {isAllProjectsScope ? <ExecutionTableTh>所属项目</ExecutionTableTh> : null}
                     <ExecutionTableTh>
                       <div className="space-y-2">
                         <div>输入文件</div>
@@ -1109,7 +1136,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         <div className="min-w-0">
                           <button
                             type="button"
-                            onClick={() => onOpenTask(task.id)}
+                            onClick={() => onOpenTask({ taskId: task.id, projectId: task.project_id || projectId })}
                             className="truncate text-left text-sm font-semibold text-theme-text-primary hover:text-cyan-400"
                             title={task.name || task.id}
                           >
@@ -1118,6 +1145,12 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                           <div className="mt-1 break-all font-mono text-[11px] text-theme-text-muted">{task.id}</div>
                         </div>
                       </ExecutionTableTd>
+                      {isAllProjectsScope ? (
+                        <ExecutionTableTd className="min-w-[180px]">
+                          <div className="font-semibold text-theme-text-secondary">{task.project_name || task.project_id || '-'}</div>
+                          <div className="mt-1 font-mono text-[11px] text-theme-text-muted">{task.project_id || '-'}</div>
+                        </ExecutionTableTd>
+                      ) : null}
                       <ExecutionTableTd className="min-w-[220px]">
                         <div className="space-y-1">
                           {visibleInputFilenames.map((filename) => (
