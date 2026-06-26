@@ -320,8 +320,9 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
   const [detail, setDetail] = useState<VulnVerifyV2TaskDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [selectedCancelTaskIds, setSelectedCancelTaskIds] = useState<string[]>([]);
+  const [selectedDevTaskIds, setSelectedDevTaskIds] = useState<string[]>([]);
   const [batchCancelling, setBatchCancelling] = useState(false);
+  const [batchRerunning, setBatchRerunning] = useState(false);
   const detailScrollRef = useRef<HTMLDivElement | null>(null);
   const closeDetailTimerRef = useRef<number | null>(null);
 
@@ -330,10 +331,12 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const pageStart = total === 0 ? 0 : offset + 1;
   const pageEnd = total === 0 ? 0 : Math.min(total, offset + tasks.length);
   const resultFilterValue = resultFilter;
+  const visibleTaskIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
   const cancellableTaskIds = useMemo(() => tasks.filter((task) => CANCELLABLE_TASK_STATUSES.has(String(task.status || ''))).map((task) => task.id), [tasks]);
-  const selectedCancelTaskIdSet = useMemo(() => new Set(selectedCancelTaskIds), [selectedCancelTaskIds]);
-  const selectedCancellableTaskIds = useMemo(() => selectedCancelTaskIds.filter((id) => cancellableTaskIds.includes(id)), [cancellableTaskIds, selectedCancelTaskIds]);
-  const allCancellableTasksSelected = cancellableTaskIds.length > 0 && cancellableTaskIds.every((id) => selectedCancelTaskIdSet.has(id));
+  const selectedDevTaskIdSet = useMemo(() => new Set(selectedDevTaskIds), [selectedDevTaskIds]);
+  const selectedVisibleTaskIds = useMemo(() => selectedDevTaskIds.filter((id) => visibleTaskIds.includes(id)), [selectedDevTaskIds, visibleTaskIds]);
+  const selectedCancellableTaskIds = useMemo(() => selectedVisibleTaskIds.filter((id) => cancellableTaskIds.includes(id)), [cancellableTaskIds, selectedVisibleTaskIds]);
+  const allVisibleTasksSelected = visibleTaskIds.length > 0 && visibleTaskIds.every((id) => selectedDevTaskIdSet.has(id));
 
   const handleResultFilterChange = useCallback((value: string) => {
     setPage(1);
@@ -391,12 +394,12 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
   useEffect(() => {
     if (!devMode) {
-      setSelectedCancelTaskIds([]);
+      setSelectedDevTaskIds([]);
       return;
     }
-    const cancellableIds = new Set(cancellableTaskIds);
-    setSelectedCancelTaskIds((prev) => prev.filter((id) => cancellableIds.has(id)));
-  }, [cancellableTaskIds, devMode]);
+    const visibleIds = new Set(visibleTaskIds);
+    setSelectedDevTaskIds((prev) => prev.filter((id) => visibleIds.has(id)));
+  }, [devMode, visibleTaskIds]);
 
   useEffect(() => {
     if (!selectedTaskId) {
@@ -468,20 +471,20 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
     }
   }, [projectId, loadOverview, loadDetail, selectedTaskId, notify]);
 
-  const toggleCancelSelection = useCallback((taskId: string) => {
-    setSelectedCancelTaskIds((prev) => prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]);
+  const toggleDevSelection = useCallback((taskId: string) => {
+    setSelectedDevTaskIds((prev) => prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]);
   }, []);
 
-  const toggleAllCancellableSelections = useCallback(() => {
-    setSelectedCancelTaskIds((prev) => {
+  const toggleAllVisibleSelections = useCallback(() => {
+    setSelectedDevTaskIds((prev) => {
       const prevSet = new Set(prev);
-      const allSelected = cancellableTaskIds.length > 0 && cancellableTaskIds.every((id) => prevSet.has(id));
-      if (allSelected) return prev.filter((id) => !cancellableTaskIds.includes(id));
+      const allSelected = visibleTaskIds.length > 0 && visibleTaskIds.every((id) => prevSet.has(id));
+      if (allSelected) return prev.filter((id) => !visibleTaskIds.includes(id));
       const next = new Set(prev);
-      cancellableTaskIds.forEach((id) => next.add(id));
+      visibleTaskIds.forEach((id) => next.add(id));
       return Array.from(next);
     });
-  }, [cancellableTaskIds]);
+  }, [visibleTaskIds]);
 
   const handleBatchCancelTasks = useCallback(async () => {
     const taskIds = selectedCancellableTaskIds;
@@ -494,7 +497,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
       const failedCount = results.length - successCount;
       if (successCount) notify(`已取消 ${successCount} 个任务`, 'success');
       if (failedCount) notify(`${failedCount} 个任务取消失败`, 'error', '批量取消未完全成功');
-      setSelectedCancelTaskIds([]);
+      setSelectedDevTaskIds([]);
       await loadOverview();
       if (selectedTaskId && taskIds.includes(selectedTaskId)) await loadDetail(selectedTaskId);
     } catch (e: any) {
@@ -503,6 +506,27 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
       setBatchCancelling(false);
     }
   }, [loadDetail, loadOverview, notify, projectId, selectedCancellableTaskIds, selectedTaskId]);
+
+  const handleBatchRerunTasks = useCallback(async () => {
+    const taskIds = selectedVisibleTaskIds;
+    if (!taskIds.length) return;
+    if (!window.confirm(`确认重跑选中的 ${taskIds.length} 个任务？`)) return;
+    setBatchRerunning(true);
+    try {
+      const results = await Promise.allSettled(taskIds.map((taskId) => vulnVerifyV2Api.rerunTask(projectId, taskId)));
+      const successCount = results.filter((result) => result.status === 'fulfilled').length;
+      const failedCount = results.length - successCount;
+      if (successCount) notify(`已请求重跑 ${successCount} 个任务`, 'success');
+      if (failedCount) notify(`${failedCount} 个任务重跑失败`, 'error', '批量重跑未完全成功');
+      setSelectedDevTaskIds([]);
+      await loadOverview();
+      if (selectedTaskId && taskIds.includes(selectedTaskId)) await loadDetail(selectedTaskId);
+    } catch (e: any) {
+      notify(e?.message || String(e), 'error', '批量重跑失败');
+    } finally {
+      setBatchRerunning(false);
+    }
+  }, [loadDetail, loadOverview, notify, projectId, selectedTaskId, selectedVisibleTaskIds]);
 
   const confirmedVulns = Number(stats?.confirmed ?? 0);
   const ruledOutVulns = Number(stats?.ruled_out ?? 0);
@@ -590,24 +614,36 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                 </button>
                 {devMode ? (
-                  <button
-                    type="button"
-                    disabled={!selectedCancellableTaskIds.length || batchCancelling}
-                    onClick={() => void handleBatchCancelTasks()}
-                    className="inline-flex h-9 shrink-0 items-center rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 text-sm font-medium text-rose-300 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-40"
-                    title="取消选中的等待中/执行中任务"
-                  >
-                    {batchCancelling ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : null}
-                    取消选中任务{selectedCancellableTaskIds.length ? ` (${selectedCancellableTaskIds.length})` : ''}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      disabled={!selectedVisibleTaskIds.length || batchRerunning}
+                      onClick={() => void handleBatchRerunTasks()}
+                      className="inline-flex h-9 shrink-0 items-center rounded-lg border border-theme-border bg-theme-surface px-3 text-sm font-medium text-theme-text-secondary transition hover:bg-theme-elevated hover:text-theme-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                      title="重跑选中的任务"
+                    >
+                      {batchRerunning ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : <RotateCcw size={14} className="mr-1.5" />}
+                      重跑选中任务{selectedVisibleTaskIds.length ? ` (${selectedVisibleTaskIds.length})` : ''}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!selectedCancellableTaskIds.length || batchCancelling}
+                      onClick={() => void handleBatchCancelTasks()}
+                      className="inline-flex h-9 shrink-0 items-center rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 text-sm font-medium text-rose-300 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-40"
+                      title="取消选中的等待中/执行中任务"
+                    >
+                      {batchCancelling ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : null}
+                      取消选中任务{selectedCancellableTaskIds.length ? ` (${selectedCancellableTaskIds.length})` : ''}
+                    </button>
+                  </>
                 ) : null}
               </div>
 
             <div className="overflow-hidden bg-theme-surface">
               <div className={`hidden border-b border-theme-border bg-theme-elevated/80 px-4 py-3 text-xs font-medium text-theme-text-muted lg:grid ${devMode ? 'lg:grid-cols-[32px_minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px]' : 'lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px]'} lg:gap-4`}>
                 {devMode ? (
-                  <label className="flex items-center justify-center" title="选择当前页可取消任务">
-                    <input type="checkbox" checked={allCancellableTasksSelected} disabled={!cancellableTaskIds.length} onChange={toggleAllCancellableSelections} className="h-4 w-4 rounded border-theme-border bg-theme-surface" />
+                  <label className="flex items-center justify-center" title="选择当前页任务">
+                    <input type="checkbox" checked={allVisibleTasksSelected} disabled={!visibleTaskIds.length} onChange={toggleAllVisibleSelections} className="h-4 w-4 rounded border-theme-border bg-theme-surface" />
                   </label>
                 ) : null}
                 <div>漏洞标题 / ID</div>
@@ -621,7 +657,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   const isSel = selectedTaskId === task.id;
                   const showRuntime = task.verdict === 'confirmed' || task.verdict === 'ruled_out' || task.verdict === 'unresolved';
                   const canCancelTask = CANCELLABLE_TASK_STATUSES.has(String(task.status || ''));
-                  const isCancelSelected = selectedCancelTaskIdSet.has(task.id);
+                  const isDevSelected = selectedDevTaskIdSet.has(task.id);
                   return (
                     <div
                       key={task.id}
@@ -638,12 +674,12 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                     >
                       <span aria-hidden="true" className={`absolute bottom-0 left-0 top-0 w-1 bg-blue-600 transition-opacity ${isSel ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
                       {devMode ? (
-                        <label className="flex items-center lg:justify-center" title={canCancelTask ? '选择取消任务' : '仅等待中/执行中任务可取消'} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+                        <label className="flex items-center lg:justify-center" title={canCancelTask ? '选择任务，可批量重跑/取消' : '选择任务，可批量重跑'} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
                           <input
                             type="checkbox"
-                            checked={isCancelSelected}
-                            disabled={!canCancelTask || batchCancelling}
-                            onChange={() => toggleCancelSelection(task.id)}
+                            checked={isDevSelected}
+                            disabled={batchCancelling || batchRerunning}
+                            onChange={() => toggleDevSelection(task.id)}
                             className="h-4 w-4 rounded border-theme-border bg-theme-surface disabled:opacity-40"
                           />
                         </label>
