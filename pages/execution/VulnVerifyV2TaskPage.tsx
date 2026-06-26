@@ -7,6 +7,40 @@ import { useUiFeedback } from '../../components/UiFeedback';
 
 const PAGE_SIZE_OPTIONS = [50, 100, 200] as const;
 
+// 隐藏的开发者模式：连续点击 v2 胶囊 7 次切换，纯内存态，刷新即关闭。无任何视觉提示。
+function useDevMode() {
+  const clickCountRef = useRef(0);
+  const timerRef = useRef<number | null>(null);
+  const [enabled, setEnabled] = useState(false);
+  const [toast, setToast] = useState(false);
+
+  const onClick = useCallback(() => {
+    clickCountRef.current += 1;
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => {
+      clickCountRef.current = 0;
+    }, 2000);
+    if (clickCountRef.current >= 7) {
+      clickCountRef.current = 0;
+      if (timerRef.current) { window.clearTimeout(timerRef.current); timerRef.current = null; }
+      setEnabled((v) => {
+        const next = !v;
+        if (next) {
+          setToast(true);
+          window.setTimeout(() => setToast(false), 1600);
+        }
+        return next;
+      });
+    }
+  }, []);
+
+  useEffect(() => () => {
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+  }, []);
+
+  return { enabled, onClick, toast };
+}
+
 const DIMENSION_LABEL: Record<string, string> = {
   code_accurate: '代码定位准确',
   path_reachable: '路径可达',
@@ -183,7 +217,25 @@ const DimensionCard: React.FC<{ dimKey: string; status?: boolean | null; detail?
   );
 };
 
-const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[] }> = ({ attempts }) => {
+const AttemptJson: React.FC<{ attempt: VulnVerifyV2Attempt }> = ({ attempt }) => {
+  const json = React.useMemo(() => {
+    try {
+      return JSON.stringify(attempt, null, 2);
+    } catch {
+      return String(attempt);
+    }
+  }, [attempt]);
+  return (
+    <details className="mt-2 group">
+      <summary className="inline-flex cursor-pointer select-none text-xs font-medium text-theme-text-muted transition hover:text-theme-text-secondary">
+        原始 JSON
+      </summary>
+      <pre className="mt-2 max-h-80 overflow-auto rounded-lg border border-theme-border bg-theme-elevated p-3 text-xs font-mono leading-5 text-theme-text-secondary break-words whitespace-pre-wrap">{json}</pre>
+    </details>
+  );
+};
+
+const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[]; devMode?: boolean }> = ({ attempts, devMode }) => {
   if (!attempts.length) {
     return <div className="py-6 text-center text-sm font-normal text-theme-text-muted">暂无执行尝试记录</div>;
   }
@@ -221,6 +273,7 @@ const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[] }> = ({ attemp
               {isFailed && failureMsg ? (
                 <div className="mt-2 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm font-normal text-rose-300 break-words">{failureMsg}</div>
               ) : null}
+              {devMode ? <AttemptJson attempt={att} /> : null}
             </div>
           </li>
         );
@@ -232,6 +285,7 @@ const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[] }> = ({ attemp
 export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const buildVersion = useServiceBuildVersion(vulnVerifyV2Api.getHealth);
   const { feedbackNodes, notify } = useUiFeedback();
+  const { enabled: devMode, onClick: handleDevBadgeClick, toast: devToast } = useDevMode();
 
   const [tasks, setTasks] = useState<VulnVerifyV2Task[]>([]);
   const [total, setTotal] = useState(0);
@@ -393,11 +447,14 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
   return (
     <div className="min-h-full bg-theme-bg-app text-theme-text-primary">
+      {devToast ? (
+        <div className="fixed bottom-6 right-6 z-[60] rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300 shadow-md">开发者模式已开启</div>
+      ) : null}
       <div className="w-full space-y-8 px-4 pt-8 pb-10 lg:px-6 xl:px-8">
         {feedbackNodes}
         <PageHeader
           className="border-b-0 !pb-0"
-          title={<ServicePageTitle title={<span className="inline-flex items-baseline gap-1.5 py-2">漏洞验证<span className="text-xs font-medium text-theme-text-muted">v2</span></span>} version={buildVersion} />}
+          title={<ServicePageTitle title={<span className="inline-flex items-baseline gap-1.5 py-2">漏洞验证<span className="select-none text-xs font-medium text-theme-text-muted" onClick={handleDevBadgeClick} role="presentation" aria-hidden>v2</span></span>} version={buildVersion} />}
           description="基于漏洞报告、代码上下文与威胁模型，由 AI 围绕代码定位、路径可达性、缓解措施和安全影响进行四维判定，产出确认漏洞、排除漏洞或不可证结论。"
         />
 
@@ -617,7 +674,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   <section>
                     <div className="mb-3 text-base font-medium text-theme-text-primary">时间线</div>
                     <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
-                      <AttemptTimeline attempts={detailAttempts} />
+                      <AttemptTimeline attempts={detailAttempts} devMode={devMode} />
                     </div>
                   </section>
                 </div>
