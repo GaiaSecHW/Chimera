@@ -2771,7 +2771,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
             <div>
               <div className="overflow-hidden">
-                  <div className="grid grid-cols-[1.5fr_2.2fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr] gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2.5">
+                  <div className="grid grid-cols-[1.5fr_2.2fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr] items-baseline gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2.5">
                   <div className="flex items-center justify-center hidden">
                     <input
                       type="checkbox"
@@ -2782,7 +2782,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     />
                   </div>
                   <div className="text-sm uppercase tracking-wider font-semibold text-theme-text-primary">任务名称</div>
-                  {renderSortHeader('标题 / 摘要', 'title')}
+                  {renderSortHeader('标题', 'title')}
                   {renderSortHeader('人工确认状态', 'conclusion')}
                   {renderSortHeader('工具', 'reporter')}
                   {renderSortHeader('更新时间', 'updated_at')}
@@ -2806,7 +2806,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           setSelectedSuspicionId(item.id);
                         }
                       }}
-                      className="grid cursor-pointer grid-cols-[1.5fr_2.2fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr] gap-3 border-b border-theme-border-subtle bg-theme-surface px-4 py-3.5 text-left transition hover:bg-theme-elevated last:border-b-0"
+                      className="grid cursor-pointer grid-cols-[1.5fr_2.2fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr] items-baseline gap-3 border-b border-theme-border-subtle bg-theme-surface px-4 py-3.5 text-left transition hover:bg-theme-elevated last:border-b-0"
                     >
                       <div className="flex items-center justify-center hidden">
                         <input
@@ -2823,8 +2823,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       </div>
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-theme-text-primary">{item.title}</div>
-                        <div className="mt-1 font-mono text-[11px] text-theme-text-faint">{item.id}</div>
-                        <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-theme-text-muted">{item.summary || '暂无摘要'}</div>
                       </div>
                       <div className="min-w-0">
                         {item.is_human_finished ? (
@@ -2843,8 +2841,26 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       </div>
                       <div className="text-sm text-theme-text-muted">{formatTime(item.updated_at || item.created_at)}</div>
                       <div className="text-sm text-theme-text-muted">{formatTime(item.created_at)}</div>
-                      <div>
+                      <div className="self-center">
                         <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={async (event) => {
+                              event.stopPropagation();
+                              try {
+                                await navigator.clipboard.writeText(item.id);
+                                setSuccessMessage('已复制漏洞 ID');
+                              } catch { /* ignore */ }
+                            }}
+                            title="复制漏洞 ID"
+                            aria-label={`复制漏洞 ID ${item.id}`}
+                            className="rounded-md p-1.5 transition-colors"
+                            style={{ color: 'var(--text-secondary)' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--brand-primary-mask)'; e.currentTarget.style.color = 'var(--brand-primary)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                          >
+                            <ClipboardCopy size={16} />
+                          </button>
                           <button
                             type="button"
                             onClick={(event) => {

@@ -870,12 +870,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                       {renderSortIndicator('created_at')}
                     </button>
                   </th>
-                  <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                    <button onClick={() => handleSortChange('updated_at')} className="inline-flex items-center gap-1 text-sm font-semibold text-theme-text-primary">
-                      更新时间
-                      {renderSortIndicator('updated_at')}
-                    </button>
-                  </th>
                   <th className="whitespace-nowrap w-24 px-3 py-2.5 text-right text-sm font-semibold text-theme-text-primary" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
                 </tr>
               </thead>
@@ -941,10 +935,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                       {/* 创建时间 */}
                       <td className="whitespace-nowrap px-3 py-3 text-xs" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.muted }}>
                         {project.created_at ? new Date(project.created_at).toLocaleString() : '未知'}
-                      </td>
-                      {/* 更新时间 */}
-                      <td className="whitespace-nowrap px-3 py-3 text-xs" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.muted }}>
-                        {project.updated_at ? new Date(project.updated_at).toLocaleString() : '—'}
                       </td>
                       {/* 操作 — 成员管理 / 编辑 / 删除 */}
                       <td className="whitespace-nowrap px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
