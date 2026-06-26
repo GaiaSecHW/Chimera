@@ -750,6 +750,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     projectId={selectedProjectId}
                     displayName={name}
                     compact={true}
+                    hideUploadIcon
                     defaultInputType="code"
                     onUploadStateChange={setUploading}
                   />
@@ -772,13 +773,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       <DropdownSelect
                         value={selectedInputId}
                         onChange={setSelectedInputId}
-                        options={selectableInputs.map((item) => {
-                          const eligibility = kgEligibilityByUploadId[item.upload_id];
-                          const label = isKgSourceTask
-                            ? `${getUploadRecordDisplayName(item)} · ${eligibility?.attackStatus || 'unknown'} · 入口 ${eligibility?.attackEntries ?? 0}`
-                            : `${getUploadRecordDisplayName(item)} · ${item.status}`;
-                          return { value: item.upload_id, label };
-                        })}
+                        options={selectableInputs.map((item) => ({
+                          value: item.upload_id,
+                          label: getUploadRecordDisplayName(item),
+                        }))}
                         placeholder="请选择测试对象记录"
                         emptyText="暂无可用记录"
                         containerClassName="mt-1"

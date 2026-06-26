@@ -6,7 +6,6 @@ import {
   Eye,
   FileBox,
   FileText,
-  ListTodo,
   Loader2,
   Package,
   Plus,
@@ -144,10 +143,11 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
   const [detailLoadingIds, setDetailLoadingIds] = useState<string[]>([]);
   const [detailErrors, setDetailErrors] = useState<Record<string, string>>({});
   const [detailDialogTarget, setDetailDialogTarget] = useState<UploadDetailDialogState | null>(null);
-  const [tasksDialogTarget, setTasksDialogTarget] = useState<ProjectInputUploadRecord | null>(null);
-  const [tasksList, setTasksList] = useState<ScheduleCenterUploadTask[]>([]);
-  const [tasksLoading, setTasksLoading] = useState(false);
-  const [tasksError, setTasksError] = useState<string | null>(null);
+  // 测试记录(原"关联测试任务"):下沉到每条上传记录的展开详情,按 upload_id 维度缓存,
+  // 与 uploadDetailCache / detailLoadingIds / detailErrors 同口径。
+  const [uploadTasksCache, setUploadTasksCache] = useState<Record<string, ScheduleCenterUploadTask[] | undefined>>({});
+  const [tasksLoadingIds, setTasksLoadingIds] = useState<string[]>([]);
+  const [tasksErrors, setTasksErrors] = useState<Record<string, string>>({});
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
   const [selectedRecordForTask, setSelectedRecordForTask] = useState<string | undefined>(undefined);
   // codemap_lite 任务状态:下沉到「每条 code 上传一图」。key = upload_id,
@@ -457,6 +457,9 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
     if (!uploadDetailCache[uploadId]) {
       await loadUploadDetail(uploadId);
     }
+    if (!uploadTasksCache[uploadId]) {
+      await loadUploadTasks(uploadId);
+    }
   };
 
   const openUploadDetailDialog = async (record: ProjectInputUploadRecord) => {
@@ -465,19 +468,21 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
     await loadUploadDetail(record.upload_id);
   };
 
-  const openUploadTasksDialog = async (record: ProjectInputUploadRecord) => {
+  const loadUploadTasks = async (uploadId: string) => {
     if (!projectId) return;
-    setTasksDialogTarget(record);
-    setTasksList([]);
-    setTasksError(null);
-    setTasksLoading(true);
+    setTasksLoadingIds((current) => [...current, uploadId]);
+    setTasksErrors((current) => {
+      const next = { ...current };
+      delete next[uploadId];
+      return next;
+    });
     try {
-      const resp = await api.domains.platform.scheduleCenter.listUploadTasks(projectId, record.upload_id);
-      setTasksList(Array.isArray(resp?.items) ? resp.items : []);
+      const resp = await api.domains.platform.scheduleCenter.listUploadTasks(projectId, uploadId);
+      setUploadTasksCache((current) => ({ ...current, [uploadId]: Array.isArray(resp?.items) ? resp.items : [] }));
     } catch (error: any) {
-      setTasksError(error?.message || '加载关联测试任务失败');
+      setTasksErrors((current) => ({ ...current, [uploadId]: error?.message || '加载测试记录失败' }));
     } finally {
-      setTasksLoading(false);
+      setTasksLoadingIds((current) => current.filter((item) => item !== uploadId));
     }
   };
 
@@ -834,6 +839,9 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                     const isDetailLoading = detailLoadingIds.includes(record.upload_id);
                     const detailError = detailErrors[record.upload_id];
                     const batches = detail?.batches || [];
+                    const tasks = uploadTasksCache[record.upload_id] || [];
+                    const isTasksLoading = tasksLoadingIds.includes(record.upload_id);
+                    const tasksError = tasksErrors[record.upload_id];
                     return (
                       <React.Fragment key={record.upload_id}>
                         <tr className="cursor-pointer align-top hover:bg-theme-elevated" onClick={() => { void openUploadDetailDialog(record); }}>
@@ -850,7 +858,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                                 onClick={(event) => { event.stopPropagation(); void toggleUploadDetail(record.upload_id); }}
                                 className="mt-0.5 inline-flex h-8 w-8 flex-none items-center justify-center rounded-xl border border-theme-border bg-theme-surface text-theme-text-secondary transition hover:border-theme-border hover:bg-theme-elevated"
                                 aria-expanded={isExpanded}
-                                aria-label={isExpanded ? '收起批次历史' : '展开批次历史'}
+                                aria-label={isExpanded ? '收起详情' : '展开详情'}
                               >
                                 <ChevronDown size={16} className={isExpanded ? 'rotate-180 transition-transform' : 'transition-transform'} />
                               </button>
@@ -897,15 +905,6 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                                 <Eye size={16} />
                               </button>
                               <button
-                                onClick={() => { void openUploadTasksDialog(record); }} aria-label="关联测试任务" title="关联测试任务"
-                                className="rounded-md p-1.5 transition-colors"
-                                style={{ color: 'var(--text-secondary)' }}
-                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--brand-primary-mask)'; e.currentTarget.style.color = 'var(--brand-primary)'; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                              >
-                                <ListTodo size={16} />
-                              </button>
-                              <button
                                 onClick={() => openAppendModal(record)} aria-label="追加" title="追加"
                                 className="rounded-md p-1.5 transition-colors"
                                 style={{ color: 'var(--text-secondary)' }}
@@ -929,6 +928,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                         {isExpanded ? (
                           <tr className="bg-theme-elevated">
                             <td colSpan={7} className="px-6 py-5">
+                              <div className="space-y-4">
                               <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
                                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                                   <div>
@@ -991,6 +991,71 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                                     ))}
                                   </div>
                                 )}
+                              </div>
+                              {/* 测试记录:原"关联测试任务"弹框内容下沉到展开详情 */}
+                              <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
+                                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                  <div>
+                                    <div className="text-sm font-semibold text-theme-text-primary">测试记录</div>
+                                    <div className="mt-1 text-xs text-theme-text-muted">{tasks.length > 0 ?`${tasks.length} 条记录` : '暂无测试记录'}</div>
+                                  </div>
+                                </div>
+
+                                {isTasksLoading ? (
+                                  <div className="mt-5 rounded-xl border border-dashed border-theme-border bg-theme-elevated px-4 py-8 text-center text-sm text-theme-text-muted">
+                                    <Loader2 className="mx-auto mb-3 animate-spin text-theme-text-muted" size={24} />
+                                    正在加载测试记录...
+                                  </div>
+                                ) : tasksError ? (
+                                  <div className="mt-5 rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-4 text-sm text-rose-400">
+                                    {tasksError}
+                                  </div>
+                                ) : tasks.length === 0 ? (
+                                  <div className="mt-5 rounded-xl border border-dashed border-theme-border bg-theme-elevated px-4 py-8 text-center text-sm text-theme-text-muted">
+                                    暂无测试记录
+                                  </div>
+                                ) : (
+                                  <div className="mt-5 overflow-hidden rounded-xl border border-theme-border">
+                                    <table className="w-full text-sm">
+                                      <thead>
+                                        <tr className="bg-theme-elevated text-theme-text-muted">
+                                          <th className="px-4 py-3 text-left font-semibold">任务名</th>
+                                          <th className="px-4 py-3 text-left font-semibold">类型</th>
+                                          <th className="px-4 py-3 text-left font-semibold">状态</th>
+                                          <th className="px-4 py-3 text-left font-semibold">更新时间</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-theme-border">
+                                        {tasks.map((task) => {
+                                          const statusKey = String(task.display_status || task.business_status || '').toLowerCase();
+                                          const statusMeta = TASK_STATUS_META[statusKey] || { label: statusKey || '—', className: 'text-theme-text-secondary bg-theme-elevated border-theme-border' };
+                                          return (
+                                            <tr key={task.task_id} className="hover:bg-theme-elevated">
+                                              <td className="px-4 py-3">
+                                                <a
+                                                  href={`#/task-list?task=${encodeURIComponent(task.task_id)}`}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="font-semibold text-brand-primary hover:underline"
+                                                >
+                                                  {task.name || '—'}
+                                                </a>
+                                              </td>
+                                              <td className="px-4 py-3 text-theme-text-secondary">{getTaskTypeLabel(task.task_type)}</td>
+                                              <td className="px-4 py-3">
+                                                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusMeta.className}`}>
+                                                  {statusMeta.label}
+                                                </span>
+                                              </td>
+                                              <td className="px-4 py-3 text-theme-text-muted">{formatDateTime(task.updated_at)}</td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </div>
                               </div>
                             </td>
                           </tr>
@@ -1177,93 +1242,6 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   关闭
                 </button>
 
-              </div>
-            </div>
-          </div>
-        );
-      })() : null}
-
-      {tasksDialogTarget ? (() => {
-        const record = tasksDialogTarget;
-        return (
-          <div className="fixed inset-0 z-[125] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
-            <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-theme-elevated">
-              <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
-                <div>
-                  <div className="text-sm font-medium uppercase tracking-[0.18em] text-theme-text-muted">关联测试任务</div>
-                  <div className="mt-2 text-2xl font-bold text-theme-text-primary">{getUploadRecordDisplayName(record)}</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setTasksDialogTarget(null)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-theme-border text-theme-text-muted hover:bg-theme-surface"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="overflow-y-auto px-6 py-6">
-                {tasksLoading ? (
-                  <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-4 py-10 text-center text-sm text-theme-text-muted">
-                    <Loader2 className="mx-auto mb-3 animate-spin text-theme-text-muted" size={24} />
-                    正在加载关联测试任务...
-                  </div>
-                ) : tasksError ? (
-                  <div className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-4 text-sm text-rose-400">
-                    {tasksError}
-                  </div>
-                ) : tasksList.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-4 py-10 text-center text-sm text-theme-text-muted">
-                    暂无关联测试任务
-                  </div>
-                ) : (
-                  <div className="overflow-hidden rounded-xl border border-theme-border">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-theme-surface text-theme-text-muted">
-                          <th className="px-4 py-3 text-left font-semibold">任务名</th>
-                          <th className="px-4 py-3 text-left font-semibold">类型</th>
-                          <th className="px-4 py-3 text-left font-semibold">状态</th>
-                          <th className="px-4 py-3 text-left font-semibold">更新时间</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-theme-border">
-                        {tasksList.map((task) => {
-                          const statusKey = String(task.display_status || task.business_status || '').toLowerCase();
-                          const statusMeta = TASK_STATUS_META[statusKey] || { label: statusKey || '—', className: 'text-theme-text-secondary bg-theme-elevated border-theme-border' };
-                          return (
-                            <tr key={task.task_id} className="hover:bg-theme-surface">
-                              <td className="px-4 py-3">
-                                <a
-                                  href={`#/task-list?task=${encodeURIComponent(task.task_id)}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-semibold text-brand-primary hover:underline"
-                                  onClick={() => setTasksDialogTarget(null)}
-                                >
-                                  {task.name || '—'}
-                                </a>
-                              </td>
-                              <td className="px-4 py-3 text-theme-text-secondary">{getTaskTypeLabel(task.task_type)}</td>
-                              <td className="px-4 py-3">
-                                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusMeta.className}`}>
-                                  {statusMeta.label}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-theme-text-muted">{formatDateTime(task.updated_at)}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-end gap-3 border-t border-theme-border px-6 py-5">
-                <button type="button" onClick={() => setTasksDialogTarget(null)} className="rounded-lg border border-theme-border px-4 py-3 text-sm font-semibold text-theme-text-secondary">
-                  关闭
-                </button>
               </div>
             </div>
           </div>
