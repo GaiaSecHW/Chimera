@@ -32,6 +32,7 @@
 | 7 | 工具 vs 微服务 | 一对一(工具=独立条目,盖亚三入口=三条) |
 | 8 | 任务闸门契约 | 创建任务请求体显式带 `tool_id` |
 | 9 | 健康探测 | AgentManage 内置探测(单一真相源) |
+| 10 | 版本治理 | 轻治理:`current_version` 指针 + 升版不重审,任务表不关注版本 |
 
 ## 设计 1:整体架构与定位
 
@@ -93,6 +94,7 @@ CREATE TABLE `tool` (
   -- 实现层(按 kind 解释)
   `runtime`           JSON         NULL COMMENT 'kind=microservice: namespace/deployment/apiPrefix/healthPath',
   `agent_app_id`      VARCHAR(36)  NULL COMMENT 'kind=agent: 关联 agent_app.id',
+  `current_version`   VARCHAR(128) NULL COMMENT '当前上线版本: 镜像tag(微服务)/commit(agent),升版直接覆盖',
 
   -- 健康(由内置探测器写回)
   `health_status`     VARCHAR(20)  NOT NULL DEFAULT 'unknown'
@@ -127,6 +129,7 @@ CREATE TABLE `tool` (
 | `catalog` | json | 总览页卡片元数据,取代 `toolCatalog.ts` 硬编码 |
 | `runtime` | json | `kind=microservice` 时存 `{namespace,deployment,apiPrefix,healthPath}` |
 | `agent_app_id` | varchar(36) | `kind=agent` 时关联 `agent_app.id` |
+| `current_version` | varchar(128) | 当前上线版本(镜像 tag / commit),升版直接覆盖 |
 | `health_status`/`last_health_check` | — | 由内置探测器(设计 3)维护,前端直接读 |
 
 ### 关联与约束
@@ -140,6 +143,15 @@ CREATE TABLE `tool` (
 - `view_id/icon/menu_group/order` 吃掉 `navigation.tsx` 的硬编码菜单项。
 - `capabilities` 是闸门数据基础:下游校验既看 `status='online'` 也看对应能力位。
 - `health_status/last_health_check` 由内置探测器(设计 3)维护,前端直接读。
+
+### 版本管理(轻治理:升版不重审)
+
+工具的版本来自底层载体:微服务=镜像 tag(`YYYYMMDD-HHMMSS-<sha>`),agent=gitea commit。版本语义遵循以下原则:
+
+- **准生证发给工具,不发给版本**。`tool` 始终单条记录,`current_version` 是指向"当前上线版本"的指针。
+- **升版 = 覆盖 `current_version`,工具保持 online,不触发重新审核**。开发者迭代顺畅,版本质量由工具 owner 自行把关。
+- **不建独立 `tool_version` 留痕表**。要追溯历史版本,K8s 滚更记录与 gitea commit history 自带,无需在注册中心复制一份。
+- **任务表/漏洞表不关注工具版本**。任务只需通过 `tool_id`(现有 `task_type`/`agent_app_id`)识别到工具即可;工具当前是 v1 还是 v2 是 `tool` 表自己的状态,不向数据层泄漏。版本对数据层零侵入:工具升版,历史任务/漏洞的关联不受任何影响,用户访问工具时自然命中最新版。
 
 ## 设计 3:准生证状态机 + 健康探测 + API
 
