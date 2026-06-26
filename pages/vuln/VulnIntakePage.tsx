@@ -2641,7 +2641,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   };
 
   return (
-    <div className="space-y-4 px-5 py-5 md:px-6 2xl:px-8">
+    <>
+      {/* fixed overlays — kept OUTSIDE space-y-4 so their mount/unmount doesn't shift sibling margins (page jitter) */}
       {feedbackNodes}
       {successMessage && (
         <div className="pointer-events-none fixed top-1/2 left-1/2 z-[99990] -translate-x-1/2 -translate-y-1/2">
@@ -2650,6 +2651,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           </div>
         </div>
       )}
+      <div className="space-y-4 px-5 py-5 md:px-6 2xl:px-8">
       {!selectedSuspicionId ? (
         <>
           <PageHeader
@@ -3158,6 +3160,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           </form>
         </DialogShell>
       )}
-    </div>
+      </div>
+    </>
   );
 };
