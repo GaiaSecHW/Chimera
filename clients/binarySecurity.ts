@@ -16,6 +16,7 @@ export interface BinarySecurityInputFile {
 }
 
 export type BinarySecurityTaskType = 'binary' | 'source' | 'binary_module';
+export type BinarySecurityTaskListScope = 'current' | 'all';
 export type BinarySecurityPipelineProfile = 'default' | 'kg_source_vuln_scan' | string;
 export type BinarySecurityModuleSelectionMode = 'auto' | 'manual_confirm' | string;
 export type BinarySecurityEntrySelectionMode = 'auto' | 'manual_confirm' | string;
@@ -217,6 +218,7 @@ export type BinarySecurityStageItemResultContract = BinarySecurityModuleContract
 export interface BinarySecurityTask {
   id: string;
   project_id: string;
+  project_name?: string | null;
   task_type: BinarySecurityTaskType;
   pipeline_profile?: BinarySecurityPipelineProfile;
   name: string;
@@ -1019,8 +1021,9 @@ export const binarySecurityApi = {
     getJsonWithDedupe(`${API_BASE}/api/app/binary-security/health`, { headers: getHeaders() }),
 
   listTasks: async (
-    projectId: string,
+    projectId: string | undefined,
     query?: {
+      scope?: BinarySecurityTaskListScope;
       status?: string;
       taskType?: BinarySecurityTaskType;
       pipelineProfile?: BinarySecurityPipelineProfile;
@@ -1035,6 +1038,7 @@ export const binarySecurityApi = {
     page: number;
     page_size: number;
     total_pages: number;
+    scope?: BinarySecurityTaskListScope;
     running_count: number;
     queued_count: number;
     max_concurrent_tasks: number;
@@ -1043,6 +1047,7 @@ export const binarySecurityApi = {
     items: BinarySecurityTask[];
   }> => {
     const params = new URLSearchParams();
+    const scope = query?.scope === 'all' ? 'all' : 'current';
     if (query?.status) params.set('status', query.status);
     if (query?.taskType) params.set('task_type', query.taskType);
     if (query?.pipelineProfile) params.set('pipeline_profile', query.pipelineProfile);
@@ -1051,8 +1056,12 @@ export const binarySecurityApi = {
     if (query?.sortOrder) params.set('sort_order', query.sortOrder);
     if (query?.page) params.set('page', String(query.page));
     if (query?.pageSize) params.set('page_size', String(query.pageSize));
+    if (scope === 'all' && projectId) params.set('project_id', projectId);
     const q = params.size > 0 ? `?${params.toString()}` : '';
-    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks${q}`, {
+    const url = scope === 'all'
+      ? `${API_BASE}/api/app/binary-security/tasks${q}`
+      : `${API_BASE}/api/app/binary-security/projects/${projectId}/tasks${q}`;
+    const resp = await fetch(url, {
       headers: getHeaders(),
       cache: 'no-store',
     });
