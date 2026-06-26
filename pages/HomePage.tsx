@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { saveHomeCreateTaskMode } from '../utils/executionReturnContext';
 
 interface HomePageProps {
@@ -20,6 +20,30 @@ const LK = {
   body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)',
 } as const;
+
+// 科技背景轮播：每张为多层 CSS（网格 + 光晕），全部用主题变量 + color-mix，
+// 深浅两套主题下都自适应、与界面同色系，且透明度低不遮挡文字。
+const BG_SLIDES: string[] = [
+  `linear-gradient(to right, color-mix(in srgb, var(--text-primary) 6%, transparent) 1px, transparent 1px) 0 0 / 44px 44px repeat,
+linear-gradient(to bottom, color-mix(in srgb, var(--text-primary) 6%, transparent) 1px, transparent 1px) 0 0 / 44px 44px repeat,
+radial-gradient(circle at 18% 35%, color-mix(in srgb, var(--brand-primary) 26%, transparent), transparent 55%) 0 0 / cover no-repeat,
+radial-gradient(circle at 82% 55%, color-mix(in srgb, var(--brand-secondary) 20%, transparent), transparent 55%) 0 0 / cover no-repeat`,
+  `linear-gradient(to right, color-mix(in srgb, var(--text-primary) 6%, transparent) 1px, transparent 1px) 0 0 / 44px 44px repeat,
+linear-gradient(to bottom, color-mix(in srgb, var(--text-primary) 6%, transparent) 1px, transparent 1px) 0 0 / 44px 44px repeat,
+radial-gradient(circle at 78% 28%, color-mix(in srgb, var(--brand-secondary) 24%, transparent), transparent 55%) 0 0 / cover no-repeat,
+radial-gradient(circle at 22% 60%, color-mix(in srgb, var(--brand-primary) 22%, transparent), transparent 55%) 0 0 / cover no-repeat`,
+  `linear-gradient(to right, color-mix(in srgb, var(--text-primary) 6%, transparent) 1px, transparent 1px) 0 0 / 44px 44px repeat,
+linear-gradient(to bottom, color-mix(in srgb, var(--text-primary) 6%, transparent) 1px, transparent 1px) 0 0 / 44px 44px repeat,
+radial-gradient(circle at 50% 22%, color-mix(in srgb, var(--brand-primary) 24%, transparent), transparent 60%) 0 0 / cover no-repeat,
+radial-gradient(circle at 72% 68%, color-mix(in srgb, var(--brand-secondary) 18%, transparent), transparent 50%) 0 0 / cover no-repeat`,
+];
+
+// 玻璃面板：主题自适应的半透明表面 + 边框，保证文字可读。
+const GLASS_BG = 'color-mix(in srgb, var(--bg-surface) 80%, transparent)';
+const GLASS_BORDER = 'color-mix(in srgb, var(--border-default) 65%, transparent)';
+
+// 背景带底部消散：顶部到 60% 不透明，之后渐变到透明。
+const FADE_MASK = 'linear-gradient(to bottom, #000 0%, #000 60%, transparent 100%)';
 
 const MODES = [
   {
@@ -77,76 +101,191 @@ const MODE_ICONS: Record<string, React.ReactNode> = {
   ),
 };
 
+// 宣传轮播：image 字段暂留空，后续补充宣传图 URL 即可显示；link 默认 '#'，补充后点击在新标签打开。
+const PROMO_SLIDES = [
+  { title: '第一章 · 降生', subtitle: '四世神裔，融源之子的来历', image: '', link: 'https://www.baidu.com' },
+  { title: '第二章 · 三身', subtitle: '一体三面，各司其职的完美共生', image: '', link: '#' },
+  { title: '第三章 · 吐息', subtitle: '烈焰淬炼，重塑万物本真', image: '', link: '#' },
+  { title: '第四章 · 破局', subtitle: '旧维失效，新序诞生的必然', image: '', link: '#' },
+  { title: '第五章 · 驭者', subtitle: '顺势而为，维度跃升', image: '', link: '#' },
+  { title: '第六章 · 群像', subtitle: '从一躯真身，到一世图腾', image: '', link: '#' },
+  { title: '第七章 · 永续', subtitle: '图腾永生，融合求真永不止歇', image: '', link: '#' },
+];
+
 export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
   const handleCardClick = (modeKey: string) => {
     saveHomeCreateTaskMode(modeKey);
     setCurrentView('task-list');
   };
 
-  return (
-    <div className="h-full overflow-y-auto p-6" style={{ backgroundColor: LK.canvas }}>
-      <div className="bg-theme-surface p-6 mb-6">
-        <div className="flex gap-4">
-          <img alt="Chimera" className="w-12 h-12" src="/logo.png"/>
-          <div className="flex-1">
-            <h2 className="text-theme-text-primary font-semibold text-xl mb-2">奇美拉 Chimera</h2>
-            <div className="text-theme-text-secondary text-sm">智能体群协作 AI 安全验证平台。面向安全团队与产品团队，将安全专家的经验转化为可复用的自动化能力。 以「双轨制 + 进化闭环 + 引擎三层」为核心，让安全验证从一次性脚本走向可持续演进的智能体群协作。</div>
-          </div>
-        </div>
-      </div>
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-1 h-5 bg-brand-primary rounded-full"></div>
-        <div className="text-theme-text-primary text-base font-semibold">三种执行模式，覆盖全场景</div>
-        <div className="text-theme-text-muted text-xs">根据目标特征自动收敛到最优模式</div>
-      </div>
-      <div className="flex gap-4">
-        {MODES.map((mode) => (
-          <div
-              key={mode.key}
-              className="stat-card flex-1 rounded-xl p-6 cursor-pointer relative"
-              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
-              onClick={() => handleCardClick(mode.key)}
-          >
-            <div className="flex gap-4">
-              <div className="stat-card-icon w-10 h-10 flex items-center justify-center rounded-xl" style={{ backgroundColor: mode.bg, color: mode.accent }}>
-                {MODE_ICONS[mode.key]}
-              </div>
-              <div>
-                <h3 className="text-base font-semibold">{mode.name} {mode.en}</h3>
-                <p className="text-xs" style={{ color: mode.accent }}>{mode.tagline}</p>
-              </div>
-            </div>
-            <p className="mt-4 text-sm" style={{ color: LK.body }}>
-              {mode.summary}
-            </p>
-            <ul className="mt-5 space-y-2">
-              {mode.points.map((p) => (
-                  <li key={p} className="flex items-start gap-2 text-[13px]" style={{ color: LK.inkSoft }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                      className="w-4 h-4"
-                      style={{ color: mode.accent }}
-                    >
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <path d="m9 12 2 2 4-4"></path>
-                    </svg>
-                    <span>{p}</span>
-                  </li>
-              ))}
-            </ul>
-            <div className="mt-4">
-              <div className="flex items-center border-t pt-4 text-xs text-brand-primary gap-2">
-                {mode.jumpMsg}
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                     className="w-4 h-4"
-                >
-                  <path d="M5 12h14"></path>
-                  <path d="m12 5 7 7-7 7"></path>
-                </svg>
-              </div>
-            </div>
+  const handlePromoClick = (link: string) => {
+    if (link && link !== '#') {
+      window.open(link, '_blank', 'noopener,noreferrer');
+    }
+  };
 
-          </div>
+  const [bgIndex, setBgIndex] = useState(0);
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setBgIndex((i) => (i + 1) % BG_SLIDES.length);
+    }, 6000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const [promoIndex, setPromoIndex] = useState(0);
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setPromoIndex((i) => (i + 1) % PROMO_SLIDES.length);
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="h-full overflow-y-auto isolate relative" style={{ backgroundColor: LK.canvas }}>
+      {/* tech background band: crossfade slides, fading toward the bottom */}
+      <div
+        className="absolute inset-x-0 top-0 z-0 h-[42vh] overflow-hidden pointer-events-none"
+        style={{ maskImage: FADE_MASK, WebkitMaskImage: FADE_MASK }}
+      >
+        {BG_SLIDES.map((bg, i) => (
+          <div
+            key={i}
+            className="absolute inset-0 transition-opacity duration-[1500ms] ease-in-out"
+            style={{ background: bg, opacity: i === bgIndex ? 1 : 0 }}
+          />
         ))}
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-7xl px-6 py-12 space-y-12 md:px-8 md:py-16">
+        {/* hero */}
+        <header className="flex flex-col gap-6">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-2xl opacity-60 blur-xl" style={{ background: 'radial-gradient(circle, var(--brand-primary) 0%, transparent 70%)' }} />
+              <img alt="Chimera" className="relative w-14 h-14 rounded-2xl" src="/logo.png" />
+            </div>
+            <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-theme-text-muted backdrop-blur" style={{ backgroundColor: GLASS_BG, borderColor: GLASS_BORDER }}>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              CHIMERA · AI 安全验证平台
+            </span>
+          </div>
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-10">
+            <h1
+              className="text-5xl font-bold tracking-tight md:text-6xl"
+              style={{
+                background: 'linear-gradient(120deg, var(--brand-primary) 0%, #818cf8 45%, #c084fc 100%)',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                color: 'transparent',
+              }}
+            >
+              奇美拉 Chimera
+            </h1>
+            <div className="max-w-3xl border-l-2 pl-6 lg:flex-1" style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 40%, transparent)' }}>
+              <p className="text-sm leading-relaxed text-theme-text-secondary md:text-base">
+                智能体群协作 AI 安全验证平台。面向安全团队与产品团队，将安全专家的经验转化为可复用的自动化能力。 以「双轨制 + 进化闭环 + 引擎三层」为核心，让安全验证从一次性脚本走向可持续演进的智能体群协作。
+              </p>
+            </div>
+          </div>
+        </header>
+
+        {/* promo carousel — slim banner, imgs to be filled later */}
+        <section className="relative h-36 overflow-hidden rounded-2xl border md:h-40" style={{ backgroundColor: GLASS_BG, borderColor: GLASS_BORDER }}>
+          {PROMO_SLIDES.map((slide, i) => (
+            <div
+              key={i}
+              role="button"
+              tabIndex={i === promoIndex ? 0 : -1}
+              onClick={() => handlePromoClick(slide.link)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlePromoClick(slide.link); } }}
+              className="absolute inset-0 cursor-pointer select-none transition-opacity duration-700 ease-in-out"
+              style={{
+                opacity: i === promoIndex ? 1 : 0,
+                pointerEvents: i === promoIndex ? 'auto' : 'none',
+                background: 'linear-gradient(120deg, color-mix(in srgb, var(--brand-primary) 18%, var(--bg-surface)) 0%, color-mix(in srgb, var(--brand-secondary) 12%, var(--bg-surface)) 100%)',
+              }}
+            >
+              {/* TODO: 后续补充宣传图，给 PROMO_SLIDES[i].image 赋值即显示 */}
+              <img src={slide.image} alt={slide.title} className="absolute inset-0 h-full w-full object-cover" style={{ display: slide.image ? 'block' : 'none' }} />
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, color-mix(in srgb, var(--bg-app) 70%, transparent) 0%, transparent 55%)' }} />
+              <div className="relative flex h-full max-w-xl flex-col justify-center gap-1.5 p-6 md:p-8">
+                <h3 className="text-lg font-bold text-theme-text-primary md:text-xl">{slide.title}</h3>
+                <p className="text-xs leading-relaxed text-theme-text-secondary md:text-sm">{slide.subtitle}</p>
+              </div>
+            </div>
+          ))}
+          <div className="absolute bottom-3 right-4 flex items-center gap-1.5">
+            {PROMO_SLIDES.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setPromoIndex(i)}
+                className="h-1.5 rounded-full transition-all"
+                style={{
+                  width: i === promoIndex ? 18 : 6,
+                  backgroundColor: i === promoIndex ? 'var(--brand-primary)' : 'color-mix(in srgb, var(--text-secondary) 45%, transparent)',
+                }}
+                aria-label={`切换到第 ${i + 1} 张`}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* section header */}
+        <div className="flex flex-wrap items-end justify-left gap-4">
+          <div className="flex items-center gap-3">
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--brand-primary)', boxShadow: '0 0 10px var(--brand-primary)' }} />
+            <h2 className="text-xl font-semibold text-theme-text-primary md:text-2xl">三种执行模式，覆盖全场景</h2>
+          </div>
+          <p className="text-sm text-theme-text-muted">根据目标特征自动收敛到最优模式</p>
+        </div>
+
+        {/* mode cards */}
+        <div className="grid gap-6 md:grid-cols-3">
+          {MODES.map((mode) => (
+            <button
+              key={mode.key}
+              type="button"
+              onClick={() => handleCardClick(mode.key)}
+              className="group relative overflow-hidden rounded-2xl border p-7 text-left backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_60px_-24px_rgba(0,0,0,0.5)]"
+              style={{ backgroundColor: GLASS_BG, borderColor: GLASS_BORDER }}
+            >
+              <div className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full opacity-20 blur-3xl transition-opacity duration-300 group-hover:opacity-40" style={{ backgroundColor: mode.accent }} />
+              <div className="relative">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: mode.bg, color: mode.accent, boxShadow: `0 0 24px ${mode.accent}33` }}>
+                    {MODE_ICONS[mode.key]}
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-theme-text-primary">{mode.name}</div>
+                    <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-theme-text-muted">{mode.en}</div>
+                  </div>
+                </div>
+                <p className="mt-3 text-sm font-semibold" style={{ color: mode.accent }}>{mode.tagline}</p>
+                <p className="mt-3 text-sm leading-relaxed text-theme-text-secondary">{mode.summary}</p>
+                <ul className="mt-5 space-y-2.5">
+                  {mode.points.map((p) => (
+                    <li key={p} className="flex items-start gap-2 text-[13px] text-theme-text-secondary">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 h-4 w-4 shrink-0" style={{ color: mode.accent }}>
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="m9 12 2 2 4-4"></path>
+                      </svg>
+                      <span>{p}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-6 flex items-center gap-2 border-t pt-4 text-sm font-semibold" style={{ color: mode.accent, borderColor: GLASS_BORDER }}>
+                  {mode.jumpMsg}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1">
+                    <path d="M5 12h14"></path>
+                    <path d="m12 5 7 7-7 7"></path>
+                  </svg>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
