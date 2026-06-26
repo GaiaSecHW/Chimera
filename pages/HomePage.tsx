@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { saveHomeCreateTaskMode } from '../utils/executionReturnContext';
+import { ServiceBuildVersionBadge } from '../components/execution/ServiceBuildVersion';
 
 interface HomePageProps {
   setCurrentView: (view: string) => void;
@@ -168,6 +169,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               CHIMERA · AI 安全验证平台
             </span>
+            <ServiceBuildVersionBadge version={__CHIMERA_BUILD_VERSION__} />
           </div>
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-10">
             <h1
