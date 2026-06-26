@@ -3,7 +3,6 @@ import { ArrowDown, ArrowUp, Loader2 } from 'lucide-react';
 
 import {
   ExecutionTable,
-  ExecutionTableHead,
   ExecutionTableTh,
   ExecutionTableTd,
 } from '../../../components/execution/ExecutionTable';
@@ -105,7 +104,7 @@ export function DataTable<T>({
       <button
         type="button"
         onClick={handleClick}
-        className="inline-flex cursor-pointer items-center gap-1 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-faint hover:text-theme-text-secondary"
+        className="inline-flex cursor-pointer items-center gap-1 text-left text-sm font-bold uppercase tracking-[0.18em] text-theme-text-faint hover:text-theme-text-secondary"
       >
         {col.header}
         <span className="inline-flex items-center gap-0.5 leading-none">
@@ -126,10 +125,10 @@ export function DataTable<T>({
       )}
 
       <ExecutionTable minWidth={minWidth}>
-        <ExecutionTableHead>
+        <thead className="border-b border-theme-border bg-theme-elevated/80 text-sm font-bold uppercase tracking-[0.18em] text-theme-text-faint">
           <tr>
             {showRowNumber && (
-              <ExecutionTableTh className="w-12 text-center" align="center">
+              <ExecutionTableTh className="w-[60px] text-center" align="center">
                 序号
               </ExecutionTableTh>
             )}
@@ -144,7 +143,7 @@ export function DataTable<T>({
               </ExecutionTableTh>
             ))}
           </tr>
-        </ExecutionTableHead>
+        </thead>
         <tbody>
           {loading ? (
             <tr>
@@ -176,7 +175,7 @@ export function DataTable<T>({
                   }
                 >
                   {showRowNumber && (
-                    <ExecutionTableTd className="w-12 text-center tabular-nums text-theme-text-faint" align="center">
+                    <ExecutionTableTd className="w-[60px] text-center tabular-nums text-theme-text-faint" align="center">
                       {rowNumberBase + index + 1}
                     </ExecutionTableTd>
                   )}
