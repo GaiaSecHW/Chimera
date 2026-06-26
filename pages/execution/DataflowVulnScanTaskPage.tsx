@@ -639,15 +639,6 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
   const [total, setTotal] = useState(0);
   const [taskStats, setTaskStats] = useState<AppDfaTaskListStats>({ total: 0, pending: 0, running: 0, passed: 0, failed: 0, error: 0, cancelled: 0 });
   const [vulnStats, setVulnStats] = useState<{ total_findings: number; reported: number; unreported: number } | null>(null);
-  const [taskVulnMap, setTaskVulnMap] = useState<Record<string, { total: number; reported: number; unreported: number }>>({});
-  const loadTaskVulnBatch = useCallback(async (items: AppDfaTaskItem[]) => {
-    const tids = items.map((t) => t.task_id).filter(Boolean);
-    if (!tids.length) return;
-    try {
-      const map = await appApi.getTasksVulnStatsBatch(tids);
-      setTaskVulnMap(map || {});
-    } catch (_) {}
-  }, [appApi]);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(50);
   const [statusFilter, setStatusFilter] = useState('');
@@ -780,13 +771,12 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
       });
       setTasks(resp.items || []);
       setTotal(resp.total || 0);
-      loadTaskVulnBatch(resp.items || []);
     } catch (err: any) {
       notify(`加载任务列表失败: ${err?.message || err}`, 'error');
     } finally {
       setLoading(false);
     }
-  }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder, loadTaskVulnBatch]);
+  }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
   const loadTaskStats = useCallback(async () => {
     if (!projectId) return;
@@ -2289,7 +2279,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap text-xs">
                     {(() => {
-                      const vs = taskVulnMap[t.task_id];
+                      const vs = { total: t.vuln_total_count || 0, reported: t.vuln_reported_count || 0, unreported: t.vuln_unreported_count || 0 };
                       if (!vs || vs.total === 0) return <span className="text-theme-text-muted">-</span>;
                       return <span><span className="font-semibold">{vs.total}</span>{vs.reported > 0 && <span className="ml-1 text-emerald-400">+{vs.reported}</span>}{vs.unreported > 0 && <span className="ml-1 text-rose-400">-{vs.unreported}</span>}</span>;
                     })()}
