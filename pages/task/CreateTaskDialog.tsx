@@ -227,15 +227,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     [codeInputs, kgEligibilityByUploadId],
   );
 
-  const inputSelectionHint = useMemo(() => {
-    if (isLionHead) return '选择一个源码上传记录作为黑板漏洞挖掘的测试对象，固定使用其根目录。';
-    if (taskType === 'sechps_tool') return '选择一个已注册的 Agent Harness。调度中心会在分发时自动申请 Task Key，并把所选记录根目录直接传给下游。';
-    if (taskType === 'ai4app_fast' || taskType === 'ai4app_deep') return '选择一个 APK/HAP 安装包或 zip/rar/tar.gz/gz 压缩包记录；压缩包将作为 APK/HAP 的源码包处理，提交时固定使用记录根目录。';
-    if (taskType === 'ai4web_fast' || taskType === 'ai4web_deep') return '选择一个 Web 源码包（zip/rar/tar.gz/gz 等压缩包）记录，提交时固定使用记录根目录。';
-    if (taskType === 'kg_source_vuln_scan_e2e') return '仅展示源码类型且已识别到至少 1 个入口的记录；即使入口分析状态为 failed，只要入口数量满足条件也可选，提交时固定使用上传记录根目录。';
-    return '选择一个上传记录作为测试对象，提交时固定使用其根目录。';
-  }, [isLionHead, taskType]);
-
   const nameValid = name.trim().length > 0;
   const lionHeadInputReady = inputSource === 'upload'
     ? nameValid && !uploading
@@ -765,14 +756,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   />
                 ) : (
                   <div className="space-y-3">
-                    {/* hint block */}
-                    <div className="rounded-lg px-3 py-2" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
-                      <div className="text-sm" style={{ color: LK.body }}>
-                        固定使用所选上传记录的<span className="ml-1 font-semibold" style={{ color: LK.ink }}>根目录</span>作为测试对象。
-                      </div>
-                      <div className="mt-1 text-xs" style={{ color: LK.muted }}>{inputSelectionHint}</div>
-                    </div>
-
                     {isKgSourceTask ? (
                       <div className="rounded-lg px-3 py-2" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
                         <div className="text-sm font-semibold" style={{ color: LK.inkSoft }}>
