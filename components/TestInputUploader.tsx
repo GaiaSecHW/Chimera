@@ -35,6 +35,7 @@ export interface TestInputUploaderProps {
   projectId: string;
   displayName: string;
   compact?: boolean;
+  hideUploadIcon?: boolean;
   defaultInputType?: InputType;
   onUploadStateChange?: (uploading: boolean) => void;
 }
@@ -53,7 +54,7 @@ const formatSpeed = (value?: number | null) => {
 };
 
 export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUploaderProps>(
-  ({ projectId, displayName, compact = false, defaultInputType = 'document', onUploadStateChange }, ref) => {
+  ({ projectId, displayName, compact = false, hideUploadIcon = false, defaultInputType = 'document', onUploadStateChange }, ref) => {
     const fileserverApi = api.domains.assets.fileserver;
     const [inputType, setInputType] = useState<InputType>(defaultInputType);
     const [keepOriginal, setKeepOriginal] = useState(false);
@@ -215,10 +216,12 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
           }}
           className="group cursor-pointer rounded-xl border border-dashed border-theme-border bg-theme-elevated/30 p-4 text-center transition-colors hover:border-theme-text-muted hover:bg-theme-elevated focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-text-muted"
         >
-          <UploadCloud
-            size={24}
-            className="mx-auto text-theme-text-muted transition-colors group-hover:text-theme-text-primary"
-          />
+          {!hideUploadIcon && (
+            <UploadCloud
+              size={24}
+              className="mx-auto text-theme-text-muted transition-colors group-hover:text-theme-text-primary"
+            />
+          )}
           <div className="mt-1 text-sm font-semibold text-theme-text-primary">
             {keepOriginal ? '点击上传原始文件' : '点击上传压缩包'}
           </div>
