@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Loader2 } from 'lucide-react';
 
 import {
   ExecutionTable,
@@ -18,12 +18,20 @@ export interface DataTableColumn<T> {
   width?: number | string;
   render?: (row: T, index: number) => React.ReactNode;
   className?: string;
+  sortable?: boolean;
+  sortKey?: string;
+  defaultDirection?: 'asc' | 'desc';
 }
 
 export interface DataTableBulkActions {
   selectedKeys: string[];
   onSelectChange: (keys: string[]) => void;
   render: (selected: string[]) => React.ReactNode;
+}
+
+export interface DataTableSortState {
+  field: string;
+  direction: 'asc' | 'desc';
 }
 
 export interface DataTableProps<T> {
@@ -37,6 +45,10 @@ export interface DataTableProps<T> {
   pagination?: Omit<PaginationProps, 'className'>;
   bulkActions?: DataTableBulkActions;
   className?: string;
+  showRowNumber?: boolean;
+  sort?: DataTableSortState;
+  onSortChange?: (sort: DataTableSortState) => void;
+  selectedRowKey?: string;
 }
 
 export function DataTable<T>({
@@ -50,6 +62,10 @@ export function DataTable<T>({
   pagination,
   bulkActions,
   className,
+  showRowNumber = false,
+  sort,
+  onSortChange,
+  selectedRowKey,
 }: DataTableProps<T>) {
   const colSpan = columns.length + (bulkActions ? 1 : 0);
   const allKeys = data.map(rowKey);
@@ -71,6 +87,34 @@ export function DataTable<T>({
   const alignClass = (align?: 'left' | 'center' | 'right') =>
     align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : '';
 
+  const renderSortableHeader = (col: DataTableColumn<T>) => {
+    const field = col.sortKey ?? col.key;
+    const active = sort?.field === field;
+    const asc = active && sort?.direction === 'asc';
+    const desc = active && sort?.direction === 'desc';
+    const handleClick = () => {
+      if (!onSortChange) return;
+      if (active) {
+        onSortChange({ field, direction: sort?.direction === 'asc' ? 'desc' : 'asc' });
+      } else {
+        onSortChange({ field, direction: col.defaultDirection ?? 'asc' });
+      }
+    };
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        className="inline-flex cursor-pointer items-center gap-1 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-text-faint hover:text-theme-text-secondary"
+      >
+        {col.header}
+        <span className="inline-flex items-center gap-0.5 leading-none">
+          <ArrowUp size={12} className={asc ? 'text-theme-text-secondary' : 'text-theme-text-faint'} />
+          <ArrowDown size={12} className={desc ? 'text-theme-text-secondary' : 'text-theme-text-faint'} />
+        </span>
+      </button>
+    );
+  };
+
   return (
     <div className={cx('space-y-2', className)}>
       {bulkActions && bulkActions.selectedKeys.length > 0 && (
@@ -90,7 +134,7 @@ export function DataTable<T>({
             )}
             {columns.map((col) => (
               <ExecutionTableTh key={col.key} align={col.align} className={col.className}>
-                {col.header}
+                {col.sortable ? renderSortableHeader(col) : col.header}
               </ExecutionTableTh>
             ))}
           </tr>

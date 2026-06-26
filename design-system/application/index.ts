@@ -21,5 +21,6 @@ export type {
   DataTableProps,
   DataTableColumn,
   DataTableBulkActions,
+  DataTableSortState,
   PaginationProps,
 } from './DataTable';
