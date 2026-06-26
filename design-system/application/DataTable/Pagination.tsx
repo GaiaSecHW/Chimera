@@ -35,7 +35,7 @@ export const Pagination: React.FC<PaginationProps> = ({
       )}
     >
       <span className="tabular-nums">
-        {from}-{to} / {total}
+        第{from}-{to}项，共{total}项
       </span>
       <div className="flex items-center gap-2">
         {onPerPageChange && (
