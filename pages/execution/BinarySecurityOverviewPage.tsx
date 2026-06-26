@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Archive, BarChart3, ChevronRight, Layers3, Loader2, Plus, RefreshCw, Search, Shield, ShieldAlert, Upload } from 'lucide-react';
 
-import { BinarySecurityDeleteQueueTaskType, BinarySecurityInputFile, BinarySecurityPipelineMode, BinarySecurityPipelineProfile, BinarySecurityProjectStageAggregate, BinarySecurityProjectStats, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
+import { BinarySecurityDeleteQueueTaskType, BinarySecurityInputFile, BinarySecurityPipelineMode, BinarySecurityPipelineProfile, BinarySecurityProjectStageAggregate, BinarySecurityProjectStats, BinarySecurityTask, BinarySecurityTaskListScope, BinarySecurityTaskType } from '../../clients/binarySecurity';
 import { fileserverApi } from '../../clients/fileserver';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
@@ -12,7 +12,7 @@ import { BinarySecurityDeleteQueueDrawer } from './BinarySecurityDeleteQueueDraw
 interface Props {
   projectId: string;
   taskType: BinarySecurityTaskType;
-  onOpenTask: (taskId: string) => void;
+  onOpenTask: (task: { taskId: string; projectId: string }) => void;
   sourcePipelineProfileMode?: BinarySecurityPipelineProfile | 'select';
 }
 
@@ -417,6 +417,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [totalPages, setTotalPages] = useState(1);
+  const [scopeFilter, setScopeFilter] = useState<BinarySecurityTaskListScope>('current');
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -468,6 +469,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [moduleRiskLevels, setModuleRiskLevels] = useState<string[]>(['高']);
   const [stageParallelism, setStageParallelism] = useState<Record<string, number>>(DEFAULT_STAGE_PARALLELISM);
   const [sourcePipelineProfile, setSourcePipelineProfile] = useState<SourcePipelineProfile>(sourcePipelineProfileMode === 'kg_source_vuln_scan' ? 'kg_source_vuln_scan' : 'default');
+  const isAllProjectsScope = scopeFilter === 'all';
 
   const toggleStatusQuickFilter = (status: string) => {
     setStatusFilter((current) => (current === status ? '' : status));
@@ -520,6 +522,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setError(null);
     try {
       const data = await executionApi.binarySecurity.listTasks(projectId, {
+        scope: scopeFilter,
         status: statusFilter || undefined,
         taskType,
         pipelineProfile: isSourceTask
@@ -536,8 +539,16 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       setItems(nextItems);
       setTotal(data.total || 0);
       setTotalPages(data.total_pages || 1);
-      setProjectStats(data.project_stats || deriveProjectStats(nextItems));
-      setProjectStageAggregates(Array.isArray(data.project_stage_aggregates) ? data.project_stage_aggregates : emptyStageAggregates());
+      setProjectStats(
+        isAllProjectsScope
+          ? emptyProjectStats()
+          : (data.project_stats || deriveProjectStats(nextItems))
+      );
+      setProjectStageAggregates(
+        isAllProjectsScope
+          ? emptyStageAggregates()
+          : (Array.isArray(data.project_stage_aggregates) ? data.project_stage_aggregates : emptyStageAggregates())
+      );
       setRunningCount(data.running_count || 0);
       setQueuedCount(data.queued_count || 0);
       setMaxConcurrentTasks(data.max_concurrent_tasks || 50);
@@ -558,6 +569,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setRefreshing(true);
     setError(null);
     try {
+      if (isAllProjectsScope) {
+        await load({ silent: true });
+        return;
+      }
       const activeTaskIds = items
         .filter((item) => !TERMINAL.has(item.status))
         .map((item) => item.id);
@@ -575,7 +590,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   };
 
   const deleteTasks = async (taskIds: string[]) => {
-    if (!projectId) return;
+    if (!projectId || isAllProjectsScope) return;
     if (taskIds.length === 0) return;
     const deleteMessage =
       taskIds.length === 1
@@ -618,14 +633,15 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
 
   useEffect(() => {
     void load();
-  }, [projectId, taskType, isKgSourcePage, showSourcePipelinePicker, sourcePipelineProfile, statusFilter, search, sortBy, sortOrder, page, pageSize]);
+  }, [projectId, taskType, isKgSourcePage, showSourcePipelinePicker, sourcePipelineProfile, scopeFilter, statusFilter, search, sortBy, sortOrder, page, pageSize]);
 
   const hasActive = useMemo(() => items.some((item) => !TERMINAL.has(item.status)), [items]);
   useEffect(() => {
+    if (isAllProjectsScope) return;
     if (!hasActive) return;
     const timer = window.setInterval(() => void load({ silent: true, skipIfInFlight: true }), 5000);
     return () => window.clearInterval(timer);
-  }, [hasActive, projectId, taskType, isKgSourcePage, showSourcePipelinePicker, sourcePipelineProfile, statusFilter, search, sortBy, sortOrder, page, pageSize]);
+  }, [hasActive, isAllProjectsScope, projectId, taskType, isKgSourcePage, showSourcePipelinePicker, sourcePipelineProfile, scopeFilter, statusFilter, search, sortBy, sortOrder, page, pageSize]);
 
   useEffect(() => {
     if (!showCreateDialog) return;
@@ -730,6 +746,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   };
 
   const openCreateDialog = async () => {
+    if (isAllProjectsScope) return;
     setCreateResult(null);
     setCreateDefaultsLoading(true);
     let defaults = fallbackCreateDefaults;
@@ -788,7 +805,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   };
 
   const submitTask = async () => {
-    if (!projectId) return;
+    if (!projectId || isAllProjectsScope) return;
     setCreateError(null);
     setCreateResult(null);
     if (!name.trim()) {
@@ -911,7 +928,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       resetCreateForm();
       setCreateResult(`创建成功: ${prepared.task_id}`);
       await load();
-      onOpenTask(prepared.task_id);
+      onOpenTask({ taskId: prepared.task_id, projectId });
     } catch (e: any) {
       setCreateError(e?.message || '创建失败');
     } finally {
@@ -924,13 +941,15 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       <PageHeader
         title={<ServicePageTitle title={pageTitle} version={buildVersion} className="" />}
         description={
-          isKgSourcePage
-            ? '为当前项目统一编排知识图谱入口获取与数据流漏洞挖掘，直接以外部入口结果驱动源码漏洞挖掘。'
-            : isSourceTask
-              ? '为当前项目统一编排系统分析、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看源码工程任务的阶段状态与结果。'
-              : isBinaryModuleTask
-                ? '为当前项目统一编排模块级二进制逆向、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，直接以单模块下的多个 ELF 作为输入自动推进。'
-                : '为当前项目统一编排固件解包、系统分析、反编译、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看多固件任务的阶段状态与结果。'
+          isAllProjectsScope
+            ? '跨项目汇总查看该任务类型的编排任务，支持统一搜索、筛选、排序并安全进入详情。'
+            : isKgSourcePage
+              ? '为当前项目统一编排知识图谱入口获取与数据流漏洞挖掘，直接以外部入口结果驱动源码漏洞挖掘。'
+              : isSourceTask
+                ? '为当前项目统一编排系统分析、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看源码工程任务的阶段状态与结果。'
+                : isBinaryModuleTask
+                  ? '为当前项目统一编排模块级二进制逆向、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，直接以单模块下的多个 ELF 作为输入自动推进。'
+                  : '为当前项目统一编排固件解包、系统分析、反编译、入口分析、数据流漏洞挖掘和数据流漏洞挖掘，聚合查看多固件任务的阶段状态与结果。'
         }
         actions={
           <div className="flex items-center gap-3">
@@ -945,8 +964,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
             <button
               type="button"
               onClick={() => void openCreateDialog()}
-              disabled={createDefaultsLoading}
+              disabled={createDefaultsLoading || isAllProjectsScope}
               className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
+              title={isAllProjectsScope ? '全部项目模式下请切回当前项目后创建任务' : undefined}
             >
               {createDefaultsLoading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
               {createDefaultsLoading ? '加载默认配置...' : '创建任务'}
@@ -980,7 +1000,11 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         }}
       />
 
- <section className="rounded-xl border border-theme-border bg-theme-elevated p-6">
+      <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-muted">
+        范围：<span className="font-semibold text-theme-text-primary">{isAllProjectsScope ? '全部项目任务' : '当前项目任务'}</span>
+      </div>
+
+ {!isAllProjectsScope ? <section className="rounded-xl border border-theme-border bg-theme-elevated p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <ShieldAlert size={18} className="text-rose-400" />
@@ -1020,7 +1044,11 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
             </div>
           )
         ) : null}
-      </section>
+      </section> : (
+        <section className="rounded-xl border border-theme-border bg-theme-elevated p-6 text-sm text-theme-text-muted">
+          跨项目模式下暂不展示项目级汇总统计；运行中、排队中和最大并发仍按服务全局队列指标展示。
+        </section>
+      )}
 
  <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
         <div className="flex items-center justify-between gap-4">
@@ -1032,6 +1060,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                   type="checkbox"
                   checked={allSelected}
                   onChange={(e) => setSelectedTaskIds(e.target.checked ? items.map((item) => item.id) : [])}
+                  disabled={isAllProjectsScope}
                   className="h-4 w-4 rounded border-theme-border text-theme-text-primary focus:ring-slate-400"
                 />
                 全选
@@ -1043,8 +1072,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               <button
                 type="button"
                 onClick={() => void deleteTasks(selectedTaskIds)}
-                disabled={deleting}
+                disabled={deleting || isAllProjectsScope}
                 className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-2.5 text-sm font-bold text-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
+                title={isAllProjectsScope ? '全部项目模式下不支持批量删除' : undefined}
               >
                 {deleting ? '删除中...' :`删除选中 (${selectedCount})`}
               </button>
@@ -1069,6 +1099,18 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 className="w-full bg-transparent text-sm outline-none"
               />
             </label>
+            <select
+              value={scopeFilter}
+              onChange={(e) => {
+                setScopeFilter((e.target.value as BinarySecurityTaskListScope) || 'current');
+                setPage(1);
+                setSelectedTaskIds([]);
+              }}
+              className="form-select"
+            >
+              <option value="current">当前项目</option>
+              <option value="all">全部项目</option>
+            </select>
             <select
               value={statusFilter}
               onChange={(e) => {
@@ -1119,6 +1161,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               onClick={() => {
                 setSearchInput('');
                 setSearch('');
+                setScopeFilter('current');
                 setStatusFilter('');
                 setSortBy('created_at');
                 setSortOrder('desc');
@@ -1134,7 +1177,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         {loading && items.length === 0 ? (
           <div className="mt-6 text-sm text-theme-text-muted">加载中...</div>
         ) : items.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-theme-border px-6 py-10 text-center text-sm text-theme-text-muted">{emptyLabel}</div>
+          <div className="mt-6 rounded-2xl border border-dashed border-theme-border px-6 py-10 text-center text-sm text-theme-text-muted">
+            {isAllProjectsScope ? '当前没有符合筛选条件的跨项目任务。' : emptyLabel}
+          </div>
         ) : (
           <div className="mt-5 space-y-4">
             {items.map((item) => (
@@ -1193,6 +1238,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       </div>
                     ) : null}
                     <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-theme-text-secondary xl:grid-cols-2">
+                      {isAllProjectsScope ? (
+                        <div>所属项目：<span className="font-bold text-theme-text-primary">{item.project_name || item.project_id}</span></div>
+                      ) : null}
                       <div>当前阶段：<span className="font-bold text-theme-text-primary">{formatStageLabel(item.current_stage)}</span></div>
                       <div>开始时间：<span className="font-bold text-theme-text-primary">{fmt(item.started_at)}</span></div>
                     </div>
@@ -1210,7 +1258,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => onOpenTask(item.id)}
+                      onClick={() => onOpenTask({ taskId: item.id, projectId: item.project_id })}
                       className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary"
                     >
                       查看详情
@@ -1219,8 +1267,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                     <button
                       type="button"
                       onClick={() => void deleteTask(item.id)}
-                      disabled={deleting}
+                      disabled={deleting || isAllProjectsScope}
                       className="rounded-xl border border-rose-500/20 bg-theme-surface px-4 py-2.5 text-sm font-bold text-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
+                      title={isAllProjectsScope ? '全部项目模式下不支持直接删除，请先进入详情或切回当前项目' : undefined}
                     >
                       删除
                     </button>

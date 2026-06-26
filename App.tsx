@@ -98,9 +98,13 @@ const AppShell: React.FC = () => {
   const [activeCfgDbVulnTaskId, setActiveCfgDbVulnTaskId] = useState<string>('');
   const [activeFirmwareUnpackerTaskId, setActiveFirmwareUnpackerTaskId] = useState<string>('');
   const [activeBinarySecurityTaskId, setActiveBinarySecurityTaskId] = useState<string>('');
+  const [activeBinarySecurityTaskProjectId, setActiveBinarySecurityTaskProjectId] = useState<string>('');
   const [activeSourceSecurityTaskId, setActiveSourceSecurityTaskId] = useState<string>('');
+  const [activeSourceSecurityTaskProjectId, setActiveSourceSecurityTaskProjectId] = useState<string>('');
   const [activeKgSourceSecurityTaskId, setActiveKgSourceSecurityTaskId] = useState<string>('');
+  const [activeKgSourceSecurityTaskProjectId, setActiveKgSourceSecurityTaskProjectId] = useState<string>('');
   const [activeBinaryModuleSecurityTaskId, setActiveBinaryModuleSecurityTaskId] = useState<string>('');
+  const [activeBinaryModuleSecurityTaskProjectId, setActiveBinaryModuleSecurityTaskProjectId] = useState<string>('');
   const [activeAppScanTaskId, setActiveAppScanTaskId] = useState<string>('');
   const [activeRedlineTaskId, setActiveRedlineTaskId] = useState<string>('');
   const [activeTaskCenterTimelineTaskId, setActiveTaskCenterTimelineTaskId] = useState<string>('');
@@ -798,9 +802,13 @@ const AppShell: React.FC = () => {
                     activeCfgDbVulnTaskId,
                     activeFirmwareUnpackerTaskId,
                     activeBinarySecurityTaskId,
+                    activeBinarySecurityTaskProjectId,
                     activeSourceSecurityTaskId,
+                    activeSourceSecurityTaskProjectId,
                     activeKgSourceSecurityTaskId,
+                    activeKgSourceSecurityTaskProjectId,
                     activeBinaryModuleSecurityTaskId,
+                    activeBinaryModuleSecurityTaskProjectId,
                     activeTaskCenterTimelineTaskId,
                     activeTaskVulnListTaskId,
                     activeVulnIntakeTaskFilter,
@@ -829,9 +837,13 @@ const AppShell: React.FC = () => {
                     setActiveCfgDbVulnTaskId: (id) => setActiveCfgDbVulnTaskId(id),
                     setActiveFirmwareUnpackerTaskId: (id) => setActiveFirmwareUnpackerTaskId(id),
                     setActiveBinarySecurityTaskId: (id) => setActiveBinarySecurityTaskId(id),
+                    setActiveBinarySecurityTaskProjectId: (id) => setActiveBinarySecurityTaskProjectId(id),
                     setActiveSourceSecurityTaskId: (id) => setActiveSourceSecurityTaskId(id),
+                    setActiveSourceSecurityTaskProjectId: (id) => setActiveSourceSecurityTaskProjectId(id),
                     setActiveKgSourceSecurityTaskId: (id) => setActiveKgSourceSecurityTaskId(id),
+                    setActiveKgSourceSecurityTaskProjectId: (id) => setActiveKgSourceSecurityTaskProjectId(id),
                     setActiveBinaryModuleSecurityTaskId: (id) => setActiveBinaryModuleSecurityTaskId(id),
+                    setActiveBinaryModuleSecurityTaskProjectId: (id) => setActiveBinaryModuleSecurityTaskProjectId(id),
                     activeAppScanTaskId,
                     setActiveAppScanTaskId: (id) => setActiveAppScanTaskId(id),
                     setActiveRedlineTaskId: (id) => setActiveRedlineTaskId(id),

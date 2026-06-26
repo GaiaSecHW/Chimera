@@ -158,9 +158,13 @@ export interface ViewRegistryContext {
   activeCfgDbVulnTaskId: string;
   activeFirmwareUnpackerTaskId: string;
   activeBinarySecurityTaskId: string;
+  activeBinarySecurityTaskProjectId: string;
   activeSourceSecurityTaskId: string;
+  activeSourceSecurityTaskProjectId: string;
   activeKgSourceSecurityTaskId: string;
+  activeKgSourceSecurityTaskProjectId: string;
   activeBinaryModuleSecurityTaskId: string;
+  activeBinaryModuleSecurityTaskProjectId: string;
   activeAppScanTaskId: string;
   activeRedlineTaskId: string;
   activeTaskCenterTimelineTaskId: string;
@@ -191,9 +195,13 @@ export interface ViewRegistryContext {
   setActiveCfgDbVulnTaskId: (id: string) => void;
   setActiveFirmwareUnpackerTaskId: (id: string) => void;
   setActiveBinarySecurityTaskId: (id: string) => void;
+  setActiveBinarySecurityTaskProjectId: (id: string) => void;
   setActiveSourceSecurityTaskId: (id: string) => void;
+  setActiveSourceSecurityTaskProjectId: (id: string) => void;
   setActiveKgSourceSecurityTaskId: (id: string) => void;
+  setActiveKgSourceSecurityTaskProjectId: (id: string) => void;
   setActiveBinaryModuleSecurityTaskId: (id: string) => void;
+  setActiveBinaryModuleSecurityTaskProjectId: (id: string) => void;
   setActiveAppScanTaskId: (id: string) => void;
   setActiveRedlineTaskId: (id: string) => void;
   setActiveTaskCenterTimelineTaskId: (id: string) => void;
@@ -640,8 +648,9 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         <BinarySecurityOverviewPage
           projectId={ctx.selectedProjectId}
           taskType="binary"
-          onOpenTask={(taskId) => {
+          onOpenTask={({ taskId, projectId }) => {
             ctx.setActiveBinarySecurityTaskId(taskId);
+            ctx.setActiveBinarySecurityTaskProjectId(projectId);
             ctx.setCurrentView('binary-security-detail');
           }}
         />
@@ -652,8 +661,9 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           <BinarySecurityOverviewPage
             projectId={ctx.selectedProjectId}
             taskType="binary"
-            onOpenTask={(taskId) => {
+            onOpenTask={({ taskId, projectId }) => {
               ctx.setActiveBinarySecurityTaskId(taskId);
+              ctx.setActiveBinarySecurityTaskProjectId(projectId);
               ctx.setCurrentView('binary-security-detail');
             }}
           />
@@ -661,7 +671,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       }
       return (
         <BinarySecurityTaskDetailPage
-          projectId={ctx.selectedProjectId}
+          projectId={ctx.activeBinarySecurityTaskProjectId || ctx.selectedProjectId}
           taskId={ctx.activeBinarySecurityTaskId}
           taskType="binary"
           onBack={() => ctx.setCurrentView(consumeTaskCenterReturnContext() ? 'task-list' : 'binary-security')}
@@ -673,8 +683,9 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           projectId={ctx.selectedProjectId}
           taskType="source"
           sourcePipelineProfileMode="default"
-          onOpenTask={(taskId) => {
+          onOpenTask={({ taskId, projectId }) => {
             ctx.setActiveSourceSecurityTaskId(taskId);
+            ctx.setActiveSourceSecurityTaskProjectId(projectId);
             ctx.setCurrentView('source-security-detail');
           }}
         />
@@ -686,8 +697,9 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
             projectId={ctx.selectedProjectId}
             taskType="source"
             sourcePipelineProfileMode="default"
-            onOpenTask={(taskId) => {
+            onOpenTask={({ taskId, projectId }) => {
               ctx.setActiveSourceSecurityTaskId(taskId);
+              ctx.setActiveSourceSecurityTaskProjectId(projectId);
               ctx.setCurrentView('source-security-detail');
             }}
           />
@@ -695,7 +707,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       }
       return (
         <BinarySecurityTaskDetailPage
-          projectId={ctx.selectedProjectId}
+          projectId={ctx.activeSourceSecurityTaskProjectId || ctx.selectedProjectId}
           taskId={ctx.activeSourceSecurityTaskId}
           taskType="source"
           onBack={() => ctx.setCurrentView(consumeTaskCenterReturnContext() ? 'task-list' : 'source-security')}
@@ -707,8 +719,9 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           projectId={ctx.selectedProjectId}
           taskType="source"
           sourcePipelineProfileMode="kg_source_vuln_scan"
-          onOpenTask={(taskId) => {
+          onOpenTask={({ taskId, projectId }) => {
             ctx.setActiveKgSourceSecurityTaskId(taskId);
+            ctx.setActiveKgSourceSecurityTaskProjectId(projectId);
             ctx.setCurrentView('kg-source-security-detail');
           }}
         />
@@ -720,8 +733,9 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
             projectId={ctx.selectedProjectId}
             taskType="source"
             sourcePipelineProfileMode="kg_source_vuln_scan"
-            onOpenTask={(taskId) => {
+            onOpenTask={({ taskId, projectId }) => {
               ctx.setActiveKgSourceSecurityTaskId(taskId);
+              ctx.setActiveKgSourceSecurityTaskProjectId(projectId);
               ctx.setCurrentView('kg-source-security-detail');
             }}
           />
@@ -729,7 +743,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       }
       return (
         <BinarySecurityTaskDetailPage
-          projectId={ctx.selectedProjectId}
+          projectId={ctx.activeKgSourceSecurityTaskProjectId || ctx.selectedProjectId}
           taskId={ctx.activeKgSourceSecurityTaskId}
           taskType="source"
           onBack={() => ctx.setCurrentView(consumeTaskCenterReturnContext() ? 'task-list' : 'kg-source-security')}
@@ -740,8 +754,9 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         <BinarySecurityOverviewPage
           projectId={ctx.selectedProjectId}
           taskType="binary_module"
-          onOpenTask={(taskId) => {
+          onOpenTask={({ taskId, projectId }) => {
             ctx.setActiveBinaryModuleSecurityTaskId(taskId);
+            ctx.setActiveBinaryModuleSecurityTaskProjectId(projectId);
             ctx.setCurrentView('binary-module-security-detail');
           }}
         />
@@ -752,8 +767,9 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           <BinarySecurityOverviewPage
             projectId={ctx.selectedProjectId}
             taskType="binary_module"
-            onOpenTask={(taskId) => {
+            onOpenTask={({ taskId, projectId }) => {
               ctx.setActiveBinaryModuleSecurityTaskId(taskId);
+              ctx.setActiveBinaryModuleSecurityTaskProjectId(projectId);
               ctx.setCurrentView('binary-module-security-detail');
             }}
           />
@@ -761,7 +777,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       }
       return (
         <BinarySecurityTaskDetailPage
-          projectId={ctx.selectedProjectId}
+          projectId={ctx.activeBinaryModuleSecurityTaskProjectId || ctx.selectedProjectId}
           taskId={ctx.activeBinaryModuleSecurityTaskId}
           taskType="binary_module"
           onBack={() => ctx.setCurrentView(consumeTaskCenterReturnContext() ? 'task-list' : 'binary-module-security')}
