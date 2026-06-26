@@ -33,7 +33,7 @@
 | 8 | 任务闸门契约 | 创建任务请求体显式带 `tool_id` |
 | 9 | 健康探测 | AgentManage 内置探测(单一真相源) |
 | 10 | 版本治理 | 轻治理:`current_version` 指针 + 升版不重审,任务表不关注版本 |
-| 11 | 数据建模 | 类表继承:`tool` 父表 + `tool_microservice` 子表;agent 一对一,复用 `agent_app` 加 `tool_id` 列回指,不另建关联表 |
+| 11 | 数据建模 | 类表继承:`tool` 父表仅准生证核心(11字段);前端入口/版本/健康全下沉 `tool_microservice` 与 `agent_app`(加列),菜单查询用 UNION |
 
 ## 设计 1:整体架构与定位
 
@@ -49,7 +49,7 @@ AgentManage 升级为全平台**唯一**的「工具注册中心」,既是系统
 边界(全部收敛进 AgentManage):
 - 工具档案 + 准生证状态(慢变、需审批历史)→ 持久化在 MySQL
 - 菜单可见性 → 完全由准生证状态(status=online)决定
-- 微服务工具健康 → AgentManage 后台调度器按 `tool_microservice.health_path` 定时探活,结果写回 `tool.health_status`
+- 微服务工具健康 → AgentManage 后台调度器按 `tool_microservice.health_path` 定时探活,结果写回 `tool_microservice.health_status`
 - 前端「工具」页 → 只调 AgentManage:一个接口同时拿到档案、状态、健康
 
 ### 菜单可见性规则
@@ -63,100 +63,115 @@ AgentManage 升级为全平台**唯一**的「工具注册中心」,既是系统
 
 结论:菜单可见性完全由准生证决定。这正是「只有注册并审核上线后才能开放给用户」诉求的落地点。
 
-## 设计 2:数据模型(类表继承)
+## 设计 2:数据模型(类表继承,父表只留准生证核心)
 
-采用**类表继承**:一张父表 `tool` 存所有工具类型共享的治理层(准生证/审核/菜单/版本/健康),实现细节按 `kind` 分流。这样解决两个问题:(1)父表窄而稳定,不被某一类工具的字段撑大,也不会出现大片 NULL;(2)各类工具的特有字段各归各处,互不干扰。
+采用**类表继承**:父表 `tool` 只保留**所有工具类型共有的准生证核心**(身份 + 审核状态),其余一切"工具属性"(前端入口、版本、健康)全部下沉到各自的实现表。父表因此极窄、极稳定:它就是一张"准生证登记簿",gate 校验只读它的 `status`。
 
-两类工具的实现细节挂法不同:
-- **微服务** → 新建 `tool_microservice` 子表(部署/探活信息),`tool_id` 1:1。
-- **agent** → 一个 agent 一对一只有一个工具,故**不另建关联表**,直接给现有 `agent_app` 加一列 `tool_id` 回指父表;engine/harness 等字段原样复用,不复制。
+两类工具的属性挂法:
+- **微服务** → `tool_microservice` 子表,承载部署/探活 + 前端入口 + 版本 + 健康。
+- **agent** → 一对一,复用现有 `agent_app`,加 `tool_id` 回指 + 前端入口/版本展示列;engine/harness 等原样复用。
 
 ```
-          tool (父表 / 共享治理层)
-          id, name, kind, status, 审核轨迹,
-          view_id/icon/menu_group/order, catalog,
-          current_version, health_status, ...
+              tool (父表 / 仅准生证核心)
+              id, name, kind, status, is_builtin,
+              submitted_by/reviewed_by/review_note/reviewed_at,
+              created_at, updated_at
                         ▲
             ┌───────────┴────────────┐
             │ 1:1 (by tool_id)        │ 1:1 (agent_app.tool_id 回指)
             ▼                         │
-   tool_microservice          agent_app (现有表, 加 tool_id 列)
+   tool_microservice          agent_app (现有表 + 注册列)
    tool_id (PK/FK)            tool_id (FK→tool, nullable)
-   namespace/deployment       engine/harness/start_command... (原样复用)
-   api_prefix/health_path
+   namespace/deployment       view_id/icon/menu_group/order/catalog
+   api_prefix/health_path     current_version
+   view_id/icon/menu_group    (engine/harness/start_command 原样复用)
+   /order/catalog
+   current_version
+   health_status/last_health_check
 ```
 
-`kind` 告诉应用层去哪取实现细节:`microservice` join `tool_microservice`,`agent` join `agent_app`(按 `tool_id`)。一对一建模:盖亚固件/源码/模块 = `tool` 三行 + `tool_microservice` 三行,`namespace/deployment` 相同但 `view_id`+`catalog` 不同。
+**菜单查询变 UNION**(下沉的代价,已接受):前端拉菜单需合并两类——
+```sql
+SELECT t.id,t.name,m.view_id,m.icon,m.menu_group,m.`order`,m.catalog,m.health_status
+  FROM tool t JOIN tool_microservice m ON m.tool_id=t.id
+  WHERE t.status='online'
+UNION ALL
+SELECT t.id,t.name,a.view_id,a.icon,a.menu_group,a.`order`,a.catalog,'unknown'
+  FROM tool t JOIN agent_app a ON a.tool_id=t.id
+  WHERE t.status='online';
+```
+由 AgentManage 的 `GET /api/tools` 封装,前端无感知。
 
-### 父表:`tool`(共享治理层)
+`kind` 决定取属性的来源。一对一建模:盖亚固件/源码/模块 = `tool` 三行 + `tool_microservice` 三行,`namespace/deployment` 相同但 `view_id`+`catalog` 不同。
+
+### 父表:`tool`(仅准生证核心,11 字段)
 
 ```sql
 CREATE TABLE `tool` (
-  `id`                VARCHAR(36)  NOT NULL COMMENT '工具ID,如 binary-security',
-  `name`              VARCHAR(255) NOT NULL COMMENT '工具显示名',
-  `kind`              VARCHAR(20)  NOT NULL COMMENT '载体类型: microservice / agent',
-
-  -- 治理层
-  `status`            VARCHAR(20)  NOT NULL DEFAULT 'draft'
-                      COMMENT '准生证状态: draft/pending/online/offline',
-  `is_builtin`        TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '是否内置种子工具',
-  `submitted_by`      VARCHAR(64)  NULL COMMENT '提交人',
-  `reviewed_by`       VARCHAR(64)  NULL COMMENT '审核人',
-  `review_note`       TEXT         NULL COMMENT '审核意见/驳回原因',
-  `reviewed_at`       DATETIME     NULL COMMENT '审核时间',
-
-  -- 前端入口层
-  `view_id`           VARCHAR(128) NOT NULL COMMENT '前端路由 view',
-  `icon`              VARCHAR(64)  NULL COMMENT '图标名',
-  `menu_group`        VARCHAR(64)  NULL COMMENT '所属菜单分组,如 开发者工具',
-  `order`             INT          NOT NULL DEFAULT 0 COMMENT '菜单排序',
-  `catalog`           JSON         NULL COMMENT '总览页元数据 summary/tags/usageSections',
-
-  -- 版本(轻治理,见下)
-  `current_version`   VARCHAR(128) NULL COMMENT '当前上线版本: 镜像tag/commit,升版直接覆盖',
-
-  -- 健康(由内置探测器写回)
-  `health_status`     VARCHAR(20)  NOT NULL DEFAULT 'unknown'
-                      COMMENT 'healthy / unhealthy / unknown',
-  `last_health_check` DATETIME     NULL COMMENT '最近一次探活时间',
-
-  `created_at`        DATETIME     NOT NULL,
-  `updated_at`        DATETIME     NOT NULL,
-
+  `id`           VARCHAR(36)  NOT NULL COMMENT '工具ID,如 binary-security',
+  `name`         VARCHAR(255) NOT NULL COMMENT '工具显示名(审核列表/全局标识用)',
+  `kind`         VARCHAR(20)  NOT NULL COMMENT '载体类型: microservice / agent',
+  `status`       VARCHAR(20)  NOT NULL DEFAULT 'draft'
+                 COMMENT '准生证状态: draft/pending/online/offline',
+  `is_builtin`   TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '是否内置种子工具',
+  `submitted_by` VARCHAR(64)  NULL COMMENT '提交人',
+  `reviewed_by`  VARCHAR(64)  NULL COMMENT '审核人',
+  `review_note`  TEXT         NULL COMMENT '审核意见/驳回原因',
+  `reviewed_at`  DATETIME     NULL COMMENT '审核时间',
+  `created_at`   DATETIME     NOT NULL,
+  `updated_at`   DATETIME     NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_status`      (`status`),
-  KEY `idx_kind`        (`kind`),
-  KEY `idx_menu_group`  (`menu_group`, `order`)
+  KEY `idx_status` (`status`),
+  KEY `idx_kind`   (`kind`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='工具注册中心父表:所有工具类型共享的准生证/菜单/健康治理层';
+  COMMENT='工具注册中心父表:仅准生证核心(身份+审核状态),gate 只读 status';
 ```
 
-### 子表:`tool_microservice`(微服务特有)
+### 子表:`tool_microservice`(微服务全部属性)
 
 ```sql
 CREATE TABLE `tool_microservice` (
-  `tool_id`      VARCHAR(36)  NOT NULL COMMENT '主键兼外键 → tool.id',
-  `namespace`    VARCHAR(64)  NOT NULL COMMENT 'K8s 命名空间,如 secflow-ns',
-  `deployment`   VARCHAR(128) NOT NULL COMMENT 'K8s deployment 名',
-  `api_prefix`   VARCHAR(255) NOT NULL COMMENT 'API 前缀,如 /api/binary-security',
-  `health_path`  VARCHAR(255) NOT NULL COMMENT '健康检查路径,内置探测器据此探活',
+  `tool_id`           VARCHAR(36)  NOT NULL COMMENT '主键兼外键 → tool.id',
+  -- 部署 / 探活
+  `namespace`         VARCHAR(64)  NOT NULL COMMENT 'K8s 命名空间',
+  `deployment`        VARCHAR(128) NOT NULL COMMENT 'K8s deployment 名',
+  `api_prefix`        VARCHAR(255) NOT NULL COMMENT 'API 前缀',
+  `health_path`       VARCHAR(255) NOT NULL COMMENT '健康检查路径',
+  -- 前端入口
+  `view_id`           VARCHAR(128) NOT NULL COMMENT '前端路由 view',
+  `icon`              VARCHAR(64)  NULL COMMENT '图标名',
+  `menu_group`        VARCHAR(64)  NULL COMMENT '所属菜单分组',
+  `order`             INT          NOT NULL DEFAULT 0 COMMENT '菜单排序',
+  `catalog`           JSON         NULL COMMENT '总览页元数据 summary/tags/usageSections',
+  -- 版本 / 健康
+  `current_version`   VARCHAR(128) NULL COMMENT '当前上线版本(镜像tag),升版直接覆盖',
+  `health_status`     VARCHAR(20)  NOT NULL DEFAULT 'unknown' COMMENT 'healthy/unhealthy/unknown',
+  `last_health_check` DATETIME     NULL COMMENT '最近一次探活时间',
   PRIMARY KEY (`tool_id`),
+  KEY `idx_tms_menu` (`menu_group`, `order`),
   CONSTRAINT `fk_tms_tool` FOREIGN KEY (`tool_id`) REFERENCES `tool`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='微服务类工具的部署与探活信息';
+  COMMENT='微服务类工具的全部属性:部署/探活/前端入口/版本/健康';
 ```
 
-### agent 子类型:复用 `agent_app`(加一列回指)
+### agent 子类型:复用 `agent_app`(加注册 + 展示列)
 
-agent 与工具一对一,无需独立关联表。给现有 `agent_app` 加一列 `tool_id`:
+agent 与工具一对一,不另建表。给现有 `agent_app` 加回指列与前端入口/版本列:
 
 ```sql
 ALTER TABLE `agent_app`
-  ADD COLUMN `tool_id` VARCHAR(36) NULL
-    COMMENT '回指 tool.id;NULL=已上传但未注册为平台工具,有值=已注册',
+  ADD COLUMN `tool_id`         VARCHAR(36)  NULL COMMENT '回指 tool.id;NULL=未注册为工具',
+  ADD COLUMN `view_id`         VARCHAR(128) NULL COMMENT '前端路由 view',
+  ADD COLUMN `icon`            VARCHAR(64)  NULL COMMENT '图标名',
+  ADD COLUMN `menu_group`      VARCHAR(64)  NULL COMMENT '所属菜单分组',
+  ADD COLUMN `order`           INT          NULL DEFAULT 0 COMMENT '菜单排序',
+  ADD COLUMN `catalog`         JSON         NULL COMMENT '总览页元数据',
+  ADD COLUMN `current_version` VARCHAR(128) NULL COMMENT '当前上线版本(commit)',
   ADD CONSTRAINT `fk_agent_app_tool`
     FOREIGN KEY (`tool_id`) REFERENCES `tool`(`id`) ON DELETE SET NULL;
 ```
+
+> 全部为可空新增列,不改 `agent_app` 现有字段与数据。agent 不参与微服务探活,菜单 UNION 时健康恒为 `unknown`,故 `agent_app` 不加健康列。`engine/agent_harness_path/start_command` 等原样复用。`ON DELETE SET NULL`:删工具时 agent 退回未注册。
 
 > 仅新增一个可空列 + 外键,不改 `agent_app` 任何现有字段、不动现有数据(低风险)。engine/harness/start_command 等 16 个字段原样复用,无复制。`ON DELETE SET NULL`:删工具时把 agent_app 退回"未注册"状态,保留 agent 本身。`tool_id` 唯一性(一个 agent 只对一个工具)由应用层保证,或加唯一索引 `UNIQUE KEY uk_tool_id (tool_id)`(忽略多个 NULL)。
 
@@ -170,32 +185,29 @@ ALTER TABLE `agent_app`
 | `status` | varchar(20) | 准生证状态机:`draft→pending→online→offline` |
 | `is_builtin` | tinyint(1) | 内置种子工具,迁移时直接 online,闸门兜底 fail-open |
 | `submitted_by`/`reviewed_by`/`review_note`/`reviewed_at` | — | 审核轨迹 |
-| `view_id` | varchar(128) | 前端路由 view,取代 `navigation.tsx` 硬编码 |
-| `icon`/`menu_group`/`order` | — | 菜单渲染元数据,取代 `navigation.tsx` 硬编码 |
-| `catalog` | json | 总览页卡片元数据,取代 `toolCatalog.ts` 硬编码 |
-| `current_version` | varchar(128) | 当前上线版本(镜像 tag / commit),升版直接覆盖 |
-| `health_status`/`last_health_check` | — | 由内置探测器(设计 3)维护,前端直接读 |
+
+> 前端入口(`view_id/icon/menu_group/order/catalog`)、版本(`current_version`)、健康(`health_status/last_health_check`)均**不在父表**,已下沉到 `tool_microservice` / `agent_app`。父表只剩 11 个准生证核心字段。
 
 ### 关联与约束
 
 - `tool_microservice.tool_id` 既是主键也是指向 `tool.id` 的外键(1:1),`ON DELETE CASCADE`:删工具自动清子表。
 - `agent_app.tool_id` → `tool.id`(nullable),`ON DELETE SET NULL`:删工具时 agent_app 退回未注册,保留 agent 本身。
-- `kind` 决定实现细节归属由应用层保证:`kind=microservice` 必有 `tool_microservice` 行;`kind=agent` 必有一个 `agent_app` 行的 `tool_id` 指向它。
-- agent 与工具一对一:`agent_app` 的 `engine/harness/start_command` 等字段原样复用,不复制;`agent_app` 仅新增一个可空列,现有字段与数据不动。
-- 一个 agent 可被注册为工具(`tool_id` 有值),也可未注册(`tool_id` 为 NULL)。
-- 种子迁移:9 个系统工具 `kind='microservice', is_builtin=1, status='online'` 灌入 `tool`,对应部署信息灌入 `tool_microservice`,`catalog` 取自 `toolCatalog.ts`。
+- `kind` 决定属性归属由应用层保证:`kind=microservice` 必有 `tool_microservice` 行;`kind=agent` 必有一个 `agent_app` 行的 `tool_id` 指向它。
+- 前端入口/版本字段在两张实现表里各存一份(列名相同),菜单查询用 UNION 合并(见设计 2 开头)。
+- agent 一对一:`agent_app` 仅新增可空列,现有字段与数据不动;`engine/harness/start_command` 原样复用。
+- 种子迁移:9 个系统工具 `kind='microservice', is_builtin=1, status='online'` 灌入 `tool`,部署+入口+版本灌入 `tool_microservice`,`catalog` 取自 `toolCatalog.ts`。
 
 要点:
-- `catalog` 吃掉 `toolCatalog.ts` 的 summary/tags/usageSections。
-- `view_id/icon/menu_group/order` 吃掉 `navigation.tsx` 的硬编码菜单项。
-- 闸门只校验注册有效性(`status='online'`),不做分能力授权:工具一旦上线,默认即可创建任务/上报漏洞/取密钥。闸门目的是防绕过(见设计 4),不是限权。
-- `health_status/last_health_check` 由内置探测器(设计 3)维护,前端直接读。
+- 父表 `tool` = 纯准生证登记簿,gate 只读 `status`。
+- 前端入口/版本/健康下沉实现表,父表不随工具类型增多而变宽。
+- `catalog` 吃掉 `toolCatalog.ts`、`view_id/icon/menu_group/order` 吃掉 `navigation.tsx` 硬编码(存于实现表)。
+- 闸门只校验注册有效性(`status='online'`),不做分能力授权。闸门目的是防绕过(见设计 4),不是限权。
 
 ### 版本管理(轻治理:升版不重审)
 
 工具的版本来自底层载体:微服务=镜像 tag(`YYYYMMDD-HHMMSS-<sha>`),agent=gitea commit。版本语义遵循以下原则:
 
-- **准生证发给工具,不发给版本**。`tool` 始终单条记录,`current_version` 是指向"当前上线版本"的指针。
+- **准生证发给工具,不发给版本**。`tool` 父表每工具单行,`current_version`(在实现表 `tool_microservice` / `agent_app`)是指向"当前上线版本"的指针。
 - **升版 = 覆盖 `current_version`,工具保持 online,不触发重新审核**。开发者迭代顺畅,版本质量由工具 owner 自行把关。
 - **不建独立 `tool_version` 留痕表**。要追溯历史版本,K8s 滚更记录与 gitea commit history 自带,无需在注册中心复制一份。
 - **任务表/漏洞表不关注工具版本**。任务只需通过 `tool_id`(现有 `task_type`/`agent_app_id`)识别到工具即可;工具当前是 v1 还是 v2 是 `tool` 表自己的状态,不向数据层泄漏。版本对数据层零侵入:工具升版,历史任务/漏洞的关联不受任何影响,用户访问工具时自然命中最新版。
@@ -219,12 +231,12 @@ ALTER TABLE `agent_app`
 ### 内置健康探测
 
 AgentManage 后台起一个定时调度器(NestJS `@Interval` 或 cron):
-- 周期(如 30s)遍历所有 `kind=microservice && status=online` 的工具(join `tool_microservice`)
+- 周期(如 30s)遍历所有 `tool_microservice`(对应 `tool.status=online`)
 - 按 `tool_microservice.api_prefix + health_path` 发起 HTTP 探活,超时/非 2xx 记一次失败
-- 连续失败达阈值(如 2 次)置 `health_status=unhealthy`,成功置 `healthy`,写回 `tool.health_status`
-- `kind=agent` 工具不参与微服务探活(健康语义不同,MVP 不探,`health_status=unknown`)
+- 连续失败达阈值(如 2 次)置 `health_status=unhealthy`,成功置 `healthy`,写回 `tool_microservice.health_status`
+- agent 工具不参与微服务探活(健康语义不同,MVP 不探,菜单 UNION 时恒为 `unknown`)
 
-前端直接读 `tool.health_status`,无需再调任何其它后端。
+前端直接读列表返回里的 `health_status`,无需再调任何其它后端。
 
 ### REST API(`/api/tools`)
 
@@ -285,7 +297,7 @@ MVP 范围:
 迁移步骤(顺序,可回滚):
 
 ```
-1. AgentManage: 建 tool + tool_microservice 两表 + ALTER agent_app 加 tool_id → 验证: 表结构存在
+1. AgentManage: 建 tool + tool_microservice 两表 + ALTER agent_app 加注册/展示列 → 验证: 表结构存在
 2. 种子 migration: 9个系统工具灌入 tool(online/builtin) + tool_microservice → 验证: GET /api/tools 返回9条
 3. AgentManage: /api/tools CRUD + 状态机 + gate   → 验证: gate 对 online 返 allowed
 4. AgentManage: 内置健康探测调度器               → 验证: online 微服务工具 healthStatus 被刷新
