@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Check, CheckCircle2, CircleHelp, Clock3, Loader2, Minus, PanelRightClose, RefreshCw, RotateCcw, Search, X } from 'lucide-react';
 import { vulnVerifyV2Api, VulnVerifyV2Attempt, VulnVerifyV2ProjectStats, VulnVerifyV2Result, VulnVerifyV2Task, VulnVerifyV2TaskDetail } from '../../clients/vulnVerifyV2';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
@@ -6,6 +6,7 @@ import { PageHeader } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
 
 const PAGE_SIZE_OPTIONS = [50, 100, 200] as const;
+const CANCELLABLE_TASK_STATUSES = new Set(['pending', 'running']);
 
 // 隐藏的开发者模式：首次点击 v2 胶囊后的 2 秒内连续点击 7 次切换；纯内存态，刷新即关闭；触发成功时一次性提示。
 function useDevMode() {
@@ -319,6 +320,8 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
   const [detail, setDetail] = useState<VulnVerifyV2TaskDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [selectedCancelTaskIds, setSelectedCancelTaskIds] = useState<string[]>([]);
+  const [batchCancelling, setBatchCancelling] = useState(false);
   const detailScrollRef = useRef<HTMLDivElement | null>(null);
   const closeDetailTimerRef = useRef<number | null>(null);
 
@@ -327,6 +330,10 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const pageStart = total === 0 ? 0 : offset + 1;
   const pageEnd = total === 0 ? 0 : Math.min(total, offset + tasks.length);
   const resultFilterValue = resultFilter;
+  const cancellableTaskIds = useMemo(() => tasks.filter((task) => CANCELLABLE_TASK_STATUSES.has(String(task.status || ''))).map((task) => task.id), [tasks]);
+  const selectedCancelTaskIdSet = useMemo(() => new Set(selectedCancelTaskIds), [selectedCancelTaskIds]);
+  const selectedCancellableTaskIds = useMemo(() => selectedCancelTaskIds.filter((id) => cancellableTaskIds.includes(id)), [cancellableTaskIds, selectedCancelTaskIds]);
+  const allCancellableTasksSelected = cancellableTaskIds.length > 0 && cancellableTaskIds.every((id) => selectedCancelTaskIdSet.has(id));
 
   const handleResultFilterChange = useCallback((value: string) => {
     setPage(1);
@@ -381,6 +388,15 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   }, [projectId, resultFilter, statusFilter, verdictFilter, search, perPage, offset]);
 
   useEffect(() => { void loadOverview(); }, [loadOverview]);
+
+  useEffect(() => {
+    if (!devMode) {
+      setSelectedCancelTaskIds([]);
+      return;
+    }
+    const cancellableIds = new Set(cancellableTaskIds);
+    setSelectedCancelTaskIds((prev) => prev.filter((id) => cancellableIds.has(id)));
+  }, [cancellableTaskIds, devMode]);
 
   useEffect(() => {
     if (!selectedTaskId) {
@@ -451,6 +467,42 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
       notify(e?.message || String(e), 'error', '重新执行失败');
     }
   }, [projectId, loadOverview, loadDetail, selectedTaskId, notify]);
+
+  const toggleCancelSelection = useCallback((taskId: string) => {
+    setSelectedCancelTaskIds((prev) => prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]);
+  }, []);
+
+  const toggleAllCancellableSelections = useCallback(() => {
+    setSelectedCancelTaskIds((prev) => {
+      const prevSet = new Set(prev);
+      const allSelected = cancellableTaskIds.length > 0 && cancellableTaskIds.every((id) => prevSet.has(id));
+      if (allSelected) return prev.filter((id) => !cancellableTaskIds.includes(id));
+      const next = new Set(prev);
+      cancellableTaskIds.forEach((id) => next.add(id));
+      return Array.from(next);
+    });
+  }, [cancellableTaskIds]);
+
+  const handleBatchCancelTasks = useCallback(async () => {
+    const taskIds = selectedCancellableTaskIds;
+    if (!taskIds.length) return;
+    if (!window.confirm(`确认取消选中的 ${taskIds.length} 个任务？`)) return;
+    setBatchCancelling(true);
+    try {
+      const results = await Promise.allSettled(taskIds.map((taskId) => vulnVerifyV2Api.terminateTask(projectId, taskId)));
+      const successCount = results.filter((result) => result.status === 'fulfilled').length;
+      const failedCount = results.length - successCount;
+      if (successCount) notify(`已取消 ${successCount} 个任务`, 'success');
+      if (failedCount) notify(`${failedCount} 个任务取消失败`, 'error', '批量取消未完全成功');
+      setSelectedCancelTaskIds([]);
+      await loadOverview();
+      if (selectedTaskId && taskIds.includes(selectedTaskId)) await loadDetail(selectedTaskId);
+    } catch (e: any) {
+      notify(e?.message || String(e), 'error', '批量取消失败');
+    } finally {
+      setBatchCancelling(false);
+    }
+  }, [loadDetail, loadOverview, notify, projectId, selectedCancellableTaskIds, selectedTaskId]);
 
   const confirmedVulns = Number(stats?.confirmed ?? 0);
   const ruledOutVulns = Number(stats?.ruled_out ?? 0);
@@ -537,10 +589,27 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                 >
                   <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                 </button>
+                {devMode ? (
+                  <button
+                    type="button"
+                    disabled={!selectedCancellableTaskIds.length || batchCancelling}
+                    onClick={() => void handleBatchCancelTasks()}
+                    className="inline-flex h-9 shrink-0 items-center rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 text-sm font-medium text-rose-300 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-40"
+                    title="取消选中的等待中/执行中任务"
+                  >
+                    {batchCancelling ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : null}
+                    取消选中任务{selectedCancellableTaskIds.length ? ` (${selectedCancellableTaskIds.length})` : ''}
+                  </button>
+                ) : null}
               </div>
 
             <div className="overflow-hidden bg-theme-surface">
-              <div className="hidden border-b border-theme-border bg-theme-elevated/80 px-4 py-3 text-xs font-medium text-theme-text-muted lg:grid lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px] lg:gap-4">
+              <div className={`hidden border-b border-theme-border bg-theme-elevated/80 px-4 py-3 text-xs font-medium text-theme-text-muted lg:grid ${devMode ? 'lg:grid-cols-[32px_minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px]' : 'lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px]'} lg:gap-4`}>
+                {devMode ? (
+                  <label className="flex items-center justify-center" title="选择当前页可取消任务">
+                    <input type="checkbox" checked={allCancellableTasksSelected} disabled={!cancellableTaskIds.length} onChange={toggleAllCancellableSelections} className="h-4 w-4 rounded border-theme-border bg-theme-surface" />
+                  </label>
+                ) : null}
                 <div>漏洞标题 / ID</div>
                 <div className="text-center">验证结果</div>
                 <div className="lg:pl-5">判定依据</div>
@@ -551,14 +620,34 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   const runtime = task.runtime;
                   const isSel = selectedTaskId === task.id;
                   const showRuntime = task.verdict === 'confirmed' || task.verdict === 'ruled_out' || task.verdict === 'unresolved';
+                  const canCancelTask = CANCELLABLE_TASK_STATUSES.has(String(task.status || ''));
+                  const isCancelSelected = selectedCancelTaskIdSet.has(task.id);
                   return (
-                    <button
+                    <div
                       key={task.id}
-                      type="button"
+                      role="button"
+                      tabIndex={0}
                       onClick={() => void loadDetail(task.id)}
-                      className={`group relative grid w-full cursor-pointer gap-2 px-4 py-4 text-left transition-colors hover:bg-blue-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px] lg:items-center lg:gap-4 ${isSel ? 'bg-blue-500/15' : ''}`.trim()}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          void loadDetail(task.id);
+                        }
+                      }}
+                      className={`group relative grid w-full cursor-pointer gap-2 px-4 py-4 text-left transition-colors hover:bg-blue-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${devMode ? 'lg:grid-cols-[32px_minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px]' : 'lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px]'} lg:items-center lg:gap-4 ${isSel ? 'bg-blue-500/15' : ''}`.trim()}
                     >
                       <span aria-hidden="true" className={`absolute bottom-0 left-0 top-0 w-1 bg-blue-600 transition-opacity ${isSel ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
+                      {devMode ? (
+                        <label className="flex items-center lg:justify-center" title={canCancelTask ? '选择取消任务' : '仅等待中/执行中任务可取消'} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isCancelSelected}
+                            disabled={!canCancelTask || batchCancelling}
+                            onChange={() => toggleCancelSelection(task.id)}
+                            className="h-4 w-4 rounded border-theme-border bg-theme-surface disabled:opacity-40"
+                          />
+                        </label>
+                      ) : null}
                       <div className="min-w-0">
                         <div className="truncate text-sm font-normal text-theme-text-primary" title={task.name}>{task.name}</div>
                         <div className="mt-1 font-mono text-xs text-theme-text-faint">{task.vuln_id || task.case_id || '-'}</div>
@@ -574,7 +663,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                         <span className="text-xs font-medium text-theme-text-muted lg:hidden">耗时</span>
                         <span className="text-sm font-normal text-theme-text-secondary lg:text-right">{showRuntime ? fmtRuntime(runtime) : '-'}</span>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
                 {!tasks.length && !loading ? (
