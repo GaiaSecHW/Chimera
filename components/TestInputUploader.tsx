@@ -1,5 +1,5 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { Upload, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { api } from '../clients/api';
 import { DropdownSelect } from '../design-system';
 import { formatUploadBytes, isAllowedArchiveFileName } from '../pages/assets/baseResourcePageModel';
@@ -191,10 +191,7 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
 
         {/* 文件选择 */}
         <div className="rounded-xl border border-dashed border-theme-border px-4 py-4 text-center">
-          <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg bg-theme-elevated text-theme-text-muted">
-            <Upload size={20} />
-          </div>
-          <div className="mt-2 text-sm font-semibold text-theme-text-primary">
+          <div className="text-sm font-semibold text-theme-text-primary">
             上传压缩包
           </div>
           <div className="mt-1 text-xs leading-5 text-theme-text-muted">

@@ -596,33 +596,33 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 </div>
               ) : null}
 
-              {/* 任务名称 */}
-              <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                任务名称 <span className="required"> *</span>
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="form-input mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                />
-              </label>
-
-              {/* 模式 */}
-              <div>
-                <div className="mb-1.5 text-sm font-semibold" style={{ color: LK.inkSoft }}>模式</div>
-                <div className="flex gap-1 rounded-lg p-1" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}>
-                  {MODE_OPTIONS.map((item) => (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() => setMode(item.value)}
-                      className="flex-1 rounded-md px-3 py-2 text-sm font-bold transition-all"
-                      style={mode === item.value
-                        ? { backgroundColor: LK.primary, color: '#fff' }
-                        : { color: LK.body }}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
+              {/* 任务名称 + 模式 */}
+              <div className="flex gap-3">
+                <label className="block min-w-0 flex-1 text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                  任务名称 <span className="required"> *</span>
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="form-input mt-1.5 w-full rounded-lg px-3 text-sm outline-none transition-colors"
+                  />
+                </label>
+                <div className="w-60 shrink-0">
+                  <div className="mb-1.5 text-sm font-semibold" style={{ color: LK.inkSoft }}>模式</div>
+                  <div className="flex gap-1 rounded-lg p-1" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}>
+                    {MODE_OPTIONS.map((item) => (
+                      <button
+                        key={item.value}
+                        type="button"
+                        onClick={() => setMode(item.value)}
+                        className="flex-1 rounded-md px-3 py-1.5 text-sm font-bold transition-all"
+                        style={mode === item.value
+                          ? { backgroundColor: LK.primary, color: '#fff' }
+                          : { color: LK.body }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -644,6 +644,84 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 <div className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.body }}>
                   知识图谱-漏洞挖掘会直接使用所选测试对象记录的 <span style={{ color: LK.ink, fontFamily: MONO }}>upload_id</span> 作为知识图谱定位参数，不需要手工填写。
                 </div>
+              ) : null}
+
+              {/* 工具 */}
+              <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                工具
+                <DropdownSelect
+                  value={taskType}
+                  onChange={(v) => setTaskType(v as (typeof TASK_TYPES)[number]['value'])}
+                  options={availableTaskTypes.map((item) => ({
+                    value: item.value,
+                    label: `${item.label}${isTaskTypeDisabled(item.value) ? '（已禁用）' : ''}`,
+                    disabled: isTaskTypeDisabled(item.value),
+                  }))}
+                  placeholder="请选择工具"
+                  emptyText="暂无可用工具"
+                  containerClassName="mt-1"
+                />
+              </label>
+              {taskTypeDisabled ? (
+                <div
+                  className="rounded-lg px-4 py-3 text-sm"
+                  style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
+                >
+                  {DISABLED_TASK_TYPE_MESSAGE}
+                </div>
+              ) : null}
+              {!taskTypeDisabled && TASK_TYPE_HINTS[taskType] ? (
+                <div
+                  className="rounded-lg px-3 py-2 text-xs"
+                  style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.body }}
+                >
+                  {TASK_TYPE_HINTS[taskType]}
+                </div>
+              ) : null}
+
+              {/* sechps Agent Harness specific */}
+              {taskType === 'sechps_tool' ? (
+                <>
+                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                    Agent Harness
+                    <DropdownSelect
+                      value={selectedAgentAppId}
+                      onChange={setSelectedAgentAppId}
+                      options={[
+                        { value: '', label: '请选择具体 Harness' },
+                        ...agentApps.map((item) => ({ value: item.id, label: `${item.name} / ${item.engine}` })),
+                      ]}
+                      placeholder="请选择具体 Harness"
+                      emptyText="暂无可用 Harness"
+                      containerClassName="mt-1"
+                    />
+                  </label>
+                  {agentAppsLoadError ? (
+                    <div
+                      className="rounded-lg px-4 py-3 text-sm"
+                      style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
+                    >
+                      {agentAppsLoadError}。不影响上传记录加载，但当前无法创建 Agent Harness 任务。
+                    </div>
+                  ) : null}
+                  {selectedAgentApp ? (
+                    <div className="rounded-lg px-4 py-3 text-xs" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}>
+                      <div>Harness: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.name}</span></div>
+                      <div className="mt-1">Engine: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.engine}</span></div>
+                      <div className="mt-1 break-all">Harness Path: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.agentHarnessPath || '—'}</span></div>
+                    </div>
+                  ) : null}
+                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                    执行指令（可选，不填则使用 Agent Harness 注册的启动命令）
+                    <textarea
+                      value={instruction}
+                      onChange={(e) => setInstruction(e.target.value)}
+                      rows={3}
+                      className="form-textarea mt-1 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                      placeholder="不填时使用 Agent Harness 的启动命令，例如 /project:xxx"
+                    />
+                  </label>
+                </>
               ) : null}
                 </>
               )}
@@ -848,83 +926,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 </>
               ) : (
                 <>
-              {/* 工具 */}
-              <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                工具
-                <DropdownSelect
-                  value={taskType}
-                  onChange={(v) => setTaskType(v as (typeof TASK_TYPES)[number]['value'])}
-                  options={availableTaskTypes.map((item) => ({
-                    value: item.value,
-                    label: `${item.label}${isTaskTypeDisabled(item.value) ? '（已禁用）' : ''}`,
-                    disabled: isTaskTypeDisabled(item.value),
-                  }))}
-                  placeholder="请选择工具"
-                  emptyText="暂无可用工具"
-                  containerClassName="mt-1"
-                />
-              </label>
-              {taskTypeDisabled ? (
-                <div
-                  className="rounded-lg px-4 py-3 text-sm"
-                  style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
-                >
-                  {DISABLED_TASK_TYPE_MESSAGE}
-                </div>
-              ) : null}
-              {!taskTypeDisabled && TASK_TYPE_HINTS[taskType] ? (
-                <div
-                  className="rounded-lg px-3 py-2 text-xs"
-                  style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.body }}
-                >
-                  {TASK_TYPE_HINTS[taskType]}
-                </div>
-              ) : null}
-
-              {/* sechps Agent Harness specific */}
-              {taskType === 'sechps_tool' ? (
-                <>
-                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                    Agent Harness
-                    <DropdownSelect
-                      value={selectedAgentAppId}
-                      onChange={setSelectedAgentAppId}
-                      options={[
-                        { value: '', label: '请选择具体 Harness' },
-                        ...agentApps.map((item) => ({ value: item.id, label: `${item.name} / ${item.engine}` })),
-                      ]}
-                      placeholder="请选择具体 Harness"
-                      emptyText="暂无可用 Harness"
-                      containerClassName="mt-1"
-                    />
-                  </label>
-                  {agentAppsLoadError ? (
-                    <div
-                      className="rounded-lg px-4 py-3 text-sm"
-                      style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
-                    >
-                      {agentAppsLoadError}。不影响上传记录加载，但当前无法创建 Agent Harness 任务。
-                    </div>
-                  ) : null}
-                  {selectedAgentApp ? (
-                    <div className="rounded-lg px-4 py-3 text-xs" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}>
-                      <div>Harness: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.name}</span></div>
-                      <div className="mt-1">Engine: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.engine}</span></div>
-                      <div className="mt-1 break-all">Harness Path: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.agentHarnessPath || '—'}</span></div>
-                    </div>
-                  ) : null}
-                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                    执行指令（可选，不填则使用 Agent Harness 注册的启动命令）
-                    <textarea
-                      value={instruction}
-                      onChange={(e) => setInstruction(e.target.value)}
-                      rows={3}
-                      className="form-textarea mt-1 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                      placeholder="不填时使用 Agent Harness 的启动命令，例如 /project:xxx"
-                    />
-                  </label>
-                </>
-              ) : null}
 
               {/* 描述 */}
               <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
@@ -991,3 +992,5 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     </div>
   );
 };
+
+
