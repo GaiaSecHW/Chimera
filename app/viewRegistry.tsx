@@ -126,6 +126,8 @@ import { AiGatewayDashboardPage } from '../pages/platform/AiGatewayDashboardPage
 import { AiGatewayPage } from '../pages/platform/AiGatewayPage';
 import { ChangePasswordPage } from '../pages/platform/ChangePasswordPage';
 import { SECOCTO_VIEW_PREFIX, SKILL_SECOCTO_VIEW_PREFIX, renderSecOctoView } from '../pages/secocto/viewRegistry';
+import { SecAssessmentProjectPage } from '../pages/secassessment/sec-assessment-project/SecAssessmentProjectPage';
+import { SecBaselineMgmtPage } from '../pages/secassessment/sec-baseline-mgmt/SecBaselineMgmtPage';
 import { Agent, AdminDashboardStats, EnvTemplate, SecurityProject, StaticPackage, PackageStats, UserInfo } from '../types/types';
 
 export interface ViewRegistryContext {
@@ -962,6 +964,10 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <DepartmentMemberPage />;
     case 'org-mgmt-projects':
       return <ProjectPage />;
+    case 'sec-assessment-project':
+      return <SecAssessmentProjectPage projectId={ctx.selectedProjectId} />;
+    case 'sec-baseline-mgmt':
+      return <SecBaselineMgmtPage projectId={ctx.selectedProjectId} />;
     default: {
       return (
         <div className="p-20 text-center">

@@ -2640,7 +2640,8 @@ export type ViewType =
   | 'security-assessment' | 'vuln-engine' | 'vuln-overview' | 'vuln-intake' | 'vuln-list' | 'vuln-analysis' | 'vuln-analysis-detail' | 'vuln-analysis-verify-create' | 'vuln-verification' | 'vuln-verification-detail' | 'vuln-decision' | 'vuln-decision-detail' | 'vuln-queue' | 'vuln-services' | 'vuln-repro-config' | 'vuln-parameter-config'
   | 'sys-settings' | 'change-password'
   | 'user-mgmt-users' | 'user-mgmt-roles' | 'user-mgmt-perms' | 'user-mgmt-access' | 'user-mgmt-online' | 'user-mgmt-machine'
-  | 'org-mgmt-departments' | 'org-mgmt-members' | 'org-mgmt-projects';
+  | 'org-mgmt-departments' | 'org-mgmt-members' | 'org-mgmt-projects'
+  | 'sec-assessment-project' | 'sec-baseline-mgmt';
 
 // Admin Dashboard Statistics Types
 export interface AdminDashboardStats {
