@@ -62,7 +62,6 @@ const TASK_TYPES: readonly TaskTypeOption[] = [
   { value: 'ai4app_deep', label: 'AI4APP 扫描（深度）', downstreamView: 'app-security-scan-detail', modes: ['ram-horn'] },
   { value: 'ai4web_deep', label: 'AI4WEB 扫描（深度）', downstreamView: 'app-security-scan-detail', modes: ['ram-horn'] },
   { value: 'ai4red', label: 'AI4RED 红线验证', downstreamView: 'task-redline-detail', modes: ['dragon-tail', 'ram-horn'] },
-  { value: 'sechps_tool', label: 'Agent Harness 任务', modes: ['dragon-tail', 'ram-horn'] },
 ];
 
 const DISABLED_TASK_TYPE_MESSAGE = '该工具已在系统管理 -> 任务调度 -> 调度参数中禁用前端创建。';
@@ -84,7 +83,7 @@ const TASK_TYPE_HINTS: Record<string, string> = {
   ai4web_fast: '请上传一个压缩包(源码包或产品软件包), 需要勾选"保留原始文件，不自动解压"',
   ai4web_deep: '请上传一个压缩包(源码包或产品软件包), 需要勾选"保留原始文件，不自动解压"',
   ai4red: '请上传一个压缩包（具体要求见说明），需要勾选"保留原始文件，不自动解压"',
-  sechps_tool: '请选择一个已注册的 Agent Harness，并选择一个目录。',
+  sechps_tool: '已选择 Agent Harness，请在下方选择一个目录作为测试对象。',
 };
 
 const KEEP_ORIGINAL_TASK_TYPES = new Set<string>([
@@ -96,6 +95,10 @@ const KEEP_ORIGINAL_TASK_TYPES = new Set<string>([
   'ai4web_deep',
   'ai4red',
 ]);
+
+/* Prefix used to namespace Agent Harness options inside the tool dropdown so
+   their values cannot collide with regular ScheduleCenterUserTaskType keys. */
+const SECHPS_OPTION_PREFIX = 'sechps:';
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -172,7 +175,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId);
-  const [taskType, setTaskType] = useState<(typeof TASK_TYPES)[number]['value']>('source_scan_e2e');
+  const [taskType, setTaskType] = useState<ScheduleCenterUserTaskType>('source_scan_e2e');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [goalText, setGoalText] = useState('');
@@ -200,6 +203,16 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const isLionHead = mode === 'lion-head';
   const isKgSourceTask = !isLionHead && taskType === 'kg_source_vuln_scan_e2e';
   const selectedAgentApp = useMemo(() => agentApps.find((item) => item.id === selectedAgentAppId) || null, [agentApps, selectedAgentAppId]);
+  const toolSelectValue = taskType === 'sechps_tool' ? `${SECHPS_OPTION_PREFIX}${selectedAgentAppId}` : taskType;
+  const handleToolSelect = (value: string) => {
+    if (value.startsWith(SECHPS_OPTION_PREFIX)) {
+      setTaskType('sechps_tool');
+      setSelectedAgentAppId(value.slice(SECHPS_OPTION_PREFIX.length));
+    } else {
+      setTaskType(value as ScheduleCenterUserTaskType);
+      setSelectedAgentAppId('');
+    }
+  };
   const codeInputs = useMemo(
     () => inputs.filter((item) => String(item.input_type || '').trim().toLowerCase() === 'code'),
     [inputs],
@@ -347,6 +360,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   /* --- keep taskType valid for the selected mode --- */
   useEffect(() => {
     if (mode === 'lion-head') return;
+    // sechps_tool is selected via per-harness options in the tool dropdown and
+    // is always valid once an agent app is picked; don't reset it just because
+    // it's no longer a member of the TASK_TYPES list.
+    if (taskType === 'sechps_tool') return;
     if (!enabledTaskTypes.some((item) => item.value === taskType)) {
       setTaskType(enabledTaskTypes[0]?.value || availableTaskTypes[0]?.value || 'source_scan_e2e');
     }
@@ -638,13 +655,24 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                 工具
                 <DropdownSelect
-                  value={taskType}
-                  onChange={(v) => setTaskType(v as (typeof TASK_TYPES)[number]['value'])}
-                  options={availableTaskTypes.map((item) => ({
-                    value: item.value,
-                    label: `${item.label}${isTaskTypeDisabled(item.value) ? '（已禁用）' : ''}`,
-                    disabled: isTaskTypeDisabled(item.value),
-                  }))}
+                  value={toolSelectValue}
+                  onChange={handleToolSelect}
+                  options={[
+                    ...availableTaskTypes.map((item) => ({
+                      value: item.value,
+                      label: `${item.label}${isTaskTypeDisabled(item.value) ? '（已禁用）' : ''}`,
+                      disabled: isTaskTypeDisabled(item.value),
+                    })),
+                    ...(agentApps.length > 0 && !isTaskTypeDisabled('sechps_tool')
+                      ? [
+                          { value: '__sechps_group__', label: '—— Agent Harness ——', disabled: true },
+                          ...agentApps.map((item) => ({
+                            value: `${SECHPS_OPTION_PREFIX}${item.id}`,
+                            label: `${item.name} / ${item.engine}`,
+                          })),
+                        ]
+                      : []),
+                  ]}
                   placeholder="请选择工具"
                   emptyText="暂无可用工具"
                   containerClassName="mt-1"
@@ -682,20 +710,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               {/* sechps Agent Harness specific */}
               {taskType === 'sechps_tool' ? (
                 <>
-                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                    Agent Harness
-                    <DropdownSelect
-                      value={selectedAgentAppId}
-                      onChange={setSelectedAgentAppId}
-                      options={[
-                        { value: '', label: '请选择具体 Harness' },
-                        ...agentApps.map((item) => ({ value: item.id, label: `${item.name} / ${item.engine}` })),
-                      ]}
-                      placeholder="请选择具体 Harness"
-                      emptyText="暂无可用 Harness"
-                      containerClassName="mt-1"
-                    />
-                  </label>
                   {agentAppsLoadError ? (
                     <div
                       className="rounded-lg px-4 py-3 text-sm"
