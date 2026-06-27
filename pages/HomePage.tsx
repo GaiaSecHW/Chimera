@@ -167,11 +167,11 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
             </div>
             <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-theme-text-muted backdrop-blur" style={{ backgroundColor: GLASS_BG, borderColor: GLASS_BORDER }}>
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              CHIMERA · AI 安全验证平台
+              AI 安全验证平台
             </span>
             <ServiceBuildVersionBadge version={__CHIMERA_BUILD_VERSION__} />
           </div>
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-10">
+          <div className="flex justify-between items-center">
             <h1
               className="text-5xl font-bold tracking-tight md:text-6xl"
               style={{
@@ -182,11 +182,11 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
                 color: 'transparent',
               }}
             >
-              奇美拉 ICSL Chimera
+              ICSL Chimera
             </h1>
             <div className="max-w-3xl border-l-2 pl-6 lg:flex-1" style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 40%, transparent)' }}>
               <p className="text-sm leading-relaxed text-theme-text-secondary md:text-base">
-                智能体群协作 AI 安全验证平台。面向安全团队与产品团队，将安全专家的经验转化为可复用的自动化能力。 以「双轨制 + 进化闭环 + 引擎三层」为核心，让安全验证从一次性脚本走向可持续演进的智能体群协作。
+                智能体群协作 AI 安全验证平台。面向安全团队与产品团队，将安全专家的经验转化为可复用的自动化能力。
               </p>
             </div>
           </div>
