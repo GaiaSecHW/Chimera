@@ -73,6 +73,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const projectDropdownRef = useRef<HTMLDivElement>(null);
+  const projectListRef = useRef<HTMLDivElement>(null);
 
   const [isSystemAdminOpen, setIsSystemAdminOpen] = useState(false);
   const systemAdminRef = useRef<HTMLDivElement>(null);
@@ -114,6 +115,15 @@ export const Header: React.FC<HeaderProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (isProjectDropdownOpen && projectListRef.current) {
+      const selected = projectListRef.current.querySelector('[data-selected="true"]');
+      if (selected) {
+        selected.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [isProjectDropdownOpen]);
 
   return (
     <header className="bg-theme-header border-b border-theme-sidebar shadow-brand z-20 sticky top-0">
@@ -254,10 +264,11 @@ export const Header: React.FC<HeaderProps> = ({
                   className="form-input w-full text-xs placeholder:text-theme-text-faint"
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <div className="max-h-60 overflow-y-auto mt-1.5 space-y-0.5">
+                <div ref={projectListRef} className="max-h-60 overflow-y-auto mt-1.5 space-y-0.5">
                   {projects.filter((p) => p.name.includes(searchQuery)).map((p) => (
                     <button
                       key={p.id}
+                      data-selected={selectedProjectId === p.id ? 'true' : undefined}
                       onClick={() => {
                         setSelectedProjectId(p.id);
                         setIsProjectDropdownOpen(false);
