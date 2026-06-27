@@ -1227,6 +1227,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
               <option value="">全部类型</option>
               <option value="task">任务密钥</option>
               <option value="work">工作密钥</option>
+              <option value="app">应用密钥</option>
             </select>
             <select value={keyEnabled} onChange={(e) => setKeyEnabled(e.target.value)} className="form-select">
               <option value="">全部状态</option>
@@ -1813,6 +1814,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                 <option value="">全部类型</option>
                 <option value="task">任务密钥</option>
                 <option value="work">工作密钥</option>
+                <option value="app">应用密钥</option>
               </select>
               <select value={keyEnabled} onChange={(e) => setKeyEnabled(e.target.value)} className="form-select">
                 <option value="">全部状态</option>
