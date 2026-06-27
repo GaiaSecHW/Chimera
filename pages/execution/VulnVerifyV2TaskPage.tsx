@@ -112,7 +112,7 @@ const OutcomePill: React.FC<{ item: ReturnType<typeof outcomeBadge>; size?: 'nor
   const isSm = size === 'sm';
   const boxCls = item.boxCls;
   return (
-    <span className={`inline-flex w-auto items-center ${item.iconOnly ? `justify-center ${isSm ? 'px-2 py-1' : 'px-2.5 py-1.5'}` : `${isSm ? 'gap-1.5 py-1 pl-2 pr-3' : 'gap-1.5 pl-3 pr-4 py-1'} rounded-full ${boxCls}`} ${isSm ? 'text-xs' : 'text-sm'} ${item.fontCls || 'font-semibold'}`}>
+    <span className={`inline-flex w-auto items-center ${item.iconOnly ? `justify-center ${isSm ? 'px-2 py-1' : 'px-2.5 py-1.5'}` : `${isSm ? 'gap-1.5 py-1 pl-2 pr-3' : 'gap-1.5 pl-3 pr-4 py-1'} rounded-full ${boxCls}`} ${isSm ? 'text-xs' : 'text-sm'} ${item.fontCls || 'font-medium'}`}>
       {item.loading ? (
         <Loader2 size={isSm ? 14 : 18} strokeWidth={isSm ? 2.5 : 2.8} className={`shrink-0 animate-spin ${item.iconCls}`} />
       ) : Icon ? (
@@ -178,7 +178,7 @@ const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: Reac
   const color = accent === 'green' ? 'text-[var(--color-signal-green)]' : accent === 'cyan' ? 'text-[var(--color-signal-cyan)]' : accent === 'red' ? 'text-[var(--color-signal-red)]' : accent === 'amber' ? 'text-[var(--color-signal-amber)]' : 'text-theme-text-primary';
   return (
     <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
-      <div className={`inline-flex items-center gap-1.5 text-sm font-medium ${color}`}>
+      <div className={`inline-flex items-center gap-1.5 text-sm font-semibold ${color}`}>
         {Icon ? <Icon size={13} strokeWidth={2.1} className="shrink-0" /> : null}
         <span>{label}</span>
       </div>
