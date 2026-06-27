@@ -97,13 +97,13 @@ function fmtTime(value?: string | null): string {
 }
 
 function outcomeBadge(status?: string, verdict?: string | null): { label: string; iconCls: string; boxCls: string; fontCls?: string; iconOnly?: boolean; Icon?: React.ElementType; loading?: boolean } {
-  if (status === 'running') return { label: '验证中', iconCls: 'text-emerald-300', boxCls: '', iconOnly: true, loading: true };
+  if (status === 'running') return { label: '验证中', iconCls: 'text-[var(--color-signal-green)]', boxCls: '', iconOnly: true, loading: true };
   if (status === 'pending') return { label: '等待中', iconCls: 'text-theme-text-faint', boxCls: '', fontCls: 'font-normal', iconOnly: true, Icon: Clock3 };
-  if (status === 'failed') return { label: '验证失败', iconCls: 'text-rose-400', boxCls: '', iconOnly: true, Icon: X };
-  if (status === 'cancelled') return { label: '已取消', iconCls: 'text-amber-400', boxCls: '', iconOnly: true, Icon: Minus };
-  if (verdict === 'confirmed') return { label: '已确认', iconCls: 'text-rose-400', boxCls: 'border border-rose-500/30 bg-rose-500/20', Icon: AlertTriangle };
-  if (verdict === 'ruled_out') return { label: '已排除', iconCls: 'text-sky-400', boxCls: 'border border-sky-500/30 bg-sky-500/20', Icon: CheckCircle2 };
-  if (verdict === 'unresolved') return { label: '不可证', iconCls: 'text-amber-400', boxCls: 'border border-amber-500/30 bg-amber-500/20', Icon: CircleHelp };
+  if (status === 'failed') return { label: '验证失败', iconCls: 'text-[var(--color-signal-red)]', boxCls: '', iconOnly: true, Icon: X };
+  if (status === 'cancelled') return { label: '已取消', iconCls: 'text-[var(--color-signal-amber)]', boxCls: '', iconOnly: true, Icon: Minus };
+  if (verdict === 'confirmed') return { label: '已确认', iconCls: 'text-[var(--color-signal-red)]', boxCls: 'border border-[var(--color-signal-red-border)] bg-[var(--color-signal-red-bg)]', Icon: AlertTriangle };
+  if (verdict === 'ruled_out') return { label: '已排除', iconCls: 'text-[var(--color-signal-cyan)]', boxCls: 'border border-[var(--color-signal-cyan-border)] bg-[var(--color-signal-cyan-bg)]', Icon: CheckCircle2 };
+  if (verdict === 'unresolved') return { label: '不可证', iconCls: 'text-[var(--color-signal-amber)]', boxCls: 'border border-[var(--color-signal-amber-border)] bg-[var(--color-signal-amber-bg)]', Icon: CircleHelp };
   return { label: '未产出结果', iconCls: 'text-theme-text-muted', boxCls: '', iconOnly: true, Icon: Minus };
 }
 
@@ -129,7 +129,7 @@ const TaskOutcomeBadge: React.FC<{ status?: string; verdict?: string | null }> =
 
 const AttemptStatusBadge: React.FC<{ status?: string }> = ({ status }) => {
   if (status === 'success') {
-    return <OutcomePill size="sm" item={{ label: '成功', iconCls: 'text-emerald-400', boxCls: '', iconOnly: true, Icon: Check }} />;
+    return <OutcomePill size="sm" item={{ label: '成功', iconCls: 'text-[var(--color-signal-green)]', boxCls: '', iconOnly: true, Icon: Check }} />;
   }
   return <OutcomePill size="sm" item={outcomeBadge(status, null)} />;
 };
@@ -174,8 +174,8 @@ const TaskDecisionEvidence: React.FC<{ task: VulnVerifyV2Task }> = ({ task }) =>
   return <span className="text-sm font-normal text-theme-text-secondary">未产出判定</span>;
 };
 
-const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'emerald' | 'sky' | 'rose' | 'amber' | 'slate'; Icon?: React.ElementType }> = ({ label, value, hint, accent = 'slate', Icon }) => {
-  const color = accent === 'emerald' ? 'text-emerald-400' : accent === 'sky' ? 'text-sky-400' : accent === 'rose' ? 'text-rose-400' : accent === 'amber' ? 'text-amber-400' : 'text-theme-text-primary';
+const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'green' | 'cyan' | 'red' | 'amber' | 'slate'; Icon?: React.ElementType }> = ({ label, value, hint, accent = 'slate', Icon }) => {
+  const color = accent === 'green' ? 'text-[var(--color-signal-green)]' : accent === 'cyan' ? 'text-[var(--color-signal-cyan)]' : accent === 'red' ? 'text-[var(--color-signal-red)]' : accent === 'amber' ? 'text-[var(--color-signal-amber)]' : 'text-theme-text-primary';
   return (
     <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
       <div className={`inline-flex items-center gap-1.5 text-sm font-medium ${color}`}>
@@ -211,10 +211,10 @@ const DimensionCard: React.FC<{ dimKey: string; status?: boolean | null; detail?
   const conclusion = dimensionConclusionText(dimKey, status);
   // 风险语义统一，且避免只靠红/绿：成立=红色警告，排除=蓝色勾选，未判定=黄色问号。
   const statusTone = status === true
-    ? { cls: 'text-rose-400', Icon: AlertTriangle, label: '支持漏洞成立' }
+    ? { cls: 'text-[var(--color-signal-red)]', Icon: AlertTriangle, label: '支持漏洞成立' }
     : status === false
-      ? { cls: 'text-sky-400', Icon: CheckCircle2, label: '支持排除漏洞' }
-      : { cls: 'text-amber-400', Icon: CircleHelp, label: '未判定' };
+      ? { cls: 'text-[var(--color-signal-cyan)]', Icon: CheckCircle2, label: '支持排除漏洞' }
+      : { cls: 'text-[var(--color-signal-amber)]', Icon: CircleHelp, label: '未判定' };
   const statusCls = statusTone.cls;
   const StatusIcon = statusTone.Icon;
   return (
@@ -260,10 +260,10 @@ const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[]; devMode?: boo
     <ol className="space-y-3">
       {attempts.map((att) => {
         const isFailed = att.status === 'failed';
-        const dotCls = att.status === 'success' ? 'bg-emerald-400'
-          : att.status === 'failed' ? 'bg-rose-400'
-          : att.status === 'running' ? 'bg-emerald-400'
-          : att.status === 'cancelled' ? 'bg-amber-400'
+        const dotCls = att.status === 'success' ? 'bg-[var(--color-signal-green)]'
+          : att.status === 'failed' ? 'bg-[var(--color-signal-red)]'
+          : att.status === 'running' ? 'bg-[var(--color-signal-green)]'
+          : att.status === 'cancelled' ? 'bg-[var(--color-signal-amber)]'
           : 'bg-theme-border';
         const duration = att.started_at
           ? fmtDurationMs((att.completed_at ? new Date(att.completed_at).getTime() : Date.now()) - new Date(att.started_at).getTime())
@@ -288,7 +288,7 @@ const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[]; devMode?: boo
                 <span>耗时：{duration}</span>
               </div>
               {isFailed && failureMsg ? (
-                <div className="mt-2 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm font-normal text-rose-300 break-words">{failureMsg}</div>
+                <div className="mt-2 rounded-lg border border-[var(--color-signal-red-border)] bg-[var(--color-signal-red-bg)] px-3 py-2 text-sm font-normal text-[var(--color-signal-red)] break-words">{failureMsg}</div>
               ) : null}
               {devMode ? <AttemptDevJson attempt={att} /> : null}
             </div>
@@ -540,7 +540,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   return (
     <div className="min-h-full bg-theme-bg-app text-theme-text-primary">
       {devToast ? (
-        <div className="fixed bottom-6 right-6 z-[60] rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300 shadow-md">{devToast}</div>
+        <div className="fixed bottom-6 right-6 z-[60] rounded-lg border border-[var(--color-signal-green-border)] bg-[var(--color-signal-green-bg)] px-4 py-2 text-sm font-medium text-[var(--color-signal-green)] shadow-md">{devToast}</div>
       ) : null}
       <div className="w-full space-y-8 px-4 pt-8 pb-10 lg:px-6 xl:px-8">
         {feedbackNodes}
@@ -552,13 +552,13 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
         <section>
           <div className="grid gap-5 md:grid-cols-3">
-            <SummaryCard label="已确认" value={confirmedVulns} accent="rose" Icon={AlertTriangle} hint="确认存在真实漏洞风险" />
-            <SummaryCard label="已排除" value={ruledOutVulns} accent="sky" Icon={CheckCircle2} hint="验证后排除漏洞风险" />
+            <SummaryCard label="已确认" value={confirmedVulns} accent="red" Icon={AlertTriangle} hint="确认存在真实漏洞风险" />
+            <SummaryCard label="已排除" value={ruledOutVulns} accent="cyan" Icon={CheckCircle2} hint="验证后排除漏洞风险" />
             <SummaryCard label="不可证" value={unresolvedVulns} accent="amber" Icon={CircleHelp} hint="现有证据不足以判定" />
           </div>
         </section>
 
-        {message ? <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">{message}</div> : null}
+        {message ? <div className="rounded-lg border border-[var(--color-signal-amber-border)] bg-[var(--color-signal-amber-bg)] px-4 py-3 text-sm text-[var(--color-signal-amber)]">{message}</div> : null}
 
         <div className="grid grid-cols-1 gap-4">
           {/* 列表 */}
@@ -591,7 +591,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                     { label: '其他', value: 'other' },
                   ].map((option) => {
                     const active = resultFilterValue === option.value;
-                    const activeCls = 'border-blue-600 bg-blue-600 text-white';
+                    const activeCls = 'border-[var(--color-signal-blue)] bg-[var(--color-signal-blue)] text-white';
                     return (
                       <button
                         key={option.value || 'all'}
@@ -629,7 +629,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                       type="button"
                       disabled={!selectedCancellableTaskIds.length || batchCancelling}
                       onClick={() => void handleBatchCancelTasks()}
-                      className="inline-flex h-9 shrink-0 items-center rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 text-sm font-medium text-rose-300 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[var(--color-signal-red-border)] bg-[var(--color-signal-red-bg)] px-3 text-sm font-medium text-[var(--color-signal-red)] transition hover:bg-[var(--color-signal-red-bg)] disabled:cursor-not-allowed disabled:opacity-40"
                       title="取消选中的等待中/执行中任务"
                     >
                       {batchCancelling ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : null}
@@ -670,9 +670,9 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                           void loadDetail(task.id);
                         }
                       }}
-                      className={`group relative grid w-full cursor-pointer gap-2 px-4 py-4 text-left transition-colors hover:bg-blue-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${devMode ? 'lg:grid-cols-[32px_minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px]' : 'lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px]'} lg:items-center lg:gap-4 ${isSel ? 'bg-blue-500/15' : ''}`.trim()}
+                      className={`group relative grid w-full cursor-pointer gap-2 px-4 py-4 text-left transition-colors hover:bg-[var(--color-signal-blue-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-signal-blue-border)] ${devMode ? 'lg:grid-cols-[32px_minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px]' : 'lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px]'} lg:items-center lg:gap-4 ${isSel ? 'bg-[var(--color-signal-blue-bg)]' : ''}`.trim()}
                     >
-                      <span aria-hidden="true" className={`absolute bottom-0 left-0 top-0 w-1 bg-blue-600 transition-opacity ${isSel ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
+                      <span aria-hidden="true" className={`absolute bottom-0 left-0 top-0 w-1 bg-[var(--color-signal-blue)] transition-opacity ${isSel ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
                       {devMode ? (
                         <label className="flex items-center lg:justify-center" title={canCancelTask ? '选择任务，可批量重跑/取消' : '选择任务，可批量重跑'} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
                           <input
