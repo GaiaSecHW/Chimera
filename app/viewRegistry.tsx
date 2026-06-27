@@ -126,8 +126,7 @@ import { AiGatewayDashboardPage } from '../pages/platform/AiGatewayDashboardPage
 import { AiGatewayPage } from '../pages/platform/AiGatewayPage';
 import { ChangePasswordPage } from '../pages/platform/ChangePasswordPage';
 import { SECOCTO_VIEW_PREFIX, SKILL_SECOCTO_VIEW_PREFIX, renderSecOctoView } from '../pages/secocto/viewRegistry';
-import { SecAssessmentProjectPage } from '../pages/secassessment/sec-assessment-project/SecAssessmentProjectPage';
-import { SecBaselineMgmtPage } from '../pages/secassessment/sec-baseline-mgmt/SecBaselineMgmtPage';
+import { SEC_ASSESSMENT_VIEW_PREFIX, SEC_BASELINE_VIEW_PREFIX, renderSecAssessmentView } from '../pages/secassessment/viewRegistry';
 import { Agent, AdminDashboardStats, EnvTemplate, SecurityProject, StaticPackage, PackageStats, UserInfo } from '../types/types';
 
 export interface ViewRegistryContext {
@@ -230,6 +229,15 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     ctx.currentView.startsWith(SKILL_SECOCTO_VIEW_PREFIX)
   ) {
     const node = renderSecOctoView({ currentView: ctx.currentView, setCurrentView: ctx.setCurrentView });
+    if (node) return node;
+  }
+  // 安全评估模块自治调度:命中前缀且能处理时返回组件;返回 null 落回 switch default。
+  // 模块内部所有 view 形态在 pages/secassessment/viewRegistry.tsx 维护,新增 view 不再触碰本文件。
+  if (
+    ctx.currentView.startsWith(SEC_ASSESSMENT_VIEW_PREFIX) ||
+    ctx.currentView.startsWith(SEC_BASELINE_VIEW_PREFIX)
+  ) {
+    const node = renderSecAssessmentView({ currentView: ctx.currentView, setCurrentView: ctx.setCurrentView, projectId: ctx.selectedProjectId });
     if (node) return node;
   }
   switch (ctx.currentView) {
@@ -964,10 +972,6 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <DepartmentMemberPage />;
     case 'org-mgmt-projects':
       return <ProjectPage />;
-    case 'sec-assessment-project':
-      return <SecAssessmentProjectPage projectId={ctx.selectedProjectId} />;
-    case 'sec-baseline-mgmt':
-      return <SecBaselineMgmtPage projectId={ctx.selectedProjectId} />;
     default: {
       return (
         <div className="p-20 text-center">
