@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PageHeader } from '../../design-system';
-import { Bug, CheckCircle2, FileText, Loader2, Pause, Play, Plus, RefreshCw, Rocket, Search, Shield, Square, SquareCheck, Trash2, X } from 'lucide-react';
+import { Modal, DropdownSelect, PageHeader } from '../../design-system';
+import { Bug, CheckCircle2, FileText, FolderInput, Loader2, Pause, Play, Plus, RefreshCw, Rocket, Search, Shield, Square, SquareCheck, Trash2, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { ServicePageTitle } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -143,6 +143,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
   const [error, setError] = useState('');
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [changeProjectTask, setChangeProjectTask] = useState<ScheduleCenterUserTask | null>(null);
+  const [changeProjectTargetId, setChangeProjectTargetId] = useState('');
+  const [changeProjectSubmitting, setChangeProjectSubmitting] = useState(false);
   const [deleteQueueOpen, setDeleteQueueOpen] = useState(false);
   const [deleteQueueLoading, setDeleteQueueLoading] = useState(false);
   const [deleteQueueError, setDeleteQueueError] = useState('');
@@ -368,6 +371,26 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
       notify(err?.message || '删除入队失败', 'error');
     } finally {
       setDeleteSubmitting(false);
+    }
+  };
+
+  const submitChangeProject = async (task: ScheduleCenterUserTask, newProjectId: string) => {
+    if (!newProjectId || newProjectId === projectId || changeProjectSubmitting) return;
+    setChangeProjectSubmitting(true);
+    try {
+      await scheduleApi.changeUserTaskProject(projectId, task.id, newProjectId);
+      notify('任务已转移至目标项目', 'success');
+      setChangeProjectTask(null);
+      setChangeProjectTargetId('');
+      await loadData();
+    } catch (err: any) {
+      const status = err?.status ?? err?.response?.status;
+      if (status === 409) notify('任务运行中，无法转移，请等待完成后再试', 'error');
+      else if (status === 404) notify('任务不存在，可能已被删除', 'error');
+      else if (status === 400) notify('任务已在目标项目中', 'error');
+      else notify(err?.message || '任务转移失败', 'error');
+    } finally {
+      setChangeProjectSubmitting(false);
     }
   };
 
@@ -632,6 +655,19 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                       })()}
                     </button>
                     <button
+                      type="button"
+                      title="修改所属项目"
+                      aria-label="修改所属项目"
+                      onClick={() => { setChangeProjectTargetId(''); setChangeProjectTask(task); }}
+                      disabled={['dispatched','running','queued','pending'].includes(String(task.dispatch_status || '')) || changeProjectSubmitting}
+                      className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                      style={{ color: LK.muted }}
+                      onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; } }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
+                    >
+                      <FolderInput size={16} />
+                    </button>
+                    <button
                       onClick={() => void submitDelete([task.id])}
                       disabled={deleteSubmitting || ['queued', 'running'].includes(String(task.delete_status || 'none'))}
                       title="删除"
@@ -650,6 +686,46 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
         </table>
       </div>
       {feedbackNodes}
+
+      {changeProjectTask && (
+        <Modal
+          open={!!changeProjectTask}
+          onClose={() => { if (!changeProjectSubmitting) { setChangeProjectTask(null); setChangeProjectTargetId(''); } }}
+          title="修改任务所属项目"
+          description={`当前任务：${changeProjectTask.name}`}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => { if (!changeProjectSubmitting) { setChangeProjectTask(null); setChangeProjectTargetId(''); } }}
+                className="btn-secondary rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                disabled={!changeProjectTargetId || changeProjectTargetId === projectId || changeProjectSubmitting}
+                onClick={() => void submitChangeProject(changeProjectTask, changeProjectTargetId)}
+                className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                确认转移
+              </button>
+            </>
+          }
+        >
+          <label className="block text-sm font-semibold text-theme-text-primary">
+            目标项目
+            <DropdownSelect
+              value={changeProjectTargetId}
+              onChange={setChangeProjectTargetId}
+              options={projects.filter((p) => p.id !== projectId).map((p) => ({ value: p.id, label: p.name }))}
+              placeholder="请选择目标项目"
+              emptyText="暂无其他可选项目"
+              containerClassName="mt-1"
+            />
+          </label>
+        </Modal>
+      )}
 
       {deleteQueueOpen ? (
         <div
