@@ -1668,8 +1668,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
             </div>
           ))}
         </div>
-        {(vulnStats?.unreported || 0) > 0 && (
-          <div className="mt-3 flex justify-end">
+        <div className="mt-3 flex justify-end">
             <button
               onClick={handleProjectReportAll}
               disabled={projectReportingAll}
@@ -1678,7 +1677,6 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
               {projectReportingAll ? '⏳ 上报中...' : '📤 一键上报全部未提交'}
             </button>
           </div>
-        )}
  <div className="mt-4 rounded-xl border border-theme-border bg-theme-surface p-5">
           <button
             type="button"
