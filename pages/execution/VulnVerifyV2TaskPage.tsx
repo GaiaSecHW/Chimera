@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Check, CheckCircle2, ChevronRight, CircleHelp, Clock3, Loader2, Minus, PanelRightClose, RefreshCw, RotateCcw, Search, Wrench, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Check, CheckCircle2, ChevronRight, CircleHelp, Clock3, FileText, Loader2, Minus, PanelRightClose, RefreshCw, RotateCcw, Search, Wrench, X } from 'lucide-react';
 import { vulnVerifyV2Api, VulnVerifyV2Attempt, VulnVerifyV2ProjectStats, VulnVerifyV2Result, VulnVerifyV2Task, VulnVerifyV2TaskDetail } from '../../clients/vulnVerifyV2';
+import { fileserverApi } from '../../clients/fileserver';
+import type { ProjectFilesystemEntry } from '../../types/types';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { PageHeader } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -269,7 +271,7 @@ const DimensionCard: React.FC<{ dimKey: string; status?: boolean | null; detail?
 };
 
 const AttemptDebugInfo: React.FC<{ details: Array<{ label: 'stdout' | 'stderr'; text: string }> }> = ({ details }) => (
-  <details className="mt-2 group">
+  <details className="group">
     <summary className="inline-flex cursor-pointer select-none items-center gap-1 text-xs font-medium text-theme-text-muted transition hover:text-theme-text-secondary">
       <ChevronRight size={13} strokeWidth={2.2} className="transition-transform group-open:rotate-90" />
       调试信息
@@ -296,7 +298,7 @@ const AttemptDevJson: React.FC<{ attempt: VulnVerifyV2Attempt }> = ({ attempt })
     }
   }
   return (
-    <details className="mt-2 group" onToggle={(event) => setOpened(event.currentTarget.open)}>
+    <details className="group" onToggle={(event) => setOpened(event.currentTarget.open)}>
       <summary className="inline-flex cursor-pointer select-none items-center gap-1 text-xs font-medium text-theme-text-muted transition hover:text-theme-text-secondary">
         <ChevronRight size={13} strokeWidth={2.2} className="transition-transform group-open:rotate-90" />
         原始 JSON
@@ -306,12 +308,168 @@ const AttemptDevJson: React.FC<{ attempt: VulnVerifyV2Attempt }> = ({ attempt })
   );
 };
 
+interface PiSessionViewEntry {
+  role: string;
+  label: string;
+  meta: string;
+  content: string;
+  isError?: boolean;
+}
+
+function joinPath(base: string, name: string): string {
+  const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+  return `${cleanBase || ''}/${name}`;
+}
+
+function buildRunProjectPath(projectId: string, workDir?: string | null): string {
+  if (!workDir) return '';
+  const runAbs = `${workDir.replace(/\/$/, '')}/run`;
+  const prefix = `/data/files/${projectId}`;
+  if (runAbs.startsWith(prefix)) return runAbs.slice(prefix.length) || '/';
+  return runAbs.startsWith('/') ? runAbs : `/${runAbs}`;
+}
+
+function isJsonlFile(entry: ProjectFilesystemEntry): boolean {
+  return entry.node_type === 'file' && (entry.path || entry.name).toLowerCase().endsWith('.jsonl');
+}
+
+function sortJsonlFiles(files: ProjectFilesystemEntry[]): ProjectFilesystemEntry[] {
+  return [...files].sort((a, b) => {
+    const aTime = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+    const bTime = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+    if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) return bTime - aTime;
+    return String(b.path || b.name).localeCompare(String(a.path || a.name));
+  });
+}
+
+async function listSessionJsonlFiles(projectId: string, runPath: string, maxDepth = 3): Promise<ProjectFilesystemEntry[]> {
+  const files: ProjectFilesystemEntry[] = [];
+  const visit = async (path: string, depth: number) => {
+    const payload = await fileserverApi.getProjectFilesystemChildren(projectId, path);
+    files.push(...(payload.files || []).filter(isJsonlFile));
+    if (depth <= 0) return;
+    for (const dir of payload.directories || []) {
+      await visit(dir.path || joinPath(path, dir.name), depth - 1);
+    }
+  };
+  await visit(runPath, maxDepth);
+  return sortJsonlFiles(files);
+}
+
+function parseJsonl(text: string): any[] {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        return { type: 'parse_error', raw: line };
+      }
+    });
+}
+
+function contentToText(content: unknown): string {
+  if (content === undefined || content === null) return '';
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content.map((block) => {
+      if (!block || typeof block !== 'object') return String(block);
+      const item = block as Record<string, any>;
+      if (item.type === 'text') return String(item.text || '');
+      if (item.type === 'thinking') return `Thinking\n${String(item.thinking || '')}`;
+      if (item.type === 'toolCall') return `Tool Call: ${String(item.name || '')}\n${JSON.stringify(item.arguments || {}, null, 2)}`;
+      if (item.type === 'image') return `[Image: ${String(item.mimeType || 'image')}]`;
+      return JSON.stringify(item, null, 2);
+    }).filter(Boolean).join('\n\n');
+  }
+  return JSON.stringify(content, null, 2);
+}
+
+function normalizePiSessionEntry(entry: any): PiSessionViewEntry {
+  if (entry?.type === 'parse_error') return { role: 'error', label: 'PARSE ERROR', meta: '', content: String(entry.raw || ''), isError: true };
+  if (entry?.type === 'session') {
+    return {
+      role: 'session',
+      label: 'SESSION',
+      meta: entry.timestamp || '',
+      content: [`id: ${entry.id || '-'}`, `version: ${entry.version || '-'}`, `cwd: ${entry.cwd || '-'}`].join('\n'),
+    };
+  }
+  if (entry?.type === 'message') {
+    const msg = entry.message || {};
+    const role = String(msg.role || 'message');
+    let content = contentToText(msg.content);
+    if (!content && role === 'bashExecution') content = `Command: ${msg.command || ''}\nExit Code: ${msg.exitCode ?? '-'}\n\n${msg.output || ''}`;
+    if (!content && msg.summary) content = String(msg.summary);
+    if (!content) content = JSON.stringify(msg, null, 2);
+    return {
+      role,
+      label: role === 'toolResult' ? `TOOL RESULT · ${msg.toolName || ''}` : role.toUpperCase(),
+      meta: entry.timestamp || msg.timestamp || '',
+      content,
+      isError: Boolean(msg.isError || msg.errorMessage || msg.exitCode),
+    };
+  }
+  if (entry?.type === 'model_change') return { role: 'system', label: 'MODEL', meta: entry.timestamp || '', content: `${entry.provider || ''}/${entry.modelId || ''}` };
+  if (entry?.type === 'thinking_level_change') return { role: 'system', label: 'THINKING', meta: entry.timestamp || '', content: String(entry.thinkingLevel || '') };
+  if (entry?.type === 'compaction') return { role: 'system', label: 'COMPACTION', meta: entry.timestamp || '', content: String(entry.summary || '') };
+  if (entry?.type === 'branch_summary') return { role: 'system', label: 'BRANCH SUMMARY', meta: entry.timestamp || '', content: String(entry.summary || '') };
+  return { role: 'raw', label: String(entry?.type || 'RAW').toUpperCase(), meta: entry?.timestamp || '', content: JSON.stringify(entry, null, 2) };
+}
+
+function piSessionEntryClassName(view: PiSessionViewEntry): string {
+  if (view.isError) return 'border-[var(--color-signal-red-border)] bg-[var(--color-signal-red-bg)]';
+  if (view.role === 'user') return 'border-[var(--color-signal-blue-border)] bg-[var(--color-signal-blue-bg)]';
+  if (view.role === 'toolResult' || view.role === 'bashExecution') return 'border-theme-border bg-theme-elevated';
+  if (view.role === 'session' || view.role === 'system') return 'border-theme-border bg-theme-elevated';
+  return 'border-theme-border bg-theme-surface';
+}
+
+const PiSessionPreview: React.FC<{ jsonl: string }> = ({ jsonl }) => {
+  const entries = useMemo(() => parseJsonl(jsonl), [jsonl]);
+  if (!entries.length) return <div className="py-10 text-center text-sm text-theme-text-muted">会话文件为空</div>;
+  return (
+    <div className="space-y-3">
+      {entries.map((entry, index) => {
+        const view = normalizePiSessionEntry(entry);
+        const mono = view.role === 'toolResult' || view.role === 'bashExecution' || view.role === 'raw' || view.isError;
+        return (
+          <article key={entry?.id || index} className={`rounded-xl border p-4 ${piSessionEntryClassName(view)}`}>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className={`font-semibold ${view.isError ? 'text-[var(--color-signal-red)]' : 'text-theme-text-secondary'}`}>{view.label}</span>
+              {view.meta ? <span className="text-theme-text-muted">{fmtTime(view.meta)}</span> : null}
+            </div>
+            <pre className={`whitespace-pre-wrap break-words text-sm leading-6 text-theme-text-primary ${mono ? 'font-mono' : 'font-sans'}`}>{view.content}</pre>
+          </article>
+        );
+      })}
+    </div>
+  );
+};
+
+const SessionFileButton: React.FC<{ file: ProjectFilesystemEntry; active: boolean; onClick: () => void }> = ({ file, active, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`flex w-full min-w-0 items-start gap-2 rounded-xl border px-3 py-2 text-left text-xs transition ${active ? 'border-[var(--color-signal-blue)] bg-[var(--color-signal-blue-bg)] text-theme-text-primary' : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated hover:text-theme-text-primary'}`}
+    title={file.path}
+  >
+    <FileText size={14} className="mt-0.5 shrink-0 text-theme-text-muted" />
+    <span className="min-w-0 flex-1">
+      <span className="block truncate font-medium">{file.name}</span>
+      <span className="mt-1 block truncate font-mono text-theme-text-faint">{file.updated_at ? fmtTime(file.updated_at) : file.path}</span>
+    </span>
+  </button>
+);
+
 const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[]; devMode?: boolean }> = ({ attempts, devMode }) => {
   if (!attempts.length) {
     return <div className="py-6 text-center text-sm font-normal text-theme-text-muted">暂无执行尝试记录</div>;
   }
   return (
-    <ol className="space-y-3">
+    <ol className="space-y-4">
       {attempts.map((att) => {
         const isFailed = att.status === 'failed';
         const dotCls = att.status === 'success' ? 'bg-[var(--color-signal-green)]'
@@ -332,22 +490,26 @@ const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[]; devMode?: boo
               <span className={`h-2.5 w-2.5 rounded-full ${dotCls}`} />
               <span className="mt-1 w-px flex-1 bg-theme-border" />
             </div>
-            <div className="min-w-0 flex-1 pb-3">
+            <div className="min-w-0 flex-1 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-base font-medium text-theme-text-primary">第 {att.attempt_number} 次执行</span>
                 <AttemptStatusBadge status={att.status} />
               </div>
-              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs font-normal text-theme-text-muted">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-normal text-theme-text-muted">
                 <span>开始：{fmtTime(att.started_at)}</span>
                 <span>结束：{fmtTime(att.completed_at)}</span>
                 <span>耗时：{duration}</span>
                 {att.worker_id ? <span>Worker：{att.worker_id}</span> : null}
               </div>
-              {isFailed && failureMsg ? (
-                <div className="mt-2 rounded-lg border border-[var(--color-signal-red-border)] bg-[var(--color-signal-red-bg)] px-3 py-2 text-sm font-normal text-[var(--color-signal-red)] break-words">{failureMsg}</div>
+              {isFailed && (failureMsg || outputDetails.length) || devMode ? (
+                <div className="space-y-2">
+                  {isFailed && failureMsg ? (
+                    <div className="rounded-lg border border-[var(--color-signal-red-border)] bg-[var(--color-signal-red-bg)] p-3 text-xs font-normal text-[var(--color-signal-red)] break-words">{failureMsg}</div>
+                  ) : null}
+                  {isFailed && outputDetails.length ? <AttemptDebugInfo details={outputDetails} /> : null}
+                  {devMode ? <AttemptDevJson attempt={att} /> : null}
+                </div>
               ) : null}
-              {isFailed && outputDetails.length ? <AttemptDebugInfo details={outputDetails} /> : null}
-              {devMode ? <AttemptDevJson attempt={att} /> : null}
             </div>
           </li>
         );
@@ -377,6 +539,14 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
   const [detail, setDetail] = useState<VulnVerifyV2TaskDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [sessionViewOpen, setSessionViewOpen] = useState(false);
+  const [sessionRunPath, setSessionRunPath] = useState('');
+  const [sessionFiles, setSessionFiles] = useState<ProjectFilesystemEntry[]>([]);
+  const [selectedSessionPath, setSelectedSessionPath] = useState('');
+  const [sessionJsonl, setSessionJsonl] = useState('');
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  const [sessionCache, setSessionCache] = useState<Record<string, string>>({});
   const [selectedDevTaskIds, setSelectedDevTaskIds] = useState<string[]>([]);
   const [batchCancelling, setBatchCancelling] = useState(false);
   const [batchRerunning, setBatchRerunning] = useState(false);
@@ -497,6 +667,12 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
     setSelectedTaskId(taskId);
     setDetailLoading(true);
     setDetail(null);
+    setSessionViewOpen(false);
+    setSessionRunPath('');
+    setSessionFiles([]);
+    setSelectedSessionPath('');
+    setSessionJsonl('');
+    setSessionError(null);
     try {
       const task = await vulnVerifyV2Api.getTask(projectId, taskId);
       setDetail(task);
@@ -513,6 +689,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
     closeDetailTimerRef.current = window.setTimeout(() => {
       setSelectedTaskId('');
       setDetail(null);
+      setSessionViewOpen(false);
       closeDetailTimerRef.current = null;
     }, 220);
   }, []);
@@ -541,6 +718,53 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
       notify(e?.message || String(e), 'error', '重新执行失败');
     }
   }, [projectId, loadOverview, loadDetail, selectedTaskId, notify]);
+
+  const loadSessionFile = useCallback(async (path: string, force = false) => {
+    setSelectedSessionPath(path);
+    setSessionError(null);
+    const cached = sessionCache[path];
+    if (!force && cached !== undefined) {
+      setSessionJsonl(cached);
+      return;
+    }
+    setSessionLoading(true);
+    try {
+      const blob = await fileserverApi.fetchProjectFilesystemPreviewBlob(projectId, path);
+      const text = await blob.text();
+      setSessionJsonl(text);
+      setSessionCache((prev) => ({ ...prev, [path]: text }));
+    } catch (e: any) {
+      setSessionJsonl('');
+      setSessionError(e?.message || String(e));
+    } finally {
+      setSessionLoading(false);
+    }
+  }, [projectId, sessionCache]);
+
+  const openSessionView = useCallback(async (force = false) => {
+    if (!detail?.work_dir) return;
+    const runPath = buildRunProjectPath(projectId, detail.work_dir);
+    setSessionViewOpen(true);
+    setSessionRunPath(runPath);
+    setSessionFiles([]);
+    setSelectedSessionPath('');
+    setSessionJsonl('');
+    setSessionError(null);
+    setSessionLoading(true);
+    try {
+      const files = await listSessionJsonlFiles(projectId, runPath);
+      setSessionFiles(files);
+      if (files.length) {
+        await loadSessionFile(files[0].path, force);
+      } else {
+        setSessionError('未找到 session JSONL 文件');
+      }
+    } catch (e: any) {
+      setSessionError(e?.message || String(e));
+    } finally {
+      setSessionLoading(false);
+    }
+  }, [detail?.work_dir, loadSessionFile, projectId]);
 
   const toggleDevSelection = useCallback((taskId: string) => {
     setSelectedDevTaskIds((prev) => prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]);
@@ -877,12 +1101,68 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   <Loader2 size={16} className="animate-spin" />加载详情...
                 </div>
               ) : detail ? (
+                sessionViewOpen ? (
+                  <div className="flex min-h-full flex-col space-y-5">
+                    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-theme-border pb-4">
+                      <div className="min-w-0 space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => setSessionViewOpen(false)}
+                          className="inline-flex items-center gap-1.5 text-sm font-medium text-theme-text-secondary transition hover:text-theme-text-primary"
+                        >
+                          <ArrowLeft size={15} strokeWidth={2.2} />返回验证详情
+                        </button>
+                        <div>
+                          <div className="text-lg font-bold text-theme-text-primary">会话记录</div>
+                          <div className="mt-1 truncate font-mono text-xs text-theme-text-muted" title={sessionRunPath}>run: {sessionRunPath || '-'}</div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void openSessionView(true)}
+                        disabled={sessionLoading}
+                        className="inline-flex h-8 shrink-0 items-center rounded-lg border border-theme-border bg-theme-surface px-3 text-xs font-medium text-theme-text-secondary transition hover:bg-theme-elevated hover:text-theme-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <RefreshCw size={14} className={`mr-1.5 ${sessionLoading ? 'animate-spin' : ''}`} />刷新
+                      </button>
+                    </div>
+
+                    <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+                      <aside className="min-w-0 space-y-2">
+                        <div className="text-xs font-medium text-theme-text-muted">JSONL 文件（{sessionFiles.length}）</div>
+                        <div className="max-h-[38vh] space-y-2 overflow-auto rounded-2xl border border-theme-border bg-theme-surface p-3 lg:max-h-[calc(100vh-220px)]">
+                          {sessionFiles.map((file) => (
+                            <SessionFileButton key={file.path} file={file} active={selectedSessionPath === file.path} onClick={() => void loadSessionFile(file.path)} />
+                          ))}
+                          {!sessionFiles.length && !sessionLoading ? <div className="py-8 text-center text-sm text-theme-text-muted">未找到 session JSONL 文件</div> : null}
+                          {sessionLoading && !sessionFiles.length ? <div className="flex items-center justify-center gap-2 py-8 text-sm text-theme-text-muted"><Loader2 size={15} className="animate-spin" />正在扫描会话文件...</div> : null}
+                        </div>
+                      </aside>
+
+                      <section className="min-w-0 space-y-3">
+                        {selectedSessionPath ? (
+                          <div className="truncate rounded-xl border border-theme-border bg-theme-surface px-3 py-2 font-mono text-xs text-theme-text-muted" title={selectedSessionPath}>{selectedSessionPath}</div>
+                        ) : null}
+                        {sessionError ? <div className="rounded-xl border border-[var(--color-signal-amber-border)] bg-[var(--color-signal-amber-bg)] px-4 py-3 text-sm text-[var(--color-signal-amber)]">{sessionError}</div> : null}
+                        {sessionLoading && selectedSessionPath ? (
+                          <div className="flex min-h-[220px] items-center justify-center gap-2 rounded-2xl border border-theme-border bg-theme-surface text-sm text-theme-text-muted">
+                            <Loader2 size={16} className="animate-spin" />正在读取会话...
+                          </div>
+                        ) : sessionJsonl ? (
+                          <PiSessionPreview jsonl={sessionJsonl} />
+                        ) : !sessionError && !sessionLoading ? (
+                          <div className="flex min-h-[220px] items-center justify-center rounded-2xl border border-theme-border bg-theme-surface text-sm text-theme-text-muted">请选择 JSONL 文件</div>
+                        ) : null}
+                      </section>
+                    </div>
+                  </div>
+                ) : (
                 <div className="space-y-7">
                   {/* 头部：标题 + 结论 */}
                   <div className="px-1 pb-2 pt-4">
-                    <div className="min-w-0">
+                    <div className="min-w-0 space-y-4">
                       <div className="whitespace-normal break-words text-lg font-bold leading-6 text-theme-text-primary" title={detail.name}>{detail.name}</div>
-                      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
                         <OutcomePill item={outcomeBadge(undefined, detail.verdict)} />
                         {devMode ? (
                           <button onClick={() => void handleRerun(detail.id)} aria-label="重新执行" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated">
@@ -890,7 +1170,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                           </button>
                         ) : null}
                       </div>
-                      <div className="mt-4 text-xs font-normal">
+                      <div className="text-xs font-normal">
                         {[
                           ['漏洞ID', detail.vuln_id || detail.case_id, true],
                           ['AI模型', detail.runtime?.resolved_model || detail.model || '-', false],
@@ -906,8 +1186,8 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   </div>
 
                   {/* 结论依据 */}
-                  <section>
-                    <div className="mb-3 text-base font-medium text-theme-text-primary">结论依据</div>
+                  <section className="space-y-3">
+                    <div className="text-base font-medium text-theme-text-primary">结论依据</div>
                     <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                       {detailRaw.root_cause_summary ? (
                         <p className="whitespace-pre-wrap text-sm font-normal leading-6 text-theme-text-primary">
@@ -920,8 +1200,8 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   </section>
 
                   {/* 四维判定 */}
-                  <section>
-                    <div className="mb-3 text-base font-medium text-theme-text-primary">四维判定</div>
+                  <section className="space-y-3">
+                    <div className="text-base font-medium text-theme-text-primary">四维判定</div>
                     <div className="rounded-2xl border border-theme-border bg-theme-surface px-5 py-3">
                       {detailHasFinalVerdict ? (
                         <div className="divide-y divide-theme-border/70">
@@ -939,13 +1219,21 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   </section>
 
                   {/* 时间线 */}
-                  <section>
-                    <div className="mb-3 text-base font-medium text-theme-text-primary">时间线</div>
+                  <section className="space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="text-base font-medium text-theme-text-primary">时间线</div>
+                      {devMode && detail.work_dir ? (
+                        <button onClick={() => void openSessionView()} aria-label="会话记录" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated">
+                          <FileText size={13} />会话记录
+                        </button>
+                      ) : null}
+                    </div>
                     <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                       <AttemptTimeline attempts={detailAttempts} devMode={devMode} />
                     </div>
                   </section>
                 </div>
+                )
               ) : (
                 <div className="py-10 text-center text-sm font-normal text-theme-text-muted">加载详情失败</div>
               )}
