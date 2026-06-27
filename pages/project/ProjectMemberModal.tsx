@@ -18,8 +18,6 @@ interface ProjectMemberModalProps {
   projectId: string;
   projectName: string;
   onClose: () => void;
-  /** 成员变更（添加/移除）后回调，用于让父组件刷新项目列表中的成员信息 */
-  onMembersChanged?: () => void;
 }
 
 const formatDateTime = (value?: string | null) => {
@@ -28,7 +26,7 @@ const formatDateTime = (value?: string | null) => {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 };
 
-export const ProjectMemberModal: React.FC<ProjectMemberModalProps> = ({ projectId, projectName, onClose, onMembersChanged }) => {
+export const ProjectMemberModal: React.FC<ProjectMemberModalProps> = ({ projectId, projectName, onClose }) => {
   const projectsApi = api.domains.project.projects;
   const [members, setMembers] = useState<ProjectMember[]>([]);
   const [total, setTotal] = useState(0);
@@ -132,7 +130,6 @@ export const ProjectMemberModal: React.FC<ProjectMemberModalProps> = ({ projectI
       setAddQuery('');
       setAddResults([]);
       await loadMembers(memberSearch.trim() || undefined);
-      onMembersChanged?.();
     } catch (err: any) {
       setAddError(err?.message || '添加成员失败');
     } finally {
@@ -146,7 +143,6 @@ export const ProjectMemberModal: React.FC<ProjectMemberModalProps> = ({ projectI
     try {
       await projectsApi.unbindRole(projectId, userId);
       await loadMembers(memberSearch.trim() || undefined);
-      onMembersChanged?.();
     } catch (err: any) {
       setError(err?.message || '移除成员失败');
     } finally {

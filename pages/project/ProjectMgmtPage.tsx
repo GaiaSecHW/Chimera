@@ -852,16 +852,16 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                       {renderSortIndicator('department_name')}
                     </button>
                   </th>
-                  <th className="whitespace-nowrap min-w-[110px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                    <button onClick={() => handleSortChange('owner_name')} className="inline-flex items-center gap-1 text-sm font-semibold text-theme-text-primary">
-                      项目成员
-                      {renderSortIndicator('owner_name')}
-                    </button>
-                  </th>
                   <th className="whitespace-nowrap min-w-[200px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
                     <button onClick={() => handleSortChange('product_version')} className="inline-flex items-center gap-1 text-sm font-semibold text-theme-text-primary">
                       产品版本
                       {renderSortIndicator('product_version')}
+                    </button>
+                  </th>
+                  <th className="whitespace-nowrap min-w-[110px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+                    <button onClick={() => handleSortChange('owner_name')} className="inline-flex items-center gap-1 text-sm font-semibold text-theme-text-primary">
+                      创建人
+                      {renderSortIndicator('owner_name')}
                     </button>
                   </th>
                   <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
@@ -918,28 +918,19 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                       <td className="whitespace-nowrap px-3 py-3 text-sm" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}>
                         {project.department_name || '未绑定'}
                       </td>
-                      {/* 项目成员 — owner 置前，username 以 ; 拼接 */}
-                      {(() => {
-                        const memberNames = [...(project.roles || [])]
-                          .sort((a, b) => (a.role === 'owner' ? 0 : 1) - (b.role === 'owner' ? 0 : 1))
-                          .map((r) => r.username)
-                          .filter(Boolean)
-                          .join(';');
-                        return (
-                          <td
-                            className="whitespace-nowrap truncate max-w-[180px] px-3 py-3 text-sm"
-                            style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}
-                            title={memberNames || '-'}
-                          >
-                            {memberNames || '-'}
-                          </td>
-                        );
-                      })()}
                       {/* 产品版本 */}
                       <td className="whitespace-nowrap px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
                         <div className="text-sm font-medium" style={{ color: LK.inkSoft }}>
                           {project.product_version || project.product_version_name || '未归属版本'}
                         </div>
+                      </td>
+                      {/* 创建人 */}
+                      <td
+                        className="whitespace-nowrap truncate max-w-[120px] px-3 py-3 text-sm"
+                        style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}
+                        title={project.owner_name || '-'}
+                      >
+                        {project.owner_name || '-'}
                       </td>
                       {/* 创建时间 */}
                       <td className="whitespace-nowrap px-3 py-3 text-xs" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.muted }}>
@@ -1304,7 +1295,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
           projectId={memberModalProject.id}
           projectName={memberModalProject.name}
           onClose={() => setMemberModalProject(null)}
-          onMembersChanged={() => { void refreshProjects(); }}
         />
       )}
       {feedbackNodes}
