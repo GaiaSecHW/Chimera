@@ -720,11 +720,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
               {/* -------- 测试对象 section -------- */}
               <div>
-                <div className="mb-2 text-sm font-semibold" style={{ color: LK.inkSoft }}>测试对象</div>
                 {/* sub-mode toggle */}
                 <div
-                  className="mb-3 flex gap-1 rounded-lg p-1 w-1/2"
-                  style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+                  className="mb-3 flex w-1/2 gap-1 border-b"
+                  style={{ borderColor: LK.border }}
                 >
                   {(isKgSourceTask ? (['existing'] as const) : (['upload', 'existing'] as const)).map((src) => {
                     const active = inputSource === src;
@@ -733,12 +732,13 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                         key={src}
                         type="button"
                         onClick={() => setInputSource(src)}
-                        className="flex-1 rounded-md px-3 py-1.5 text-sm font-bold transition-all"
-                        style={active
-                          ? { backgroundColor: LK.primary, color: '#fff' }
-                          : { color: LK.body }}
+                        className={`relative px-4 py-2 text-sm transition-colors ${active ? 'font-semibold' : 'font-medium'}`}
+                        style={{ color: active ? LK.primary : LK.body }}
                       >
                         {src === 'existing' ? '选择已有' : '直接上传'}
+                        {active ? (
+                          <span className="absolute inset-x-0 -bottom-px h-0.5" style={{ backgroundColor: LK.primary }} />
+                        ) : null}
                       </button>
                     );
                   })}

@@ -577,26 +577,38 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                 </td>
                 <td className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.border}` }}>
                   <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      title="执行"
-                      className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
-                      style={{ color: LK.muted }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
-                    >
-                      <Play size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      title="暂停"
-                      className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
-                      style={{ color: LK.muted }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
-                    >
-                      <Pause size={16} />
-                    </button>
+                    {(() => {
+                      const status = getDisplayStatus(task);
+                      const isRunning = !['success', 'partial_success', 'failed', 'cancelled', 'completed', 'pending', 'stopped', 'deleted'].includes(status);
+                      const canExecute = ['stopped', 'pending', 'failed', 'cancelled'].includes(status);
+                      const canPause = isRunning;
+                      return (
+                        <>
+                          <button
+                            type="button"
+                            title="执行"
+                            disabled={!canExecute}
+                            className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                            style={{ color: LK.muted }}
+                            onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; } }}
+                            onMouseLeave={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; } }}
+                          >
+                            <Play size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            title="暂停"
+                            disabled={!canPause}
+                            className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                            style={{ color: LK.muted }}
+                            onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; } }}
+                            onMouseLeave={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; } }}
+                          >
+                            <Pause size={16} />
+                          </button>
+                        </>
+                      );
+                    })()}
                     <button
                       onClick={() => openTask(task)}
                       title="查看报告"
