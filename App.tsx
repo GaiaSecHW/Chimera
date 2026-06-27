@@ -470,6 +470,20 @@ const AppShell: React.FC = () => {
     navigateToView('home');
   }, [user, currentView, navigateToView]);
 
+  // 开发者角色登录后默认进入首页（/home），而非系统管理控制台（/dashboard）。
+  // handleLogout 会把 URL 留在 /dashboard，导致下次登录时 currentView 继承为 'dashboard'，
+  // 这里在用户加载后把开发者从 dashboard 视图重定向回首页。管理员不受影响。
+  useEffect(() => {
+    if (!user) return;
+    const access = getUserAccess(user);
+    if (
+      access.platformRole === 'developer' &&
+      (currentView === 'dashboard' || currentView === 'admin-dashboard')
+    ) {
+      navigateToView('home');
+    }
+  }, [user, currentView, navigateToView]);
+
   useEffect(() => {
     if (selectedProjectId) {
       localStorage.setItem('last_project_id', selectedProjectId);
