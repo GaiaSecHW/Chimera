@@ -1341,6 +1341,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                     projectId={projectId}
                     displayName={uploadDisplayName}
                     compact={false}
+                    hideUploadIcon
                     onUploadStateChange={setIsUploading}
                   />
                 </>
