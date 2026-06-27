@@ -754,9 +754,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
               key: 'department_name',
               header: '归属部门',
               width: '15%',
-              sortable: true,
-              sortKey: 'department_name',
-              defaultDirection: 'asc',
               render: (project) => (
                 <span className="text-sm" style={{ color: LK.body }}>
                   {project.department_name || '未绑定'}
@@ -767,9 +764,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
               key: 'product_version',
               header: '产品版本',
               width: '15%',
-              sortable: true,
-              sortKey: 'product_version',
-              defaultDirection: 'asc',
               render: (project) => (
                 <div className="text-sm font-medium" style={{ color: LK.inkSoft }}>
                   {project.product_version || project.product_version_name || '未归属版本'}
@@ -780,9 +774,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
               key: 'owner_name',
               header: '创建人',
               width: '15%',
-              sortable: true,
-              sortKey: 'owner_name',
-              defaultDirection: 'asc',
               render: (project) => (
                 <span className="text-sm" style={{ color: LK.body }}>
                   {project.owner_name || '-'}
@@ -848,40 +839,42 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
             },
           ];
           return (
-            <DataTable<SecurityProject>
-              columns={columns}
-              data={tableProjects}
-              rowKey={(project) => project.id}
-              showRowNumber={true}
-              loading={tableLoading}
-              sort={{ field: sortField, direction: sortDirection }}
-              onSortChange={({ field, direction }) => handleSortChange(field, direction)}
-              pagination={
-                tableTotal > 0
-                  ? {
-                      page: safePage,
-                      perPage: pageSize,
-                      total: tableTotal,
-                      perPageOptions: [10, 20, 50, 100],
-                      onPageChange: (next) => setCurrentPage(next),
-                      onPerPageChange: (next) => handlePageSizeChange(next),
-                    }
-                  : undefined
-              }
-              empty={
-                <div className="flex flex-col items-center gap-3 py-14 text-center">
-                  <div
-                    className="flex h-10 w-10 items-center justify-center rounded-md"
-                    style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}
-                  >
-                    <Building2 size={20} />
+            <div className='px-4'>
+              <DataTable<SecurityProject>
+                columns={columns}
+                data={tableProjects}
+                rowKey={(project) => project.id}
+                showRowNumber={true}
+                loading={tableLoading}
+                sort={{ field: sortField, direction: sortDirection }}
+                onSortChange={({ field, direction }) => handleSortChange(field, direction)}
+                pagination={
+                  tableTotal > 0
+                    ? {
+                        page: safePage,
+                        perPage: pageSize,
+                        total: tableTotal,
+                        perPageOptions: [10, 20, 50, 100],
+                        onPageChange: (next) => setCurrentPage(next),
+                        onPerPageChange: (next) => handlePageSizeChange(next),
+                      }
+                    : undefined
+                }
+                empty={
+                  <div className="flex flex-col items-center gap-3 py-14 text-center">
+                    <div
+                      className="flex h-10 w-10 items-center justify-center rounded-md"
+                      style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}
+                    >
+                      <Building2 size={20} />
+                    </div>
+                    <p className="text-sm" style={{ color: LK.muted }}>
+                      {debouncedSearch.trim() ? '没有匹配的项目' : '当前没有项目'}
+                    </p>
                   </div>
-                  <p className="text-sm" style={{ color: LK.muted }}>
-                    {debouncedSearch.trim() ? '没有匹配的项目' : '当前没有项目'}
-                  </p>
-                </div>
-              }
-            />
+                }
+              />
+            </div>
           );
         })()}
       </section>
