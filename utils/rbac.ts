@@ -138,8 +138,6 @@ const ORDINARY_ADMIN_VIEWS = new Set<string>([
 ]);
 
 const ADMIN_VIEWS = new Set<string>([
-  'env-access',
-  'env-management',
   'env-agent',
   'env-service',
   'env-ai-agent',
