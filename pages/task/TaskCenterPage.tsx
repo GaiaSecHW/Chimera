@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { DataTable, DataTableColumn, DropdownSelect, Modal, PageHeader } from '../../design-system';
-import { Bug, CheckCircle2, FileText, FolderInput, Loader2, Play, Plus, RefreshCw, Rocket, Search, Shield, Trash2, X } from 'lucide-react';
+import { Bug, CheckCircle2, FileText, Loader2, Pause, Play, Plus, RefreshCw, Rocket, Search, Shield, Trash2, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { ServicePageTitle } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -577,17 +577,23 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
               header: '操作',
               render: (task) => (
                 <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    title="执行/暂停"
-                    disabled
-                    className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-                    style={{ color: LK.muted }}
-                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; } }}
-                    onMouseLeave={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; } }}
-                  >
-                    <Play size={16} />
-                  </button>
+                  {(() => {
+                    const status = getDisplayStatus(task);
+                    const isRunning = !['success', 'partial_success', 'failed', 'cancelled', 'completed', 'pending', 'stopped', 'deleted'].includes(status);
+                    return (
+                      <button
+                        type="button"
+                        title={isRunning ? '暂停' : '执行'}
+                        disabled
+                        className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                        style={{ color: LK.muted }}
+                        onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; } }}
+                        onMouseLeave={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; } }}
+                      >
+                        {isRunning ? <Pause size={16} /> : <Play size={16} />}
+                      </button>
+                    );
+                  })()}
                   <button
                     onClick={() => openTask(task)}
                     title="查看报告"
@@ -621,19 +627,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                         </span>
                       );
                     })()}
-                  </button>
-                  <button
-                    type="button"
-                    title="修改所属项目"
-                    aria-label="修改所属项目"
-                    onClick={() => { setChangeProjectTargetId(''); setChangeProjectTask(task); }}
-                    disabled={['dispatched','running','queued','pending'].includes(String(task.dispatch_status || '')) || changeProjectSubmitting}
-                    className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                    style={{ color: LK.muted }}
-                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; } }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
-                  >
-                    <FolderInput size={16} />
                   </button>
                   <button
                     onClick={() => void submitDelete([task.id])}

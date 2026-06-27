@@ -56,7 +56,6 @@ type TaskTypeOption = {
 const TASK_TYPES: readonly TaskTypeOption[] = [
   { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'source_scan_e2e', label: '盖亚-源码端到端', downstreamView: 'source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
-  { value: 'kg_source_vuln_scan_e2e', label: '知识图谱-漏洞挖掘', downstreamView: 'kg-source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'ai4app_fast', label: 'AI4APP 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
   { value: 'ai4web_fast', label: 'AI4WEB 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
@@ -87,6 +86,16 @@ const TASK_TYPE_HINTS: Record<string, string> = {
   ai4red: '请上传一个压缩包（具体要求见说明），需要勾选"保留原始文件，不自动解压"',
   sechps_tool: '请选择一个已注册的 Agent Harness，并选择一个目录。',
 };
+
+const KEEP_ORIGINAL_TASK_TYPES = new Set<string>([
+  'binary_firmware_e2e',
+  'binary_module_e2e',
+  'ai4app_fast',
+  'ai4app_deep',
+  'ai4web_fast',
+  'ai4web_deep',
+  'ai4red',
+]);
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -619,18 +628,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
               {mode === 'lion-head' ? null : (
                 <>
-              {/* binary_module_e2e module name */}
-              {taskType === 'binary_module_e2e' ? (
-                <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                  模块名
-                  <input
-                    value={moduleName}
-                    onChange={(e) => setModuleName(e.target.value)}
-                    className="form-input mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                  />
-                </label>
-              ) : null}
-
               {isKgSourceTask ? (
                 <div className="rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.body }}>
                   知识图谱-漏洞挖掘会直接使用所选测试对象记录的 <span style={{ color: LK.ink, fontFamily: MONO }}>upload_id</span> 作为知识图谱定位参数，不需要手工填写。
@@ -668,6 +665,18 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 >
                   {TASK_TYPE_HINTS[taskType]}
                 </div>
+              ) : null}
+
+              {/* binary_module_e2e module name */}
+              {taskType === 'binary_module_e2e' ? (
+                <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                  模块名
+                  <input
+                    value={moduleName}
+                    onChange={(e) => setModuleName(e.target.value)}
+                    className="form-input mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                  />
+                </label>
               ) : null}
 
               {/* sechps Agent Harness specific */}
@@ -752,6 +761,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     compact={true}
                     hideUploadIcon
                     defaultInputType="code"
+                    defaultKeepOriginal={KEEP_ORIGINAL_TASK_TYPES.has(taskType)}
                     onUploadStateChange={setUploading}
                   />
                 ) : (

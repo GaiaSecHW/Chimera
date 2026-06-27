@@ -1,4 +1,4 @@
-import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { UploadCloud, X } from 'lucide-react';
 import { api } from '../clients/api';
 import { DropdownSelect } from '../design-system';
@@ -37,6 +37,7 @@ export interface TestInputUploaderProps {
   compact?: boolean;
   hideUploadIcon?: boolean;
   defaultInputType?: InputType;
+  defaultKeepOriginal?: boolean;
   onUploadStateChange?: (uploading: boolean) => void;
 }
 
@@ -54,10 +55,11 @@ const formatSpeed = (value?: number | null) => {
 };
 
 export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUploaderProps>(
-  ({ projectId, displayName, compact = false, hideUploadIcon = false, defaultInputType = 'document', onUploadStateChange }, ref) => {
+  ({ projectId, displayName, compact = false, hideUploadIcon = false, defaultInputType = 'document', defaultKeepOriginal = false, onUploadStateChange }, ref) => {
     const fileserverApi = api.domains.assets.fileserver;
     const [inputType, setInputType] = useState<InputType>(defaultInputType);
-    const [keepOriginal, setKeepOriginal] = useState(false);
+    const [keepOriginal, setKeepOriginal] = useState(defaultKeepOriginal);
+    useEffect(() => { setKeepOriginal(defaultKeepOriginal); }, [defaultKeepOriginal]);
     const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
