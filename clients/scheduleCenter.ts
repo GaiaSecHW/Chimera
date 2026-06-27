@@ -139,6 +139,13 @@ export const scheduleCenterApi = {
       headers: getHeaders(),
     })),
 
+  changeUserTaskProject: async (projectId: string, taskId: string, newProjectId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/user-tasks/${encodeURIComponent(taskId)}/project`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ new_project_id: newProjectId }),
+    })),
+
   bulkDeleteUserTasks: async (projectId: string, payload: any): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/user-tasks/bulk-delete`, {
       method: 'POST',
