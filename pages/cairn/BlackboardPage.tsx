@@ -1,10 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useTheme } from '../../theme/ThemeProvider';
 
-// Cairn 为跨域独立服务，iframe 隔离其 SSE/图谱运行时，避免与父 SPA 状态冲突。
 const CAIRN_BLACKBOARD_SRC = '/nazhua/';
 
 const BlackboardPage: React.FC = () => {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const { theme } = useTheme();
+
+  const sendTheme = () => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: 'theme', theme: theme || 'light' },
+      '*',
+    );
+  };
+
+  useEffect(() => {
+    sendTheme();
+  }, [theme]);
 
   return (
     <div
@@ -49,9 +62,10 @@ const BlackboardPage: React.FC = () => {
         </div>
       )}
       <iframe
+        ref={iframeRef}
         title="黑板 Cairn Blackboard"
         src={CAIRN_BLACKBOARD_SRC}
-        onLoad={() => setStatus('ready')}
+        onLoad={() => { setStatus('ready'); sendTheme(); }}
         onError={() => setStatus('error')}
         style={{
           width: '100%',
