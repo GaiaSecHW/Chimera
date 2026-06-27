@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowLeft, Check, CheckCircle2, ChevronRight, CircleHelp
 import { vulnVerifyV2Api, VulnVerifyV2Attempt, VulnVerifyV2ProjectStats, VulnVerifyV2Result, VulnVerifyV2Task, VulnVerifyV2TaskDetail } from '../../clients/vulnVerifyV2';
 import { fileserverApi } from '../../clients/fileserver';
 import type { ProjectFilesystemEntry } from '../../types/types';
+import { VulnVerifyV2SessionPreview } from './VulnVerifyV2SessionPreview';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { PageHeader } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -308,14 +309,6 @@ const AttemptDevJson: React.FC<{ attempt: VulnVerifyV2Attempt }> = ({ attempt })
   );
 };
 
-interface PiSessionViewEntry {
-  role: string;
-  label: string;
-  meta: string;
-  content: string;
-  isError?: boolean;
-}
-
 function joinPath(base: string, name: string): string {
   const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
   return `${cleanBase || ''}/${name}`;
@@ -355,99 +348,6 @@ async function listSessionJsonlFiles(projectId: string, runPath: string, maxDept
   await visit(runPath, maxDepth);
   return sortJsonlFiles(files);
 }
-
-function parseJsonl(text: string): any[] {
-  return text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      try {
-        return JSON.parse(line);
-      } catch {
-        return { type: 'parse_error', raw: line };
-      }
-    });
-}
-
-function contentToText(content: unknown): string {
-  if (content === undefined || content === null) return '';
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) {
-    return content.map((block) => {
-      if (!block || typeof block !== 'object') return String(block);
-      const item = block as Record<string, any>;
-      if (item.type === 'text') return String(item.text || '');
-      if (item.type === 'thinking') return `Thinking\n${String(item.thinking || '')}`;
-      if (item.type === 'toolCall') return `Tool Call: ${String(item.name || '')}\n${JSON.stringify(item.arguments || {}, null, 2)}`;
-      if (item.type === 'image') return `[Image: ${String(item.mimeType || 'image')}]`;
-      return JSON.stringify(item, null, 2);
-    }).filter(Boolean).join('\n\n');
-  }
-  return JSON.stringify(content, null, 2);
-}
-
-function normalizePiSessionEntry(entry: any): PiSessionViewEntry {
-  if (entry?.type === 'parse_error') return { role: 'error', label: 'PARSE ERROR', meta: '', content: String(entry.raw || ''), isError: true };
-  if (entry?.type === 'session') {
-    return {
-      role: 'session',
-      label: 'SESSION',
-      meta: entry.timestamp || '',
-      content: [`id: ${entry.id || '-'}`, `version: ${entry.version || '-'}`, `cwd: ${entry.cwd || '-'}`].join('\n'),
-    };
-  }
-  if (entry?.type === 'message') {
-    const msg = entry.message || {};
-    const role = String(msg.role || 'message');
-    let content = contentToText(msg.content);
-    if (!content && role === 'bashExecution') content = `Command: ${msg.command || ''}\nExit Code: ${msg.exitCode ?? '-'}\n\n${msg.output || ''}`;
-    if (!content && msg.summary) content = String(msg.summary);
-    if (!content) content = JSON.stringify(msg, null, 2);
-    return {
-      role,
-      label: role === 'toolResult' ? `TOOL RESULT · ${msg.toolName || ''}` : role.toUpperCase(),
-      meta: entry.timestamp || msg.timestamp || '',
-      content,
-      isError: Boolean(msg.isError || msg.errorMessage || msg.exitCode),
-    };
-  }
-  if (entry?.type === 'model_change') return { role: 'system', label: 'MODEL', meta: entry.timestamp || '', content: `${entry.provider || ''}/${entry.modelId || ''}` };
-  if (entry?.type === 'thinking_level_change') return { role: 'system', label: 'THINKING', meta: entry.timestamp || '', content: String(entry.thinkingLevel || '') };
-  if (entry?.type === 'compaction') return { role: 'system', label: 'COMPACTION', meta: entry.timestamp || '', content: String(entry.summary || '') };
-  if (entry?.type === 'branch_summary') return { role: 'system', label: 'BRANCH SUMMARY', meta: entry.timestamp || '', content: String(entry.summary || '') };
-  return { role: 'raw', label: String(entry?.type || 'RAW').toUpperCase(), meta: entry?.timestamp || '', content: JSON.stringify(entry, null, 2) };
-}
-
-function piSessionEntryClassName(view: PiSessionViewEntry): string {
-  if (view.isError) return 'border-[var(--color-signal-red-border)] bg-[var(--color-signal-red-bg)]';
-  if (view.role === 'user') return 'border-[var(--color-signal-blue-border)] bg-[var(--color-signal-blue-bg)]';
-  if (view.role === 'toolResult' || view.role === 'bashExecution') return 'border-theme-border bg-theme-elevated';
-  if (view.role === 'session' || view.role === 'system') return 'border-theme-border bg-theme-elevated';
-  return 'border-theme-border bg-theme-surface';
-}
-
-const PiSessionPreview: React.FC<{ jsonl: string }> = ({ jsonl }) => {
-  const entries = useMemo(() => parseJsonl(jsonl), [jsonl]);
-  if (!entries.length) return <div className="py-10 text-center text-sm text-theme-text-muted">会话文件为空</div>;
-  return (
-    <div className="space-y-3">
-      {entries.map((entry, index) => {
-        const view = normalizePiSessionEntry(entry);
-        const mono = view.role === 'toolResult' || view.role === 'bashExecution' || view.role === 'raw' || view.isError;
-        return (
-          <article key={entry?.id || index} className={`rounded-xl border p-4 ${piSessionEntryClassName(view)}`}>
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs">
-              <span className={`font-semibold ${view.isError ? 'text-[var(--color-signal-red)]' : 'text-theme-text-secondary'}`}>{view.label}</span>
-              {view.meta ? <span className="text-theme-text-muted">{fmtTime(view.meta)}</span> : null}
-            </div>
-            <pre className={`whitespace-pre-wrap break-words text-sm leading-6 text-theme-text-primary ${mono ? 'font-mono' : 'font-sans'}`}>{view.content}</pre>
-          </article>
-        );
-      })}
-    </div>
-  );
-};
 
 const SessionFileButton: React.FC<{ file: ProjectFilesystemEntry; active: boolean; onClick: () => void }> = ({ file, active, onClick }) => (
   <button
@@ -1128,9 +1028,9 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                     </div>
 
                     <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-                      <aside className="min-w-0 space-y-2">
+                      <aside className="min-w-0 space-y-2 lg:sticky lg:top-0 lg:self-start">
                         <div className="text-xs font-medium text-theme-text-muted">JSONL 文件（{sessionFiles.length}）</div>
-                        <div className="max-h-[38vh] space-y-2 overflow-auto rounded-2xl border border-theme-border bg-theme-surface p-3 lg:max-h-[calc(100vh-220px)]">
+                        <div className="max-h-[38vh] space-y-2 overflow-auto rounded-2xl border border-theme-border bg-theme-surface p-3 lg:max-h-[calc(100vh-180px)]">
                           {sessionFiles.map((file) => (
                             <SessionFileButton key={file.path} file={file} active={selectedSessionPath === file.path} onClick={() => void loadSessionFile(file.path)} />
                           ))}
@@ -1149,7 +1049,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                             <Loader2 size={16} className="animate-spin" />正在读取会话...
                           </div>
                         ) : sessionJsonl ? (
-                          <PiSessionPreview jsonl={sessionJsonl} />
+                          <VulnVerifyV2SessionPreview path={selectedSessionPath} jsonl={sessionJsonl} />
                         ) : !sessionError && !sessionLoading ? (
                           <div className="flex min-h-[220px] items-center justify-center rounded-2xl border border-theme-border bg-theme-surface text-sm text-theme-text-muted">请选择 JSONL 文件</div>
                         ) : null}
