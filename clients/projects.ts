@@ -30,8 +30,21 @@ export const projectsApi = {
     return handleResponse(response);
   },
 
-  list: async (): Promise<{ total: number; projects: SecurityProject[] }> => {
-    const response = await fetch(`${API_BASE}/api/project`, { headers: getHeaders() });
+  list: async (params?: {
+    search?: string;
+    page?: number;
+    page_size?: number;
+    sort_by?: string;
+    sort_direction?: 'asc' | 'desc';
+  }): Promise<{ total: number; projects: SecurityProject[] }> => {
+    const query = new URLSearchParams();
+    if (params?.search) query.set('search', params.search);
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.page_size) query.set('page_size', String(params.page_size));
+    if (params?.sort_by) query.set('sort_by', params.sort_by);
+    if (params?.sort_direction) query.set('sort_direction', params.sort_direction);
+    const qs = query.toString();
+    const response = await fetch(`${API_BASE}/api/project${qs ? `?${qs}` : ''}`, { headers: getHeaders() });
     return handleResponse(response);
   },
   
