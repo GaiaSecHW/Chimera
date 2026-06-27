@@ -2317,8 +2317,8 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap text-xs">
                     {(() => {
-                      const vs = { total: t.vuln_total_count || 0, reported: t.vuln_reported_count || 0, unreported: t.vuln_unreported_count || 0 };
-                      if (!vs || vs.total === 0) return <span className="text-theme-text-muted">-</span>;
+                      const vs = { total: t.vuln_total_count ?? -1, reported: t.vuln_reported_count ?? -1, unreported: t.vuln_unreported_count ?? -1 };
+                      if (vs.total < 0) return <span className="text-theme-text-muted">-</span>;
                       return <span><span className="font-semibold">{vs.total}</span>{vs.reported > 0 && <span className="ml-1 text-emerald-400">+{vs.reported}</span>}{vs.unreported > 0 && <span className="ml-1 text-rose-400">-{vs.unreported}</span>}</span>;
                     })()}
                   </ExecutionTableTd>
