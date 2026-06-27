@@ -57,6 +57,8 @@ export const DropdownSelect = function DropdownSelect({
 }: DropdownSelectProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const selectedRef = useRef<HTMLButtonElement | null>(null);
   const [open, setOpen] = useState(false);
   const [dropUp, setDropUp] = useState(false);
   const [listMaxHeight, setListMaxHeight] = useState<number | undefined>(undefined);
@@ -89,6 +91,10 @@ export const DropdownSelect = function DropdownSelect({
     }
     if (showSearch && searchInputRef.current) {
       searchInputRef.current.focus({ preventScroll: true });
+    }
+    const sel = selectedRef.current;
+    if (sel) {
+      sel.scrollIntoView({ block: 'nearest' });
     }
   }, [open, showSearch]);
 
@@ -158,7 +164,7 @@ export const DropdownSelect = function DropdownSelect({
               />
             </div>
           )}
-          <div className="max-h-60 overflow-y-auto space-y-0.5" style={{ maxHeight: listMaxHeight ? `${listMaxHeight}px` : undefined }}>
+          <div ref={listRef} className="max-h-60 overflow-y-auto space-y-0.5" style={{ maxHeight: listMaxHeight ? `${listMaxHeight}px` : undefined }}>
             {filteredOptions.length === 0 ? (
               <div className="px-3 py-2 text-xs font-medium text-theme-text-secondary">{emptyText}</div>
             ) : (
@@ -167,6 +173,7 @@ export const DropdownSelect = function DropdownSelect({
                 return (
                   <button
                     key={opt.value}
+                    ref={selected ? selectedRef : undefined}
                     type="button"
                     disabled={opt.disabled}
                     onClick={() => handleSelect(opt)}

@@ -134,7 +134,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
   }, [currentUser]);
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<ScheduleCenterUserTask[]>([]);
-  const [taskVulnCounts, setTaskVulnCounts] = useState<Record<string, number | undefined>>({});
+  // 漏洞数量角标已下线：不再查询接口、不在任务列表显示数量。恢复时取消注释下方声明及相关链路即可。
+  // const [taskVulnCounts, setTaskVulnCounts] = useState<Record<string, number | undefined>>({});
   const [stats, setStats] = useState<Record<string, number>>({});
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState(() => searchParams.get('task') || '');
@@ -177,6 +178,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
     [deleteQueuePageSize, deleteQueueTotal],
   );
 
+  /* 漏洞数量角标已下线 —— 以下查询接口与赋值逻辑保留以便恢复：
   const fetchTaskVulnCounts = async (taskItems: ScheduleCenterUserTask[]) => {
     if (!projectId || taskItems.length === 0) return;
     try {
@@ -199,6 +201,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
       });
     }
   };
+  */
 
   const loadData = async (
     nextPage = page,
@@ -251,7 +254,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
       setTasks(taskItems);
       setStats(taskResp.stats || {});
       setTotal(taskResp.total || 0);
-      void fetchTaskVulnCounts(taskItems);
+      // 漏洞数量角标已下线：不再查询每个任务的漏洞数量
+      // void fetchTaskVulnCounts(taskItems);
     } catch (err: any) {
       setError(err?.message || '加载失败');
     } finally {
@@ -608,13 +612,14 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                     onClick={() => {
                       window.open(`#/vuln-list?task=${encodeURIComponent(task.id)}`, '_blank', 'noopener,noreferrer');
                     }}
-                    title={`查看漏洞 (${taskVulnCounts[task.id] === undefined ? '…' : taskVulnCounts[task.id]})`}
+                    title="查看漏洞"
                     className="relative inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
                     style={{ color: LK.muted }}
                     onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
                     onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
                   >
                     <Bug size={16} />
+                    {/* 漏洞数量角标已下线 —— 不再渲染右上角数量徽章
                     {(() => {
                       const c = taskVulnCounts[task.id];
                       if (c === undefined || c === 0) return null;
@@ -627,6 +632,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                         </span>
                       );
                     })()}
+                    */}
                   </button>
                   <button
                     onClick={() => void submitDelete([task.id])}
