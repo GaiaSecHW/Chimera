@@ -5,14 +5,14 @@ import { AlertTriangle, History } from 'lucide-react';
 import { ExecutionAbnormalReason, ExecutionAbnormalReasonEventSummary } from '../../types/types';
 
 const LK = {
-  primary: 'var(--brand-primary)', primarySoft: '#7590ff', primaryDeep: 'var(--brand-primary-hover)',
+  primary: '#2563EB', primarySoft: '#7590ff', primaryDeep: 'var(--brand-primary-hover)',
   primaryMuted: 'var(--brand-primary-mask)',
   canvas: 'var(--bg-app)', surface: 'var(--bg-surface)', surfaceRaised: 'var(--bg-app)',
   surfaceGlass: 'rgba(17, 26, 43, 0.84)',
   border: 'var(--border-default)', borderSoft: 'var(--border-default)',
   ink: 'var(--text-primary)', inkSoft: 'var(--text-secondary)', body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)', mutedSoft: '#8b95a8',
-  success: '#45c06f', warning: '#d5a13a', error: '#f15d5d', info: '#4f8cff',
+  success: '#30A46C', warning: '#D97706', error: '#DC2626', info: '#4f8cff',
   critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
 } as const;
 

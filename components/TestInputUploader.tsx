@@ -1,4 +1,4 @@
-import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { UploadCloud, X } from 'lucide-react';
 import { api } from '../clients/api';
 import { DropdownSelect } from '../design-system';
@@ -37,6 +37,7 @@ export interface TestInputUploaderProps {
   compact?: boolean;
   hideUploadIcon?: boolean;
   defaultInputType?: InputType;
+  defaultKeepOriginal?: boolean;
   onUploadStateChange?: (uploading: boolean) => void;
 }
 
@@ -54,10 +55,11 @@ const formatSpeed = (value?: number | null) => {
 };
 
 export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUploaderProps>(
-  ({ projectId, displayName, compact = false, hideUploadIcon = false, defaultInputType = 'document', onUploadStateChange }, ref) => {
+  ({ projectId, displayName, compact = false, hideUploadIcon = false, defaultInputType = 'document', defaultKeepOriginal = false, onUploadStateChange }, ref) => {
     const fileserverApi = api.domains.assets.fileserver;
     const [inputType, setInputType] = useState<InputType>(defaultInputType);
-    const [keepOriginal, setKeepOriginal] = useState(false);
+    const [keepOriginal, setKeepOriginal] = useState(defaultKeepOriginal);
+    useEffect(() => { setKeepOriginal(defaultKeepOriginal); }, [defaultKeepOriginal]);
     const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
@@ -182,26 +184,28 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
 
     return (
       <div className="space-y-4">
-        {/* 输入类型 */}
+        {/* 输入类型 + 是否解压（同一行） */}
         <div className="space-y-1.5">
-          <div className="mb-2 text-sm font-semibold">输入类型</div>
-          <DropdownSelect
-            value={inputType}
-            onChange={(v) => setInputType(v as InputType)}
-            options={INPUT_TYPE_ORDER.map((type) => ({ value: type, label: INPUT_TYPE_META[type].label }))}
-          />
+          <div className="text-sm font-semibold">输入类型</div>
+          <div className="flex items-center gap-4">
+            <div className="min-w-0 flex-1">
+              <DropdownSelect
+                value={inputType}
+                onChange={(v) => setInputType(v as InputType)}
+                options={INPUT_TYPE_ORDER.map((type) => ({ value: type, label: INPUT_TYPE_META[type].label }))}
+              />
+            </div>
+            <label className="flex items-center gap-2 whitespace-nowrap text-sm font-medium text-theme-text-secondary">
+              <input
+                type="checkbox"
+                checked={keepOriginal}
+                onChange={(e) => setKeepOriginal(e.target.checked)}
+                className="h-4 w-4 rounded border-theme-border"
+              />
+              保留原始文件，不自动解压
+            </label>
+          </div>
         </div>
-
-        {/* 是否解压 */}
-        <label className="flex items-center gap-2 text-sm font-medium text-theme-text-secondary">
-          <input
-            type="checkbox"
-            checked={keepOriginal}
-            onChange={(e) => setKeepOriginal(e.target.checked)}
-            className="h-4 w-4 rounded border-theme-border"
-          />
-          保留原始文件，不自动解压
-        </label>
 
         {/* 文件选择 */}
         <div

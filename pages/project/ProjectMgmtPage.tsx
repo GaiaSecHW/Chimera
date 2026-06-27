@@ -1,14 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
   Building2,
-  CheckCircle2,
-  CheckSquare,
-  ChevronLeft,
-  ChevronRight,
   Edit3,
   Layers,
   Loader2,
@@ -16,14 +9,13 @@ import {
   RefreshCw,
   Search,
   Server,
-  Square,
   Trash2,
   Users,
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
 import { orgApi, UserPermissionInfo } from '../../clients/org';
-import { DropdownSelect, PageHeader } from '../../design-system';
+import { DataTable, DataTableColumn, DropdownSelect, PageHeader } from '../../design-system';
 import { Department, ProductTreeNode, ProductVersionNode, SecurityProject } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -59,11 +51,10 @@ type ProjectSortField = 'created_at' | 'updated_at' | 'name' | 'department_name'
 type ProjectSortDirection = 'asc' | 'desc';
 
 const PROJECT_SORT_FIELDS: readonly ProjectSortField[] = ['created_at', 'updated_at', 'name', 'department_name', 'owner_name', 'product_version'];
-const DATE_SORT_FIELDS: readonly ProjectSortField[] = ['created_at', 'updated_at'];
 
 // LOKI design tokens (DESIGN.md) — page-local palette.
 const LK = {
-  primary: 'var(--brand-primary)',
+  primary: '#2563EB',
   primarySoft: '#7590ff',
   primaryDeep: 'var(--brand-primary-hover)',
   primaryMuted: 'var(--brand-primary-mask)',
@@ -78,9 +69,9 @@ const LK = {
   body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)',
   mutedSoft: '#8b95a8',
-  success: '#45c06f',
-  warning: '#d5a13a',
-  error: '#f15d5d',
+  success: '#30A46C',
+  warning: '#D97706',
+  error: '#DC2626',
   info: '#4f8cff',
 } as const;
 
@@ -98,18 +89,23 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   const vulnApi = api.domains.vuln.vuln;
   const { confirm, feedbackNodes } = useUiFeedback();
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(() => {
     const saved = Number(localStorage.getItem('chimera:projectList:pageSize'));
-    return saved && [10, 20, 50, 100].includes(saved) ? saved : 10;
+    return saved && [10, 20, 50, 100].includes(saved) ? saved : 20;
   });
   const [sortField, setSortField] = useState<ProjectSortField>(() => {
     const saved = localStorage.getItem('chimera:projectList:sortField');
-    return saved && (PROJECT_SORT_FIELDS as readonly string[]).includes(saved) ? (saved as ProjectSortField) : 'created_at';
+    return saved && (PROJECT_SORT_FIELDS as readonly string[]).includes(saved) ? (saved as ProjectSortField) : 'updated_at';
   });
   const [sortDirection, setSortDirection] = useState<ProjectSortDirection>(() => {
     return localStorage.getItem('chimera:projectList:sortDirection') === 'asc' ? 'asc' : 'desc';
   });
+  const [tableProjects, setTableProjects] = useState<SecurityProject[]>([]);
+  const [tableTotal, setTableTotal] = useState(0);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -121,7 +117,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   const [newProject, setNewProject] = useState<ProjectFormState>(EMPTY_FORM);
   const [editForm, setEditForm] = useState<ProjectFormState>(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [departments, setDepartments] = useState<Department[]>([]);
   const [userPermissions, setUserPermissions] = useState<UserPermissionInfo | null>(null);
   const [productTree, setProductTree] = useState<ProductTreeNode[]>([]);
@@ -246,53 +241,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     );
   }, [selectedProductVersions, versionSearch]);
 
-  const filteredProjects = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    const filtered = (projects || []).filter((project) => {
-      if (!project) return false;
-      if (!term) return true;
-      return [
-        project.name || '',
-        project.id || '',
-        project.description || '',
-        project.k8s_namespace || '',
-        project.owner_name || '',
-        project.department_name || '',
-        project.product_name || '',
-        project.product_path || '',
-        project.product_version || '',
-        project.product_version_name || '',
-      ].some((value) => value.toLowerCase().includes(term));
-    });
-    const dir = sortDirection === 'asc' ? 1 : -1;
-    return [...filtered].sort((a, b) => {
-      switch (sortField) {
-        case 'name':
-          return String(a.name || '').localeCompare(String(b.name || ''), 'zh-CN') * dir;
-        case 'department_name':
-          return String(a.department_name || '').localeCompare(String(b.department_name || ''), 'zh-CN') * dir;
-        case 'owner_name':
-          return String(a.owner_name || '').localeCompare(String(b.owner_name || ''), 'zh-CN') * dir;
-        case 'product_version':
-          return String(a.product_version || a.product_version_name || '')
-            .localeCompare(String(b.product_version || b.product_version_name || ''), 'zh-CN') * dir;
-        case 'created_at':
-        case 'updated_at': {
-          const aVal = sortField === 'created_at' ? a.created_at : a.updated_at;
-          const bVal = sortField === 'created_at' ? b.created_at : b.updated_at;
-          const aTime = aVal ? new Date(aVal).getTime() : 0;
-          const bTime = bVal ? new Date(bVal).getTime() : 0;
-          return (aTime - bTime) * dir;
-        }
-      }
-    });
-  }, [projects, searchTerm, sortField, sortDirection]);
-
-  const manageableProjects = useMemo(
-    () => filteredProjects.filter((project) => project.can_manage),
-    [filteredProjects]
-  );
-
   // 成员管理权限：仅项目创建人或 super_admin。部门管理员有项目编辑/删除权(can_manage)
   // 但不能管理成员，故独立于 can_manage 判定。
   const canManageProjectMembers = (project: SecurityProject) => {
@@ -300,19 +248,50 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     return !!userPermissions.is_admin || String(userPermissions.user_id) === (project.owner_id || '');
   };
 
-  const totalPages = Math.max(1, Math.ceil(filteredProjects.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(tableTotal / pageSize));
   const safePage = Math.min(currentPage, totalPages);
-  const pagedProjects = useMemo(
-    () => filteredProjects.slice((safePage - 1) * pageSize, safePage * pageSize),
-    [filteredProjects, safePage, pageSize]
-  );
-  const pageStart = filteredProjects.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
-  const pageEnd = Math.min(safePage * pageSize, filteredProjects.length);
 
+  // Debounce search input; reset to page 1 when the debounced term changes.
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, sortField, sortDirection]);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
+  // Server-side fetch: query backend whenever search / page / size / sort or a manual reload changes.
+  useEffect(() => {
+    let cancelled = false;
+    setTableLoading(true);
+    projectApi.projects
+      .list({
+        search: debouncedSearch.trim() || undefined,
+        page: currentPage,
+        page_size: pageSize,
+        sort_by: sortField,
+        sort_direction: sortDirection,
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setTableProjects(data.projects || []);
+        setTableTotal(data.total || 0);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error('加载项目列表失败:', err);
+        setTableProjects([]);
+        setTableTotal(0);
+      })
+      .finally(() => {
+        if (!cancelled) setTableLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedSearch, currentPage, pageSize, sortField, sortDirection, reloadTrigger]);
+
+  // Keep current page in bounds when the total shrinks (e.g. after delete).
   useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
@@ -325,31 +304,17 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     setCurrentPage(1);
   };
 
-  const handleSortChange = (field: ProjectSortField) => {
-    if (field === sortField) {
-      const next: ProjectSortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-      setSortDirection(next);
-      localStorage.setItem('chimera:projectList:sortDirection', next);
-    } else {
-      const next: ProjectSortDirection = DATE_SORT_FIELDS.includes(field) ? 'desc' : 'asc';
-      setSortField(field);
-      setSortDirection(next);
-      localStorage.setItem('chimera:projectList:sortField', field);
-      localStorage.setItem('chimera:projectList:sortDirection', next);
-    }
+  const handleSortChange = (field: string, direction: 'asc' | 'desc') => {
+    setSortField(field as ProjectSortField);
+    setSortDirection(direction);
+    setCurrentPage(1);
+    localStorage.setItem('chimera:projectList:sortField', field);
+    localStorage.setItem('chimera:projectList:sortDirection', direction);
   };
-
-  const renderSortIndicator = (field: ProjectSortField) => {
-    if (sortField !== field) return <ArrowUpDown size={13} style={{ color: LK.mutedSoft }} />;
-    return sortDirection === 'asc'
-      ? <ArrowUp size={13} style={{ color: LK.inkSoft }} />
-      : <ArrowDown size={13} style={{ color: LK.inkSoft }} />;
-  };
-
-  const isAllSelected = manageableProjects.length > 0 && manageableProjects.every((project) => selectedIds.has(project.id));
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
+    setReloadTrigger((n) => n + 1);
     try {
       await Promise.all([refreshProjects(true), loadStats()]);
     } finally {
@@ -432,6 +397,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       setIsCreateModalOpen(false);
       resetCreateForm();
       await refreshProjects();
+      setReloadTrigger((n) => n + 1);
       const goCreateTask = await confirm({
         title: '项目创建成功',
         message: `项目「${createdProjectName}」已初始化。是否前往测试任务中心创建测试任务？`,
@@ -496,6 +462,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       setIsEditModalOpen(false);
       setEditingProject(null);
       await refreshProjects();
+      setReloadTrigger((n) => n + 1);
     } catch (err: any) {
       setError(err.message || '更新项目失败');
     } finally {
@@ -526,27 +493,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     setIsEditModalOpen(true);
   };
 
-  const toggleSelectAll = () => {
-    if (isAllSelected) {
-      setSelectedIds(new Set());
-      return;
-    }
-    setSelectedIds(new Set(manageableProjects.map((project) => project.id)));
-  };
-
-  const toggleSelect = (event: React.MouseEvent, project: SecurityProject) => {
-    event.stopPropagation();
-    if (!project.can_manage) return;
-
-    const next = new Set(selectedIds);
-    if (next.has(project.id)) {
-      next.delete(project.id);
-    } else {
-      next.add(project.id);
-    }
-    setSelectedIds(next);
-  };
-
   const handleDeleteClick = (event: React.MouseEvent, ids: string[]) => {
     event.stopPropagation();
     if (ids.length === 0) return;
@@ -559,8 +505,8 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     try {
       await Promise.all(showConfirm.ids.map((id) => projectApi.projects.delete(id)));
       setShowConfirm({ show: false, ids: [] });
-      setSelectedIds(new Set());
       await refreshProjects();
+      setReloadTrigger((n) => n + 1);
     } catch (err: any) {
       setError(err.message || '删除项目失败');
     } finally {
@@ -700,7 +646,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
 
   return (
     <div
-      className="space-y-4 px-5 py-5 pb-20 md:px-6 2xl:px-8"
+      className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
       {/* Page header */}
@@ -709,47 +655,10 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         description="统一展示用户权限范围内的所有项目"
       />
 
-      {/* Batch selection bar */}
-      {selectedIds.size > 0 && (
-        <div
-          className="sticky top-3 z-30 flex items-center justify-between rounded-lg px-4 py-2.5"
-          style={{ backgroundColor: LK.surfaceGlass, backdropFilter: 'blur(8px)', border: `1px solid ${LK.primary}` }}
-        >
-          <div className="flex items-center gap-2.5">
-            <span style={{ color: LK.primary }}>
-              <CheckCircle2 size={16} />
-            </span>
-            <span className="text-sm font-medium" style={{ color: LK.ink }}>
-              已选中 {selectedIds.size} 个可管理项目
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={(event) => handleDeleteClick(event, Array.from(selectedIds))}
-              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-              style={{ backgroundColor: `${LK.error}22`, color: LK.error }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = `${LK.error}3a`)}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = `${LK.error}22`)}
-            >
-              <Trash2 size={14} /> 批量删除
-            </button>
-            <button
-              onClick={() => setSelectedIds(new Set())}
-              className="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-              style={{ backgroundColor: LK.surfaceRaised, color: LK.body }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = LK.ink)}
-              onMouseLeave={(e) => (e.currentTarget.style.color = LK.body)}
-            >
-              取消选择
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Stat blocks — 4 columns */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: '项目', value: projects.length, icon: Building2, color: LK.primary },
+          { label: '项目', value: tableTotal, icon: Building2, color: LK.primary },
           { label: '任务', value: taskCount !== null ? taskCount : '-', icon: Layers, color: LK.success },
           { label: '环境', value: envCount !== null ? envCount : '-', icon: Server, color: LK.warning },
           { label: '漏洞', value: vulnCount !== null ? vulnCount : '-', icon: AlertTriangle, color: LK.error },
@@ -825,233 +734,157 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
             <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
           </button>
         </div>
-        {filteredProjects.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-separate border-spacing-0">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-                  <th className="whitespace-nowrap w-12 px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
+        {(() => {
+          const columns: DataTableColumn<SecurityProject>[] = [
+            {
+              key: 'name',
+              header: '项目',
+              width: '20%',
+              render: (project) => (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleRowClick(project.id); }}
+                  className="text-sm hover:underline"
+                  style={{ color: LK.primary }}
+                >
+                  {project.name}
+                </button>
+              ),
+            },
+            {
+              key: 'department_name',
+              header: '归属部门',
+              width: '15%',
+              sortable: true,
+              sortKey: 'department_name',
+              defaultDirection: 'asc',
+              render: (project) => (
+                <span className="text-sm" style={{ color: LK.body }}>
+                  {project.department_name || '未绑定'}
+                </span>
+              ),
+            },
+            {
+              key: 'product_version',
+              header: '产品版本',
+              width: '15%',
+              sortable: true,
+              sortKey: 'product_version',
+              defaultDirection: 'asc',
+              render: (project) => (
+                <div className="text-sm font-medium" style={{ color: LK.inkSoft }}>
+                  {project.product_version || project.product_version_name || '未归属版本'}
+                </div>
+              ),
+            },
+            {
+              key: 'owner_name',
+              header: '创建人',
+              width: '15%',
+              sortable: true,
+              sortKey: 'owner_name',
+              defaultDirection: 'asc',
+              render: (project) => (
+                <span className="text-sm" style={{ color: LK.body }}>
+                  {project.owner_name || '-'}
+                </span>
+              ),
+            },
+            {
+              key: 'created_at',
+              header: '创建时间',
+              width: '15%',
+              sortable: true,
+              sortKey: 'created_at',
+              defaultDirection: 'desc',
+              render: (project) => (
+                <span className="whitespace-nowrap text-xs" style={{ color: LK.muted }}>
+                  {project.created_at ? new Date(project.created_at).toLocaleString() : '未知'}
+                </span>
+              ),
+            },
+            {
+              key: 'actions',
+              header: '操作',
+              render: (project) => (
+                <div className="flex items-center gap-1">
+                  {canManageProjectMembers(project) && (
                     <button
-                      onClick={toggleSelectAll}
-                      className="p-1 transition-colors"
-                      style={{ color: isAllSelected ? LK.primary : LK.muted }}
-                      title={isAllSelected ? '取消全选可管理项目' : '全选可管理项目'}
+                      onClick={(event) => { event.stopPropagation(); setMemberModalProject(project); }}
+                      className="rounded-md p-1.5 transition-colors"
+                      style={{ color: LK.muted }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
+                      title="成员管理"
                     >
-                      {isAllSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+                      <Users size={15} />
                     </button>
-                  </th>
-                  <th className="whitespace-nowrap min-w-[180px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                    <button onClick={() => handleSortChange('name')} className="inline-flex items-center gap-1 text-sm font-semibold text-theme-text-primary">
-                      项目
-                      {renderSortIndicator('name')}
-                    </button>
-                  </th>
-                  <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                    <button onClick={() => handleSortChange('department_name')} className="inline-flex items-center gap-1 text-sm font-semibold text-theme-text-primary">
-                      归属部门
-                      {renderSortIndicator('department_name')}
-                    </button>
-                  </th>
-                  <th className="whitespace-nowrap min-w-[200px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                    <button onClick={() => handleSortChange('product_version')} className="inline-flex items-center gap-1 text-sm font-semibold text-theme-text-primary">
-                      产品版本
-                      {renderSortIndicator('product_version')}
-                    </button>
-                  </th>
-                  <th className="whitespace-nowrap min-w-[110px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                    <button onClick={() => handleSortChange('owner_name')} className="inline-flex items-center gap-1 text-sm font-semibold text-theme-text-primary">
-                      创建人
-                      {renderSortIndicator('owner_name')}
-                    </button>
-                  </th>
-                  <th className="whitespace-nowrap min-w-[140px] px-3 py-2.5 font-medium" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                    <button onClick={() => handleSortChange('created_at')} className="inline-flex items-center gap-1 text-sm font-semibold text-theme-text-primary">
-                      创建时间
-                      {renderSortIndicator('created_at')}
-                    </button>
-                  </th>
-                  <th className="whitespace-nowrap w-24 px-3 py-2.5 text-right text-sm font-semibold text-theme-text-primary" style={{ borderBottom: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedProjects.map((project) => {
-                  const selected = selectedIds.has(project.id);
-                  return (
-                    <tr
-                      key={project.id}
-                      onClick={() => handleRowClick(project.id)}
-                      className="cursor-pointer transition-colors"
-                      style={{
-                        backgroundColor: selected ? LK.primaryMuted : 'transparent',
-                        boxShadow: selected ? `inset 2px 0 0 ${LK.primary}` : 'none',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!selected) e.currentTarget.style.backgroundColor = LK.surfaceRaised;
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!selected) e.currentTarget.style.backgroundColor = 'transparent';
-                      }}
-                    >
-                      {/* 选择 */}
-                      <td className="whitespace-nowrap px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
-                        <button
-                          onClick={(event) => toggleSelect(event, project)}
-                          disabled={!project.can_manage}
-                          className="p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-                          style={{ color: project.can_manage ? (selected ? LK.primary : LK.muted) : LK.muted }}
-                          title={project.can_manage ? '选择项目' : '仅可查看，无法批量操作'}
-                        >
-                          {selected ? <CheckSquare size={16} /> : <Square size={16} />}
-                        </button>
-                      </td>
-                      {/* 项目 — name only, clickable */}
-                      <td className="whitespace-nowrap px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleRowClick(project.id); }}
-                          className="text-sm font-semibold hover:underline"
-                          style={{ color: LK.primary }}
-                        >
-                          {project.name}
-                        </button>
-                      </td>
-                      {/* 归属部门 */}
-                      <td className="whitespace-nowrap px-3 py-3 text-sm" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}>
-                        {project.department_name || '未绑定'}
-                      </td>
-                      {/* 产品版本 */}
-                      <td className="whitespace-nowrap px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
-                        <div className="text-sm font-medium" style={{ color: LK.inkSoft }}>
-                          {project.product_version || project.product_version_name || '未归属版本'}
-                        </div>
-                      </td>
-                      {/* 创建人 */}
-                      <td
-                        className="whitespace-nowrap truncate max-w-[120px] px-3 py-3 text-sm"
-                        style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}
-                        title={project.owner_name || '-'}
+                  )}
+                  {project.can_manage && (
+                    <>
+                      <button
+                        onClick={(event) => openEditModal(event, project)}
+                        className="rounded-md p-1.5 transition-colors"
+                        style={{ color: LK.muted }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
+                        title="编辑项目"
                       >
-                        {project.owner_name || '-'}
-                      </td>
-                      {/* 创建时间 */}
-                      <td className="whitespace-nowrap px-3 py-3 text-xs" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.muted }}>
-                        {project.created_at ? new Date(project.created_at).toLocaleString() : '未知'}
-                      </td>
-                      {/* 操作 — 成员管理 / 编辑 / 删除 */}
-                      <td className="whitespace-nowrap px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
-                        <div className="flex items-center justify-end gap-1">
-                          {canManageProjectMembers(project) && (
-                            <button
-                              onClick={(event) => { event.stopPropagation(); setMemberModalProject(project); }}
-                              className="rounded-md p-1.5 transition-colors"
-                              style={{ color: LK.muted }}
-                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
-                              title="成员管理"
-                            >
-                              <Users size={15} />
-                            </button>
-                          )}
-                          {project.can_manage && (
-                            <>
-                              <button
-                                onClick={(event) => openEditModal(event, project)}
-                                className="rounded-md p-1.5 transition-colors"
-                                style={{ color: LK.muted }}
-                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
-                                title="编辑项目"
-                              >
-                                <Edit3 size={15} />
-                              </button>
-                              <button
-                                onClick={(event) => handleDeleteClick(event, [project.id])}
-                                className="rounded-md p-1.5 transition-colors"
-                                style={{ color: LK.muted }}
-                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${LK.error}22`; e.currentTarget.style.color = LK.error; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
-                                title="删除项目"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-3 py-14 text-center">
-            <div
-              className="flex h-10 w-10 items-center justify-center rounded-md"
-              style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}
-            >
-              <Building2 size={20} />
-            </div>
-            <p className="text-sm" style={{ color: LK.muted }}>
-              {searchTerm.trim() ? '没有匹配的项目' : '当前没有项目'}
-            </p>
-          </div>
-        )}
+                        <Edit3 size={15} />
+                      </button>
+                      <button
+                        onClick={(event) => handleDeleteClick(event, [project.id])}
+                        className="rounded-md p-1.5 transition-colors"
+                        style={{ color: LK.muted }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${LK.error}22`; e.currentTarget.style.color = LK.error; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
+                        title="删除项目"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              ),
+            },
+          ];
+          return (
+            <DataTable<SecurityProject>
+              columns={columns}
+              data={tableProjects}
+              rowKey={(project) => project.id}
+              showRowNumber={true}
+              loading={tableLoading}
+              sort={{ field: sortField, direction: sortDirection }}
+              onSortChange={({ field, direction }) => handleSortChange(field, direction)}
+              pagination={
+                tableTotal > 0
+                  ? {
+                      page: safePage,
+                      perPage: pageSize,
+                      total: tableTotal,
+                      perPageOptions: [10, 20, 50, 100],
+                      onPageChange: (next) => setCurrentPage(next),
+                      onPerPageChange: (next) => handlePageSizeChange(next),
+                    }
+                  : undefined
+              }
+              empty={
+                <div className="flex flex-col items-center gap-3 py-14 text-center">
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-md"
+                    style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}
+                  >
+                    <Building2 size={20} />
+                  </div>
+                  <p className="text-sm" style={{ color: LK.muted }}>
+                    {debouncedSearch.trim() ? '没有匹配的项目' : '当前没有项目'}
+                  </p>
+                </div>
+              }
+            />
+          );
+        })()}
       </section>
-
-      {/* Pagination */}
-      {filteredProjects.length > 0 && (
-        <div
-          className="flex flex-col items-center justify-between gap-3 rounded-xl px-4 py-3 md:flex-row"
-          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
-        >
-          <div className="text-xs" style={{ color: LK.muted }}>
-            共 <span style={{ color: LK.inkSoft }} className="font-semibold">{filteredProjects.length}</span> 项，
-            当前显示 <span style={{ color: LK.inkSoft }}>{pageStart}-{pageEnd}</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs" style={{ color: LK.muted }}>每页</span>
-              <select
-                value={pageSize}
-                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                className="rounded-md px-2 py-1 text-xs outline-none transition-colors"
-                style={{ backgroundColor: LK.surfaceRaised, color: LK.inkSoft, border: `1px solid ${LK.border}` }}
-              >
-                {[10, 20, 50, 100].map((size) => (
-                  <option key={size} value={size}>{size} 条</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={safePage <= 1}
-                className="rounded-md p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-                style={{ color: LK.body, border: `1px solid ${LK.border}` }}
-                onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.color = LK.primary; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
-                title="上一页"
-              >
-                <ChevronLeft size={14} />
-              </button>
-              <span className="min-w-[60px] text-center text-xs tabular-nums" style={{ color: LK.inkSoft }}>
-                {safePage} / {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={safePage >= totalPages}
-                className="rounded-md p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-                style={{ color: LK.body, border: `1px solid ${LK.border}` }}
-                onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.color = LK.primary; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = LK.body; }}
-                title="下一页"
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Create project dialog */}
       {isCreateModalOpen && (

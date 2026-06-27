@@ -855,7 +855,7 @@ interface HomePageProps {
 }
 
 const LK = {
-  primary: 'var(--brand-primary)',
+  primary: '#2563EB',
   primaryMuted: 'var(--brand-primary-mask)',
   canvas: 'var(--bg-app)',
   surface: 'var(--bg-surface)',

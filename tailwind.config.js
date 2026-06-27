@@ -40,7 +40,7 @@ export default {
           },
         },
         brand: {
-          primary: 'var(--brand-primary)',
+          primary: '#2563EB',
           hover: 'var(--brand-primary-hover)',
           secondary: 'var(--brand-secondary)',
           accent: 'var(--brand-accent)',

@@ -3,7 +3,7 @@ import {
   USABLE_UPLOAD_STATUSES,
 } from '../../clients/codemapManager';
 import type {
-  CodemapAuditSources,
+  CodemapBuildAttackSurface,
   CodemapTaskStatus,
 } from '../../clients/codemapManager';
 import type { ProjectInputUploadRecord } from '../../types/types';
@@ -24,7 +24,6 @@ export interface KgInputEligibility {
   reasonText: string;
   uploadStatus: string;
   codemapTaskStatus: string | null;
-  graphStatus: string | null;
   attackStatus: string | null;
   attackEntries: number | null;
   dbName: string | null;
@@ -52,7 +51,6 @@ const makeEligibility = (
   reasonText: REASON_TEXT.entry_analysis_unavailable,
   uploadStatus: String(record.status || ''),
   codemapTaskStatus: null,
-  graphStatus: null,
   attackStatus: null,
   attackEntries: null,
   dbName: null,
@@ -68,9 +66,11 @@ const fetchTaskStatus = async (uploadId: string): Promise<CodemapTaskStatus | nu
   }
 };
 
-const fetchAuditSources = async (uploadId: string): Promise<CodemapAuditSources | null> => {
+const fetchBuildAttackSurface = async (
+  uploadId: string,
+): Promise<CodemapBuildAttackSurface | null> => {
   try {
-    return await api.codemapManager.getAuditSources(uploadId);
+    return await api.codemapManager.getBuildAttackSurface(uploadId);
   } catch (error: any) {
     if (error?.status === 404) return null;
     throw error;
@@ -105,8 +105,8 @@ export const buildKgInputEligibility = async (
   const attackStatus = task.attack?.status ? String(task.attack.status).trim() : null;
   const dbName = task.db_name ? String(task.db_name).trim() : null;
 
-  const audit = await fetchAuditSources(record.upload_id);
-  if (!audit) {
+  const attack = await fetchBuildAttackSurface(record.upload_id);
+  if (!attack) {
     return makeEligibility(record, {
       codemapTaskStatus: taskStatus,
       attackStatus,
@@ -116,8 +116,9 @@ export const buildKgInputEligibility = async (
     });
   }
 
-  const graphStatus = audit.graph_status ? String(audit.graph_status).trim() : null;
-  const attackEntries = Number(audit.analysis?.attack_entries ?? 0);
+  // entries 与旧 audit/sources.analysis.attack_entries 同口径(后端 count_attack_entries
+  // 与 audit 聚合统一,已实测 19==19),改读快接口免一次查图。
+  const attackEntries = Number(attack.entries ?? 0);
 
   if (attackEntries > 0) {
     return makeEligibility(record, {
@@ -125,7 +126,6 @@ export const buildKgInputEligibility = async (
       reasonCode: 'ok',
       reasonText: REASON_TEXT.ok,
       codemapTaskStatus: taskStatus,
-      graphStatus,
       attackStatus,
       attackEntries,
       dbName,
@@ -135,7 +135,6 @@ export const buildKgInputEligibility = async (
   if (attackStatus === 'running') {
     return makeEligibility(record, {
       codemapTaskStatus: taskStatus,
-      graphStatus,
       attackStatus,
       attackEntries,
       dbName,
@@ -146,7 +145,6 @@ export const buildKgInputEligibility = async (
   if (attackStatus === 'failed') {
     return makeEligibility(record, {
       codemapTaskStatus: taskStatus,
-      graphStatus,
       attackStatus,
       attackEntries,
       dbName,
@@ -157,7 +155,6 @@ export const buildKgInputEligibility = async (
   if (attackStatus !== 'ok') {
     return makeEligibility(record, {
       codemapTaskStatus: taskStatus,
-      graphStatus,
       attackStatus,
       attackEntries,
       dbName,
@@ -168,7 +165,6 @@ export const buildKgInputEligibility = async (
   if (attackEntries <= 0) {
     return makeEligibility(record, {
       codemapTaskStatus: taskStatus,
-      graphStatus,
       attackStatus,
       attackEntries,
       dbName,
@@ -179,7 +175,6 @@ export const buildKgInputEligibility = async (
 
   return makeEligibility(record, {
     codemapTaskStatus: taskStatus,
-    graphStatus,
     attackStatus,
     attackEntries,
     dbName,

@@ -55,8 +55,7 @@ type TaskTypeOption = {
 
 const TASK_TYPES: readonly TaskTypeOption[] = [
   { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail', modes: ['dragon-tail', 'ram-horn'] },
-  { value: 'source_scan_e2e', label: '盖亚-源码', downstreamView: 'source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
-  { value: 'kg_source_vuln_scan_e2e', label: '知识图谱-漏洞挖掘', downstreamView: 'kg-source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
+  { value: 'source_scan_e2e', label: '盖亚-源码端到端', downstreamView: 'source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail', modes: ['dragon-tail', 'ram-horn'] },
   { value: 'ai4app_fast', label: 'AI4APP 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
   { value: 'ai4web_fast', label: 'AI4WEB 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
@@ -75,18 +74,28 @@ const MODE_OPTIONS = [
 ];
 
 const TASK_TYPE_HINTS: Record<string, string> = {
-  binary_firmware_e2e: '请上传一个二进制固件文件（如 .bin、.img、.fw 等）。',
-  binary_module_e2e: '请上传一个或多个二进制模块文件（如 .so、.o、.elf 等）。',
-  source_scan_e2e: '请上传一个源码目录（包含完整项目源代码）。',
-  cfg_db_vuln: '请选择一个已构建知识图谱的代码目录作为测试对象。',
-  kg_source_vuln_scan_e2e: '请上传一个源码目录作为知识图谱漏洞挖掘的测试对象。',
-  ai4app_fast: '请上传一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包（压缩包将作为源码包处理）。',
-  ai4app_deep: '请上传一个 APK/HAP 安装包，或 zip/rar/tar.gz/gz 等常见压缩包（压缩包将作为源码包处理）。',
-  ai4web_fast: '请上传一个 Web 源码包（zip/rar/tar.gz/gz 等压缩包）。',
-  ai4web_deep: '请上传一个 Web 源码包（zip/rar/tar.gz/gz 等压缩包）。',
-  ai4red: '请上传一个目录作为红线验证的测试对象。',
+  binary_firmware_e2e: '请上传一个二进制固件文件（如 .bin、.img、.fw 等），需要勾选"保留原始文件，不自动解压"',
+  binary_module_e2e: '请上传一个或多个二进制模块文件（如 .so、.o、.elf 等），需要勾选"保留原始文件，不自动解压"',
+  source_scan_e2e: '请上传一个源码包，不勾选"保留原始文件，不自动解压"',
+  cfg_db_vuln: '请选择一个已上传的源码目录',
+  kg_source_vuln_scan_e2e: '请选择一个已上传的源码目录',
+  ai4app_fast: '请上传一个应用软件包(apk/hap)或源码压缩包，需要勾选"保留原始文件，不自动解压"',
+  ai4app_deep: '请上传一个应用软件包(apk/hap)或源码压缩包，需要勾选"保留原始文件，不自动解压"',
+  ai4web_fast: '请上传一个压缩包(源码包或产品软件包), 需要勾选"保留原始文件，不自动解压"',
+  ai4web_deep: '请上传一个压缩包(源码包或产品软件包), 需要勾选"保留原始文件，不自动解压"',
+  ai4red: '请上传一个压缩包（具体要求见说明），需要勾选"保留原始文件，不自动解压"',
   sechps_tool: '请选择一个已注册的 Agent Harness，并选择一个目录。',
 };
+
+const KEEP_ORIGINAL_TASK_TYPES = new Set<string>([
+  'binary_firmware_e2e',
+  'binary_module_e2e',
+  'ai4app_fast',
+  'ai4app_deep',
+  'ai4web_fast',
+  'ai4web_deep',
+  'ai4red',
+]);
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -117,7 +126,7 @@ const getLocalUserInfo = (): UserInfo | null => {
 /* ------------------------------------------------------------------ */
 
 const LK = {
-  primary: 'var(--brand-primary)',
+  primary: '#2563EB',
   primarySoft: '#7590ff',
   primaryDeep: 'var(--brand-primary-hover)',
   primaryMuted: 'var(--brand-primary-mask)',
@@ -132,9 +141,9 @@ const LK = {
   body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)',
   mutedSoft: '#8b95a8',
-  success: '#45c06f',
-  warning: '#d5a13a',
-  error: '#f15d5d',
+  success: '#30A46C',
+  warning: '#D97706',
+  error: '#DC2626',
   info: '#4f8cff',
 } as const;
 
@@ -619,18 +628,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
               {mode === 'lion-head' ? null : (
                 <>
-              {/* binary_module_e2e module name */}
-              {taskType === 'binary_module_e2e' ? (
-                <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                  模块名
-                  <input
-                    value={moduleName}
-                    onChange={(e) => setModuleName(e.target.value)}
-                    className="form-input mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                  />
-                </label>
-              ) : null}
-
               {isKgSourceTask ? (
                 <div className="rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.body }}>
                   知识图谱-漏洞挖掘会直接使用所选测试对象记录的 <span style={{ color: LK.ink, fontFamily: MONO }}>upload_id</span> 作为知识图谱定位参数，不需要手工填写。
@@ -668,6 +665,18 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 >
                   {TASK_TYPE_HINTS[taskType]}
                 </div>
+              ) : null}
+
+              {/* binary_module_e2e module name */}
+              {taskType === 'binary_module_e2e' ? (
+                <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
+                  模块名
+                  <input
+                    value={moduleName}
+                    onChange={(e) => setModuleName(e.target.value)}
+                    className="form-input mt-1 w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                  />
+                </label>
               ) : null}
 
               {/* sechps Agent Harness specific */}
@@ -720,11 +729,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
               {/* -------- 测试对象 section -------- */}
               <div>
-                <div className="mb-2 text-sm font-semibold" style={{ color: LK.inkSoft }}>测试对象</div>
                 {/* sub-mode toggle */}
                 <div
-                  className="mb-3 flex gap-1 rounded-lg p-1 w-1/2"
-                  style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+                  className="mb-3 flex w-full gap-1 border-b"
+                  style={{ borderColor: LK.border }}
                 >
                   {(isKgSourceTask ? (['existing'] as const) : (['upload', 'existing'] as const)).map((src) => {
                     const active = inputSource === src;
@@ -733,12 +741,13 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                         key={src}
                         type="button"
                         onClick={() => setInputSource(src)}
-                        className="flex-1 rounded-md px-3 py-1.5 text-sm font-bold transition-all"
-                        style={active
-                          ? { backgroundColor: LK.primary, color: '#fff' }
-                          : { color: LK.body }}
+                        className={`relative px-4 py-2 text-sm transition-colors ${active ? 'font-semibold' : 'font-medium'}`}
+                        style={{ color: active ? LK.primary : LK.body }}
                       >
                         {src === 'existing' ? '选择已有' : '直接上传'}
+                        {active ? (
+                          <span className="absolute inset-x-0 -bottom-px h-0.5" style={{ backgroundColor: LK.primary }} />
+                        ) : null}
                       </button>
                     );
                   })}
@@ -752,6 +761,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     compact={true}
                     hideUploadIcon
                     defaultInputType="code"
+                    defaultKeepOriginal={KEEP_ORIGINAL_TASK_TYPES.has(taskType)}
                     onUploadStateChange={setUploading}
                   />
                 ) : (
@@ -846,7 +856,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                                       <td className="px-4 py-2.5" style={{ color: LK.inkSoft }}>{getUploadRecordDisplayName(record)}</td>
                                       <td className="px-4 py-2.5" style={{ color: LK.body }}>{record.status}</td>
                                       <td className="px-4 py-2.5" style={{ color: LK.body }}>
-                                        {eligibility?.codemapTaskStatus || eligibility?.graphStatus || '-'}
+                                        {eligibility?.codemapTaskStatus || '-'}
                                       </td>
                                       <td className="px-4 py-2.5" style={{ color: LK.body }}>
                                         {eligibility?.attackStatus

@@ -7,7 +7,7 @@ interface HomePageProps {
 }
 
 const LK = {
-  primary: 'var(--brand-primary)',
+  primary: '#2563EB',
   primarySoft: '#7590ff',
   primaryDeep: 'var(--brand-primary-hover)',
   primaryMuted: 'var(--brand-primary-mask)',
@@ -104,13 +104,14 @@ const MODE_ICONS: Record<string, React.ReactNode> = {
 
 // 宣传轮播：image 字段暂留空，后续补充宣传图 URL 即可显示；link 默认 '#'，补充后点击在新标签打开。
 const PROMO_SLIDES = [
-  { title: '第一章 · 降生', subtitle: '四世神裔，融源之子的来历', image: 'https://pic.ibaotu.com/01/87/87/09N888piCU8v.jpg-0.jpg!wwuo340v2', link: 'https://www.baidu.com' },
-  { title: '第二章 · 三身', subtitle: '一体三面，各司其职的完美共生', image: '', link: '#' },
-  { title: '第三章 · 吐息', subtitle: '烈焰淬炼，重塑万物本真', image: '', link: '#' },
-  { title: '第四章 · 破局', subtitle: '旧维失效，新序诞生的必然', image: '', link: '#' },
-  { title: '第五章 · 驭者', subtitle: '顺势而为，维度跃升', image: '', link: '#' },
-  { title: '第六章 · 群像', subtitle: '从一躯真身，到一世图腾', image: '', link: '#' },
-  { title: '第七章 · 永续', subtitle: '图腾永生，融合求真永不止歇', image: '', link: '#' },
+  { title: '第一章 · 降生', subtitle: '四世神裔，融源之子的来历', image: 'https://pic.ibaotu.com/01/87/87/09N888piCU8v.jpg-0.jpg!wwuo340v2', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22379614?l=zh-cn' },
+  { title: '第二章 · 三身', subtitle: '一体三面，各司其职的完美共生', image: '', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22382361?l=zh-cn' },
+  { title: '第三章 · 吐息', subtitle: '烈焰淬炼，重塑万物本真', image: '', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22385845?l=zh-cn' },
+  { title: '第四章 · 破局', subtitle: '旧维失效，新序诞生的必然', image: '', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386057?l=zh-cn' },
+  { title: '第五章 · 驭者', subtitle: '顺势而为，维度跃升', image: '', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386058?l=zh-cn' },
+  { title: '第六章 · 群像', subtitle: '从一躯真身，到一世图腾', image: '', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386060?l=zh-cn' },
+  { title: '第七章 · 永续', subtitle: '图腾永生，融合求真永不止歇', image: '', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386062?l=zh-cn' },
+    //
 ];
 
 export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
@@ -157,7 +158,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
         ))}
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl pt-12 pb-4 space-y-10">
+      <div className="relative z-10 w-full px-8 sm:px-12 lg:px-20 xl:px-28 2xl:px-40 pt-10 pb-8 space-y-8 lg:space-y-12 lg:pt-14 xl:pt-16">
         {/* hero */}
         <header className="flex flex-col gap-6">
           <div className="flex items-center gap-4">
@@ -171,9 +172,9 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
             </span>
             <ServiceBuildVersionBadge version={__CHIMERA_BUILD_VERSION__} />
           </div>
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col gap-6 lg:flex-row lg:justify-between lg:items-center">
             <h1
-              className="text-5xl font-bold tracking-tight md:text-6xl"
+              className="text-4xl font-bold tracking-tight md:text-5xl xl:text-6xl 2xl:text-7xl"
               style={{
                 background: 'linear-gradient(120deg, var(--brand-primary) 0%, #818cf8 45%, #c084fc 100%)',
                 WebkitBackgroundClip: 'text',
@@ -184,7 +185,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
             >
               ICSL Chimera
             </h1>
-            <div className="max-w-3xl border-l-2 pl-6 lg:flex-1" style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 40%, transparent)' }}>
+            <div className="max-w-3xl border-l-2 pl-6 lg:max-w-2xl xl:max-w-3xl 2xl:max-w-4xl" style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 40%, transparent)' }}>
               <p className="text-sm leading-relaxed text-theme-text-secondary md:text-base">
                 智能体群协作 AI 安全验证平台。面向安全团队与产品团队，将安全专家的经验转化为可复用的自动化能力。
               </p>
@@ -193,7 +194,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
         </header>
 
         {/* promo carousel — slim banner, imgs to be filled later */}
-        <section className="relative h-36 overflow-hidden rounded-2xl border md:h-40" style={{ backgroundColor: GLASS_BG, borderColor: GLASS_BORDER }}>
+        <section className="relative h-36 overflow-hidden rounded-2xl border md:h-40 lg:h-44 xl:h-48 2xl:h-52" style={{ backgroundColor: GLASS_BG, borderColor: GLASS_BORDER }}>
           {PROMO_SLIDES.map((slide, i) => (
             <div
               key={i}
@@ -237,19 +238,19 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
         <div className="flex flex-wrap items-end justify-left gap-4">
           <div className="flex items-center gap-3">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--brand-primary)', boxShadow: '0 0 10px var(--brand-primary)' }} />
-            <h2 className="text-xl font-semibold text-theme-text-primary md:text-2xl">三种执行模式，覆盖全场景</h2>
+            <h2 className="text-xl font-semibold text-theme-text-primary md:text-2xl xl:text-3xl">三种执行模式，覆盖全场景</h2>
           </div>
           <p className="text-sm text-theme-text-muted">根据目标特征自动收敛到最优模式</p>
         </div>
 
         {/* mode cards */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-3 lg:gap-8 xl:gap-10 2xl:gap-12">
           {MODES.map((mode) => (
             <button
               key={mode.key}
               type="button"
               onClick={() => handleCardClick(mode.key)}
-              className="group relative overflow-hidden rounded-2xl border p-7 text-left backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_60px_-24px_rgba(0,0,0,0.5)]"
+              className="group relative overflow-hidden rounded-2xl border p-7 text-left backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_60px_-24px_rgba(0,0,0,0.5)] lg:p-8 xl:p-9 2xl:p-10"
               style={{ backgroundColor: GLASS_BG, borderColor: GLASS_BORDER }}
             >
               <div className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full opacity-20 blur-3xl transition-opacity duration-300 group-hover:opacity-40" style={{ backgroundColor: mode.accent }} />

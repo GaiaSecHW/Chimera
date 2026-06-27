@@ -5,7 +5,6 @@ import {
   IN_PROGRESS_STATUSES,
 } from '../clients/codemapManager';
 import type {
-  CodemapAuditSources,
   CodemapBuildAnalyze,
   CodemapBuildAttackSurface,
   CodemapBuildRepair,
@@ -16,7 +15,8 @@ import type {
 // 集中到一处,从上到下三块,仿「基础信息」的栅格 + 徽章排版。数据全走 manager:
 //  - task 状态(静态分析 / 入口阶段 / 修复进度):本组件自拉 getTaskStatus,props
 //    传入的 status 仅作首屏种子(父组件缓存对重跑攻击入口不刷新,见下)。
-//  - 入口识别分桶:自拉 GET /uploads/{id}/audit/sources(直连 DozerDB,不起 serve)。
+//  - 三阶段进展:自拉 /build/{analyze,attack-surface,repair} 三个独立快接口
+//    (读 manager task 单行,O(1) 不查图)。早期的 audit/sources 回退已下线。
 // 失败态智能文案:attack_status=failed 但已识别 N 个入口(用户手动重跑过)时,
 // 显示「已识别 N(上次自动识别报错,当前为最新结果)」而非冷冰冰的「失败」。
 
@@ -110,17 +110,15 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
   dispatchError,
   onStatusChange,
 }) => {
-  const [audit, setAudit] = useState<CodemapAuditSources | null>(null);
-  const [auditError, setAuditError] = useState<string | null>(null);
   // SS1:静态分析阶段独立接口(/build/analyze)。analyze_status 是该阶段真相源,
-  // scale.functions/files 来自 manager 收口的 task 单行。section ① 优先读它,
-  // 旧的 task.status + audit.scale 派生仅作回退(接口 404 / 尚未构建)。
+  // scale.functions/files 来自 manager 收口的 task 单行。section ① 读它(O(1),
+  // 不查图;早期 audit/sources 回退已下线 —— 快接口口径与其一致且更快)。
   const [analyze, setAnalyze] = useState<CodemapBuildAnalyze | null>(null);
   // SS2:调用链修复阶段独立接口(/build/repair)。repair_status 是阶段真相源,
   // mode 决定 section ③ 口径(增量 progress / 全量 scale)。优先读它,回退旧派生。
   const [repair, setRepair] = useState<CodemapBuildRepair | null>(null);
   // SS3:攻击入口识别阶段独立接口(/build/attack-surface)。attack_status 四态,
-  // entries 全图绝对计数。section ② 优先读它,回退旧 effective.attack + audit。
+  // entries 全图绝对计数。section ② 优先读它,回退旧 effective.attack。
   const [attack, setAttack] = useState<CodemapBuildAttackSurface | null>(null);
   const [reidentifying, setReidentifying] = useState(false);
   const [rerepairing, setRerepairing] = useState(false);
@@ -161,21 +159,6 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
     }
   }, [uploadId]);
 
-  const loadAudit = useCallback(async () => {
-    try {
-      const a = await api.codemapManager.getAuditSources(uploadId);
-      setAudit(a);
-      setAuditError(null);
-    } catch (error) {
-      // 图还没建好(404 / graph 不可读)时 audit 拿不到,不算硬错误,留空即可。
-      if ((error as any)?.status === 404) {
-        setAudit(null);
-        return;
-      }
-      setAuditError((error as any)?.message || '加载入口识别信息失败');
-    }
-  }, [uploadId]);
-
   // SS1:拉静态分析阶段接口。404=尚未构建,留空回退旧派生。
   const loadAnalyze = useCallback(async () => {
     try {
@@ -209,11 +192,10 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
   // 打开时各拉一次真实状态(不靠父组件的陈旧 prop)。
   useEffect(() => {
     void loadTask();
-    void loadAudit();
     void loadAnalyze();
     void loadRepair();
     void loadAttack();
-  }, [loadTask, loadAudit, loadAnalyze, loadRepair, loadAttack]);
+  }, [loadTask, loadAnalyze, loadRepair, loadAttack]);
 
   // 进行中判定:顶层 status 在进行态,或攻击面子阶段 running(reidentify 不移动
   // 顶层 status,必须单独把它纳入,否则重跑攻击面期间不会轮询)。
@@ -224,13 +206,12 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
     if (!inProgress) return undefined;
     const timer = window.setInterval(() => {
       void loadTask();
-      void loadAudit();
       void loadAnalyze();
       void loadRepair();
       void loadAttack();
     }, 3000);
     return () => window.clearInterval(timer);
-  }, [inProgress, loadTask, loadAudit, loadAnalyze, loadRepair, loadAttack]);
+  }, [inProgress, loadTask, loadAnalyze, loadRepair, loadAttack]);
 
   const handleReidentify = async () => {
     if (reidentifying) return;
@@ -309,15 +290,13 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
   // 回退与 building_repair 等整体判定。
   const s = effective.overall ?? effective.status;
   const progress = effective.progress;
-  const analysis = audit?.analysis;
-  const scale = audit?.scale;
-  // 调用链修复 T1-T5 函数口径(scale):repair 入队全集>0 即有修复进度可展示。
-  const hasRepairProgress = (scale?.repair_total ?? 0) > 0;
+  // 调用链修复 T1-T5 函数口径:repair 接口的 repair_total>0 即有修复进度可展示。
+  const hasRepairProgress = (repair?.repair_total ?? 0) > 0;
 
   // ① 静态分析:SS1 起以 /build/analyze 的 analyze_status 为阶段真相源,scale
   //    取该接口的 functions/files(manager 收口单行)。接口未就绪(404)时回退旧
   //    派生:building_attack_surface/building_repair/completed 或有 repair 进度都
-  //    意味着静态已成功;failed 且无 repair 进度=静态失败。规模回退 audit.scale。
+  //    意味着静态已成功;failed 且无 repair 进度=静态失败。
   const az = analyze?.analyze_status ?? null;
   const staticDone =
     az === 'done' ||
@@ -329,16 +308,16 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
   const staticRunning = az === 'running' ||
     (!az && (s === 'building_analyze' || s === 'queued' || s === 'accepted'));
   const staticFailed = az === 'failed' || (!az && s === 'failed' && !hasRepairProgress);
-  const funcCount = analyze?.scale.functions ?? scale?.functions ?? 0;
-  const fileCount = analyze?.scale.files ?? scale?.files ?? 0;
+  const funcCount = analyze?.scale.functions ?? 0;
+  const fileCount = analyze?.scale.files ?? 0;
 
   // ② 入口分析:SS3 起以 /build/attack-surface 为真相源(attack_status 四态:
   //    pending/running/done/failed,旧 ok 已并入 done;entries 全图绝对计数)。
-  //    接口未就绪(404)时回退旧 effective.attack + audit.analysis。failed 但
-  //    entries>0 → 「结果可用(上次报错)」友好态(非阻塞,结果仍在图里)。
+  //    接口未就绪(404)时回退旧 effective.attack。failed 但 entries>0 →
+  //    「结果可用(上次报错)」友好态(非阻塞,结果仍在图里)。
   const attackStatus = attack?.attack_status ?? effective.attack?.status ?? null;
   const identified =
-    attack?.entries ?? analysis?.attack_entries ?? effective.attack?.entries ?? 0;
+    attack?.entries ?? effective.attack?.entries ?? 0;
   const attackDone = attackStatus === 'done' || attackStatus === 'ok';
   const attackRecoverable = attackStatus === 'failed' && identified > 0;
 
@@ -347,19 +326,19 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
   //      serve「函数分类」角标 + cli repair 统一);
   //    - 增量(incremental):progress 口径(分母=本次跑的 source 数),避免把
   //      50 个改动函数显示成 50/50000 的全图失真。
-  //    接口未就绪(404)时回退旧 audit.scale 全量口径。
+  //    接口未就绪(404)时无回退,显示 0/0。
   const repairMode = repair?.mode ?? effective.mode ?? null;
   const repairUseProgress = repairMode === 'incremental';
   const repairProg = repair?.progress ?? progress;
   const repairTotal = repair
     ? (repairUseProgress ? (repairProg?.total ?? 0) : repair.repair_total)
-    : (scale?.repair_total ?? 0);
+    : 0;
   const repairDone = repair
     ? (repairUseProgress ? (repairProg?.completed ?? 0) : repair.repair_done)
-    : (scale?.repair_done ?? 0);
+    : 0;
   const repairFailed = repairProg?.failed ?? progress?.failed ?? 0;
   const repairPct = repairTotal > 0 ? Math.round((repairDone / repairTotal) * 100) : 0;
-  const repairedEdges = repair?.repaired_edges ?? scale?.repaired_edges ?? 0;
+  const repairedEdges = repair?.repaired_edges ?? 0;
   // repair 阶段是否有可展示进度:有分母即可展示(增量=progress.total,全量=
   // repair_total);回退口径沿用旧的 scale.repair_total>0。
   const repairStatus = repair?.repair_status ?? null;
@@ -427,7 +406,7 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
             )
           }
           primary={
-            identified > 0 || analysis ? `攻击入口 ${identified}` : null
+            identified > 0 || attack ? `攻击入口 ${identified}` : null
           }
           secondary={null}
         />
@@ -535,7 +514,7 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
         ) : null}
         <button
           type="button"
-          onClick={() => { void loadAudit(); void loadTask(); }}
+          onClick={() => { void loadAnalyze(); void loadAttack(); void loadRepair(); void loadTask(); }}
           title="刷新知识图谱状态与入口识别信息"
           className="inline-flex items-center gap-2 rounded-xl border border-theme-border px-3 py-2 text-xs font-medium text-theme-text-secondary transition hover:bg-theme-elevated"
         >
@@ -547,9 +526,6 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
         ) : null}
         {openServeError ? (
           <span className="text-xs font-semibold text-rose-400">{openServeError}</span>
-        ) : null}
-        {auditError ? (
-          <span className="text-xs font-semibold text-amber-400">{auditError}</span>
         ) : null}
       </div>
     </section>
