@@ -96,6 +96,18 @@ function fmtTime(value?: string | null): string {
   return Number.isFinite(d.getTime()) ? d.toLocaleString('zh-CN') : value;
 }
 
+function getPaginationItems(current: number, total: number): Array<number | 'ellipsis'> {
+  if (total <= 7) return Array.from({ length: total }, (_, index) => index + 1);
+  const items: Array<number | 'ellipsis'> = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  if (start > 2) items.push('ellipsis');
+  for (let item = start; item <= end; item += 1) items.push(item);
+  if (end < total - 1) items.push('ellipsis');
+  items.push(total);
+  return items;
+}
+
 function outcomeBadge(status?: string, verdict?: string | null): { label: string; iconCls: string; boxCls: string; fontCls?: string; iconOnly?: boolean; Icon?: React.ElementType; loading?: boolean } {
   if (status === 'running') return { label: '验证中', iconCls: 'text-[var(--color-signal-green)]', boxCls: '', iconOnly: true, loading: true };
   if (status === 'pending') return { label: '等待中', iconCls: 'text-theme-text-faint', boxCls: '', fontCls: 'font-normal', iconOnly: true, Icon: Clock3 };
@@ -330,6 +342,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const pageStart = total === 0 ? 0 : offset + 1;
   const pageEnd = total === 0 ? 0 : Math.min(total, offset + tasks.length);
+  const paginationItems = useMemo(() => getPaginationItems(page, totalPages), [page, totalPages]);
   const resultFilterValue = resultFilter;
   const visibleTaskIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
   const cancellableTaskIds = useMemo(() => tasks.filter((task) => CANCELLABLE_TASK_STATUSES.has(String(task.status || ''))).map((task) => task.id), [tasks]);
@@ -567,7 +580,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <div className="relative min-w-[260px] flex-1">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" />
-                  <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索标题 / ID" className="form-input h-9 w-full py-1.5 pl-9 pr-9 text-sm text-theme-text-primary" />
+                  <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索标题 / ID" className="form-input h-9 w-full py-1.5 pl-9 pr-9 text-xs text-theme-text-primary" />
                   {search ? (
                     <button
                       type="button"
@@ -597,7 +610,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                         key={option.value || 'all'}
                         type="button"
                         onClick={() => handleResultFilterChange(option.value)}
-                        className={`inline-flex h-9 shrink-0 items-center rounded-lg border px-2.5 text-sm font-medium transition ${active ? activeCls : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated hover:text-theme-text-primary'}`}
+                        className={`inline-flex h-9 shrink-0 items-center rounded-lg border px-2.5 text-xs font-medium transition ${active ? activeCls : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated hover:text-theme-text-primary'}`}
                       >
                         {option.label}
                       </button>
@@ -619,7 +632,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                       type="button"
                       disabled={!selectedVisibleTaskIds.length || batchRerunning}
                       onClick={() => void handleBatchRerunTasks()}
-                      className="inline-flex h-9 shrink-0 items-center rounded-lg border border-theme-border bg-theme-surface px-3 text-sm font-medium text-theme-text-secondary transition hover:bg-theme-elevated hover:text-theme-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                      className="inline-flex h-9 shrink-0 items-center rounded-lg border border-theme-border bg-theme-surface px-3 text-xs font-medium text-theme-text-secondary transition hover:bg-theme-elevated hover:text-theme-text-primary disabled:cursor-not-allowed disabled:opacity-40"
                       title="重跑选中的任务"
                     >
                       {batchRerunning ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : <RotateCcw size={14} className="mr-1.5" />}
@@ -629,7 +642,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                       type="button"
                       disabled={!selectedCancellableTaskIds.length || batchCancelling}
                       onClick={() => void handleBatchCancelTasks()}
-                      className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[var(--color-signal-red-border)] bg-[var(--color-signal-red-bg)] px-3 text-sm font-medium text-[var(--color-signal-red)] transition hover:bg-[var(--color-signal-red-bg)] disabled:cursor-not-allowed disabled:opacity-40"
+                      className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[var(--color-signal-red-border)] bg-[var(--color-signal-red-bg)] px-3 text-xs font-medium text-[var(--color-signal-red)] transition hover:bg-[var(--color-signal-red-bg)] disabled:cursor-not-allowed disabled:opacity-40"
                       title="取消选中的等待中/执行中任务"
                     >
                       {batchCancelling ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : null}
@@ -697,7 +710,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                       </div>
                       <div className="flex items-center gap-2 text-xs lg:justify-end">
                         <span className="text-xs font-medium text-theme-text-muted lg:hidden">耗时</span>
-                        <span className="text-sm font-normal text-theme-text-secondary lg:text-right">{showRuntime ? fmtRuntime(runtime) : '-'}</span>
+                        <span className="text-xs font-normal text-theme-text-secondary lg:text-right">{showRuntime ? fmtRuntime(runtime) : '-'}</span>
                       </div>
                     </div>
                   );
@@ -708,8 +721,8 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               </div>
             </div>
 
-              <div className="mt-4 flex flex-col gap-3 text-xs text-theme-text-muted sm:flex-row sm:items-center sm:justify-between">
-                <span>第 {page}/{totalPages} 页 · {pageStart}-{pageEnd} / {total}</span>
+              <div className="mt-4 flex flex-col gap-3 text-xs text-theme-text-muted lg:flex-row lg:items-center lg:justify-between">
+                <span>第 {pageStart}-{pageEnd} 项，共 {total} 项</span>
                 <div className="flex flex-wrap items-center gap-2">
                   <label className="flex items-center gap-2">
                     <span>每页</span>
@@ -725,8 +738,28 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                       {PAGE_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}
                     </select>
                   </label>
-                  <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="rounded-lg border border-theme-border px-3 py-1 disabled:opacity-40">上一页</button>
-                  <button disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="rounded-lg border border-theme-border px-3 py-1 disabled:opacity-40">下一页</button>
+                  <div className="flex items-center gap-1">
+                    <button disabled={page <= 1} onClick={() => setPage(1)} className="h-8 rounded-lg border border-theme-border px-3 text-xs text-theme-text-secondary transition hover:bg-theme-elevated hover:text-theme-text-primary disabled:cursor-not-allowed disabled:opacity-40">首页</button>
+                    <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="h-8 rounded-lg border border-theme-border px-3 text-xs text-theme-text-secondary transition hover:bg-theme-elevated hover:text-theme-text-primary disabled:cursor-not-allowed disabled:opacity-40">上一页</button>
+                    <span className="px-2 text-theme-text-muted md:hidden">第 {page}/{totalPages} 页</span>
+                    <div className="hidden items-center gap-1 md:flex">
+                      {paginationItems.map((item, index) => item === 'ellipsis' ? (
+                        <span key={`ellipsis-${index}`} className="inline-flex h-8 min-w-8 items-center justify-center px-1 text-theme-text-muted">...</span>
+                      ) : (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => setPage(item)}
+                          className={`h-8 min-w-8 rounded-lg border px-2 text-xs font-medium transition ${item === page ? 'border-[var(--color-signal-blue)] bg-[var(--color-signal-blue)] text-white' : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated hover:text-theme-text-primary'}`}
+                          aria-current={item === page ? 'page' : undefined}
+                        >
+                          {item}
+                        </button>
+                      ))}
+                    </div>
+                    <button disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="h-8 rounded-lg border border-theme-border px-3 text-xs text-theme-text-secondary transition hover:bg-theme-elevated hover:text-theme-text-primary disabled:cursor-not-allowed disabled:opacity-40">下一页</button>
+                    <button disabled={page >= totalPages} onClick={() => setPage(totalPages)} className="h-8 rounded-lg border border-theme-border px-3 text-xs text-theme-text-secondary transition hover:bg-theme-elevated hover:text-theme-text-primary disabled:cursor-not-allowed disabled:opacity-40">末页</button>
+                  </div>
                 </div>
               </div>
             </div>
