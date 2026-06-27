@@ -77,9 +77,9 @@ const computeThroughput = (totalTokens: number, startAt?: string, endAt?: string
 };
 const formatThroughput = (tokensPerSec: number) => {
   if (!tokensPerSec) return '-';
-  if (tokensPerSec >= 1000) return `${(tokensPerSec / 1000).toFixed(2)}K tok/s`;
-  if (tokensPerSec >= 10) return `${tokensPerSec.toFixed(0)} tok/s`;
-  return `${tokensPerSec.toFixed(2)} tok/s`;
+  if (tokensPerSec >= 1000) return `${(tokensPerSec / 1000).toFixed(2)}K Token/s`;
+  if (tokensPerSec >= 10) return `${tokensPerSec.toFixed(0)} Token/s`;
+  return `${tokensPerSec.toFixed(2)} Token/s`;
 };
 const formatDateTime = (value?: string | null) => value ? new Date(value).toLocaleString('zh-CN') : '-';
 const formatPercent = (value: number) => `${(value <= 1 ? value * 100 : value).toFixed(1)}%`;
