@@ -708,6 +708,8 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
           onClose={() => { if (!changeProjectSubmitting) { setChangeProjectTask(null); setChangeProjectTargetId(''); } }}
           title="修改任务所属项目"
           description={`当前任务：${changeProjectTask.name}`}
+          className="flex flex-col h-[360px] !overflow-visible"
+          bodyClassName="flex-1 !overflow-visible"
           footer={
             <>
               <button
@@ -728,7 +730,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
             </>
           }
         >
-          <div className="flex min-h-[180px] flex-col justify-center">
+          <div className="py-1">
             <label className="block text-sm font-semibold text-theme-text-primary">
               目标项目
               <DropdownSelect
@@ -738,6 +740,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                 placeholder="请选择目标项目"
                 emptyText="暂无其他可选项目"
                 containerClassName="mt-1"
+                panelClassName="max-h-[240px] overflow-hidden"
               />
             </label>
           </div>

@@ -15,6 +15,7 @@ export interface ModalProps {
   closeOnEsc?: boolean;
   children: React.ReactNode;
   className?: string;
+  bodyClassName?: string;
 }
 
 const FOCUSABLE =
@@ -31,6 +32,7 @@ export const Modal: React.FC<ModalProps> = ({
   closeOnEsc = true,
   children,
   className,
+  bodyClassName,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const previousActiveRef = useRef<HTMLElement | null>(null);
@@ -143,7 +145,7 @@ export const Modal: React.FC<ModalProps> = ({
             </button>
           </div>
         )}
-        <div className="max-h-[70vh] overflow-auto p-5">{children}</div>
+        <div className={cx('max-h-[70vh] overflow-auto p-5', bodyClassName)}>{children}</div>
         {footer && (
           <div className="flex items-center justify-end gap-2 border-t border-theme-border p-4">{footer}</div>
         )}
