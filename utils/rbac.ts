@@ -155,10 +155,16 @@ const ADMIN_VIEWS = new Set<string>([
   'env-process-monitor-tasks',
 ]);
 
+// 开发者可在 ADMIN_VIEWS 中访问的子集：其余 env-* 仍仅管理员可见，仅 env-access 对开发者放行。
+const DEVELOPER_ALLOWED_ADMIN_VIEWS = new Set<string>(['env-access']);
+
 export const canAccessView = (user: UserInfo | null | undefined, view: ViewType | string): boolean => {
   const access = getUserAccess(user);
 
   if (ADMIN_VIEWS.has(view)) {
+    if (DEVELOPER_ALLOWED_ADMIN_VIEWS.has(view) && access.platformRole === 'developer') {
+      return true;
+    }
     return access.platformRole === 'super_admin' || access.platformRole === 'ordinary_admin';
   }
 
