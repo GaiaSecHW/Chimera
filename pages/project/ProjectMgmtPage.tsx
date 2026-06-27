@@ -764,30 +764,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
               ),
             },
             {
-              key: 'owner_name',
-              header: '项目成员',
-              width: '15%',
-              sortable: true,
-              sortKey: 'owner_name',
-              defaultDirection: 'asc',
-              render: (project) => {
-                const memberNames = [...(project.roles || [])]
-                  .sort((a, b) => (a.role === 'owner' ? 0 : 1) - (b.role === 'owner' ? 0 : 1))
-                  .map((r) => r.username)
-                  .filter(Boolean)
-                  .join(';');
-                return (
-                  <span
-                    className="block max-w-[180px] truncate whitespace-nowrap text-sm"
-                    style={{ color: LK.body }}
-                    title={memberNames || '-'}
-                  >
-                    {memberNames || '-'}
-                  </span>
-                );
-              },
-            },
-            {
               key: 'product_version',
               header: '产品版本',
               width: '15%',
@@ -798,6 +774,19 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 <div className="text-sm font-medium" style={{ color: LK.inkSoft }}>
                   {project.product_version || project.product_version_name || '未归属版本'}
                 </div>
+              ),
+            },
+            {
+              key: 'owner_name',
+              header: '创建人',
+              width: '15%',
+              sortable: true,
+              sortKey: 'owner_name',
+              defaultDirection: 'asc',
+              render: (project) => (
+                <span className="text-sm" style={{ color: LK.body }}>
+                  {project.owner_name || '-'}
+                </span>
               ),
             },
             {

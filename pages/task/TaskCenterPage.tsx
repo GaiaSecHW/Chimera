@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { DataTable, DataTableColumn, DropdownSelect, Modal, PageHeader } from '../../design-system';
-import { Bug, CheckCircle2, FileText, FolderInput, Loader2, Pause, Play, Plus, RefreshCw, Rocket, Search, Shield, Trash2, X } from 'lucide-react';
+import { Bug, CheckCircle2, FileText, FolderInput, Loader2, Play, Plus, RefreshCw, Rocket, Search, Shield, Trash2, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { ServicePageTitle } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -140,7 +140,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
   const [query, setQuery] = useState(() => searchParams.get('task') || '');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [sortBy, setSortBy] = useState<string>('updated_at');
+  const [sortBy, setSortBy] = useState<string>('created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [total, setTotal] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
@@ -564,51 +564,30 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
               render: (task) => <div className="text-sm" style={{ color: LK.inkSoft }}>{getUserStatusLabel(task)}</div>,
             },
             {
-              key: 'updated_at',
-              header: '更新时间',
+              key: 'created_at',
+              header: '创建时间',
               width: '12%',
               sortable: true,
-              sortKey: 'updated_at',
+              sortKey: 'created_at',
               defaultDirection: 'desc',
-              render: (task) => <span className="text-xs whitespace-nowrap" style={{ color: LK.muted }}>{formatDateTime(task.updated_at)}</span>,
+              render: (task) => <span className="text-xs whitespace-nowrap" style={{ color: LK.muted }}>{formatDateTime(task.created_at)}</span>,
             },
             {
               key: 'actions',
               header: '操作',
               render: (task) => (
                 <div className="flex items-center gap-1">
-                  {(() => {
-                    const status = getDisplayStatus(task);
-                    const isRunning = !['success', 'partial_success', 'failed', 'cancelled', 'completed', 'pending', 'stopped', 'deleted'].includes(status);
-                    const canExecute = ['stopped', 'pending', 'failed', 'cancelled'].includes(status);
-                    const canPause = isRunning;
-                    return (
-                      <>
-                        <button
-                          type="button"
-                          title="执行"
-                          disabled={!canExecute}
-                          className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-                          style={{ color: LK.muted }}
-                          onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; } }}
-                          onMouseLeave={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; } }}
-                        >
-                          <Play size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          title="暂停"
-                          disabled={!canPause}
-                          className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-                          style={{ color: LK.muted }}
-                          onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; } }}
-                          onMouseLeave={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; } }}
-                        >
-                          <Pause size={16} />
-                        </button>
-                      </>
-                    );
-                  })()}
+                  <button
+                    type="button"
+                    title="执行/暂停"
+                    disabled
+                    className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                    style={{ color: LK.muted }}
+                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; } }}
+                    onMouseLeave={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; } }}
+                  >
+                    <Play size={16} />
+                  </button>
                   <button
                     onClick={() => openTask(task)}
                     title="查看报告"
