@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Modal, DropdownSelect, PageHeader } from '../../design-system';
-import { Bug, CheckCircle2, FileText, FolderInput, Loader2, Pause, Play, Plus, RefreshCw, Rocket, Search, Shield, Square, SquareCheck, Trash2, X } from 'lucide-react';
+import { DataTable, DataTableColumn, DropdownSelect, Modal, PageHeader } from '../../design-system';
+import { Bug, CheckCircle2, FileText, FolderInput, Loader2, Pause, Play, Plus, RefreshCw, Rocket, Search, Shield, Trash2, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { ServicePageTitle } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -138,14 +138,16 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
   const [stats, setStats] = useState<Record<string, number>>({});
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState(() => searchParams.get('task') || '');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState<string>('updated_at');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [total, setTotal] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
   const [preSelectedMode, setPreSelectedMode] = useState<HomeCardMode | undefined>(undefined);
   const [error, setError] = useState('');
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
-  const [changeProjectTask, setChangeProjectTask] = useState<ScheduleCenterUserTask | null>(null);
-  const [changeProjectTargetId, setChangeProjectTargetId] = useState('');
-  const [changeProjectSubmitting, setChangeProjectSubmitting] = useState(false);
   const [deleteQueueOpen, setDeleteQueueOpen] = useState(false);
   const [deleteQueueLoading, setDeleteQueueLoading] = useState(false);
   const [deleteQueueError, setDeleteQueueError] = useState('');
@@ -164,25 +166,12 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
     from_time: '',
     to_time: '',
   });
+  const [changeProjectTask, setChangeProjectTask] = useState<ScheduleCenterUserTask | null>(null);
+  const [changeProjectTargetId, setChangeProjectTargetId] = useState('');
+  const [changeProjectSubmitting, setChangeProjectSubmitting] = useState(false);
   const { notify, confirm, feedbackNodes } = useUiFeedback();
 
   const projectName = useMemo(() => projects.find((item) => item.id === projectId)?.name || projectId, [projectId, projects]);
-  const filteredTasks = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    return tasks.filter((item) => {
-      if (!term) return true;
-      return [item.id, item.name, item.task_type, item.agent_app_name || '', item.agent_app_id || '', getDisplayStatus(item), getUserStatusLabel(item), item.sync_status, item.downstream_task_id || '']
-        .some((value) => String(value || '').toLowerCase().includes(term));
-    });
-  }, [query, tasks]);
-  const deletableTaskIds = useMemo(
-    () => filteredTasks.filter((task) => !['queued', 'running'].includes(String(task.delete_status || 'none'))).map((task) => task.id),
-    [filteredTasks],
-  );
-  const allVisibleSelected = useMemo(
-    () => deletableTaskIds.length > 0 && deletableTaskIds.every((taskId) => selectedTaskIds.includes(taskId)),
-    [deletableTaskIds, selectedTaskIds],
-  );
   const deleteQueueTotalPages = useMemo(
     () => Math.max(1, Math.ceil(deleteQueueTotal / deleteQueuePageSize)),
     [deleteQueuePageSize, deleteQueueTotal],
@@ -211,12 +200,24 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
     }
   };
 
-  const loadData = async () => {
+  const loadData = async (
+    nextPage = page,
+    nextPageSize = pageSize,
+    nextSortBy = sortBy,
+    nextSortDirection = sortDirection,
+    nextSearch = query,
+  ) => {
     if (!projectId) return;
     setLoading(true);
     setError('');
     try {
-      const taskResp = await scheduleApi.listUserTasks(projectId, {});
+      const taskResp = await scheduleApi.listUserTasks(projectId, {
+        search: nextSearch,
+        page: nextPage,
+        page_size: nextPageSize,
+        sort_by: nextSortBy,
+        sort_direction: nextSortDirection,
+      }) as ScheduleCenterUserTaskListResponse;
       const taskItems = (taskResp.items || []) as any[];
 
       try {
@@ -249,6 +250,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
 
       setTasks(taskItems);
       setStats(taskResp.stats || {});
+      setTotal(taskResp.total || 0);
       void fetchTaskVulnCounts(taskItems);
     } catch (err: any) {
       setError(err?.message || '加载失败');
@@ -257,8 +259,26 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
     }
   };
 
-  useEffect(() => { void loadData(); }, [projectId]);
-  useEffect(() => { setSelectedTaskIds([]); }, [projectId, query]);
+  useEffect(() => {
+    setPage(1);
+    void loadData(1, pageSize, sortBy, sortDirection, query);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+  useEffect(() => { setSelectedTaskIds([]); }, [projectId, query, page, pageSize, sortBy, sortDirection]);
+
+  const skipSearchRef = useRef(true);
+  useEffect(() => {
+    if (skipSearchRef.current) {
+      skipSearchRef.current = false;
+      return;
+    }
+    const handle = setTimeout(() => {
+      setPage(1);
+      void loadData(1, pageSize, sortBy, sortDirection, query);
+    }, 350);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
 
   useEffect(() => {
     const mode = consumeHomeCreateTaskMode();
@@ -331,18 +351,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
     }));
   };
 
-  const toggleTaskSelection = (taskId: string) => {
-    setSelectedTaskIds((current) => current.includes(taskId) ? current.filter((item) => item !== taskId) : [...current, taskId]);
-  };
-
-  const toggleSelectAllVisible = () => {
-    if (allVisibleSelected) {
-      setSelectedTaskIds((current) => current.filter((taskId) => !deletableTaskIds.includes(taskId)));
-      return;
-    }
-    setSelectedTaskIds((current) => Array.from(new Set([...current, ...deletableTaskIds])));
-  };
-
   const submitDelete = async (taskIds: string[]) => {
     if (!taskIds.length || deleteSubmitting) return;
     const confirmed = await confirm({
@@ -356,7 +364,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
     setDeleteSubmitting(true);
     try {
       for (const taskId of taskIds) {
-        const task = filteredTasks.find((t) => t.id === taskId);
+        const task = tasks.find((t) => t.id === taskId);
         const desc = task?.description || '';
         const match = desc.match(/\[黑板:cairn:([^\]]+)\]/);
         if (match) {
@@ -440,7 +448,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
   };
 
   const statsCards = [
-    { label: '总任务', value: stats.total || tasks.length, icon: Shield, color: 'var(--text-primary)', shadow: 'var(--mask-primary)'},
+    { label: '总任务', value: stats.total || total, icon: Shield, color: 'var(--text-primary)', shadow: 'var(--mask-primary)'},
     { label: '排队中', value: stats.queued || 0, icon: Rocket, color: '#D97706', shadow: 'rgba(217, 119, 6, 0.08)' },
     { label: '运行中', value: stats.running || 0, icon: CheckCircle2, color: '#2563EB', shadow: 'rgba(37, 99, 235, 0.08)' },
     { label: '失败', value: stats.failed || 0, icon: X, color: '#DC2626', shadow: 'rgba(220, 38, 38, 0.08)' },
@@ -484,14 +492,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
         })}
       </div>
 
-      <div
-        className="rounded-xl"
-        style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
-      >
+      <div className="bg-theme-surface">
         {!hideActionBar && (
-            <div
-                className="flex items-center gap-2 rounded-lg px-4 py-3"
-            >
+          <div className="flex items-center gap-2 rounded-xl px-4 py-3">
               <button onClick={openCreateDialog} className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}><Plus size={15} />创建任务</button>
               <button
                   onClick={() => void submitDelete(selectedTaskIds)}
@@ -516,174 +519,186 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
               <button onClick={() => void loadData()} className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><RefreshCw size={16} /></button>
             </div>
         )}
-
-        {error ? (
-            <div
-                className="rounded-lg px-4 py-3 text-sm mb-2 mt-2"
-                style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}
-            >
-              {error}
-            </div>
-        ) : null}
-        <table className="min-w-full border-separate border-spacing-0 text-sm">
-          <thead>
-            <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-              <th className="px-4 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                <button type="button" onClick={toggleSelectAllVisible} style={{ color: LK.muted }}>
-                  {allVisibleSelected ? <SquareCheck size={16} /> : <Square size={16} />}
-                </button>
-              </th>
-              <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-sm text-theme-text-primary" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务名</th>
-              <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-sm text-theme-text-primary" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>工具</th>
-              <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-sm text-theme-text-primary" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>测试对象</th>
-              <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-sm text-theme-text-primary" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>任务状态</th>
-              <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-sm text-theme-text-primary" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>更新时间</th>
-              <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-sm text-theme-text-primary" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? <tr><td className="px-4 py-10 text-center" colSpan={7} style={{ color: LK.muted }}><span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />加载中...</span></td></tr> : null}
-            {!loading && filteredTasks.length === 0 ? <tr><td className="px-4 py-10 text-center" colSpan={7} style={{ color: LK.muted }}>暂无任务</td></tr> : null}
-            {filteredTasks.map((task) => (
-              <tr
-                key={task.id}
-                className="transition-colors"
-                style={{ borderBottom:`1px solid ${LK.borderSoft}` }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-              >
-                <td className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.border}` }}>
+        {(() => {
+          const taskColumns: DataTableColumn<ScheduleCenterUserTask>[] = [
+            {
+              key: 'name',
+              header: '任务名',
+              width: '20%',
+              render: (task) => <div className="text-sm">{task.name}</div>,
+            },
+            {
+              key: 'tool',
+              header: '工具',
+              width: '15%',
+              render: (task) => <div className="text-sm" style={{ color: LK.inkSoft }}>{getTaskHarnessLabel(task)}</div>,
+            },
+            {
+              key: 'test_object',
+              header: '测试对象',
+              width: '20%',
+              render: (task) => {
+                const uploadId = task.inputs?.[0]?.input_upload_id;
+                const label = getTaskTestObjectLabel(task);
+                if (!uploadId) {
+                  return <div className="text-sm" style={{ color: LK.inkSoft }}>{label}</div>;
+                }
+                return (
+                  <a
+                    href={`#/test-input-root?upload=${encodeURIComponent(uploadId)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`查看测试对象：${label}`}
+                    className="text-sm hover:underline"
+                    style={{ color: LK.primary }}
+                  >
+                    {label}
+                  </a>
+                );
+              },
+            },
+            {
+              key: 'status',
+              header: '任务状态',
+              width: '10%',
+              render: (task) => <div className="text-sm" style={{ color: LK.inkSoft }}>{getUserStatusLabel(task)}</div>,
+            },
+            {
+              key: 'updated_at',
+              header: '更新时间',
+              width: '12%',
+              sortable: true,
+              sortKey: 'updated_at',
+              defaultDirection: 'desc',
+              render: (task) => <span className="text-xs whitespace-nowrap" style={{ color: LK.muted }}>{formatDateTime(task.updated_at)}</span>,
+            },
+            {
+              key: 'actions',
+              header: '操作',
+              render: (task) => (
+                <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => toggleTaskSelection(task.id)}
-                    disabled={['queued', 'running'].includes(String(task.delete_status || 'none'))}
-                    className="transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                    title="执行"
+                    className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
                     style={{ color: LK.muted }}
-                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.color = LK.ink; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = LK.muted; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
                   >
-                    {selectedTaskIds.includes(task.id) ? <SquareCheck size={16} /> : <Square size={16} />}
+                    <Play size={16} />
                   </button>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, color: LK.inkSoft }}>
-                  <div className="text-sm">{task.name}</div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}` }}>
-                  <div className="text-sm" style={{ color: LK.inkSoft }}>{getTaskHarnessLabel(task)}</div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}` }}>
-                  {(() => {
-                    const uploadId = task.inputs?.[0]?.input_upload_id;
-                    const label = getTaskTestObjectLabel(task);
-                    if (!uploadId) {
-                      return <div className="text-sm" style={{ color: LK.inkSoft }}>{label}</div>;
-                    }
-                    return (
-                      <a
-                        href={`#/test-input-root?upload=${encodeURIComponent(uploadId)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={`查看测试对象：${label}`}
-                        className="text-sm hover:underline"
-                        style={{ color: LK.primary }}
-                      >
-                        {label}
-                      </a>
-                    );
-                  })()}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}` }}>
-                  <div className="text-sm" style={{ color: LK.inkSoft }}>{getUserStatusLabel(task)}</div>
-                </td>
-                <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ borderBottom:`1px solid ${LK.border}`, color: LK.muted }}>
-                  {formatDateTime(task.updated_at)}
-                </td>
-                <td className="px-4 py-3" style={{ borderBottom:`1px solid ${LK.border}` }}>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      title="执行"
-                      className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
-                      style={{ color: LK.muted }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
-                    >
-                      <Play size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      title="暂停"
-                      className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
-                      style={{ color: LK.muted }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
-                    >
-                      <Pause size={16} />
-                    </button>
-                    <button
-                      onClick={() => openTask(task)}
-                      title="查看报告"
-                      className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
-                      style={{ color: LK.muted }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
-                    >
-                      <FileText size={16} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        window.open(`#/vuln-list?task=${encodeURIComponent(task.id)}`, '_blank', 'noopener,noreferrer');
-                      }}
-                      title={`查看漏洞 (${taskVulnCounts[task.id] === undefined ? '…' : taskVulnCounts[task.id]})`}
-                      className="relative inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
-                      style={{ color: LK.muted }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
-                    >
-                      <Bug size={16} />
-                      {(() => {
-                        const c = taskVulnCounts[task.id];
-                        if (c === undefined || c === 0) return null;
-                        return (
-                          <span
-                            className="absolute -top-1 -right-1 inline-flex min-w-[15px] h-[15px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none"
-                            style={{ backgroundColor: LK.error, color: '#FFFFFF' }}
-                          >
-                            {c > 99 ? '99+' : c}
-                          </span>
-                        );
-                      })()}
-                    </button>
-                    <button
-                      type="button"
-                      title="修改所属项目"
-                      aria-label="修改所属项目"
-                      onClick={() => { setChangeProjectTargetId(''); setChangeProjectTask(task); }}
-                      disabled={['dispatched','running','queued','pending'].includes(String(task.dispatch_status || '')) || changeProjectSubmitting}
-                      className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                      style={{ color: LK.muted }}
-                      onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; } }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
-                    >
-                      <FolderInput size={16} />
-                    </button>
-                    <button
-                      onClick={() => void submitDelete([task.id])}
-                      disabled={deleteSubmitting || ['queued', 'running'].includes(String(task.delete_status || 'none'))}
-                      title="删除"
-                      className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                      style={{ color: LK.muted }}
-                      onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = `${LK.errorSoft}`; e.currentTarget.style.color = LK.error; } }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  <button
+                    type="button"
+                    title="暂停"
+                    className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
+                    style={{ color: LK.muted }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
+                  >
+                    <Pause size={16} />
+                  </button>
+                  <button
+                    onClick={() => openTask(task)}
+                    title="查看报告"
+                    className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
+                    style={{ color: LK.muted }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
+                  >
+                    <FileText size={16} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      window.open(`#/vuln-list?task=${encodeURIComponent(task.id)}`, '_blank', 'noopener,noreferrer');
+                    }}
+                    title={`查看漏洞 (${taskVulnCounts[task.id] === undefined ? '…' : taskVulnCounts[task.id]})`}
+                    className="relative inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
+                    style={{ color: LK.muted }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
+                  >
+                    <Bug size={16} />
+                    {(() => {
+                      const c = taskVulnCounts[task.id];
+                      if (c === undefined || c === 0) return null;
+                      return (
+                        <span
+                          className="absolute -top-1 -right-1 inline-flex min-w-[15px] h-[15px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none"
+                          style={{ backgroundColor: LK.error, color: '#FFFFFF' }}
+                        >
+                          {c > 99 ? '99+' : c}
+                        </span>
+                      );
+                    })()}
+                  </button>
+                  <button
+                    type="button"
+                    title="修改所属项目"
+                    aria-label="修改所属项目"
+                    onClick={() => { setChangeProjectTargetId(''); setChangeProjectTask(task); }}
+                    disabled={['dispatched','running','queued','pending'].includes(String(task.dispatch_status || '')) || changeProjectSubmitting}
+                    className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    style={{ color: LK.muted }}
+                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = LK.primaryMuted; e.currentTarget.style.color = LK.primary; } }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
+                  >
+                    <FolderInput size={16} />
+                  </button>
+                  <button
+                    onClick={() => void submitDelete([task.id])}
+                    disabled={deleteSubmitting || ['queued', 'running'].includes(String(task.delete_status || 'none'))}
+                    title="删除"
+                    className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    style={{ color: LK.muted }}
+                    onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = `${LK.errorSoft}`; e.currentTarget.style.color = LK.error; } }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ),
+            },
+          ];
+          return (
+            <div className='px-4'>
+              <DataTable
+                columns={taskColumns}
+                data={tasks}
+                rowKey={(task) => task.id}
+                loading={loading}
+                showRowNumber={true}
+                sort={{ field: sortBy, direction: sortDirection }}
+                onSortChange={({ field, direction }) => {
+                  setSortBy(field);
+                  setSortDirection(direction);
+                  setPage(1);
+                  void loadData(1, pageSize, field, direction, query);
+                }}
+                bulkActions={{
+                  selectedKeys: selectedTaskIds,
+                  onSelectChange: setSelectedTaskIds,
+                  render: () => null,
+                }}
+                pagination={{
+                  page,
+                  perPage: pageSize,
+                  total,
+                  perPageOptions: [10, 20, 50, 100, 200],
+                  onPageChange: (next) => {
+                    setPage(next);
+                    void loadData(next, pageSize, sortBy, sortDirection, query);
+                  },
+                  onPerPageChange: (next) => {
+                    setPageSize(next);
+                    setPage(1);
+                    void loadData(1, next, sortBy, sortDirection, query);
+                  },
+                }}
+                empty={<div className="py-10 text-center text-sm" style={{ color: LK.muted }}>暂无任务</div>}
+              />
+            </div>
+          );
+        })()}
       </div>
       {feedbackNodes}
 
@@ -713,17 +728,19 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
             </>
           }
         >
-          <label className="block text-sm font-semibold text-theme-text-primary">
-            目标项目
-            <DropdownSelect
-              value={changeProjectTargetId}
-              onChange={setChangeProjectTargetId}
-              options={projects.filter((p) => p.id !== projectId).map((p) => ({ value: p.id, label: p.name }))}
-              placeholder="请选择目标项目"
-              emptyText="暂无其他可选项目"
-              containerClassName="mt-1"
-            />
-          </label>
+          <div className="flex min-h-[180px] flex-col justify-center">
+            <label className="block text-sm font-semibold text-theme-text-primary">
+              目标项目
+              <DropdownSelect
+                value={changeProjectTargetId}
+                onChange={setChangeProjectTargetId}
+                options={projects.filter((p) => p.id !== projectId).map((p) => ({ value: p.id, label: p.name }))}
+                placeholder="请选择目标项目"
+                emptyText="暂无其他可选项目"
+                containerClassName="mt-1"
+              />
+            </label>
+          </div>
         </Modal>
       )}
 

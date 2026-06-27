@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, Coins, FileText, KeyRound, RefreshCw, Settings, TrendingUp } from 'lucide-react';
+import { Activity, Gauge, FileText, KeyRound, RefreshCw, Settings, TrendingUp } from 'lucide-react';
 import { api } from '../../clients/api';
 
 interface AiGatewayDashboardPageProps {
@@ -65,10 +65,21 @@ const compactNumber = (value: number) => {
   if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
   return value.toLocaleString('zh-CN');
 };
-const formatCost = (value: number) => {
-  if (value >= 1) return `$${value.toFixed(2)}`;
-  if (value >= 0.01) return `$${value.toFixed(3)}`;
-  return `$${value.toFixed(4)}`;
+const computeThroughput = (totalTokens: number, startAt?: string, endAt?: string) => {
+  if (!totalTokens) return 0;
+  const start = startAt ? Date.parse(startAt) : NaN;
+  const end = endAt ? Date.parse(endAt) : NaN;
+  let seconds = 0;
+  if (!Number.isNaN(start) && !Number.isNaN(end)) {
+    seconds = Math.max(1, (end - start) / 1000);
+  }
+  return seconds > 0 ? totalTokens / seconds : 0;
+};
+const formatThroughput = (tokensPerSec: number) => {
+  if (!tokensPerSec) return '-';
+  if (tokensPerSec >= 1000) return `${(tokensPerSec / 1000).toFixed(2)}K tok/s`;
+  if (tokensPerSec >= 10) return `${tokensPerSec.toFixed(0)} tok/s`;
+  return `${tokensPerSec.toFixed(2)} tok/s`;
 };
 const formatDateTime = (value?: string | null) => value ? new Date(value).toLocaleString('zh-CN') : '-';
 const formatPercent = (value: number) => `${(value <= 1 ? value * 100 : value).toFixed(1)}%`;
@@ -142,6 +153,14 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
 
   const errorLogs = logs.filter((item) => Number(item.status_code || 0) >= 400).length;
   const rangeLabel = getRangeLabel(summary?.range?.preset || rangePreset);
+  const totalCompletionTokens = Number(summary?.usage?.total_completion_tokens || 0);
+  const totalTokens = Number(summary?.usage?.total_tokens || 0);
+  const totalRequests = Number(summary?.usage?.total_requests || 0);
+  // 吞吐量按惯例指生成(输出)速率；若该部署未上报 completion，回退用总 token 并在 hint 标注
+  const throughputBase = totalCompletionTokens > 0 ? totalCompletionTokens : totalTokens;
+  const throughputKind = totalCompletionTokens > 0 ? '输出' : '总';
+  const throughput = computeThroughput(throughputBase, summary?.range?.start_at, summary?.range?.end_at);
+  const avgTokensPerRequest = totalRequests > 0 ? Math.round(throughputBase / totalRequests) : 0;
 
   return (
     <div className="flex min-h-full flex-col gap-6 p-8">
@@ -175,10 +194,10 @@ export const AiGatewayDashboardPage: React.FC<AiGatewayDashboardPageProps> = ({ 
           hint={`Prompt ${compactNumber(summary?.usage?.total_prompt_tokens || 0)} | Completion ${compactNumber(summary?.usage?.total_completion_tokens || 0)}`}
         />
         <MetricCard
-          icon={<Coins className="h-5 w-5" />}
-          label={`${rangeLabel}预估费用`}
-          value={loading ? '-' : formatCost(summary?.usage?.total_estimated_cost || 0)}
-          hint={`共 ${compactNumber(summary?.usage?.total_requests || 0)} 次请求`}
+          icon={<Gauge className="h-5 w-5" />}
+          label={`${rangeLabel}Token 吞吐量`}
+          value={loading ? '-' : formatThroughput(throughput)}
+          hint={`共 ${compactNumber(totalRequests)} 次请求 · 平均${throughputKind} ${compactNumber(avgTokensPerRequest)} tok/请求`}
         />
       </div>
 

@@ -818,7 +818,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         search: search.trim() || undefined,
         sort_field: sortField,
         sort_direction: sortDirection,
-        final_result: 'vulnerable' as const,
       };
       const matchesFinalResult = (item: any) => matchesFinalResultFilter(item, finalResultFilter);
       const matchesSuspect = (item: any): boolean => {
@@ -862,7 +861,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         sortField,
         sortDirection,
       );
-      const filtered = merged.filter(matchesSuspect).filter(matchesFinalResult);
+      const filtered = merged.filter((it) => it?.engine_confirmed_vulnerable === true).filter(matchesSuspect).filter(matchesFinalResult);
       const nextPage = pageOverride ?? currentPage;
       setSuspicions(filtered.slice((nextPage - 1) * pageSize, nextPage * pageSize));
       setListTotal(filtered.length);
@@ -1784,11 +1783,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       const taskIds = taskFilter.length > 0 ? taskFilter : [undefined];
       for (const taskId of taskIds) {
         const first = await vulnApi.vuln.listCases({ ...baseParams, source_task_id: taskId, page: 1, page_size: 500 });
-        ids.push(...(first.items || []).filter(matchesSuspect).filter(matchesFinalResult).map((item: any) => item.id).filter(Boolean));
+        ids.push(...(first.items || []).filter((it: any) => it?.engine_confirmed_vulnerable === true).filter(matchesSuspect).filter(matchesFinalResult).map((item: any) => item.id).filter(Boolean));
         const pages = Math.ceil(Number(first.total || 0) / 500);
         for (let page = 2; page <= pages; page += 1) {
           const next = await vulnApi.vuln.listCases({ ...baseParams, source_task_id: taskId, page, page_size: 500 });
-          ids.push(...(next.items || []).filter(matchesSuspect).filter(matchesFinalResult).map((item: any) => item.id).filter(Boolean));
+          ids.push(...(next.items || []).filter((it: any) => it?.engine_confirmed_vulnerable === true).filter(matchesSuspect).filter(matchesFinalResult).map((item: any) => item.id).filter(Boolean));
         }
       }
       const reportIds = Array.from(new Set(ids));

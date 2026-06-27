@@ -1668,8 +1668,7 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
             </div>
           ))}
         </div>
-        {(vulnStats?.unreported || 0) > 0 && (
-          <div className="mt-3 flex justify-end">
+        <div className="mt-3 flex justify-end">
             <button
               onClick={handleProjectReportAll}
               disabled={projectReportingAll}
@@ -1678,7 +1677,6 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
               {projectReportingAll ? '⏳ 上报中...' : '📤 一键上报全部未提交'}
             </button>
           </div>
-        )}
  <div className="mt-4 rounded-xl border border-theme-border bg-theme-surface p-5">
           <button
             type="button"
@@ -2317,8 +2315,8 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap text-xs">
                     {(() => {
-                      const vs = { total: t.vuln_total_count || 0, reported: t.vuln_reported_count || 0, unreported: t.vuln_unreported_count || 0 };
-                      if (!vs || vs.total === 0) return <span className="text-theme-text-muted">-</span>;
+                      const vs = { total: t.vuln_total_count ?? -1, reported: t.vuln_reported_count ?? -1, unreported: t.vuln_unreported_count ?? -1 };
+                      if (vs.total < 0) return <span className="text-theme-text-muted">-</span>;
                       return <span><span className="font-semibold">{vs.total}</span>{vs.reported > 0 && <span className="ml-1 text-emerald-400">+{vs.reported}</span>}{vs.unreported > 0 && <span className="ml-1 text-rose-400">-{vs.unreported}</span>}</span>;
                     })()}
                   </ExecutionTableTd>

@@ -35,6 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   vulnHealth = null,
   configCenterHealth = null,
 }) => {
+  const buildVersion = String(__CHIMERA_BUILD_VERSION__ || '').trim() || 'dev';
   const projectGuard = !hasSelectedProject;
   const projectGuardTitle = '请先选择项目';
 
@@ -176,6 +177,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ))}
         </div>
       </nav>
+      <div className="border-t border-theme-sidebar-muted px-4 py-3">
+        <div className="text-[10px] font-medium uppercase tracking-[0.22em] text-theme-text-faint">
+          Version
+        </div>
+        <div className="mt-1 truncate font-mono text-xs text-theme-text-soft" title={buildVersion}>
+          {buildVersion}
+        </div>
+      </div>
     </aside>
   );
 };
