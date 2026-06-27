@@ -577,6 +577,13 @@ export interface DepartmentMemberImportCommitResponse {
   rows: DepartmentMemberImportRowResult[];
 }
 
+export interface ProjectRole {
+  user_id: string;
+  username: string;
+  role: string;
+  created_at?: string;
+}
+
 export interface Project {
   id: number | string;  // 支持项目空间的字符串ID
   name: string;
@@ -595,7 +602,7 @@ export interface Project {
   owner_name?: string;
   owner_department_id?: number;
   owner_department_name?: string;
-  roles?: any[];
+  roles?: ProjectRole[];
 }
 
 export interface SecurityProject {
@@ -618,6 +625,8 @@ export interface SecurityProject {
   created_at?: string;
   updated_at?: string;
   k8s_namespace?: string;
+  member_count?: number;
+  roles?: ProjectRole[];
 }
 
 export interface ProductVersionNode {

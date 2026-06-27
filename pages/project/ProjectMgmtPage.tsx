@@ -918,14 +918,23 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                       <td className="whitespace-nowrap px-3 py-3 text-sm" style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}>
                         {project.department_name || '未绑定'}
                       </td>
-                      {/* 项目成员 */}
-                      <td
-                        className="whitespace-nowrap truncate max-w-[120px] px-3 py-3 text-sm"
-                        style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}
-                        title={project.owner_name || '-'}
-                      >
-                        {project.owner_name || '-'}
-                      </td>
+                      {/* 项目成员 — owner 置前，username 以 ; 拼接 */}
+                      {(() => {
+                        const memberNames = [...(project.roles || [])]
+                          .sort((a, b) => (a.role === 'owner' ? 0 : 1) - (b.role === 'owner' ? 0 : 1))
+                          .map((r) => r.username)
+                          .filter(Boolean)
+                          .join(';');
+                        return (
+                          <td
+                            className="whitespace-nowrap truncate max-w-[180px] px-3 py-3 text-sm"
+                            style={{ borderBottom: `1px solid ${LK.borderSoft}`, color: LK.body }}
+                            title={memberNames || '-'}
+                          >
+                            {memberNames || '-'}
+                          </td>
+                        );
+                      })()}
                       {/* 产品版本 */}
                       <td className="whitespace-nowrap px-3 py-3" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
                         <div className="text-sm font-medium" style={{ color: LK.inkSoft }}>
@@ -1295,6 +1304,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
           projectId={memberModalProject.id}
           projectName={memberModalProject.name}
           onClose={() => setMemberModalProject(null)}
+          onMembersChanged={() => { void refreshProjects(); }}
         />
       )}
       {feedbackNodes}
