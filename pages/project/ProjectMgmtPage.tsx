@@ -658,7 +658,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       {/* Stat blocks — 4 columns */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: '项目', value: projects.length, icon: Building2, color: LK.primary },
+          { label: '项目', value: tableTotal, icon: Building2, color: LK.primary },
           { label: '任务', value: taskCount !== null ? taskCount : '-', icon: Layers, color: LK.success },
           { label: '环境', value: envCount !== null ? envCount : '-', icon: Server, color: LK.warning },
           { label: '漏洞', value: vulnCount !== null ? vulnCount : '-', icon: AlertTriangle, color: LK.error },
