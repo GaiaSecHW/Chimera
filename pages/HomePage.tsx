@@ -182,7 +182,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
                 color: 'transparent',
               }}
             >
-              奇美拉 Chimera
+              奇美拉 ICSL Chimera
             </h1>
             <div className="max-w-3xl border-l-2 pl-6 lg:flex-1" style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 40%, transparent)' }}>
               <p className="text-sm leading-relaxed text-theme-text-secondary md:text-base">

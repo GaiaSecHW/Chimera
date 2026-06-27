@@ -55,7 +55,7 @@ export const ThemeLogo: React.FC<ThemeLogoProps> = ({
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">
             <span className={`block ${sizing.title} font-semibold ${wordmarkClass} tracking-[0.02em]`}>
-              Chimera
+              ICSL Chimera
             </span>
             {buildVersion ? (
               <span className="text-[10px] font-semibold text-theme-text-faint uppercase tracking-[0.2em]">

@@ -139,7 +139,7 @@ export function DataTable<T>({
   };
 
   return (
-    <div className={cx('space-y-2', className)}>
+    <div className={cx('space-y-2 bg-theme-surface', className)}>
       <ExecutionTable minWidth={minWidth} className="!rounded-none !shadow-none">
         <colgroup>
           {showRowNumber && <col style={{ width: 60 }} />}
@@ -188,7 +188,7 @@ export function DataTable<T>({
                   key={key}
                   onClick={() => handleRowClick(row, key)}
                   className={cx(
-                    'group cursor-pointer transition-colors hover:bg-theme-elevated',
+                    'group transition-colors hover:bg-theme-elevated',
                   )}
                   style={
                     isHighlighted(key)
