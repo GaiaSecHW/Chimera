@@ -3,7 +3,7 @@ import { Activity, AlertTriangle, Bot, Briefcase, Clock3, ListTodo, Plus, Refres
 import { ACTION_QUEUE_FILTERS, ACTION_STATUS_LABELS, ACTION_TYPE_LABELS, MODULE_ROLE_LABELS, REPRO_ACTION_TYPES, REPORT_CHANNEL_LABELS, SERVICE_TYPE_LABELS, STAGE_LABELS, WorkspaceViewKey, cardClass, formatTime, labelOf } from './shared';
 
 const LK = {
-  primary: 'var(--brand-primary)',
+  primary: '#2563EB',
   primarySoft: '#7590ff',
   primaryDeep: 'var(--brand-primary-hover)',
   primaryMuted: 'var(--brand-primary-mask)',
@@ -18,9 +18,9 @@ const LK = {
   body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)',
   mutedSoft: '#8b95a8',
-  success: '#45c06f',
-  warning: '#d5a13a',
-  error: '#f15d5d',
+  success: '#30A46C',
+  warning: '#D97706',
+  error: '#DC2626',
   info: '#4f8cff',
 } as const;
 

@@ -13,9 +13,9 @@ const LK = {
   border: 'var(--border-default)',
   body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)',
-  success: '#45c06f',
-  warning: '#d5a13a',
-  error: '#f15d5d',
+  success: '#30A46C',
+  warning: '#D97706',
+  error: '#DC2626',
 } as const;
 
 const formatRuntimeHealthStatus = (status?: string | null) => {

@@ -10,9 +10,9 @@ import type {
 import { showConfirm } from '../../components/DialogService';
 
 const LK = {
-  warning: '#d5a13a',
+  warning: '#D97706',
   info: '#5aa3ff',
-  error: '#f15d5d',
+  error: '#DC2626',
 };
 
 const DELETE_QUEUE_PAGE_SIZE = 20;

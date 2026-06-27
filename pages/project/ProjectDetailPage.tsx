@@ -34,7 +34,7 @@ import { ProjectMemberModal } from './ProjectMemberModal';
 
 /* ── LOKI design tokens ─────────────────────────────────────── */
 const LK = {
-  primary: 'var(--brand-primary)',
+  primary: '#2563EB',
   primaryMuted: 'var(--brand-primary-mask)',
   canvas: 'var(--bg-app)',
   surface: 'var(--bg-surface)',
@@ -46,9 +46,9 @@ const LK = {
   body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)',
   mutedSoft: '#5a687e',
-  success: '#45c06f',
-  warning: '#d5a13a',
-  error: '#f15d5d',
+  success: '#30A46C',
+  warning: '#D97706',
+  error: '#DC2626',
   info: '#4f8cff',
 } as const;
 

@@ -16,7 +16,7 @@ interface Props {
 
 /* ── Theme tokens (matching TaskVulnListPage LK style) ── */
 const LK = {
-  primary: 'var(--brand-primary)',
+  primary: '#2563EB',
   primarySoft: '#7590ff',
   primaryMuted: 'var(--brand-primary-mask)',
   canvas: 'var(--bg-app)',
@@ -29,7 +29,7 @@ const LK = {
   body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)',
   mutedSoft: '#8b95a8',
-  error: '#f15d5d',
+  error: '#DC2626',
 } as const;
 
 /* ── TOC extraction ── */

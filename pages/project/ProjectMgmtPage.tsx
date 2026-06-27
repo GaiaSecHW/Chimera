@@ -54,7 +54,7 @@ const PROJECT_SORT_FIELDS: readonly ProjectSortField[] = ['created_at', 'updated
 
 // LOKI design tokens (DESIGN.md) — page-local palette.
 const LK = {
-  primary: 'var(--brand-primary)',
+  primary: '#2563EB',
   primarySoft: '#7590ff',
   primaryDeep: 'var(--brand-primary-hover)',
   primaryMuted: 'var(--brand-primary-mask)',
@@ -69,9 +69,9 @@ const LK = {
   body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)',
   mutedSoft: '#8b95a8',
-  success: '#45c06f',
-  warning: '#d5a13a',
-  error: '#f15d5d',
+  success: '#30A46C',
+  warning: '#D97706',
+  error: '#DC2626',
   info: '#4f8cff',
 } as const;
 
@@ -646,7 +646,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
 
   return (
     <div
-      className="space-y-4 px-5 py-5 pb-20 md:px-6 2xl:px-8"
+      className="space-y-4 px-5 py-5 md:px-6 2xl:px-8"
       style={{ backgroundColor: LK.canvas, minHeight: '100%', color: LK.inkSoft }}
     >
       {/* Page header */}
@@ -743,7 +743,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
               render: (project) => (
                 <button
                   onClick={(e) => { e.stopPropagation(); handleRowClick(project.id); }}
-                  className="text-sm font-semibold hover:underline"
+                  className="text-sm hover:underline"
                   style={{ color: LK.primary }}
                 >
                   {project.name}
@@ -867,7 +867,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
               loading={tableLoading}
               sort={{ field: sortField, direction: sortDirection }}
               onSortChange={({ field, direction }) => handleSortChange(field, direction)}
-              onRowClick={(project) => handleRowClick(project.id)}
               pagination={
                 tableTotal > 0
                   ? {

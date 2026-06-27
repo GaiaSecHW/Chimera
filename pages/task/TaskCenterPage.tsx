@@ -101,7 +101,7 @@ const truncateText = (value?: string | null, max = 80) => {
 
 // LOKI design tokens (DESIGN.md) — page-local palette.
 const LK = {
-  primary: 'var(--brand-primary)',
+  primary: '#2563EB',
   primarySoft: '#7590ff',
   primaryDeep: 'var(--brand-primary-hover)',
   primaryMuted: 'var(--brand-primary-mask)',
@@ -116,8 +116,8 @@ const LK = {
   body: 'var(--text-secondary)',
   muted: 'var(--text-secondary)',
   mutedSoft: '#8b95a8',
-  success: '#45c06f',
-  warning: '#d5a13a',
+  success: '#30A46C',
+  warning: '#D97706',
   errorSoft: 'var(--danger-soft)',
   error: 'var(--danger)',
   info: '#4f8cff',
