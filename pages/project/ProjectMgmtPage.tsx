@@ -791,7 +791,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       {/* Unified project table */}
       <section
         className="overflow-hidden rounded-xl"
-        style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+        style={{ backgroundColor: LK.surface }}
       >
         <div className="flex items-center gap-2 px-4 py-3">
           <button
