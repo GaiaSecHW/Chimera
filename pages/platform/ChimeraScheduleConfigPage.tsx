@@ -41,6 +41,42 @@ const DEFAULT_CAPACITY_POOL_IDS: Record<ScheduleRuntimeTaskType, number[]> = {
   sechps_tool: [1],
 };
 
+const SYNC_POLICY_FIELDS: Array<{ key: keyof ScheduleRuntimeUserTaskSyncPolicy; label: string; type: 'checkbox' | 'number'; help: string }> = [
+  { key: 'enabled', label: '启用', type: 'checkbox', help: '控制是否启动任务同步轮询；关闭后不会继续主动拉取下游状态。' },
+  { key: 'worker_concurrency', label: '任务同步 Worker 并发', type: 'number', help: '允许同时处理多少条任务同步请求，值越大并行拉取越多。' },
+  { key: 'lease_seconds', label: 'Lease 秒数', type: 'number', help: '单次同步认领的租约时长；超时未续租会被其他实例回收。' },
+  { key: 'heartbeat_interval_seconds', label: '心跳间隔秒数', type: 'number', help: '同步执行期间刷新租约的频率，用于避免长任务被误判失活。' },
+  { key: 'db_fallback_batch_size', label: 'DB 回扫批量', type: 'number', help: 'Redis 队列空或异常时，从数据库补扫待同步任务的单次扫描上限。' },
+  { key: 'queue_pop_timeout_seconds', label: '队列弹出超时', type: 'number', help: '同步 Worker 从 Redis ready queue 阻塞取任务的最长等待时间。' },
+  { key: 'reclaim_batch_size', label: '回收批量', type: 'number', help: '每轮回收失活同步任务时，最多修复或重新入队的任务数量。' },
+  { key: 'dispatching_seconds', label: 'Dispatching 超时', type: 'number', help: '任务处于 dispatching 阶段时，两次状态同步之间的间隔秒数。' },
+  { key: 'running_seconds', label: 'Running 超时', type: 'number', help: '任务处于 running 阶段时，两次状态同步之间的间隔秒数。' },
+  { key: 'paused_seconds', label: 'Paused 超时', type: 'number', help: '任务处于 paused 阶段时，两次状态同步之间的间隔秒数。' },
+  { key: 'terminal_verify_seconds', label: '终态校验秒数', type: 'number', help: '任务进入终态后，为防止漏状态而追加一次校验的等待间隔。' },
+  { key: 'retry_initial_seconds', label: '重试初始秒数', type: 'number', help: '同步失败后进入 retry_wait 队列时，下一次重试的基础等待时间。' },
+  { key: 'retry_max_seconds', label: '重试最大秒数', type: 'number', help: '失败重试退避允许增长到的最长等待时间上限。' },
+  { key: 'failure_threshold', label: '失败阈值', type: 'number', help: '连续失败超过该阈值后，系统会按失败态或告警逻辑进一步处理。' },
+];
+
+const SCHEDULER_POLICY_FIELDS: Array<{ key: keyof ScheduleRuntimeSchedulerPolicy; label: string; help: string }> = [
+  { key: 'project_default_concurrency', label: '项目默认并发', help: '单个项目在未单独配置时可同时占用的默认调度槽位数。' },
+  { key: 'target_default_concurrency', label: '目标默认并发', help: '同一目标地址或同一类下游资源默认可并发处理的任务数量。' },
+  { key: 'worker_concurrency', label: '调度执行 Worker 并发', help: '调度器并行处理派发、补偿和状态推进的执行线程数。' },
+  { key: 'ready_backfill_batch_size', label: 'Ready 回填批量', help: '每轮把数据库中的 ready 任务补回内存/Redis 队列时的最大批量。' },
+  { key: 'db_fallback_batch_size', label: 'DB 回扫批量', help: '调度 Worker 在队列缺失或异常时，从数据库兜底扫描任务的最大数量。' },
+];
+
+const DISPATCH_MODE_OPTIONS = [
+  { value: 'balanced', label: 'balanced', help: '优先均衡不同项目和目标的槽位占用，避免单一来源挤占全部执行资源。' },
+  { value: 'fifo', label: 'fifo', help: '严格按进入队列的先后顺序派发，适合强调顺序一致性的场景。' },
+  { value: 'priority_first', label: 'priority_first', help: '优先派发高优先级任务，再按时间顺序处理其余任务。' },
+];
+
+const QUEUE_STRATEGY_OPTIONS = [
+  { value: 'capacity_aware', label: 'capacity_aware', help: '派发时会结合容量池和并发额度判断是否允许进入执行。' },
+  { value: 'strict_fifo', label: 'strict_fifo', help: '只按先进先出推进，不额外考虑容量均衡策略。' },
+];
+
 const emptySchedulerPolicy = (): ScheduleRuntimeSchedulerPolicy => ({
   dispatch_mode: 'balanced',
   queue_strategy: 'capacity_aware',
@@ -368,26 +404,12 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
             <h2 className="text-lg font-semibold text-theme-text-primary">任务同步参数</h2>
           </div>
           <div className="grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
-            {[
-              ['enabled', '启用', 'checkbox'],
-              ['worker_concurrency', '任务同步 Worker 并发', 'number'],
-              ['lease_seconds', 'Lease 秒数', 'number'],
-              ['heartbeat_interval_seconds', '心跳间隔秒数', 'number'],
-              ['db_fallback_batch_size', 'DB 回扫批量', 'number'],
-              ['queue_pop_timeout_seconds', '队列弹出超时', 'number'],
-              ['reclaim_batch_size', '回收批量', 'number'],
-              ['dispatching_seconds', 'Dispatching 超时', 'number'],
-              ['running_seconds', 'Running 超时', 'number'],
-              ['paused_seconds', 'Paused 超时', 'number'],
-              ['terminal_verify_seconds', '终态校验秒数', 'number'],
-              ['retry_initial_seconds', '重试初始秒数', 'number'],
-              ['retry_max_seconds', '重试最大秒数', 'number'],
-              ['failure_threshold', '失败阈值', 'number'],
-            ].map(([key, label, type]) => {
+            {SYNC_POLICY_FIELDS.map(({ key, label, type, help }) => {
               const value = (draft.user_task_sync_policy as any)?.[key];
               return (
                 <label key={key} className="block rounded-xl border border-theme-border bg-theme-surface p-4">
                   <div className="text-sm font-bold text-theme-text-secondary">{label}</div>
+                  <div className="mt-1 text-xs leading-5 text-theme-text-muted">{help}</div>
                   {type === 'checkbox' ? (
                     <input
                       type="checkbox"
@@ -427,15 +449,10 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
             <h2 className="text-lg font-semibold text-theme-text-primary">调度策略</h2>
           </div>
           <div className="grid gap-4 p-4 md:grid-cols-2 md:p-5 xl:grid-cols-3">
-            {[
-              ['project_default_concurrency', '项目默认并发'],
-              ['target_default_concurrency', '目标默认并发'],
-              ['worker_concurrency', '调度执行 Worker 并发'],
-              ['ready_backfill_batch_size', 'Ready 回填批量'],
-              ['db_fallback_batch_size', 'DB 回扫批量'],
-            ].map(([key, label]) => (
+            {SCHEDULER_POLICY_FIELDS.map(({ key, label, help }) => (
               <label key={key} className="block rounded-xl border border-theme-border bg-theme-surface p-4">
                 <div className="text-sm font-bold text-theme-text-secondary">{label}</div>
+                <div className="mt-1 text-xs leading-5 text-theme-text-muted">{help}</div>
                 <input
                   type="number"
                   min={1}
@@ -447,17 +464,24 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
             ))}
             <label className="block rounded-xl border border-theme-border bg-theme-surface p-4">
               <div className="text-sm font-bold text-theme-text-secondary">分发策略</div>
+              <div className="mt-1 text-xs leading-5 text-theme-text-muted">
+                {DISPATCH_MODE_OPTIONS.find((item) => item.value === draft.scheduler_policy.dispatch_mode)?.help}
+              </div>
               <select value={draft.scheduler_policy.dispatch_mode} onChange={(event) => updateSchedulerPolicy('dispatch_mode', event.target.value)} className="form-input mt-3 w-full">
-                <option value="balanced">balanced</option>
-                <option value="fifo">fifo</option>
-                <option value="priority_first">priority_first</option>
+                {DISPATCH_MODE_OPTIONS.map((item) => (
+                  <option key={item.value} value={item.value}>{item.label}</option>
+                ))}
               </select>
             </label>
             <label className="block rounded-xl border border-theme-border bg-theme-surface p-4">
               <div className="text-sm font-bold text-theme-text-secondary">队列策略</div>
+              <div className="mt-1 text-xs leading-5 text-theme-text-muted">
+                {QUEUE_STRATEGY_OPTIONS.find((item) => item.value === draft.scheduler_policy.queue_strategy)?.help}
+              </div>
               <select value={draft.scheduler_policy.queue_strategy} onChange={(event) => updateSchedulerPolicy('queue_strategy', event.target.value)} className="form-input mt-3 w-full">
-                <option value="capacity_aware">capacity_aware</option>
-                <option value="strict_fifo">strict_fifo</option>
+                {QUEUE_STRATEGY_OPTIONS.map((item) => (
+                  <option key={item.value} value={item.value}>{item.label}</option>
+                ))}
               </select>
             </label>
           </div>
@@ -488,10 +512,12 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <label className="block">
                     <div className="text-sm font-bold text-theme-text-secondary">Task Key 最大并发</div>
+                    <div className="mt-1 text-xs leading-5 text-theme-text-muted">限制同一 Task Key 同时派发的最大任务数，填 0 表示不单独限流。</div>
                     <input type="number" min={0} value={item.root_task_key_max_concurrency} onChange={(event) => updateToolDefault(item.task_type, { root_task_key_max_concurrency: Number(event.target.value || 0) })} className="form-input mt-2 w-full" />
                   </label>
                   <label className="block">
                     <div className="text-sm font-bold text-theme-text-secondary">Capacity Pool IDs</div>
+                    <div className="mt-1 text-xs leading-5 text-theme-text-muted">指定该任务类型默认占用的容量池编号，可填多个，用英文逗号分隔。</div>
                     <input value={formatPoolIds(item.capacity_pool_ids)} onChange={(event) => updateToolDefault(item.task_type, { capacity_pool_ids: parsePoolIds(event.target.value) })} placeholder="例如 1,2,3" className="form-input mt-2 w-full" />
                   </label>
                 </div>
@@ -531,27 +557,19 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                   </button>
                 </div>
                 <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {[
-                    ['project_default_concurrency', '项目默认并发'],
-                    ['target_default_concurrency', '目标默认并发'],
-                    ['worker_concurrency', '调度执行 Worker 并发'],
-                    ['ready_backfill_batch_size', 'Ready 回填批量'],
-                    ['db_fallback_batch_size', 'DB 回扫批量'],
-                  ].map(([key, label]) => (
+                  {SCHEDULER_POLICY_FIELDS.map(({ key, label, help }) => (
                     <label key={`${window.name}-${key}`} className="block rounded-xl border border-theme-border bg-theme-surface p-4">
                       <div className="text-sm font-bold text-theme-text-secondary">{label}</div>
+                      <div className="mt-1 text-xs leading-5 text-theme-text-muted">{help}</div>
                       <input type="number" min={1} value={(window.scheduler_policy as any)?.[key] ?? 0} onChange={(event) => updateTimeWindowPolicy(index, key as keyof ScheduleRuntimeSchedulerPolicy, event.target.value)} className="form-input mt-3 w-full" />
                     </label>
                   ))}
                 </div>
                 <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {[
-                    ['worker_concurrency', '任务同步 Worker 并发'],
-                    ['db_fallback_batch_size', 'DB 回扫批量'],
-                    ['reclaim_batch_size', '回收扫描批量'],
-                  ].map(([key, label]) => (
+                  {SYNC_POLICY_FIELDS.filter((item) => ['worker_concurrency', 'db_fallback_batch_size', 'reclaim_batch_size'].includes(item.key)).map(({ key, label, help }) => (
                     <label key={`${window.name}-sync-${key}`} className="block rounded-xl border border-theme-border bg-theme-surface p-4">
                       <div className="text-sm font-bold text-theme-text-secondary">{label}</div>
+                      <div className="mt-1 text-xs leading-5 text-theme-text-muted">{help}</div>
                       <input
                         type="number"
                         min={1}
@@ -574,10 +592,12 @@ export const ChimeraScheduleConfigPage: React.FC = () => {
                       <div className="mt-3 grid gap-3 md:grid-cols-2">
                         <label className="block">
                           <div className="text-xs font-bold uppercase tracking-wider text-theme-text-muted">Task Key 最大并发</div>
+                          <div className="mt-1 text-xs leading-5 text-theme-text-muted">命中该时段后，覆盖该任务类型的 Task Key 并发上限。</div>
                           <input type="number" min={0} value={tool.root_task_key_max_concurrency} onChange={(event) => updateTimeWindowTool(index, tool.task_type, { root_task_key_max_concurrency: Number(event.target.value || 0) })} className="form-input mt-2 w-full" />
                         </label>
                         <label className="block">
                           <div className="text-xs font-bold uppercase tracking-wider text-theme-text-muted">Capacity Pool IDs</div>
+                          <div className="mt-1 text-xs leading-5 text-theme-text-muted">命中该时段后，覆盖该任务类型默认使用的容量池列表。</div>
                           <input value={formatPoolIds(tool.capacity_pool_ids)} onChange={(event) => updateTimeWindowTool(index, tool.task_type, { capacity_pool_ids: parsePoolIds(event.target.value) })} placeholder="例如 1,2,3" className="form-input mt-2 w-full" />
                         </label>
                       </div>

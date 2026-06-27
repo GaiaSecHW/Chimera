@@ -246,6 +246,33 @@ const syncHealthTone = (label?: string | null) => {
   return 'border-theme-border bg-theme-elevated text-theme-text-secondary';
 };
 
+const dispatchWaitReasonText = (reason?: string | null) => {
+  if (reason === 'prerequisite_kg_pending') return '等待知识图谱完成';
+  if (reason === 'prerequisite_kg_missing') return '等待知识图谱任务创建';
+  if (reason === 'prerequisite_status_lookup_failed') return '等待前置状态重查';
+  return '等待前置条件';
+};
+
+const resolveDispatchQueueState = (
+  task: Partial<Pick<ScheduleCenterUserTask, 'display_status' | 'dispatch_status' | 'dispatch_wait_reason' | 'dispatch_next_retry_at'>>,
+): { label: string; title?: string } | null => {
+  const displayStatus = String(task.display_status || '').trim();
+  const dispatchStatus = String(task.dispatch_status || '').trim();
+  if (displayStatus !== 'queued') {
+    return null;
+  }
+  if (dispatchStatus === 'dispatch_waiting_prerequisite') {
+    return {
+      label: dispatchWaitReasonText(task.dispatch_wait_reason),
+      title: task.dispatch_next_retry_at ? `next_retry_at: ${task.dispatch_next_retry_at}` : undefined,
+    };
+  }
+  if (dispatchStatus === 'ready_for_dispatch') {
+    return { label: '等待自动分发' };
+  }
+  return null;
+};
+
 const resolveSyncHealth = (task: ScheduleCenterUserTask): { label: string; tone: string; title?: string } => {
   const syncRequired = Boolean(task.sync_required);
   const syncStatus = String(task.sync_status || '').trim();
@@ -294,6 +321,10 @@ const mapUserTaskToGlobalTaskItem = (
   dispatched_task_key_prefix: task.dispatched_task_key_prefix,
   create_status: task.create_status,
   dispatch_status: task.dispatch_status,
+  dispatch_wait_reason: task.dispatch_wait_reason,
+  dispatch_next_retry_at: task.dispatch_next_retry_at,
+  dispatch_wait_started_at: task.dispatch_wait_started_at,
+  dispatch_wait_attempt_count: task.dispatch_wait_attempt_count,
   business_status: task.business_status,
   queue_state: resolveSyncHealth(task).label,
   queue_state_tone: resolveSyncHealth(task).tone,
@@ -486,8 +517,10 @@ const DetailDrawer: React.FC<{
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm"><span className="font-semibold text-theme-text-primary">创建态：</span>{detail.create_status || '-'}</div>
                   <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm"><span className="font-semibold text-theme-text-primary">分发态：</span>{detail.dispatch_status || '-'}</div>
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm"><span className="font-semibold text-theme-text-primary">排队原因：</span>{resolveDispatchQueueState(detail)?.label || '-'}</div>
                   <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm"><span className="font-semibold text-theme-text-primary">业务态：</span>{detail.business_status || '-'}</div>
                   <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm"><span className="font-semibold text-theme-text-primary">当前态：</span>{detail.current_status || '-'}</div>
+                  <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm"><span className="font-semibold text-theme-text-primary">下次检查：</span>{formatTime(detail.dispatch_next_retry_at)}</div>
                   <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm"><span className="font-semibold text-theme-text-primary">重试次数：</span>{detail.retry_count ?? 0}</div>
                   <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm"><span className="font-semibold text-theme-text-primary">最近尝试：</span>{detail.attempt_no ?? '-'}</div>
                 </div>
@@ -1486,8 +1519,11 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
                           {visibleColumns.has('queueState') ? (
                             <td className="px-4 py-3 align-top">
                               <div className="space-y-1">
-                                <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${item.queue_state_tone || 'border-theme-border bg-theme-elevated text-theme-text-secondary'}`} title={item.queue_state || undefined}>
-                                  {item.queue_state || '-'}
+                                <span
+                                  className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${item.queue_state_tone || 'border-theme-border bg-theme-elevated text-theme-text-secondary'}`}
+                                  title={resolveDispatchQueueState(item)?.title || item.queue_state || undefined}
+                                >
+                                  {resolveDispatchQueueState(item)?.label || item.queue_state || '-'}
                                 </span>
                                 <div className="text-xs font-medium text-theme-text-muted">
                                   最近同步：{formatTime(item.last_synced_at)}

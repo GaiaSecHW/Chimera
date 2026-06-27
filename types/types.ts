@@ -2197,6 +2197,10 @@ export interface ScheduleGlobalTaskListItem {
   dispatched_task_key_prefix?: string | null;
   create_status?: string | null;
   dispatch_status?: string | null;
+  dispatch_wait_reason?: string | null;
+  dispatch_next_retry_at?: string | null;
+  dispatch_wait_started_at?: string | null;
+  dispatch_wait_attempt_count?: number | null;
   business_status?: string | null;
   queue_state?: string | null;
   queue_state_tone?: string | null;
@@ -2325,6 +2329,10 @@ export interface ScheduleCenterUserTask {
   module_name?: string | null;
   create_status: string;
   dispatch_status: string;
+  dispatch_wait_reason?: string | null;
+  dispatch_next_retry_at?: string | null;
+  dispatch_wait_started_at?: string | null;
+  dispatch_wait_attempt_count?: number;
   business_status: string;
   input_upload_count: number;
   inputs: ScheduleCenterUserTaskInput[];
