@@ -818,7 +818,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         search: search.trim() || undefined,
         sort_field: sortField,
         sort_direction: sortDirection,
-        final_result: 'vulnerable' as const,
       };
       const matchesFinalResult = (item: any) => matchesFinalResultFilter(item, finalResultFilter);
       const matchesSuspect = (item: any): boolean => {
@@ -862,7 +861,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         sortField,
         sortDirection,
       );
-      const filtered = merged.filter(matchesSuspect).filter(matchesFinalResult);
+      const filtered = merged.filter((it) => getEffectiveResult(it) === 'vulnerable').filter(matchesSuspect).filter(matchesFinalResult);
       const nextPage = pageOverride ?? currentPage;
       setSuspicions(filtered.slice((nextPage - 1) * pageSize, nextPage * pageSize));
       setListTotal(filtered.length);
