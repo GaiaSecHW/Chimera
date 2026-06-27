@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Check, CheckCircle2, CircleHelp, Clock3, Loader2, Minus, PanelRightClose, RefreshCw, RotateCcw, Search, Wrench, X } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle2, ChevronRight, CircleHelp, Clock3, Loader2, Minus, PanelRightClose, RefreshCw, RotateCcw, Search, Wrench, X } from 'lucide-react';
 import { vulnVerifyV2Api, VulnVerifyV2Attempt, VulnVerifyV2ProjectStats, VulnVerifyV2Result, VulnVerifyV2Task, VulnVerifyV2TaskDetail } from '../../clients/vulnVerifyV2';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { PageHeader } from '../../design-system';
@@ -106,6 +106,30 @@ function getPaginationItems(current: number, total: number): Array<number | 'ell
   if (end < total - 1) items.push('ellipsis');
   items.push(total);
   return items;
+}
+
+function asRecord(value: unknown): Record<string, any> | null {
+  return value && typeof value === 'object' ? value as Record<string, any> : null;
+}
+
+function readStringField(record: Record<string, any> | null, keys: string[]): string {
+  if (!record) return '';
+  for (const key of keys) {
+    const value = record[key];
+    if (value !== undefined && value !== null && String(value).trim()) return String(value);
+  }
+  return '';
+}
+
+function getAttemptOutputDetails(attempt: VulnVerifyV2Attempt): Array<{ label: 'stdout' | 'stderr'; text: string }> {
+  const failure = asRecord(attempt.failure_reason);
+  const result = asRecord(attempt.result);
+  const stdout = readStringField(failure, ['stdout', 'standard_output', 'out']) || readStringField(result, ['stdout', 'standard_output', 'out']);
+  const stderr = readStringField(failure, ['stderr', 'standard_error', 'err']) || readStringField(result, ['stderr', 'standard_error', 'err']);
+  return [
+    stdout ? { label: 'stdout' as const, text: stdout } : null,
+    stderr ? { label: 'stderr' as const, text: stderr } : null,
+  ].filter(Boolean) as Array<{ label: 'stdout' | 'stderr'; text: string }>;
 }
 
 function outcomeBadge(status?: string, verdict?: string | null): { label: string; iconCls: string; boxCls: string; fontCls?: string; iconOnly?: boolean; Icon?: React.ElementType; loading?: boolean } {
@@ -244,6 +268,23 @@ const DimensionCard: React.FC<{ dimKey: string; status?: boolean | null; detail?
   );
 };
 
+const AttemptDebugInfo: React.FC<{ details: Array<{ label: 'stdout' | 'stderr'; text: string }> }> = ({ details }) => (
+  <details className="mt-2 group">
+    <summary className="inline-flex cursor-pointer select-none items-center gap-1 text-xs font-medium text-theme-text-muted transition hover:text-theme-text-secondary">
+      <ChevronRight size={13} strokeWidth={2.2} className="transition-transform group-open:rotate-90" />
+      调试信息
+    </summary>
+    <div className="mt-2 space-y-2">
+      {details.map((detail) => (
+        <div key={detail.label}>
+          <div className="mb-1 text-xs font-medium text-theme-text-muted">{detail.label}</div>
+          <pre className="max-h-80 overflow-auto rounded-lg border border-theme-border bg-theme-elevated p-3 text-xs font-mono leading-5 text-theme-text-secondary break-words whitespace-pre-wrap">{detail.text}</pre>
+        </div>
+      ))}
+    </div>
+  </details>
+);
+
 const AttemptDevJson: React.FC<{ attempt: VulnVerifyV2Attempt }> = ({ attempt }) => {
   const [opened, setOpened] = useState(false);
   let json = '';
@@ -256,7 +297,8 @@ const AttemptDevJson: React.FC<{ attempt: VulnVerifyV2Attempt }> = ({ attempt })
   }
   return (
     <details className="mt-2 group" onToggle={(event) => setOpened(event.currentTarget.open)}>
-      <summary className="inline-flex cursor-pointer select-none text-xs font-medium text-theme-text-muted transition hover:text-theme-text-secondary">
+      <summary className="inline-flex cursor-pointer select-none items-center gap-1 text-xs font-medium text-theme-text-muted transition hover:text-theme-text-secondary">
+        <ChevronRight size={13} strokeWidth={2.2} className="transition-transform group-open:rotate-90" />
         原始 JSON
       </summary>
       {opened ? <pre className="mt-2 max-h-80 overflow-auto rounded-lg border border-theme-border bg-theme-elevated p-3 text-xs font-mono leading-5 text-theme-text-secondary break-words whitespace-pre-wrap">{json}</pre> : null}
@@ -283,6 +325,7 @@ const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[]; devMode?: boo
         const failureMsg = att.failure_reason && typeof att.failure_reason === 'object'
           ? String((att.failure_reason as any).message || (att.failure_reason as any).error || JSON.stringify(att.failure_reason))
           : null;
+        const outputDetails = getAttemptOutputDetails(att);
         return (
           <li key={att.id} className="flex gap-3">
             <div className="flex flex-col items-center pt-1">
@@ -298,10 +341,12 @@ const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[]; devMode?: boo
                 <span>开始：{fmtTime(att.started_at)}</span>
                 <span>结束：{fmtTime(att.completed_at)}</span>
                 <span>耗时：{duration}</span>
+                {att.worker_id ? <span>Worker：{att.worker_id}</span> : null}
               </div>
               {isFailed && failureMsg ? (
                 <div className="mt-2 rounded-lg border border-[var(--color-signal-red-border)] bg-[var(--color-signal-red-bg)] px-3 py-2 text-sm font-normal text-[var(--color-signal-red)] break-words">{failureMsg}</div>
               ) : null}
+              {isFailed && outputDetails.length ? <AttemptDebugInfo details={outputDetails} /> : null}
               {devMode ? <AttemptDevJson attempt={att} /> : null}
             </div>
           </li>
@@ -561,6 +606,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const detailResult = detail?.results?.[0] as VulnVerifyV2Result | undefined;
   const detailRaw = (detailResult?.raw_result || {}) as Record<string, any>;
   const detailDimensions = (detailRaw.dimensions || detailResult?.dimensions || {}) as Record<string, { status?: boolean | null; detail?: string }>;
+  const detailHasFinalVerdict = detail?.verdict === 'confirmed' || detail?.verdict === 'ruled_out' || detail?.verdict === 'unresolved';
   const detailAttempts = detail?.attempts || [];
 
   return (
@@ -859,12 +905,12 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                     </div>
                   </div>
 
-                  {/* 根因摘要 */}
+                  {/* 结论依据 */}
                   <section>
-                    <div className="mb-3 text-base font-medium text-theme-text-primary">根因摘要</div>
+                    <div className="mb-3 text-base font-medium text-theme-text-primary">结论依据</div>
                     <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
                       <p className="whitespace-pre-wrap text-sm font-normal leading-6 text-theme-text-primary">
-                        {String(detailRaw.root_cause_summary || '-')}
+                        {String(detailRaw.root_cause_summary || '暂无详细依据')}
                       </p>
                     </div>
                   </section>
@@ -873,12 +919,16 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   <section>
                     <div className="mb-3 text-base font-medium text-theme-text-primary">四维判定</div>
                     <div className="rounded-2xl border border-theme-border bg-theme-surface px-7 py-3 lg:px-8">
-                      <div className="divide-y divide-theme-border/70">
-                        {DIMENSION_KEYS.map((key) => {
-                          const dim = detailDimensions[key];
-                          return <DimensionCard key={key} dimKey={key} status={dim?.status} detail={dim?.detail} />;
-                        })}
-                      </div>
+                      {detailHasFinalVerdict ? (
+                        <div className="divide-y divide-theme-border/70">
+                          {DIMENSION_KEYS.map((key) => {
+                            const dim = detailDimensions[key];
+                            return <DimensionCard key={key} dimKey={key} status={dim?.status} detail={dim?.detail} />;
+                          })}
+                        </div>
+                      ) : (
+                        <div className="py-5 text-sm font-normal text-theme-text-muted">尚未产出最终验证结论</div>
+                      )}
                     </div>
                   </section>
 
