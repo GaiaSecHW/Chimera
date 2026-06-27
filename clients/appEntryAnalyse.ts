@@ -59,7 +59,7 @@ export const appEntryAnalyseApi = {
     })),
 
   listTasks: async (params: {
-    project_id: string;
+    project_id?: string;
     page?: number;
     per_page?: number;
     status?: string;
@@ -68,7 +68,8 @@ export const appEntryAnalyseApi = {
     sort_by?: string;
     sort_order?: 'asc' | 'desc';
   }): Promise<{ items: AppEaTaskItem[]; total: number; page: number; per_page: number }> => {
-    const query = new URLSearchParams({ project_id: params.project_id });
+    const query = new URLSearchParams();
+    if (params.project_id) query.append('project_id', params.project_id);
     if (params.page) query.append('page', String(params.page));
     if (params.per_page) query.append('per_page', String(params.per_page));
     if (params.status) query.append('status', params.status);

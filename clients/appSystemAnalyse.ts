@@ -75,7 +75,7 @@ export const appSystemAnalyseApi = {
     })),
 
   listTasks: async (params: {
-    project_id: string;
+    project_id?: string;
     page?: number;
     per_page?: number;
     status?: string;
@@ -84,7 +84,8 @@ export const appSystemAnalyseApi = {
     sort_by?: string;
     sort_order?: 'asc' | 'desc';
   }): Promise<{ items: AppSaTaskListItem[]; total: number; page: number; per_page: number }> => {
-    const query = new URLSearchParams({ project_id: params.project_id });
+    const query = new URLSearchParams();
+    if (params.project_id) query.append('project_id', params.project_id);
     if (params.page) query.append('page', String(params.page));
     if (params.per_page) query.append('per_page', String(params.per_page));
     if (params.status) query.append('status', params.status);
@@ -96,12 +97,13 @@ export const appSystemAnalyseApi = {
   },
 
   getTaskStats: async (params: {
-    project_id: string;
+    project_id?: string;
     status?: string;
     analysis_mode?: 'binary' | 'source' | '';
     parent_task_id?: string;
   }): Promise<AppSaTaskListStats> => {
-    const query = new URLSearchParams({ project_id: params.project_id });
+    const query = new URLSearchParams();
+    if (params.project_id) query.append('project_id', params.project_id);
     if (params.status) query.append('status', params.status);
     if (params.analysis_mode) query.append('analysis_mode', params.analysis_mode);
     if (params.parent_task_id) query.append('parent_task_id', params.parent_task_id);

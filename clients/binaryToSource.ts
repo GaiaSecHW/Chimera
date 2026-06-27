@@ -120,6 +120,7 @@ export interface B2SLlmProviderSummary {
 export interface B2STask {
   id: string;
   project_id: string;
+  project_name?: string | null;
   task_origin_type?: string | null;
   parent_project_id?: string | null;
   parent_task_id?: string | null;
@@ -1002,7 +1003,7 @@ export const binaryToSourceApi = {
     return handleResponse(resp);
   },
 
-  listTasks: async (projectId: string, params: {
+  listTasks: async (projectId: string | undefined, params: {
     status?: string;
     search?: string;
     parent_task_id?: string;
@@ -1013,6 +1014,8 @@ export const binaryToSourceApi = {
     sort_order?: 'asc' | 'desc';
     limit?: number;
     offset?: number;
+    scope?: 'current' | 'all';
+    project_id?: string;
   } = {}): Promise<{ total: number; items: B2STask[] }> => {
     const search = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
@@ -1020,18 +1023,24 @@ export const binaryToSourceApi = {
       search.set(key, String(value));
     });
     const q = search.toString() ? `?${search.toString()}` : '';
-    return getJsonWithDedupe(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks${q}`, {
+    const scope = params.scope || 'current';
+    const path = scope === 'all'
+      ? `${API_BASE}/api/app/binary-to-source/tasks${q}`
+      : `${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks${q}`;
+    return getJsonWithDedupe(path, {
       headers: getHeaders(),
     });
   },
 
-  getTaskStats: async (projectId: string, params: {
+  getTaskStats: async (projectId: string | undefined, params: {
     status?: string;
     search?: string;
     parent_task_id?: string;
     parent_stage_item_id?: string;
     task_origin_type?: string;
     input_filename?: string;
+    scope?: 'current' | 'all';
+    project_id?: string;
   } = {}): Promise<B2STaskListStats> => {
     const search = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
@@ -1039,7 +1048,11 @@ export const binaryToSourceApi = {
       search.set(key, String(value));
     });
     const q = search.toString() ? `?${search.toString()}` : '';
-    return getJsonWithDedupe(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/stats${q}`, {
+    const scope = params.scope || 'current';
+    const path = scope === 'all'
+      ? `${API_BASE}/api/app/binary-to-source/tasks/stats${q}`
+      : `${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/stats${q}`;
+    return getJsonWithDedupe(path, {
       headers: getHeaders(),
     });
   },

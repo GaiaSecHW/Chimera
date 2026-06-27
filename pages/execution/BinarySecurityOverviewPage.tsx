@@ -590,8 +590,24 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   };
 
   const deleteTasks = async (taskIds: string[]) => {
-    if (!projectId || isAllProjectsScope) return;
     if (taskIds.length === 0) return;
+    if (!projectId && !isAllProjectsScope) return;
+    const targetTasks = taskIds
+      .map((taskId) => items.find((item) => item.id === taskId) || null)
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+    if (targetTasks.length !== taskIds.length) {
+      setError('部分待删除任务不在当前列表中，请刷新后重试');
+      return;
+    }
+    const taskRefs = targetTasks.map((item) => ({
+      taskId: item.id,
+      projectId: item.project_id || projectId || '',
+    }));
+    const missingProjectRef = taskRefs.find((ref) => !ref.projectId);
+    if (missingProjectRef) {
+      setError(`任务 ${missingProjectRef.taskId} 缺少项目上下文，无法删除`);
+      return;
+    }
     const deleteMessage =
       taskIds.length === 1
         ? '删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？'
@@ -608,7 +624,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setError(null);
     setDeleting(true);
     try {
-      const results = await Promise.allSettled(taskIds.map((taskId) => executionApi.binarySecurity.deleteTask(projectId, taskId)));
+      const results = await Promise.allSettled(
+        taskRefs.map((ref) => executionApi.binarySecurity.deleteTask(ref.projectId, ref.taskId)),
+      );
       const failed = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
       if (failed.length > 0) {
         const first = failed[0]?.reason;
@@ -1060,7 +1078,6 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                   type="checkbox"
                   checked={allSelected}
                   onChange={(e) => setSelectedTaskIds(e.target.checked ? items.map((item) => item.id) : [])}
-                  disabled={isAllProjectsScope}
                   className="h-4 w-4 rounded border-theme-border text-theme-text-primary focus:ring-slate-400"
                 />
                 全选
@@ -1072,9 +1089,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               <button
                 type="button"
                 onClick={() => void deleteTasks(selectedTaskIds)}
-                disabled={deleting || isAllProjectsScope}
+                disabled={deleting}
                 className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-2.5 text-sm font-bold text-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
-                title={isAllProjectsScope ? '全部项目模式下不支持批量删除' : undefined}
               >
                 {deleting ? '删除中...' :`删除选中 (${selectedCount})`}
               </button>
@@ -1267,9 +1283,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                     <button
                       type="button"
                       onClick={() => void deleteTask(item.id)}
-                      disabled={deleting || isAllProjectsScope}
+                      disabled={deleting}
                       className="rounded-xl border border-rose-500/20 bg-theme-surface px-4 py-2.5 text-sm font-bold text-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
-                      title={isAllProjectsScope ? '全部项目模式下不支持直接删除，请先进入详情或切回当前项目' : undefined}
                     >
                       删除
                     </button>

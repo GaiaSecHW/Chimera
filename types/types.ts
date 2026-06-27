@@ -3459,6 +3459,7 @@ export interface AppSaTaskItem {
 export interface AppSaTaskListItem {
   task_id: string;
   project_id: string;
+  project_name?: string | null;
   analysis_mode?: 'binary' | 'source' | null;
   analysis_mode_label?: string | null;
   task_origin_type?: 'manual' | 'binary_security' | null;
@@ -4073,6 +4074,7 @@ export interface AppSaTaskListStats {
 export interface AppEaTaskItem {
   task_id: string;
   project_id: string;
+  project_name?: string | null;
   task_origin_type?: 'manual' | 'binary_security' | null;
   parent_project_id?: string | null;
   parent_task_id?: string | null;
@@ -4667,6 +4669,7 @@ export interface AppDfaStagesJson {
 export interface AppDfaTaskItem {
   task_id: string;
   project_id: string;
+  project_name?: string | null;
   task_origin_type?: 'manual' | 'binary_security' | null;
   parent_project_id?: string | null;
   parent_task_id?: string | null;

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2, CircleHelp, RefreshCw, Search, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CircleHelp, Percent, RefreshCw, Search, X } from 'lucide-react';
 import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
 import { PageHeader } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -14,6 +14,7 @@ interface WebVuln {
   rule_name?: string;
   ai_analysis_status?: string;
   ai_verification_status?: string;
+  final_status?: string;
   created_time?: string;
   updated_time?: string;
 }
@@ -29,17 +30,27 @@ interface WebVulnStats {
   total: number;
   vulnerable: number;
   not_vulnerable: number;
-  pending: number;
+  analysis_pending: number;
+  analysis_running: number;
   exploitable: number;
   not_exploitable: number;
+  verification_pending: number;
+  verification_running: number;
   failed_analysis: number;
   failed_verification: number;
+  confirmed_real: number;
 }
 
 const fmtTime = (value?: string | null): string => {
   if (!value) return '-';
   const d = new Date(value);
   return Number.isFinite(d.getTime()) ? d.toLocaleString('zh-CN') : value;
+};
+
+const fmtRate = (numerator: number, denominator: number): string => {
+  if (!denominator) return '-';
+  const pct = (Math.max(0, numerator) / denominator) * 100;
+  return `${pct.toFixed(1)}%`;
 };
 
 const requestGaia = async (url: string, init?: RequestInit): Promise<any> => {
@@ -83,6 +94,7 @@ const fetchWebVulns = async (projectId: string, page: number, pageSize: number, 
       rule_name: item?.rule_name || item?.ruleName,
       ai_analysis_status: item?.ai_analysis_status || item?.aiAnalysisStatus,
       ai_verification_status: item?.ai_verification_status || item?.aiVerificationStatus,
+      final_status: item?.final_status || item?.finalStatus,
       created_time: item?.created_time || item?.createdTime,
       updated_time: item?.updated_time || item?.updatedTime,
     })),
@@ -96,11 +108,15 @@ const emptyStats = (): WebVulnStats => ({
   total: 0,
   vulnerable: 0,
   not_vulnerable: 0,
-  pending: 0,
+  analysis_pending: 0,
+  analysis_running: 0,
   exploitable: 0,
   not_exploitable: 0,
+  verification_pending: 0,
+  verification_running: 0,
   failed_analysis: 0,
   failed_verification: 0,
+  confirmed_real: 0,
 });
 
 const fetchWebVulnStats = async (projectId: string, search?: string): Promise<WebVulnStats> => {
@@ -114,11 +130,15 @@ const fetchWebVulnStats = async (projectId: string, search?: string): Promise<We
     total: Number(raw?.total || 0),
     vulnerable: Number(raw?.vulnerable || 0),
     not_vulnerable: Number(raw?.not_vulnerable || raw?.notVulnerable || 0),
-    pending: Number(raw?.pending || 0),
+    analysis_pending: Number(raw?.analysis_pending || raw?.analysisPending || 0),
+    analysis_running: Number(raw?.analysis_running || raw?.analysisRunning || 0),
     exploitable: Number(raw?.exploitable || 0),
     not_exploitable: Number(raw?.not_exploitable || raw?.notExploitable || 0),
+    verification_pending: Number(raw?.verification_pending || raw?.verificationPending || 0),
+    verification_running: Number(raw?.verification_running || raw?.verificationRunning || 0),
     failed_analysis: Number(raw?.failed_analysis || raw?.failedAnalysis || 0),
     failed_verification: Number(raw?.failed_verification || raw?.failedVerification || 0),
+    confirmed_real: Number(raw?.confirmed_real || raw?.confirmedReal || 0),
   };
 };
 
@@ -140,10 +160,18 @@ const AI_VERIFICATION_STATUS_LABEL: Record<string, string> = {
   FAILED: '失败',
 };
 
+const FINAL_STATUS_LABEL: Record<string, string> = {
+  PENDING: '待确认',
+  VULNERABLE: '确认漏洞',
+  NOT_VULNERABLE: '排除漏洞',
+  EXPLOITABLE: '确认可利用',
+  NOT_EXPLOITABLE: '无利用',
+};
+
 const getStatusBadge = (status?: string, labelMap?: Record<string, string>): { label: string; cls: string } => {
   const key = (status || '').toUpperCase();
   const label = labelMap?.[key] || status || '-';
-  if (['VULNERABLE', 'EXTERNAL_REQUEST_EXPLOITABLE', 'INTERNAL_REQUEST_EXPLOITABLE', 'UNIT_TEST_EXPLOITABLE'].includes(key)) {
+  if (['VULNERABLE', 'EXPLOITABLE', 'EXTERNAL_REQUEST_EXPLOITABLE', 'INTERNAL_REQUEST_EXPLOITABLE', 'UNIT_TEST_EXPLOITABLE'].includes(key)) {
     return { label, cls: 'bg-rose-500/15 text-rose-400 border-rose-500/20' };
   }
   if (['NOT_VULNERABLE', 'NOT_EXPLOITABLE'].includes(key)) {
@@ -158,8 +186,8 @@ const getStatusBadge = (status?: string, labelMap?: Record<string, string>): { l
   return { label, cls: 'bg-theme-elevated text-theme-text-secondary border-theme-border' };
 };
 
-const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'emerald' | 'sky' | 'rose' | 'amber' | 'slate'; Icon?: React.ElementType }> = ({ label, value, hint, accent = 'slate', Icon }) => {
-  const color = accent === 'emerald' ? 'text-emerald-400' : accent === 'sky' ? 'text-sky-400' : accent === 'rose' ? 'text-rose-400' : accent === 'amber' ? 'text-amber-400' : 'text-theme-text-primary';
+const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'emerald' | 'sky' | 'rose' | 'amber' | 'blue' | 'slate'; Icon?: React.ElementType }> = ({ label, value, hint, accent = 'slate', Icon }) => {
+  const color = accent === 'emerald' ? 'text-emerald-400' : accent === 'sky' ? 'text-sky-400' : accent === 'rose' ? 'text-rose-400' : accent === 'amber' ? 'text-amber-400' : accent === 'blue' ? 'text-blue-400' : 'text-theme-text-primary';
   return (
     <div className="rounded-xl border border-theme-border bg-theme-surface p-4">
       <div className={`inline-flex items-center gap-1.5 text-[13px] font-medium ${color}`}>
@@ -239,13 +267,43 @@ export const WebVulnVerifyPage: React.FC<{ projectId: string }> = ({ projectId }
         ) : null}
 
         <section>
-          <div className="grid gap-5 md:grid-cols-3 lg:grid-cols-4">
-            <SummaryCard label="漏洞总数" value={stats.total} accent="slate" Icon={AlertTriangle} hint="所有WEB漏洞数量" />
-            <SummaryCard label="确认漏洞" value={stats.vulnerable} accent="rose" Icon={AlertTriangle} hint="AI分析确认存在漏洞" />
-            <SummaryCard label="排除漏洞" value={stats.not_vulnerable} accent="sky" Icon={CheckCircle2} hint="AI分析排除漏洞风险" />
-            <SummaryCard label="待分析" value={stats.pending} accent="amber" Icon={CircleHelp} hint="等待AI分析或未分析" />
-            <SummaryCard label="可利用" value={stats.exploitable} accent="rose" Icon={AlertTriangle} hint="AI验证确认可利用" />
-            <SummaryCard label="无利用" value={stats.not_exploitable} accent="sky" Icon={CheckCircle2} hint="AI验证无利用价值" />
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <SummaryCard label="漏洞总数" value={stats.total} accent="slate" Icon={AlertTriangle} hint="所有WEB漏洞数量" />
+              <SummaryCard
+                label="原始误报率"
+                value={fmtRate(stats.total - stats.confirmed_real, stats.total)}
+                accent="amber"
+                Icon={Percent}
+                hint={`(漏洞总数 − 人工确认有漏洞) / 漏洞总数 · ${stats.total - stats.confirmed_real}/${stats.total}`}
+              />
+              <SummaryCard
+                label="AI分析后误报率"
+                value={fmtRate(stats.vulnerable - stats.confirmed_real, stats.vulnerable)}
+                accent="amber"
+                Icon={Percent}
+                hint={`(AI分析为漏洞 − 人工确认有漏洞) / AI分析为漏洞 · ${stats.vulnerable - stats.confirmed_real}/${stats.vulnerable}`}
+              />
+              <SummaryCard
+                label="AI验证后误报率"
+                value={fmtRate(stats.exploitable - stats.confirmed_real, stats.exploitable)}
+                accent="amber"
+                Icon={Percent}
+                hint={`(AI验证为可利用 − 人工确认有漏洞) / AI验证为可利用 · ${stats.exploitable - stats.confirmed_real}/${stats.exploitable}`}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <SummaryCard label="等待AI分析" value={stats.analysis_pending} accent="amber" Icon={CircleHelp} hint="ai_analysis_status = PENDING" />
+              <SummaryCard label="AI分析中" value={stats.analysis_running} accent="blue" Icon={RefreshCw} hint="ai_analysis_status = RUNNING" />
+              <SummaryCard label="AI分析确认漏洞" value={stats.vulnerable} accent="rose" Icon={AlertTriangle} hint="ai_analysis_status = VULNERABLE" />
+              <SummaryCard label="AI分析非漏洞" value={stats.not_vulnerable} accent="sky" Icon={CheckCircle2} hint="ai_analysis_status = NOT_VULNERABLE" />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <SummaryCard label="等待AI验证" value={stats.verification_pending} accent="amber" Icon={CircleHelp} hint="AI分析为漏洞且未验证" />
+              <SummaryCard label="AI验证中" value={stats.verification_running} accent="blue" Icon={RefreshCw} hint="AI分析为漏洞且验证中" />
+              <SummaryCard label="AI验证可利用" value={stats.exploitable} accent="rose" Icon={AlertTriangle} hint="ai_verification_status = *_EXPLOITABLE" />
+              <SummaryCard label="AI验证无利用" value={stats.not_exploitable} accent="sky" Icon={CheckCircle2} hint="ai_verification_status = NOT_EXPLOITABLE" />
+            </div>
           </div>
         </section>
 
@@ -281,20 +339,22 @@ export const WebVulnVerifyPage: React.FC<{ projectId: string }> = ({ projectId }
             </div>
 
             <div className="overflow-hidden bg-theme-surface">
-              <div className="hidden border-b border-theme-border bg-theme-elevated/80 px-4 py-3 text-xs font-medium text-theme-text-muted lg:grid lg:grid-cols-[minmax(180px,1.5fr)_minmax(240px,2fr)_120px_120px] lg:gap-4">
+              <div className="hidden border-b border-theme-border bg-theme-elevated/80 px-4 py-3 text-xs font-medium text-theme-text-muted lg:grid lg:grid-cols-[minmax(180px,1.5fr)_minmax(240px,2fr)_120px_120px_120px] lg:gap-4">
                 <div>chimera_vuln_id</div>
                 <div>title</div>
                 <div className="text-center">AI分析状态</div>
                 <div className="text-center">AI验证状态</div>
+                <div className="text-center">人工确认状态</div>
               </div>
               <div className="divide-y divide-theme-border">
                 {vulns.map((vuln) => {
                   const analysisBadge = getStatusBadge(vuln.ai_analysis_status, AI_ANALYSIS_STATUS_LABEL);
                   const verificationBadge = getStatusBadge(vuln.ai_verification_status, AI_VERIFICATION_STATUS_LABEL);
+                  const finalBadge = getStatusBadge(vuln.final_status, FINAL_STATUS_LABEL);
                   return (
                     <div
                       key={vuln.id}
-                      className="grid w-full gap-2 px-4 py-3 text-left transition-colors hover:bg-theme-elevated lg:grid-cols-[minmax(180px,1.5fr)_minmax(240px,2fr)_120px_120px] lg:items-center lg:gap-4"
+                      className="grid w-full gap-2 px-4 py-3 text-left transition-colors hover:bg-theme-elevated lg:grid-cols-[minmax(180px,1.5fr)_minmax(240px,2fr)_120px_120px_120px] lg:items-center lg:gap-4"
                     >
                       <div className="min-w-0">
                         <div className="truncate text-[13px] font-normal text-theme-text-primary" title={vuln.chimera_vuln_id || String(vuln.id)}>
@@ -314,6 +374,11 @@ export const WebVulnVerifyPage: React.FC<{ projectId: string }> = ({ projectId }
                       <div className="flex items-center justify-center">
                         <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[13px] font-normal ${verificationBadge.cls}`}>
                           {verificationBadge.label}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-center">
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[13px] font-normal ${finalBadge.cls}`}>
+                          {finalBadge.label}
                         </span>
                       </div>
                     </div>
