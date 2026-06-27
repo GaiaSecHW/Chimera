@@ -846,7 +846,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                                       <td className="px-4 py-2.5" style={{ color: LK.inkSoft }}>{getUploadRecordDisplayName(record)}</td>
                                       <td className="px-4 py-2.5" style={{ color: LK.body }}>{record.status}</td>
                                       <td className="px-4 py-2.5" style={{ color: LK.body }}>
-                                        {eligibility?.codemapTaskStatus || eligibility?.graphStatus || '-'}
+                                        {eligibility?.codemapTaskStatus || '-'}
                                       </td>
                                       <td className="px-4 py-2.5" style={{ color: LK.body }}>
                                         {eligibility?.attackStatus
