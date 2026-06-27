@@ -909,16 +909,20 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   <section>
                     <div className="mb-3 text-base font-medium text-theme-text-primary">结论依据</div>
                     <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
-                      <p className="whitespace-pre-wrap text-sm font-normal leading-6 text-theme-text-primary">
-                        {String(detailRaw.root_cause_summary || '暂无详细依据')}
-                      </p>
+                      {detailRaw.root_cause_summary ? (
+                        <p className="whitespace-pre-wrap text-sm font-normal leading-6 text-theme-text-primary">
+                          {String(detailRaw.root_cause_summary)}
+                        </p>
+                      ) : (
+                        <Minus size={16} strokeWidth={2.2} className="text-theme-text-muted" />
+                      )}
                     </div>
                   </section>
 
                   {/* 四维判定 */}
                   <section>
                     <div className="mb-3 text-base font-medium text-theme-text-primary">四维判定</div>
-                    <div className="rounded-2xl border border-theme-border bg-theme-surface px-7 py-3 lg:px-8">
+                    <div className="rounded-2xl border border-theme-border bg-theme-surface px-5 py-3">
                       {detailHasFinalVerdict ? (
                         <div className="divide-y divide-theme-border/70">
                           {DIMENSION_KEYS.map((key) => {
@@ -927,7 +931,9 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                           })}
                         </div>
                       ) : (
-                        <div className="py-5 text-sm font-normal text-theme-text-muted">尚未产出最终验证结论</div>
+                        <div className="py-5">
+                          <Minus size={16} strokeWidth={2.2} className="text-theme-text-muted" />
+                        </div>
                       )}
                     </div>
                   </section>
