@@ -469,10 +469,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
         })}
       </div>
 
-      <div className="space-y-3">
+      <div className="bg-theme-surface">
         {!hideActionBar && (
-          <div className="flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-3">
-
+          <div className="flex items-center gap-2 rounded-xl px-4 py-3">
               <button onClick={openCreateDialog} className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}><Plus size={15} />创建任务</button>
               <button
                   onClick={() => void submitDelete(selectedTaskIds)}
@@ -497,15 +496,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
               <button onClick={() => void loadData()} className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><RefreshCw size={16} /></button>
             </div>
         )}
-
-        {error ? (
-            <div
-                className="rounded-lg px-4 py-3 text-sm mb-2 mt-2"
-                style={{ backgroundColor: `${LK.error}14`, border: `1px solid ${LK.error}40`, color: LK.error }}
-            >
-              {error}
-            </div>
-        ) : null}
         {(() => {
           const taskColumns: DataTableColumn<ScheduleCenterUserTask>[] = [
             {
@@ -634,41 +624,43 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
             },
           ];
           return (
-            <DataTable
-              columns={taskColumns}
-              data={tasks}
-              rowKey={(task) => task.id}
-              loading={loading}
-              showRowNumber={true}
-              sort={{ field: sortBy, direction: sortDirection }}
-              onSortChange={({ field, direction }) => {
-                setSortBy(field);
-                setSortDirection(direction);
-                setPage(1);
-                void loadData(1, pageSize, field, direction, query);
-              }}
-              bulkActions={{
-                selectedKeys: selectedTaskIds,
-                onSelectChange: setSelectedTaskIds,
-                render: () => null,
-              }}
-              pagination={{
-                page,
-                perPage: pageSize,
-                total,
-                perPageOptions: [10, 20, 50, 100, 200],
-                onPageChange: (next) => {
-                  setPage(next);
-                  void loadData(next, pageSize, sortBy, sortDirection, query);
-                },
-                onPerPageChange: (next) => {
-                  setPageSize(next);
+            <div className='px-4'>
+              <DataTable
+                columns={taskColumns}
+                data={tasks}
+                rowKey={(task) => task.id}
+                loading={loading}
+                showRowNumber={true}
+                sort={{ field: sortBy, direction: sortDirection }}
+                onSortChange={({ field, direction }) => {
+                  setSortBy(field);
+                  setSortDirection(direction);
                   setPage(1);
-                  void loadData(1, next, sortBy, sortDirection, query);
-                },
-              }}
-              empty={<div className="py-10 text-center text-sm" style={{ color: LK.muted }}>暂无任务</div>}
-            />
+                  void loadData(1, pageSize, field, direction, query);
+                }}
+                bulkActions={{
+                  selectedKeys: selectedTaskIds,
+                  onSelectChange: setSelectedTaskIds,
+                  render: () => null,
+                }}
+                pagination={{
+                  page,
+                  perPage: pageSize,
+                  total,
+                  perPageOptions: [10, 20, 50, 100, 200],
+                  onPageChange: (next) => {
+                    setPage(next);
+                    void loadData(next, pageSize, sortBy, sortDirection, query);
+                  },
+                  onPerPageChange: (next) => {
+                    setPageSize(next);
+                    setPage(1);
+                    void loadData(1, next, sortBy, sortDirection, query);
+                  },
+                }}
+                empty={<div className="py-10 text-center text-sm" style={{ color: LK.muted }}>暂无任务</div>}
+              />
+            </div>
           );
         })()}
       </div>
