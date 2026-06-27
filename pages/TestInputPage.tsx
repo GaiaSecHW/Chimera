@@ -720,9 +720,9 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   setSelectedType(inputType);
                   setPage(1);
                 }}
- className={`stat-card rounded-xl border p-5 text-left transition ${selectedType === inputType ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-elevated text-theme-text-primary hover:border-theme-border'}`}
+                className={`stat-card relative rounded-xl border p-5 text-left bg-theme-surface transition border-theme-border ${selectedType === inputType ? 'is-selected' : ''}`}
               >
- <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.2em] ${selectedType === inputType ? 'border-theme-border bg-theme-elevated text-white' : meta.tone}`}>
+                <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.2em] ${meta.tone}`}>
                   {meta.icon}
                   {meta.label}
                 </div>
@@ -818,16 +818,16 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
               <table className="min-w-full divide-y divide-theme-border">
                 <thead className="bg-theme-elevated text-left text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">
                   <tr>
-                    <th className="px-4 py-4 text-theme-text-primary font-semibold">类型</th>
-                    <th className="px-4 py-4 text-theme-text-primary font-semibold">上传记录</th>
-                    <th className="px-4 py-4 text-theme-text-primary font-semibold">批次 / 模式</th>
-                    <th className="px-4 py-4 text-theme-text-primary font-semibold">文件 / 容量</th>
-                    <th className="px-4 py-4 text-theme-text-primary font-semibold">创建信息</th>
-                    <th className="px-4 py-4 text-theme-text-primary font-semibold text-center">知识图谱构建进度</th>
-                    <th className="px-4 py-4 text-theme-text-primary font-semibold text-right">操作</th>
+                    <th className="px-4 py-4 text-theme-text-primary font-semibold text-sm">类型</th>
+                    <th className="px-4 py-4 text-theme-text-primary font-semibold text-sm">上传记录</th>
+                    <th className="px-4 py-4 text-theme-text-primary font-semibold text-sm">批次 / 模式</th>
+                    <th className="px-4 py-4 text-theme-text-primary font-semibold text-sm">文件 / 容量</th>
+                    <th className="px-4 py-4 text-theme-text-primary font-semibold text-sm">创建信息</th>
+                    <th className="px-4 py-4 text-theme-text-primary font-semibold text-sm text-center">知识图谱构建进度</th>
+                    <th className="px-4 py-4 text-theme-text-primary font-semibold text-sm">操作</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-theme-border bg-theme-elevated text-sm">
+                <tbody className="divide-y divide-theme-border text-sm">
                   {loading ? (
                     <tr><td colSpan={7} className="px-6 py-20 text-center"><Loader2 className="mx-auto animate-spin text-theme-text-muted" size={32} /></td></tr>
                   ) : filteredRecords.length === 0 ? (
@@ -894,7 +894,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                             </div>
                           </td>
                           <td className="px-4 py-4">
-                            <div className="flex items-center justify-end gap-1" onClick={(event) => event.stopPropagation()}>
+                            <div className="flex items-center gap-1" onClick={(event) => event.stopPropagation()}>
                               <button
                                 onClick={() => { void openUploadDetailDialog(record); }} aria-label="详情" title="详情"
                                 className="rounded-md p-1.5 transition-colors"
@@ -1100,7 +1100,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
         const latestBatch = detail?.latest_batch || record.latest_batch || null;
         return (
           <div className="fixed inset-0 z-[125] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
- <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-theme-elevated">
+ <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-theme-surface">
               <div className="flex items-start justify-between gap-4 border-b border-theme-border px-6 py-5">
                 <div>
                   <div className="text-sm font-medium uppercase tracking-[0.18em] text-theme-text-muted">上传记录详情</div>
