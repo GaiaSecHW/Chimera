@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Check, CheckCircle2, CircleHelp, Clock3, Loader2, Minus, PanelRightClose, RefreshCw, RotateCcw, Search, X } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle2, CircleHelp, Clock3, Loader2, Minus, PanelRightClose, RefreshCw, RotateCcw, Search, Wrench, X } from 'lucide-react';
 import { vulnVerifyV2Api, VulnVerifyV2Attempt, VulnVerifyV2ProjectStats, VulnVerifyV2Result, VulnVerifyV2Task, VulnVerifyV2TaskDetail } from '../../clients/vulnVerifyV2';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { PageHeader } from '../../design-system';
@@ -335,6 +335,8 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const [selectedDevTaskIds, setSelectedDevTaskIds] = useState<string[]>([]);
   const [batchCancelling, setBatchCancelling] = useState(false);
   const [batchRerunning, setBatchRerunning] = useState(false);
+  const [devToastPos, setDevToastPos] = useState<{ top: number; left: number } | null>(null);
+  const devBadgeRef = useRef<HTMLSpanElement | null>(null);
   const detailScrollRef = useRef<HTMLDivElement | null>(null);
   const closeDetailTimerRef = useRef<number | null>(null);
 
@@ -350,6 +352,17 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const selectedVisibleTaskIds = useMemo(() => selectedDevTaskIds.filter((id) => visibleTaskIds.includes(id)), [selectedDevTaskIds, visibleTaskIds]);
   const selectedCancellableTaskIds = useMemo(() => selectedVisibleTaskIds.filter((id) => cancellableTaskIds.includes(id)), [cancellableTaskIds, selectedVisibleTaskIds]);
   const allVisibleTasksSelected = visibleTaskIds.length > 0 && visibleTaskIds.every((id) => selectedDevTaskIdSet.has(id));
+
+  const handleDevBadgeClickWithPosition = useCallback(() => {
+    const rect = devBadgeRef.current?.getBoundingClientRect();
+    if (rect) {
+      setDevToastPos({
+        top: rect.bottom + 8,
+        left: Math.max(12, Math.min(rect.left, window.innerWidth - 260)),
+      });
+    }
+    handleDevBadgeClick();
+  }, [handleDevBadgeClick]);
 
   const handleResultFilterChange = useCallback((value: string) => {
     setPage(1);
@@ -552,14 +565,19 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
 
   return (
     <div className="min-h-full bg-theme-bg-app text-theme-text-primary">
-      {devToast ? (
-        <div className="fixed bottom-6 right-6 z-[60] rounded-lg border border-[var(--color-signal-green-border)] bg-[var(--color-signal-green-bg)] px-4 py-2 text-sm font-medium text-[var(--color-signal-green)] shadow-md">{devToast}</div>
+      {devToast && devToastPos ? (
+        <div className="fixed z-[60] inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2 text-sm font-medium text-theme-text-secondary shadow-md" style={{ top: devToastPos.top, left: devToastPos.left }}>
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-[var(--color-signal-blue)] text-white">
+            <Wrench size={13} strokeWidth={2.2} />
+          </span>
+          {devToast}
+        </div>
       ) : null}
       <div className="w-full space-y-8 px-4 pt-8 pb-10 lg:px-6 xl:px-8">
         {feedbackNodes}
         <PageHeader
           className="border-b-0 !pb-0"
-          title={<ServicePageTitle title={<span className="inline-flex items-baseline gap-1.5 py-2">漏洞验证<span className="select-none text-xs font-medium text-theme-text-muted" onClick={handleDevBadgeClick} role="presentation" aria-hidden>v2</span></span>} version={buildVersion} />}
+          title={<ServicePageTitle title={<span className="inline-flex items-baseline gap-1.5 py-2">漏洞验证<span ref={devBadgeRef} className="select-none text-xs font-medium text-theme-text-muted" onClick={handleDevBadgeClickWithPosition} role="presentation" aria-hidden>v2</span></span>} version={buildVersion} />}
           description="基于漏洞报告、代码上下文与威胁模型，由 AI 围绕代码定位、路径可达性、缓解措施和安全影响进行四维判定，产出确认漏洞、排除漏洞或不可证结论。"
         />
 
@@ -626,13 +644,31 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                 >
                   <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                 </button>
-                {devMode ? (
-                  <>
+              </div>
+
+              {devMode ? (
+                <div className="mb-4 flex flex-col gap-2 rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-xs sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-[var(--color-signal-blue)] text-white" title="开发者工具">
+                      <Wrench size={13} strokeWidth={2.2} />
+                    </span>
+                    <span className="text-theme-text-muted">
+                      {selectedVisibleTaskIds.length
+                        ? <>已选择 {selectedVisibleTaskIds.length} 个任务，其中 {selectedCancellableTaskIds.length} 个可取消</>
+                        : <>可选择当前页任务进行批量操作</>}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {selectedVisibleTaskIds.length ? (
+                      <button type="button" onClick={() => setSelectedDevTaskIds([])} className="h-8 px-1 text-xs text-theme-text-muted transition hover:text-theme-text-primary">
+                        清空选择
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       disabled={!selectedVisibleTaskIds.length || batchRerunning}
                       onClick={() => void handleBatchRerunTasks()}
-                      className="inline-flex h-9 shrink-0 items-center rounded-lg border border-theme-border bg-theme-surface px-3 text-xs font-medium text-theme-text-secondary transition hover:bg-theme-elevated hover:text-theme-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                      className="inline-flex h-8 shrink-0 items-center rounded-lg border border-theme-border bg-theme-surface px-3 text-xs font-medium text-theme-text-secondary transition hover:bg-theme-elevated hover:text-theme-text-primary disabled:cursor-not-allowed disabled:opacity-40"
                       title="重跑选中的任务"
                     >
                       {batchRerunning ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : <RotateCcw size={14} className="mr-1.5" />}
@@ -642,15 +678,15 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                       type="button"
                       disabled={!selectedCancellableTaskIds.length || batchCancelling}
                       onClick={() => void handleBatchCancelTasks()}
-                      className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[var(--color-signal-red-border)] bg-[var(--color-signal-red-bg)] px-3 text-xs font-medium text-[var(--color-signal-red)] transition hover:bg-[var(--color-signal-red-bg)] disabled:cursor-not-allowed disabled:opacity-40"
+                      className="inline-flex h-8 shrink-0 items-center rounded-lg border border-[var(--color-signal-red-border)] bg-[var(--color-signal-red-bg)] px-3 text-xs font-medium text-[var(--color-signal-red)] transition hover:bg-[var(--color-signal-red-bg)] disabled:cursor-not-allowed disabled:opacity-40"
                       title="取消选中的等待中/执行中任务"
                     >
                       {batchCancelling ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : null}
                       取消选中任务{selectedCancellableTaskIds.length ? ` (${selectedCancellableTaskIds.length})` : ''}
                     </button>
-                  </>
-                ) : null}
-              </div>
+                  </div>
+                </div>
+              ) : null}
 
             <div className="overflow-hidden bg-theme-surface">
               <div className={`hidden border-b border-theme-border bg-theme-elevated/80 px-4 py-3 text-xs font-medium text-theme-text-muted lg:grid ${devMode ? 'lg:grid-cols-[32px_minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px]' : 'lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px]'} lg:gap-4`}>
@@ -796,15 +832,17 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                 </div>
               ) : detail ? (
                 <div className="space-y-7">
-                  {/* 头部：标题 + 结论 + 重试 */}
+                  {/* 头部：标题 + 结论 */}
                   <div className="px-1 pb-2 pt-4">
                     <div className="min-w-0">
                       <div className="whitespace-normal break-words text-lg font-bold leading-6 text-theme-text-primary" title={detail.name}>{detail.name}</div>
                       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
                         <OutcomePill item={outcomeBadge(undefined, detail.verdict)} />
-                        <button onClick={() => void handleRerun(detail.id)} aria-label="重新执行" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated">
-                          <RotateCcw size={13} />重试
-                        </button>
+                        {devMode ? (
+                          <button onClick={() => void handleRerun(detail.id)} aria-label="重新执行" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated">
+                            <RotateCcw size={13} />重新执行
+                          </button>
+                        ) : null}
                       </div>
                       <div className="mt-4 text-xs font-normal">
                         {[
