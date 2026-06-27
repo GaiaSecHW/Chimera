@@ -182,26 +182,28 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
 
     return (
       <div className="space-y-4">
-        {/* 输入类型 */}
+        {/* 输入类型 + 是否解压（同一行） */}
         <div className="space-y-1.5">
-          <div className="mb-2 text-sm font-semibold">输入类型</div>
-          <DropdownSelect
-            value={inputType}
-            onChange={(v) => setInputType(v as InputType)}
-            options={INPUT_TYPE_ORDER.map((type) => ({ value: type, label: INPUT_TYPE_META[type].label }))}
-          />
+          <div className="text-sm font-semibold">输入类型</div>
+          <div className="flex items-center gap-4">
+            <div className="min-w-0 flex-1">
+              <DropdownSelect
+                value={inputType}
+                onChange={(v) => setInputType(v as InputType)}
+                options={INPUT_TYPE_ORDER.map((type) => ({ value: type, label: INPUT_TYPE_META[type].label }))}
+              />
+            </div>
+            <label className="flex items-center gap-2 whitespace-nowrap text-sm font-medium text-theme-text-secondary">
+              <input
+                type="checkbox"
+                checked={keepOriginal}
+                onChange={(e) => setKeepOriginal(e.target.checked)}
+                className="h-4 w-4 rounded border-theme-border"
+              />
+              保留原始文件，不自动解压
+            </label>
+          </div>
         </div>
-
-        {/* 是否解压 */}
-        <label className="flex items-center gap-2 text-sm font-medium text-theme-text-secondary">
-          <input
-            type="checkbox"
-            checked={keepOriginal}
-            onChange={(e) => setKeepOriginal(e.target.checked)}
-            className="h-4 w-4 rounded border-theme-border"
-          />
-          保留原始文件，不自动解压
-        </label>
 
         {/* 文件选择 */}
         <div
