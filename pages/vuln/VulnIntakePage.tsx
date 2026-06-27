@@ -821,6 +821,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         search: search.trim() || undefined,
         sort_field: sortField,
         sort_direction: sortDirection,
+        final_result: 'vulnerable' as const,
       };
 
       // 0 或 1 个任务：按表格 pageSize 做服务端分页，只查当前页。
