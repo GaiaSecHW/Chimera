@@ -809,18 +809,18 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
 
   const [projectReportingAll, setProjectReportingAll] = useState(false);
   const handleProjectReportAll = useCallback(async () => {
-    if (!projectId || isAllProjectsScope || projectReportingAll) return;
+    if (!projectId || projectReportingAll) return;
     setProjectReportingAll(true);
     try {
       const result = await appApi.reportAllProjectFindings(projectId);
-      notify(`上报完成: ${result.reported_ok} 成功${result.failed > 0 ? '，' + result.failed + ' 失败' : ''}`, result.failed > 0 ? 'warning' : 'success');
+      notify('上报完成: ' + result.reported_ok + ' 成功' + (result.failed > 0 ? ', ' + result.failed + ' 失败' : ''), result.failed > 0 ? 'warning' : 'success');
       await loadVulnStats();
     } catch (err: any) {
-      notify(`上报失败: ${err?.message || err}`, 'error');
+      notify('上报失败: ' + (err?.message || String(err)), 'error');
     } finally {
       setProjectReportingAll(false);
     }
-  }, [projectId, isAllProjectsScope, projectReportingAll, appApi, notify, loadVulnStats]);
+  }, [projectId, projectReportingAll, appApi, notify, loadVulnStats]);
 
   const loadSlotSummary = useCallback(async () => {
     setSlotSummaryLoading(true);
