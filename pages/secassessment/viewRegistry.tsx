@@ -1,6 +1,9 @@
 import React from 'react';
 import { SecAssessmentProjectPage } from './sec-assessment-project/SecAssessmentProjectPage';
 import { SecBaselineMgmtPage } from './sec-baseline-mgmt/SecBaselineMgmtPage';
+import { SecBaselineDetailPage } from './sec-baseline-mgmt/SecBaselineDetailPage';
+import { SecBaselineCreatePage } from './sec-baseline-mgmt/SecBaselineCreatePage';
+import { SecBaselineOrgTreePage } from './sec-baseline-mgmt/SecBaselineOrgTreePage';
 
 /**
  * 安全评估模块自治的 view 调度器。
@@ -27,8 +30,18 @@ export const renderSecAssessmentView = (ctx: SecAssessmentViewContext): React.Re
   switch (ctx.currentView) {
     case 'sec-assessment-project':
       return <SecAssessmentProjectPage projectId={ctx.projectId} />;
+    case 'sec-baseline':
     case 'sec-baseline-mgmt':
-      return <SecBaselineMgmtPage projectId={ctx.projectId} />;
+      return <SecBaselineMgmtPage onNavigateToView={ctx.setCurrentView} />;
+    case 'sec-baseline-create':
+      return <SecBaselineCreatePage onNavigateToView={ctx.setCurrentView} />;
+    case 'sec-baseline-org-tree':
+      return <SecBaselineOrgTreePage onNavigateToView={ctx.setCurrentView} />;
+  }
+
+  if (ctx.currentView.startsWith('sec-baseline-detail-')) {
+    const id = ctx.currentView.replace('sec-baseline-detail-', '');
+    return <SecBaselineDetailPage baselineId={id} onNavigateToView={ctx.setCurrentView} />;
   }
 
   // 不命中任何形态 → 返回 null,让框架 default 走"开发中"占位

@@ -65,6 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const autoExpanded = new Set<string>();
   sections.forEach((section) => {
     section.items.forEach((item) => {
+      if (item.defaultExpanded) autoExpanded.add(item.id);
       if (item.subItems?.some((sub) => [sub.id, ...(sub.aliases || [])].includes(String(currentView)))) {
         autoExpanded.add(item.id);
       }
