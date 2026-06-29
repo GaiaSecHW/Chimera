@@ -187,7 +187,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
 
             <div className="max-w-3xl border-l-2 pl-6 lg:max-w-2xl xl:max-w-3xl 2xl:max-w-4xl" style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 40%, transparent)' }}>
               <p className="text-sm leading-relaxed text-theme-text-secondary md:text-base">
-                智能体群协作 AI 安全验证平台。面向安全团队与产品团队，将安全专家的经验转化为可复用的自动化能力。
+                面向安全验证的群体AI智能体平台。将ICSL安全专家的经验与智慧，转化为可编排、可进化的AI智能体集群，以龙尾、羊角、狮首三种模式，驱动自动化安全验证，看护每一个版本风险。
               </p>
             </div>
           </div>

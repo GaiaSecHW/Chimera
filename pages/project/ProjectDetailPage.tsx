@@ -269,8 +269,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
           <div className="flex items-center gap-2">
             <button
               onClick={loadAllData}
-              className="p-2.5 rounded-lg transition-all"
-              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
+              className="button-surface px-4 py-2.5"
             >
               <RefreshCw size={20} />
             </button>

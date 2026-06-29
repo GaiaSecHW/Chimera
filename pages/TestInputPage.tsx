@@ -758,7 +758,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                 <Plus size={16} />
                 新建上传
               </button>
-              <div className="relative w-full lg:max-w-sm lg:flex-1">
+              <div className="relative max-w-[420px] flex-1">
                 <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
                 <input
                   value={searchTerm}
@@ -803,10 +803,10 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                 onClick={() => {
                   void Promise.all([loadOverview(), loadRecords()]);
                 }}
-                className="lg:ml-auto inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary transition hover:border-theme-border hover:text-theme-text-primary"
+                className="button-surface px-4 py-2.5 text-sm ml-auto"
+                title="刷新列表"
               >
                 <RefreshCw size={16} className={(loading || overviewLoading) ? 'animate-spin' : ''} />
-                刷新
               </button>
             </div>
           </div>

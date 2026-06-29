@@ -709,7 +709,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
           >
             <Plus size={16} /> 初始化项目
           </button>
-          <div className="relative flex flex-1 items-center">
+          <div className="relative flex flex-1 items-center max-w-[420px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
             <input
               type="text"
@@ -721,10 +721,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
           </div>
           <button
             onClick={handleRefresh}
-            className="shrink-0 rounded-lg px-4 py-2.5 transition-colors"
-            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
+            className="button-surface px-4 py-2.5 text-sm ml-auto"
             title="刷新列表"
           >
             <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />

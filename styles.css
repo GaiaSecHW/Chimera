@@ -260,6 +260,17 @@
   .theme-primary-button:hover {
     background: var(--brand-primary-hover);
   }
+  .button-surface {
+    @apply rounded-xl font-semibold flex items-center justify-center gap-1 transition-colors;
+    color: var(--text-primary);
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-default);
+  }
+  .button-surface:hover {
+    color: var(--brand-primary);
+    border-color: var(--brand-primary);
+  }
+
   .theme-form-input {
     @apply rounded-xl border outline-none font-semibold transition-all;
     background-color: var(--bg-surface);

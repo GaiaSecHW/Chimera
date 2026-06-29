@@ -468,7 +468,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
         description="统一展示当前项目下的所有测试任务，追踪分发、执行与同步状态"
       />
 
-      <div className="grid grid-cols-4 bg-theme-surface">
+      <div className={`grid grid-cols-4 ${hideActionBar ? "bg-theme-bg-app" : "bg-theme-surface"}`}>
         {statsCards.map((item, i) => {
           const Icon = item.icon;
           return (
@@ -516,7 +516,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                 {deleteSubmitting ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
                 批量删除（{selectedTaskIds.length}）
               </button>
-              <div className="relative flex-1">
+              <div className="relative max-w-[420px] flex-1">
                 <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
                 <input
                     value={query}
@@ -525,7 +525,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                     className="form-input w-full pl-10"
                 />
               </div>
-              <button onClick={() => void loadData()} className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.inkSoft }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.inkSoft; }}><RefreshCw size={16} /></button>
+              <button onClick={() => void loadData()} className="button-surface px-4 py-2.5 text-sm ml-auto" title="刷新列表">
+                <RefreshCw size={16} />
+              </button>
             </div>
         )}
         {(() => {
