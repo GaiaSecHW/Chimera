@@ -3,13 +3,22 @@ import {
   ArrowLeft,
   Bot,
   Box,
+  Boxes,
   Edit2,
   ExternalLink,
+  FileCode2,
+  GitBranch,
   Globe,
   Loader2,
   Lock,
+  LucideIcon,
+  Network,
   Plus,
   RefreshCw,
+  Settings,
+  Shield,
+  ShieldCheck,
+  Smartphone,
   Trash2,
   Upload,
   X,
@@ -23,7 +32,8 @@ import { PageHeader } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { aigwApi } from '../../clients/aigw';
 import type { AiGatewayModelAlias, UserInfo, ViewType } from '../../types/types';
-import { toolCatalog, type ToolDescriptor } from './toolCatalog';
+import { toolRegistryApi } from '../../clients/toolRegistry';
+import type { ToolResponse } from '../../clients/toolRegistry';
 
 const LK = {
   primary: '#2563EB', primarySoft: '#7590ff', primaryDeep: 'var(--brand-primary-hover)',
@@ -37,6 +47,13 @@ const LK = {
   critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
 } as const;
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
+const ICON_LOOKUP: Record<string, LucideIcon> = {
+  shield: Shield, filecode2: FileCode2, boxes: Boxes, smartphone: Smartphone,
+  network: Network, gitbranch: GitBranch, shieldcheck: ShieldCheck,
+  bot: Bot, box: Box, globe: Globe, settings: Settings,
+};
+const lookupIcon = (name: string): LucideIcon => ICON_LOOKUP[name.toLowerCase()] ?? Settings;
 
 interface ToolOverviewPageProps {
   projectId: string;
@@ -609,7 +626,9 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedAppId, setSelectedAppId] = useState('');
   const [expandedHarness, setExpandedHarness] = useState('');
-  const [activeTool, setActiveTool] = useState<ToolDescriptor | null>(null);
+  const [activeTool, setActiveTool] = useState<ToolResponse | null>(null);
+  const [overviewTools, setOverviewTools] = useState<ToolResponse[]>([]);
+  const [overviewLoading, setOverviewLoading] = useState(false);
   const [harnessBranches, setHarnessBranches] = useState<Record<string, Array<{ name: string; commit: Record<string, unknown>; protected: boolean }>>>({});
   const [pipelineApp, setPipelineApp] = useState<AgentApp | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -667,6 +686,21 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
     void refreshApps();
     void refreshModelAliases();
   }, [effectiveUser?.department_id]);
+
+  useEffect(() => {
+    const fetchOverview = async () => {
+      setOverviewLoading(true);
+      try {
+        const result = await toolRegistryApi.listOverview();
+        setOverviewTools(Array.isArray(result?.items) ? result.items : []);
+      } catch {
+        setOverviewTools([]);
+      } finally {
+        setOverviewLoading(false);
+      }
+    };
+    void fetchOverview();
+  }, []);
 
   useEffect(() => {
     if (!selectedApp && !createOpen && !pipelineApp) return undefined;
@@ -779,8 +813,10 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   // SPA 路由类工具用 ?tool_embed=1#/{viewId} 以无外壳模式加载同站页面；
   // 外部微服务（如黑板）直接用 embedUrl 指定的路径。
   if (activeTool) {
-    const embedUrl = activeTool.embedUrl ?? `?tool_embed=1#/${activeTool.viewId}`;
-    const ToolIcon = activeTool.icon;
+    const detail = activeTool.microservice ?? activeTool.agent;
+    const viewId = detail?.view_id ?? '';
+    const embedUrl = viewId ? `?tool_embed=1#/${viewId}` : '';
+    const ToolIcon = lookupIcon(detail?.icon ?? '');
     return (
       <div className="absolute inset-0 flex flex-col bg-theme-app">
         <div className="flex items-center gap-3 border-b border-theme-border bg-theme-surface px-4 py-3">
@@ -823,9 +859,24 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
           <h2 className="text-lg font-semibold text-theme-text-primary">微服务工具</h2>
           <p className="mt-1 text-sm text-theme-text-secondary">点击卡片在下方嵌入查看工具页面，支持返回工具总览。</p>
         </div>
+        {overviewLoading ? (
+          <div className="flex items-center justify-center rounded-xl border border-theme-border bg-theme-surface px-4 py-10 text-sm text-theme-text-muted">
+            <Loader2 size={16} className="mr-2 animate-spin" /> 正在加载工具列表…
+          </div>
+        ) : overviewTools.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center">
+            <Box className="mx-auto text-theme-text-muted" size={28} />
+            <h3 className="mt-2 text-sm font-semibold text-theme-text-primary">暂无已上线工具</h3>
+            <p className="mt-1 text-xs text-theme-text-muted">工具注册并审核通过后，将在此处展示。</p>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-3">
-          {toolCatalog.map((tool) => {
-            const Icon = tool.icon;
+          {overviewTools.map((tool) => {
+            const detail = tool.microservice ?? tool.agent;
+            const Icon = lookupIcon(detail?.icon ?? '');
+            const catalog = detail?.catalog as { summary?: string; tags?: string[] } | null | undefined;
+            const summary = catalog?.summary ?? tool.description ?? '';
+            const tags = catalog?.tags ?? [];
             return (
               <button
                 key={tool.id}
@@ -839,9 +890,9 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
                   </div>
                   <h3 className="truncate text-lg font-semibold text-theme-text-primary">{tool.name}</h3>
                 </div>
-                <p className="mt-3 text-sm leading-relaxed text-theme-text-secondary line-clamp-2">{tool.summary}</p>
+                <p className="mt-3 text-sm leading-relaxed text-theme-text-secondary line-clamp-2">{summary}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {tool.tags.map((tag) => (
+                  {tags.map((tag) => (
                     <span key={tag} className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-medium text-theme-text-secondary">{tag}</span>
                   ))}
                 </div>
@@ -849,6 +900,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
             );
           })}
         </div>
+        )}
       </section>
 
       {createOpen ? <AgentAppModal mode="create" saving={saving} departments={departments} canChoosePublic={true} modelAliases={modelAliases} modelAliasesLoading={modelAliasesLoading} onClose={() => setCreateOpen(false)} onSubmit={handleCreate} /> : null}

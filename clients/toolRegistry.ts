@@ -11,6 +11,7 @@ const TOOL_REGISTRY_BASE = `${API_BASE}/api/tools`;
 export type ToolKind = 'microservice' | 'agent';
 export type ToolStatus = 'draft' | 'pending' | 'online' | 'offline';
 export type ToolHealthStatus = 'healthy' | 'unhealthy' | 'unknown';
+export type ToolInputType = 'document' | 'code' | 'package' | 'other';
 
 export interface ToolListItem {
   id: string;
@@ -19,6 +20,7 @@ export interface ToolListItem {
   kind: ToolKind;
   status: ToolStatus;
   is_builtin: boolean;
+  input_types?: ToolInputType[];
   submitted_by?: string;
   view_id?: string;
   icon?: string;
@@ -73,6 +75,7 @@ export interface ToolResponse {
   kind: ToolKind;
   status: ToolStatus;
   is_builtin: boolean;
+  input_types?: ToolInputType[];
   submitted_by?: string;
   reviewed_by?: string;
   review_note?: string;
@@ -127,7 +130,12 @@ export interface ToolCreateMicroservice {
 }
 
 export interface ToolCreateAgent {
-  agent_app_id: string;
+  engine: string;
+  agent_harness_gitea_url: string;
+  start_command?: string;
+  input_requirements?: string;
+  default_agent_name: string;
+  is_public: boolean;
   view_id: string;
   icon?: string;
   menu_group?: string;
@@ -140,6 +148,7 @@ export interface ToolCreate {
   name: string;
   description?: string;
   kind: ToolKind;
+  input_types?: ToolInputType[];
   microservice?: ToolCreateMicroservice;
   agent?: ToolCreateAgent;
 }
@@ -147,8 +156,9 @@ export interface ToolCreate {
 export interface ToolUpdate {
   name?: string;
   description?: string;
+  input_types?: ToolInputType[];
   microservice?: Partial<ToolCreateMicroservice>;
-  agent?: Partial<Omit<ToolCreateAgent, 'agent_app_id'>>;
+  agent?: Partial<ToolCreateAgent>;
 }
 
 export interface ProbeTestRequest {
@@ -200,6 +210,8 @@ export const toolRegistryApi = {
     getJson(`/my${buildQuery(params as Record<string, string | number | undefined | null>)}`),
 
   listPending: async (): Promise<ListResponse<ToolListItem>> => getJson('/pending'),
+
+  listOverview: async (): Promise<ListResponse<ToolResponse>> => getJson('/overview'),
 
   get: async (id: string): Promise<ToolResponse> => getJson(`/${encodeURIComponent(id)}`),
 
