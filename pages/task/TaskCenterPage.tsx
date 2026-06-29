@@ -649,8 +649,9 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
               ),
             },
           ];
+
           return (
-            <div className='px-4'>
+            <div className={!hideActionBar ? 'px-4' : ''}>
               <DataTable
                 columns={taskColumns}
                 data={tasks}

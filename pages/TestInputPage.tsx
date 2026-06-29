@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   ChevronDown,
+  ChevronRight,
   Code2,
   Eye,
   FileBox,
@@ -720,8 +721,12 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   setSelectedType(inputType);
                   setPage(1);
                 }}
-                className={`stat-card relative rounded-xl border p-5 text-left bg-theme-surface transition border-theme-border ${selectedType === inputType ? 'is-selected' : ''}`}
+                className={`stat-card group relative rounded-xl border p-5 text-left bg-theme-surface transition cursor-pointer border-theme-border ${selectedType === inputType ? 'is-selected' : ''}`}
               >
+                <ChevronRight
+                  size={16}
+                  className={`pointer-events-none absolute right-5 top-5 transition-all duration-200 group-hover:translate-x-0.5 ${selectedType === inputType ? 'text-brand-primary opacity-100' : 'text-theme-text-faint opacity-60 group-hover:text-brand-primary group-hover:opacity-100'}`}
+                />
                 <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.2em] ${meta.tone}`}>
                   {meta.icon}
                   {meta.label}
