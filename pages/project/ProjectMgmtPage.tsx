@@ -104,6 +104,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   });
   const [tableProjects, setTableProjects] = useState<SecurityProject[]>([]);
   const [tableTotal, setTableTotal] = useState(0);
+  const [projectTotal, setProjectTotal] = useState(0);
   const [tableLoading, setTableLoading] = useState(false);
   const [reloadTrigger, setReloadTrigger] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -267,6 +268,9 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         if (cancelled) return;
         setTableProjects(data.projects || []);
         setTableTotal(data.total || 0);
+        if (!debouncedSearch.trim()) {
+          setProjectTotal(data.total || 0);
+        }
       })
       .catch((err) => {
         if (cancelled) return;
@@ -649,7 +653,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       {/* Stat blocks — 4 columns */}
       <div className="grid grid-cols-4 bg-theme-surface">
         {[
-          { label: '项目', value: tableTotal, icon: Building2, color: LK.primary },
+          { label: '项目', value: projectTotal || tableTotal, icon: Building2, color: LK.primary },
           { label: '任务', value: taskCount !== null ? taskCount : '-', icon: Layers, color: LK.success },
           { label: '环境', value: envCount !== null ? envCount : '-', icon: Server, color: LK.warning },
           { label: '漏洞', value: vulnCount !== null ? vulnCount : '-', icon: AlertTriangle, color: LK.error },
