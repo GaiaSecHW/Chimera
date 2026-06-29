@@ -158,8 +158,8 @@ export const SecOctoOverviewPage: React.FC<OverviewProps> = ({ onNavigateTask })
         <StatCard label="运行中 Agent" value={String(runningAgents)} />
         <StatCard label="累计完成任务" value={fmtCount(completedTasks)} />
         <StatCard label="进化技能库" value={extra.indexedSkills == null ? '—' : String(extra.indexedSkills)} />
-        <StatCard label="记忆卡片库" value={extra.wikiTotal == null ? '—' : String(extra.wikiTotal)} />
-        <StatCard label="发现漏洞数" value={extra.vulnsDiscovered == null ? '—' : String(extra.vulnsDiscovered)} />
+        <StatCard label="进化记忆库" value={extra.wikiTotal == null ? '—' : String(extra.wikiTotal)} />
+        <StatCard label="进化素材库" value={extra.vulnsDiscovered == null ? '—' : String(extra.vulnsDiscovered)} />
         <StatCard label="平均分" value={avgScore} />
       </div>
 

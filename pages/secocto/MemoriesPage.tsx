@@ -172,16 +172,16 @@ export const SecOctoMemoriesPage: React.FC<Props> = ({ onNavigate }) => {
       <div className="flex items-end justify-between gap-3 flex-wrap pb-5">
         <div>
           <h1 className="text-2xl font-bold mb-1 text-theme-text-primary">
-            记忆
-            <span className="bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-400 bg-clip-text text-transparent">卡片库</span>
+            进化
+            <span className="bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-400 bg-clip-text text-transparent">记忆库</span>
           </h1>
           <p className="text-sm text-theme-text-secondary">
-            Agent 进化过程中沉淀的安全知识 · 共 {total} 张卡片
+            Agent 进化过程中沉淀的安全知识 · 共 {total} 张记忆卡片
             {pendingCount != null && (
               <>
                 {' '}·{' '}
                 <span className={pendingCount > 0 ? 'text-amber-600 font-semibold' : ''}>
-                  {pendingCount} 张卡片未编译
+                  {pendingCount} 张记忆卡片未编译
                 </span>
               </>
             )}

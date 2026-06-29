@@ -630,7 +630,7 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
         { id: 'secocto-overview', label: '总览', icon: LayoutDashboard },
         { id: 'secocto-skills', label: '技能进化', icon: GraduationCap },
         { id: 'secocto-memories', label: '记忆进化', icon: Brain },
-        { id: 'secocto-vulns', label: '漏洞管理', icon: ShieldAlert },
+        { id: 'secocto-vulns', label: '进化素材', icon: ShieldAlert },
       ],
     },
   ],
