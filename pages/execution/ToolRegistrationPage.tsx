@@ -1,15 +1,57 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
+  Archive,
+  BarChart3,
   Bot,
+  Box,
+  Brain,
+  Briefcase,
+  Building2,
   CheckCircle2,
+  ChevronDown,
+  ClipboardList,
+  Cpu,
   Database,
+  FileBox,
+  FileSearch,
+  FileText,
+  FolderOpen,
+  FolderTree,
+  GitBranch,
+  Globe,
+  GraduationCap,
+  HardDrive,
+  Key,
+  Layers3,
+  LayoutDashboard,
   Link2,
+  ListTodo,
   Loader2,
+  Lock,
+  LucideIcon,
+  MessageSquare,
+  Monitor,
+  Network,
+  Package,
+  Play,
   Plus,
   RefreshCw,
   Server,
+  ServerCog,
+  Settings,
+  Shield,
+  ShieldAlert,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  Target,
+  Terminal,
+  UserCog,
+  Users,
+  Workflow,
   XCircle,
+  Zap,
 } from 'lucide-react';
 
 import { getAuthHeaders, handleResponse } from '../../clients/base';
@@ -40,6 +82,57 @@ interface AgentAppOption {
 }
 
 const TOOL_ID_PATTERN = /^[A-Z]{1,10}$/;
+
+/** Icons available for tool registration, matching those used in app/navigation.tsx. */
+const TOOL_ICONS: { name: string; Icon: LucideIcon }[] = [
+  { name: 'Activity', Icon: Activity },
+  { name: 'Archive', Icon: Archive },
+  { name: 'BarChart3', Icon: BarChart3 },
+  { name: 'Bot', Icon: Bot },
+  { name: 'Box', Icon: Box },
+  { name: 'Brain', Icon: Brain },
+  { name: 'Briefcase', Icon: Briefcase },
+  { name: 'Building2', Icon: Building2 },
+  { name: 'ClipboardList', Icon: ClipboardList },
+  { name: 'Cpu', Icon: Cpu },
+  { name: 'FileBox', Icon: FileBox },
+  { name: 'FileSearch', Icon: FileSearch },
+  { name: 'FileText', Icon: FileText },
+  { name: 'FolderOpen', Icon: FolderOpen },
+  { name: 'FolderTree', Icon: FolderTree },
+  { name: 'GitBranch', Icon: GitBranch },
+  { name: 'Globe', Icon: Globe },
+  { name: 'GraduationCap', Icon: GraduationCap },
+  { name: 'HardDrive', Icon: HardDrive },
+  { name: 'Key', Icon: Key },
+  { name: 'Layers3', Icon: Layers3 },
+  { name: 'LayoutDashboard', Icon: LayoutDashboard },
+  { name: 'ListTodo', Icon: ListTodo },
+  { name: 'Lock', Icon: Lock },
+  { name: 'MessageSquare', Icon: MessageSquare },
+  { name: 'Monitor', Icon: Monitor },
+  { name: 'Network', Icon: Network },
+  { name: 'Package', Icon: Package },
+  { name: 'Play', Icon: Play },
+  { name: 'Plus', Icon: Plus },
+  { name: 'Server', Icon: Server },
+  { name: 'ServerCog', Icon: ServerCog },
+  { name: 'Settings', Icon: Settings },
+  { name: 'Shield', Icon: Shield },
+  { name: 'ShieldAlert', Icon: ShieldAlert },
+  { name: 'ShieldCheck', Icon: ShieldCheck },
+  { name: 'Smartphone', Icon: Smartphone },
+  { name: 'Sparkles', Icon: Sparkles },
+  { name: 'Target', Icon: Target },
+  { name: 'Terminal', Icon: Terminal },
+  { name: 'UserCog', Icon: UserCog },
+  { name: 'Users', Icon: Users },
+  { name: 'Workflow', Icon: Workflow },
+  { name: 'Zap', Icon: Zap },
+];
+
+const findToolIcon = (name: string): LucideIcon | undefined =>
+  TOOL_ICONS.find((t) => t.name === name)?.Icon;
 
 const DEFAULT_FORM: FormState = {
   id: '',
@@ -243,6 +336,7 @@ export const ToolRegistrationPage: React.FC = () => {
   const [myTools, setMyTools] = useState<ToolListItem[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [microserviceUrl, setMicroserviceUrl] = useState('');
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
 
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -355,6 +449,7 @@ export const ToolRegistrationPage: React.FC = () => {
       setProbeResult(null);
       setProbeError('');
       setMicroserviceUrl('');
+      setIconPickerOpen(false);
       await refreshMyTools();
     } catch (error) {
       const message = error instanceof Error ? error.message : '工具注册失败';
@@ -370,6 +465,7 @@ export const ToolRegistrationPage: React.FC = () => {
     setProbeResult(null);
     setProbeError('');
     setMicroserviceUrl('');
+    setIconPickerOpen(false);
   };
 
   const kindOptions = useMemo(() => [
@@ -430,12 +526,59 @@ export const ToolRegistrationPage: React.FC = () => {
                 invalid={!!errors.view_id}
               />
             </FormField>
-            <FormField label="icon" hint="图标标识（可选）">
-              <Input
-                value={form.icon}
-                onChange={(e) => setField('icon', e.target.value)}
-                placeholder="如 shield"
-              />
+            <FormField label="icon" hint="选择侧边栏图标（可选）">
+              <div className="relative">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIconPickerOpen((v) => !v)}
+                    className="flex items-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-secondary transition-colors hover:bg-theme-elevated"
+                  >
+                    {(() => {
+                      const Icon = findToolIcon(form.icon);
+                      return Icon ? <Icon size={16} /> : null;
+                    })()}
+                    <span className={form.icon ? '' : 'text-theme-text-muted'}>
+                      {form.icon || '请选择图标'}
+                    </span>
+                    <ChevronDown size={14} className="text-theme-text-muted" />
+                  </button>
+                  {form.icon ? (
+                    <button
+                      type="button"
+                      onClick={() => setField('icon', '')}
+                      className="text-xs text-theme-text-muted transition-colors hover:text-rose-300"
+                    >
+                      清除
+                    </button>
+                  ) : null}
+                </div>
+                {iconPickerOpen ? (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setIconPickerOpen(false)} />
+                    <div className="absolute left-0 top-full z-20 mt-1 grid w-80 grid-cols-8 gap-1 rounded-lg border border-theme-border bg-theme-surface p-2">
+                      {TOOL_ICONS.map(({ name, Icon }) => (
+                        <button
+                          key={name}
+                          type="button"
+                          title={name}
+                          onClick={() => {
+                            setField('icon', name);
+                            setIconPickerOpen(false);
+                          }}
+                          className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
+                            form.icon === name
+                              ? 'bg-blue-500/20 text-blue-300'
+                              : 'text-theme-text-secondary hover:bg-theme-elevated'
+                          }`}
+                        >
+                          <Icon size={16} />
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+              </div>
             </FormField>
             <FormField label="menu_group" hint="菜单分组">
               <Input
