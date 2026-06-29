@@ -63,7 +63,9 @@ import type {
   ToolInputType,
   ToolKind,
   ToolListItem,
+  ToolOperationLog,
   ToolResponse,
+  ToolReviewRecord,
   ToolStatus,
   ToolUpdate,
 } from '../../clients/toolRegistry';
@@ -411,6 +413,27 @@ const HEALTH_TONE: Record<string, string> = {
   unknown: 'bg-theme-elevated text-theme-text-secondary border-theme-border',
 };
 
+const REVIEW_ACTION_LABEL: Record<ToolReviewRecord['action'], string> = {
+  submit: '提交',
+  approve: '通过',
+  reject: '驳回',
+};
+const REVIEW_ACTION_TONE: Record<ToolReviewRecord['action'], string> = {
+  submit: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+  approve: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+  reject: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+};
+const LOG_ACTION_LABEL: Record<ToolOperationLog['action'], string> = {
+  online: '上架',
+  offline: '下架',
+  edit_online: '在线编辑',
+};
+const LOG_ACTION_TONE: Record<ToolOperationLog['action'], string> = {
+  online: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+  offline: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+  edit_online: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+};
+
 const Badge: React.FC<{ className?: string; children: React.ReactNode }> = ({ className, children }) => (
   <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${className ?? ''}`}>
     {children}
@@ -462,6 +485,10 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
   const [reviewLoadingId, setReviewLoadingId] = useState<string | null>(null);
   const [detailTool, setDetailTool] = useState<ToolResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [reviews, setReviews] = useState<ToolReviewRecord[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [logs, setLogs] = useState<ToolOperationLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingTool, setEditingTool] = useState<ToolListItem | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -686,18 +713,36 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
   const handleOpenDetail = async (tool: ToolListItem) => {
     setDetailLoading(true);
     setDetailTool(null);
+    setReviews([]);
+    setReviewsLoading(true);
+    setLogs([]);
+    setLogsLoading(true);
     try {
-      const detail = await toolRegistryApi.get(tool.id);
-      setDetailTool(detail);
+      const [detailRes, reviewsRes, logsRes] = await Promise.allSettled([
+        toolRegistryApi.get(tool.id),
+        toolRegistryApi.listReviews(tool.id),
+        toolRegistryApi.listLogs(tool.id),
+      ]);
+      if (detailRes.status === 'fulfilled') {
+        setDetailTool(detailRes.value);
+      } else {
+        throw detailRes.reason;
+      }
+      setReviews(reviewsRes.status === 'fulfilled' ? reviewsRes.value?.items ?? [] : []);
+      setLogs(logsRes.status === 'fulfilled' ? logsRes.value?.items ?? [] : []);
     } catch (error) {
       notify(error instanceof Error ? error.message : '加载工具详情失败', 'error');
     } finally {
       setDetailLoading(false);
+      setReviewsLoading(false);
+      setLogsLoading(false);
     }
   };
 
   const handleCloseDetail = () => {
     setDetailTool(null);
+    setReviews([]);
+    setLogs([]);
   };
 
   const refreshPendingTools = async () => {
@@ -1294,7 +1339,7 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
           open={detailLoading || !!detailTool}
           onClose={handleCloseDetail}
           size="xl"
-          className="!max-w-[700px]"
+          className="!max-w-[800px]"
           title={detailTool ? `${detailTool.name}（${detailTool.id}）` : '加载中…'}
           footer={<Button variant="secondary" onClick={handleCloseDetail}>关闭</Button>}
         >
@@ -1354,6 +1399,88 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
                 <DetailField label="审核备注" value={detailTool.review_note} />
                 <DetailField label="创建时间" value={formatTime(detailTool.created_at)} />
                 <DetailField label="更新时间" value={formatTime(detailTool.updated_at)} />
+              </div>
+
+              {/* 审批流程历史 */}
+              <div className="space-y-3 rounded-xl border border-theme-border bg-theme-elevated/40 p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-primary">
+                  <ClipboardList size={15} /> 审批流程
+                </div>
+                {reviewsLoading ? (
+                  <div className="flex items-center py-3 text-xs text-theme-text-muted">
+                    <Loader2 size={14} className="mr-2 animate-spin" /> 加载中…
+                  </div>
+                ) : reviews.length === 0 ? (
+                  <div className="py-3 text-center text-xs text-theme-text-muted">暂无审批记录</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="text-[10px] uppercase tracking-wider text-theme-text-muted">
+                        <tr>
+                          <th className="px-2 py-1.5 font-semibold">时间</th>
+                          <th className="px-2 py-1.5 font-semibold">操作</th>
+                          <th className="px-2 py-1.5 font-semibold">状态变更</th>
+                          <th className="px-2 py-1.5 font-semibold">操作人</th>
+                          <th className="px-2 py-1.5 font-semibold">备注</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-theme-border">
+                        {reviews.map((r) => (
+                          <tr key={r.id} className="bg-theme-surface">
+                            <td className="px-2 py-1.5 font-mono text-theme-text-muted">{formatTime(r.created_at)}</td>
+                            <td className="px-2 py-1.5">
+                              <Badge className={REVIEW_ACTION_TONE[r.action]}>{REVIEW_ACTION_LABEL[r.action]}</Badge>
+                            </td>
+                            <td className="px-2 py-1.5 font-mono text-theme-text-muted">
+                              {r.from_status ? STATUS_LABEL[r.from_status] : '—'} → {r.to_status ? STATUS_LABEL[r.to_status] : '—'}
+                            </td>
+                            <td className="px-2 py-1.5 text-theme-text-secondary">{r.operator || '-'}</td>
+                            <td className="px-2 py-1.5 text-theme-text-secondary break-all">{r.note || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* 操作日志 */}
+              <div className="space-y-3 rounded-xl border border-theme-border bg-theme-elevated/40 p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-primary">
+                  <Activity size={15} /> 操作日志
+                </div>
+                {logsLoading ? (
+                  <div className="flex items-center py-3 text-xs text-theme-text-muted">
+                    <Loader2 size={14} className="mr-2 animate-spin" /> 加载中…
+                  </div>
+                ) : logs.length === 0 ? (
+                  <div className="py-3 text-center text-xs text-theme-text-muted">暂无操作日志</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="text-[10px] uppercase tracking-wider text-theme-text-muted">
+                        <tr>
+                          <th className="px-2 py-1.5 font-semibold">时间</th>
+                          <th className="px-2 py-1.5 font-semibold">操作</th>
+                          <th className="px-2 py-1.5 font-semibold">操作人</th>
+                          <th className="px-2 py-1.5 font-semibold">备注</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-theme-border">
+                        {logs.map((l) => (
+                          <tr key={l.id} className="bg-theme-surface">
+                            <td className="px-2 py-1.5 font-mono text-theme-text-muted">{formatTime(l.created_at)}</td>
+                            <td className="px-2 py-1.5">
+                              <Badge className={LOG_ACTION_TONE[l.action]}>{LOG_ACTION_LABEL[l.action]}</Badge>
+                            </td>
+                            <td className="px-2 py-1.5 text-theme-text-secondary">{l.operator || '-'}</td>
+                            <td className="px-2 py-1.5 text-theme-text-secondary break-all">{l.note || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           ) : null}
