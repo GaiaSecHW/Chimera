@@ -492,6 +492,7 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     downstream_binding_state?: string | null;
     total_retry_count?: number;
     rerun_count?: number;
+    rebuild_rerun_count?: number;
     auto_retry_count?: number;
     downstream_create_attempts?: number;
     downstream_create_last_attempt_at?: string | null;
@@ -548,6 +549,7 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     error_message?: string | null;
     abnormal_reason?: BinarySecurityAbnormalReason | null;
     attempts: number;
+    retry_attempt_count?: number;
     created_at?: string | null;
     started_at?: string | null;
     completed_at?: string | null;
