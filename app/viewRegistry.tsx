@@ -311,7 +311,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'developer-tools-overview':
       return <ToolOverviewPage projectId={ctx.selectedProjectId} user={ctx.user} onNavigate={ctx.setCurrentView} />;
     case 'tool-registration':
-      return <ToolRegistrationPage />;
+      return <ToolRegistrationPage user={ctx.user} />;
     case 'cairn-blackboard':
       return <BlackboardPage />;
     case 'static-packages':

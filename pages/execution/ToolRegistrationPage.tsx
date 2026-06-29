@@ -68,12 +68,15 @@ import {
   Button,
   FormField,
   Input,
+  Modal,
   PageHeader,
   PageSection,
   SegmentedControl,
   Select,
 } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { getPlatformRole } from '../../utils/rbac';
+import type { UserInfo } from '../../types/types';
 
 interface AgentAppOption {
   id: string;
@@ -323,8 +326,13 @@ const formatTime = (value?: string): string => {
 
 const inputGridClass = 'grid grid-cols-1 gap-4 md:grid-cols-2';
 
-export const ToolRegistrationPage: React.FC = () => {
+interface ToolRegistrationPageProps {
+  user: UserInfo | null;
+}
+
+export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user }) => {
   const { feedbackNodes, notify } = useUiFeedback();
+  const isAdmin = getPlatformRole(user) === 'super_admin';
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [errors, setErrors] = useState<ErrorMap>({});
   const [submitting, setSubmitting] = useState(false);
@@ -337,6 +345,12 @@ export const ToolRegistrationPage: React.FC = () => {
   const [listLoading, setListLoading] = useState(false);
   const [microserviceUrl, setMicroserviceUrl] = useState('');
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
+  const [pendingTools, setPendingTools] = useState<ToolListItem[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectNote, setRejectNote] = useState('');
+  const [reviewLoadingId, setReviewLoadingId] = useState<string | null>(null);
 
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -466,6 +480,58 @@ export const ToolRegistrationPage: React.FC = () => {
     setProbeError('');
     setMicroserviceUrl('');
     setIconPickerOpen(false);
+  };
+
+  const refreshPendingTools = async () => {
+    setPendingLoading(true);
+    try {
+      const result = await toolRegistryApi.listPending();
+      setPendingTools(Array.isArray(result?.items) ? result.items : []);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : '待审批列表加载失败', 'error');
+      setPendingTools([]);
+    } finally {
+      setPendingLoading(false);
+    }
+  };
+
+  const handleOpenReview = async () => {
+    setReviewOpen(true);
+    await refreshPendingTools();
+  };
+
+  const handleApprove = async (id: string) => {
+    setReviewLoadingId(id);
+    try {
+      await toolRegistryApi.review(id, { action: 'approve' });
+      notify(`工具 ${id} 审批通过`, 'success');
+      await refreshPendingTools();
+      await refreshMyTools();
+    } catch (error) {
+      notify(error instanceof Error ? error.message : '审批操作失败', 'error');
+    } finally {
+      setReviewLoadingId(null);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    if (!rejectNote.trim()) {
+      notify('拒绝时必须填写理由', 'error');
+      return;
+    }
+    setReviewLoadingId(id);
+    try {
+      await toolRegistryApi.review(id, { action: 'reject', review_note: rejectNote.trim() });
+      notify(`工具 ${id} 已拒绝`, 'success');
+      setRejectingId(null);
+      setRejectNote('');
+      await refreshPendingTools();
+      await refreshMyTools();
+    } catch (error) {
+      notify(error instanceof Error ? error.message : '审批操作失败', 'error');
+    } finally {
+      setReviewLoadingId(null);
+    }
   };
 
   const kindOptions = useMemo(() => [
@@ -736,9 +802,16 @@ export const ToolRegistrationPage: React.FC = () => {
         title="我的工具"
         description="管理员可见全部工具；普通用户仅见自己注册的。注册成功后此处显示状态。"
         actions={
-          <Button variant="secondary" onClick={refreshMyTools} disabled={listLoading} icon={<RefreshCw size={14} className={listLoading ? 'animate-spin' : ''} />}>
-            刷新
-          </Button>
+          <div className="flex items-center gap-2">
+            {isAdmin ? (
+              <Button variant="secondary" onClick={handleOpenReview} icon={<CheckCircle2 size={14} />}>
+                审批工具
+              </Button>
+            ) : null}
+            <Button variant="secondary" onClick={refreshMyTools} disabled={listLoading} icon={<RefreshCw size={14} className={listLoading ? 'animate-spin' : ''} />}>
+              刷新
+            </Button>
+          </div>
         }
       >
         {listLoading && myTools.length === 0 ? (
@@ -782,6 +855,106 @@ export const ToolRegistrationPage: React.FC = () => {
           </div>
         )}
       </PageSection>
+      {reviewOpen ? (
+        <Modal
+          open={reviewOpen}
+          onClose={() => { setReviewOpen(false); setRejectingId(null); setRejectNote(''); }}
+          size="xl"
+          title="工具审批"
+          description="审核待上线工具。通过后状态变为 online，拒绝后回退为 draft。"
+          footer={
+            <Button variant="secondary" onClick={() => { setReviewOpen(false); setRejectingId(null); setRejectNote(''); }}>
+              关闭
+            </Button>
+          }
+        >
+          {pendingLoading && pendingTools.length === 0 ? (
+            <div className="flex items-center justify-center py-10 text-sm text-theme-text-muted">
+              <Loader2 size={16} className="mr-2 animate-spin" /> 正在加载…
+            </div>
+          ) : pendingTools.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center">
+              <CheckCircle2 className="mx-auto text-theme-text-muted" size={28} />
+              <h3 className="mt-2 text-sm font-semibold text-theme-text-primary">暂无待审批工具</h3>
+              <p className="mt-1 text-xs text-theme-text-muted">所有工具均已审核。</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-theme-border">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-theme-elevated text-[11px] uppercase tracking-wider text-theme-text-muted">
+                  <tr>
+                    <th className="px-4 py-2.5 font-semibold">ID</th>
+                    <th className="px-4 py-2.5 font-semibold">名称</th>
+                    <th className="px-4 py-2.5 font-semibold">类型</th>
+                    <th className="px-4 py-2.5 font-semibold">提交人</th>
+                    <th className="px-4 py-2.5 font-semibold">操作</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-theme-border">
+                  {pendingTools.map((tool) => (
+                    <tr key={tool.id} className="bg-theme-surface">
+                      <td className="px-4 py-2.5 font-mono text-theme-text-primary">{tool.id}</td>
+                      <td className="px-4 py-2.5 text-theme-text-primary">{tool.name}</td>
+                      <td className="px-4 py-2.5 text-theme-text-secondary">{tool.kind === 'microservice' ? '微服务' : 'Agent'}</td>
+                      <td className="px-4 py-2.5 text-theme-text-secondary">{tool.submitted_by || '-'}</td>
+                      <td className="px-4 py-2.5">
+                        {rejectingId === tool.id ? (
+                          <div className="space-y-2">
+                            <textarea
+                              className="form-input w-full resize-y text-xs"
+                              rows={2}
+                              value={rejectNote}
+                              onChange={(e) => setRejectNote(e.target.value)}
+                              placeholder="拒绝理由（必填）"
+                            />
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleReject(tool.id)}
+                                disabled={reviewLoadingId === tool.id || !rejectNote.trim()}
+                                className="rounded-md bg-rose-500/15 px-2.5 py-1 text-xs font-medium text-rose-300 transition-colors hover:bg-rose-500/25 disabled:opacity-50"
+                              >
+                                {reviewLoadingId === tool.id ? '处理中…' : '确认拒绝'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setRejectingId(null); setRejectNote(''); }}
+                                disabled={reviewLoadingId === tool.id}
+                                className="rounded-md px-2.5 py-1 text-xs text-theme-text-muted transition-colors hover:text-theme-text-secondary"
+                              >
+                                取消
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleApprove(tool.id)}
+                              disabled={reviewLoadingId === tool.id}
+                              className="rounded-md bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
+                            >
+                              {reviewLoadingId === tool.id ? '处理中…' : '通过'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setRejectingId(tool.id); setRejectNote(''); }}
+                              disabled={reviewLoadingId === tool.id}
+                              className="rounded-md bg-rose-500/15 px-2.5 py-1 text-xs font-medium text-rose-300 transition-colors hover:bg-rose-500/25 disabled:opacity-50"
+                            >
+                              拒绝
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Modal>
+      ) : null}
     </div>
   );
 };
