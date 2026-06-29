@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   ChevronDown,
+  ChevronRight,
   RefreshCw,
   Loader2,
   Clock,
@@ -289,30 +290,29 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
       {/* ── Stat Blocks (task / env / vuln) ─────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {([
-          { key: 'task' as const, label: '任务', value: taskCount, icon: <ClipboardList size={20} />, accent: LK.info },
-          { key: 'env' as const,  label: '环境', value: envCount,  icon: <Server size={20} />,        accent: LK.success },
-          { key: 'vuln' as const, label: '漏洞', value: vulnCount, icon: <Bug size={20} />,           accent: LK.error },
+          { key: 'task' as const, label: '任务', value: taskCount, icon: <ClipboardList size={18} />, tone: 'text-sky-400 bg-sky-500/15 border-sky-500/20' },
+          { key: 'env' as const,  label: '环境', value: envCount,  icon: <Server size={18} />,        tone: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/20' },
+          { key: 'vuln' as const, label: '漏洞', value: vulnCount, icon: <Bug size={18} />,           tone: 'text-rose-400 bg-rose-500/15 border-rose-500/20' },
         ]).map(stat => (
           <button
             key={stat.key}
+            type="button"
             onClick={() => setActiveBlock(stat.key)}
-            className="p-6 rounded-xl flex items-center gap-5 transition-all cursor-pointer text-left"
-            style={{
-              backgroundColor: activeBlock === stat.key ? LK.surfaceRaised : LK.surface,
-              border: `1px solid ${activeBlock === stat.key ? LK.primary : LK.border}`,
-              boxShadow: activeBlock === stat.key ? `0 0 0 1px ${LK.primary}` : 'none',
-            }}
+            className={`stat-card group relative flex items-center gap-4 rounded-xl border p-4 text-left bg-theme-surface transition cursor-pointer border-theme-border ${activeBlock === stat.key ? 'is-selected' : ''}`}
           >
-            <div
-              className="w-12 h-12 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: `${stat.accent}18`, color: stat.accent }}
-            >
+            <div className={`w-12 h-12 flex-none rounded-lg flex items-center justify-center ${stat.tone}`}>
               {stat.icon}
             </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: LK.muted }}>{stat.label}</p>
-              <h4 className="text-2xl font-bold" style={{ color: LK.ink }}>{stat.value}</h4>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold uppercase tracking-[0.18em] opacity-70">{stat.label}</div>
+              <div className="mt-1 flex items-baseline gap-2">
+                <div className="text-3xl font-bold tabular-nums">{stat.value}</div>
+              </div>
             </div>
+            <ChevronRight
+              size={18}
+              className={`flex-none transition-all duration-200 group-hover:translate-x-0.5 ${activeBlock === stat.key ? 'text-brand-primary opacity-100' : 'text-theme-text-faint opacity-60 group-hover:text-brand-primary group-hover:opacity-100'}`}
+            />
           </button>
         ))}
       </div>
