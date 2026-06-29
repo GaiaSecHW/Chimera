@@ -512,7 +512,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         />
       );
     case 'pentest-vuln-verify-v2':
-      return <VulnVerifyV2TaskPage projectId={ctx.selectedProjectId} />;
+      return <VulnVerifyV2TaskPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
     case 'pentest-web-vuln-verify':
       return <WebVulnVerifyPage projectId={ctx.selectedProjectId} />;
     case 'pentest-frama-c':

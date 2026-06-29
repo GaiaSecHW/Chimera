@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, Check, ChevronRight, CircleHelp, Clock3, FileText, Loader2, Minus, PanelRightClose, RefreshCw, RotateCcw, Search, SquareCheck, Wrench, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Check, ChevronRight, CircleHelp, Clock3, FileText, Loader2, Minus, PanelRightClose, RefreshCw, RotateCcw, Search, Server, SquareCheck, Wrench, X } from 'lucide-react';
 import { vulnVerifyV2Api, VulnVerifyV2Attempt, VulnVerifyV2ProjectStats, VulnVerifyV2Result, VulnVerifyV2Task, VulnVerifyV2TaskDetail } from '../../clients/vulnVerifyV2';
 import { fileserverApi } from '../../clients/fileserver';
-import type { ProjectFilesystemEntry } from '../../types/types';
+import type { ProjectFilesystemEntry, SecurityProject } from '../../types/types';
 import { VulnVerifyV2SessionPreview } from './VulnVerifyV2SessionPreview';
+import { VulnVerifyV2ServiceOverviewPanel } from './VulnVerifyV2ServiceOverviewPanel';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { PageHeader } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -442,7 +443,7 @@ const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[]; devMode?: boo
   );
 };
 
-export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectId }) => {
+export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: SecurityProject[] }> = ({ projectId, projects = [] }) => {
   const buildVersion = useServiceBuildVersion(vulnVerifyV2Api.getHealth);
   const { feedbackNodes, notify } = useUiFeedback();
   const { enabled: devMode, onClick: handleDevBadgeClick, toast: devToast } = useDevMode();
@@ -475,6 +476,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const [selectedDevTaskIds, setSelectedDevTaskIds] = useState<string[]>([]);
   const [batchCancelling, setBatchCancelling] = useState(false);
   const [batchRerunning, setBatchRerunning] = useState(false);
+  const [serviceOverviewOpen, setServiceOverviewOpen] = useState(false);
   const [devToastPos, setDevToastPos] = useState<{ top: number; left: number } | null>(null);
   const devBadgeRef = useRef<HTMLSpanElement | null>(null);
   const detailScrollRef = useRef<HTMLDivElement | null>(null);
@@ -801,6 +803,9 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
           {devToast}
         </div>
       ) : null}
+      {devMode && serviceOverviewOpen ? (
+        <VulnVerifyV2ServiceOverviewPanel projects={projects} currentProjectId={projectId} onClose={() => setServiceOverviewOpen(false)} />
+      ) : null}
       <div className="w-full space-y-8 px-4 pt-8 pb-10 lg:px-6 xl:px-8">
         {feedbackNodes}
         <PageHeader
@@ -878,14 +883,15 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               {devMode ? (
                 <div className="mb-4 flex flex-col gap-2 rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-xs sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-[var(--color-signal-blue)] text-white" title="开发者工具">
-                      <Wrench size={13} strokeWidth={2.2} />
-                    </span>
-                    <span className="text-theme-text-muted">
-                      {selectedVisibleTaskIds.length
-                        ? <>已选择 {selectedVisibleTaskIds.length} 个任务，其中 {selectedCancellableTaskIds.length} 个可取消</>
-                        : <>可选择当前页任务进行批量操作</>}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setServiceOverviewOpen(true)}
+                      className="inline-flex h-8 shrink-0 items-center rounded-lg border border-theme-border bg-theme-surface px-3 text-xs font-medium text-theme-text-secondary transition hover:bg-theme-elevated hover:text-theme-text-primary"
+                      title="查看跨项目全局概览"
+                    >
+                      <Server size={14} className="mr-1.5" />
+                      全局概览
+                    </button>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {selectedVisibleTaskIds.length ? (
