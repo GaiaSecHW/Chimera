@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, Check, CheckCircle2, ChevronRight, CircleHelp, Clock3, FileText, Loader2, Minus, PanelRightClose, RefreshCw, RotateCcw, Search, Wrench, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Check, ChevronRight, CircleHelp, Clock3, FileText, Loader2, Minus, PanelRightClose, RefreshCw, RotateCcw, Search, SquareCheck, Wrench, X } from 'lucide-react';
 import { vulnVerifyV2Api, VulnVerifyV2Attempt, VulnVerifyV2ProjectStats, VulnVerifyV2Result, VulnVerifyV2Task, VulnVerifyV2TaskDetail } from '../../clients/vulnVerifyV2';
 import { fileserverApi } from '../../clients/fileserver';
 import type { ProjectFilesystemEntry } from '../../types/types';
@@ -141,7 +141,7 @@ function outcomeBadge(status?: string, verdict?: string | null): { label: string
   if (status === 'failed') return { label: '验证失败', iconCls: 'text-[var(--color-signal-red)]', boxCls: '', iconOnly: true, Icon: X };
   if (status === 'cancelled') return { label: '已取消', iconCls: 'text-[var(--color-signal-amber)]', boxCls: '', iconOnly: true, Icon: Minus };
   if (verdict === 'confirmed') return { label: '已确认', iconCls: 'text-[var(--color-signal-red)]', boxCls: 'border border-[var(--color-signal-red-border)] bg-[var(--color-signal-red-bg)]', Icon: AlertTriangle };
-  if (verdict === 'ruled_out') return { label: '已排除', iconCls: 'text-[var(--color-signal-cyan)]', boxCls: 'border border-[var(--color-signal-cyan-border)] bg-[var(--color-signal-cyan-bg)]', Icon: CheckCircle2 };
+  if (verdict === 'ruled_out') return { label: '已排除', iconCls: 'text-[var(--color-signal-cyan)]', boxCls: 'border border-[var(--color-signal-cyan-border)] bg-[var(--color-signal-cyan-bg)]', Icon: SquareCheck };
   if (verdict === 'unresolved') return { label: '不可证', iconCls: 'text-[var(--color-signal-amber)]', boxCls: 'border border-[var(--color-signal-amber-border)] bg-[var(--color-signal-amber-bg)]', Icon: CircleHelp };
   return { label: '未产出结果', iconCls: 'text-theme-text-muted', boxCls: '', iconOnly: true, Icon: Minus };
 }
@@ -162,9 +162,30 @@ const OutcomePill: React.FC<{ item: ReturnType<typeof outcomeBadge>; size?: 'nor
   );
 };
 
-const TaskOutcomeBadge: React.FC<{ status?: string; verdict?: string | null }> = ({ status, verdict }) => (
-  <OutcomePill item={outcomeBadge(status, verdict)} />
-);
+const TaskOutcomeInline: React.FC<{ status?: string; verdict?: string | null }> = ({ status, verdict }) => {
+  if (status === 'running') {
+    return <span className="inline-flex items-center gap-2 text-sm font-normal text-theme-text-secondary"><Loader2 size={16} strokeWidth={2.2} className="shrink-0 animate-spin text-[var(--color-signal-green)]" />验证中</span>;
+  }
+  if (status === 'pending') {
+    return <span className="inline-flex items-center gap-2 text-sm font-normal text-theme-text-secondary"><Clock3 size={16} strokeWidth={2.2} className="shrink-0" />等待中</span>;
+  }
+  if (status === 'failed') {
+    return <span className="inline-flex items-center gap-2 text-sm font-normal text-theme-text-secondary"><X size={16} strokeWidth={2.2} className="shrink-0 text-[var(--color-signal-red)]" />执行失败</span>;
+  }
+  if (status === 'cancelled') {
+    return <span className="inline-flex items-center gap-2 text-sm font-normal text-theme-text-muted"><Minus size={16} strokeWidth={2.2} className="shrink-0" />已取消</span>;
+  }
+  if (verdict === 'confirmed') {
+    return <span className="inline-flex items-center gap-2 text-sm font-normal text-theme-text-primary"><AlertTriangle size={16} strokeWidth={2.2} className="shrink-0 text-[var(--color-signal-red)]" />已确认</span>;
+  }
+  if (verdict === 'ruled_out') {
+    return <span className="inline-flex items-center gap-2 text-sm font-normal text-theme-text-primary"><SquareCheck size={16} strokeWidth={2.2} className="shrink-0 text-[var(--color-signal-cyan)]" />已排除</span>;
+  }
+  if (verdict === 'unresolved') {
+    return <span className="inline-flex items-center gap-2 text-sm font-normal text-theme-text-primary"><CircleHelp size={16} strokeWidth={2.2} className="shrink-0 text-[var(--color-signal-amber)]" />不可证</span>;
+  }
+  return <span className="inline-flex items-center gap-2 text-sm font-normal text-theme-text-muted"><Minus size={16} strokeWidth={2.2} className="shrink-0" />未产出</span>;
+};
 
 const AttemptStatusBadge: React.FC<{ status?: string }> = ({ status }) => {
   if (status === 'success') {
@@ -180,24 +201,24 @@ function normalizeRuledOutBy(value: unknown): string[] {
 }
 
 const EvidencePill: React.FC<{ children: React.ReactNode; title?: string }> = ({ children, title }) => (
-  <span title={title} className="inline-flex items-center rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-sm font-normal text-theme-text-secondary">{children}</span>
+  <span title={title} className="inline-flex items-center rounded-full border border-theme-border bg-theme-elevated px-2 py-1 text-xs font-normal text-theme-text-secondary">{children}</span>
 );
 
 const TaskDecisionEvidence: React.FC<{ task: VulnVerifyV2Task }> = ({ task }) => {
-  if (task.status === 'running' || task.status === 'pending') return <span className="text-sm font-normal text-theme-text-secondary">-</span>;
-  if (task.status === 'failed') return <span className="text-sm font-normal text-theme-text-secondary">执行失败</span>;
-  if (task.status === 'cancelled') return <span className="text-sm font-normal text-theme-text-secondary">已取消</span>;
+  if (task.status === 'running' || task.status === 'pending') return <span className="text-xs font-normal text-theme-text-secondary">-</span>;
+  if (task.status === 'failed') return <span className="text-xs font-normal text-theme-text-secondary">执行失败</span>;
+  if (task.status === 'cancelled') return <span className="text-xs font-normal text-theme-text-secondary">已取消</span>;
 
   if (task.verdict === 'confirmed') {
     const summary = task.root_cause_summary || '';
     return summary
-      ? <div className="line-clamp-2 text-sm font-normal text-theme-text-secondary" title={summary}>{summary}</div>
-      : <span className="text-sm font-normal text-theme-text-secondary">-</span>;
+      ? <div className="line-clamp-2 text-xs font-normal text-theme-text-secondary" title={summary}>{summary}</div>
+      : <span className="text-xs font-normal text-theme-text-secondary">-</span>;
   }
 
   if (task.verdict === 'ruled_out') {
     const reasons = normalizeRuledOutBy(task.ruled_out_by);
-    if (!reasons.length) return <span className="text-sm font-normal text-theme-text-secondary">排除原因见详情</span>;
+    if (!reasons.length) return <span className="text-xs font-normal text-theme-text-secondary">排除原因见详情</span>;
     return (
       <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         {reasons.map((key) => (
@@ -209,16 +230,16 @@ const TaskDecisionEvidence: React.FC<{ task: VulnVerifyV2Task }> = ({ task }) =>
     );
   }
 
-  if (task.verdict === 'unresolved') return <span className="text-sm font-normal text-theme-text-secondary">证据不足</span>;
-  return <span className="text-sm font-normal text-theme-text-secondary">未产出判定</span>;
+  if (task.verdict === 'unresolved') return <span className="text-xs font-normal text-theme-text-secondary">证据不足</span>;
+  return <span className="text-xs font-normal text-theme-text-secondary">未产出判定</span>;
 };
 
 const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: React.ReactNode; accent?: 'green' | 'cyan' | 'red' | 'amber' | 'slate'; Icon?: React.ElementType }> = ({ label, value, hint, accent = 'slate', Icon }) => {
   const color = accent === 'green' ? 'text-[var(--color-signal-green)]' : accent === 'cyan' ? 'text-[var(--color-signal-cyan)]' : accent === 'red' ? 'text-[var(--color-signal-red)]' : accent === 'amber' ? 'text-[var(--color-signal-amber)]' : 'text-theme-text-primary';
   return (
     <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
-      <div className={`inline-flex items-center gap-1.5 text-sm font-semibold ${color}`}>
-        {Icon ? <Icon size={13} strokeWidth={2.1} className="shrink-0" /> : null}
+      <div className={`inline-flex items-center gap-2 text-sm font-semibold ${color}`}>
+        {Icon ? <Icon size={16} strokeWidth={2.2} className="shrink-0" /> : null}
         <span>{label}</span>
       </div>
       {hint ? <div className="mt-5 text-sm text-theme-text-muted">{hint}</div> : null}
@@ -252,7 +273,7 @@ const DimensionCard: React.FC<{ dimKey: string; status?: boolean | null; detail?
   const statusTone = status === true
     ? { cls: 'text-[var(--color-signal-red)]', Icon: AlertTriangle, label: '支持漏洞成立' }
     : status === false
-      ? { cls: 'text-[var(--color-signal-cyan)]', Icon: CheckCircle2, label: '支持排除漏洞' }
+      ? { cls: 'text-[var(--color-signal-cyan)]', Icon: SquareCheck, label: '支持排除漏洞' }
       : { cls: 'text-[var(--color-signal-amber)]', Icon: CircleHelp, label: '未判定' };
   const statusCls = statusTone.cls;
   const StatusIcon = statusTone.Icon;
@@ -754,7 +775,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
         <section>
           <div className="grid gap-5 md:grid-cols-3">
             <SummaryCard label="已确认" value={confirmedVulns} accent="red" Icon={AlertTriangle} hint="确认存在真实漏洞风险" />
-            <SummaryCard label="已排除" value={ruledOutVulns} accent="cyan" Icon={CheckCircle2} hint="验证后排除漏洞风险" />
+            <SummaryCard label="已排除" value={ruledOutVulns} accent="cyan" Icon={SquareCheck} hint="验证后排除漏洞风险" />
             <SummaryCard label="不可证" value={unresolvedVulns} accent="amber" Icon={CircleHelp} hint="现有证据不足以判定" />
           </div>
         </section>
@@ -768,7 +789,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <div className="relative min-w-[260px] flex-1">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted" />
-                  <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索标题 / ID" className="form-input h-9 w-full py-1.5 pl-9 pr-9 text-xs text-theme-text-primary" />
+                  <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索标题 / ID" className="form-input h-8 w-full py-1 pl-9 pr-9 text-xs text-theme-text-primary" />
                   {search ? (
                     <button
                       type="button"
@@ -781,34 +802,35 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                     </button>
                   ) : null}
                 </div>
-                <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0" role="group" aria-label="验证结果筛选">
-                  {[
-                    { label: '全部', value: '' },
-                    { label: '已确认', value: 'verdict:confirmed' },
-                    { label: '已排除', value: 'verdict:ruled_out' },
-                    { label: '不可证', value: 'verdict:unresolved' },
-                    { label: '执行中', value: 'status:running' },
-                    { label: '等待中', value: 'status:pending' },
-                    { label: '其他', value: 'other' },
-                  ].map((option) => {
-                    const active = resultFilterValue === option.value;
-                    const activeCls = 'border-[var(--color-signal-blue)] bg-[var(--color-signal-blue)] text-white';
-                    return (
-                      <button
-                        key={option.value || 'all'}
-                        type="button"
-                        onClick={() => handleResultFilterChange(option.value)}
-                        className={`inline-flex h-9 shrink-0 items-center rounded-lg border px-2.5 text-xs font-medium transition ${active ? activeCls : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated hover:text-theme-text-primary'}`}
-                      >
-                        {option.label}
-                      </button>
-                    );
-                  })}
+                <div className="max-w-full overflow-x-auto pb-1 sm:pb-0">
+                  <div className="inline-flex h-8 shrink-0 items-stretch overflow-hidden rounded-md border border-theme-border bg-theme-surface p-0.5" role="group" aria-label="验证结果筛选">
+                    {[
+                      { label: '全部', value: '' },
+                      { label: '已确认', value: 'verdict:confirmed' },
+                      { label: '已排除', value: 'verdict:ruled_out' },
+                      { label: '不可证', value: 'verdict:unresolved' },
+                      { label: '执行中', value: 'status:running' },
+                      { label: '等待中', value: 'status:pending' },
+                      { label: '其他', value: 'other' },
+                    ].map((option) => {
+                      const active = resultFilterValue === option.value;
+                      return (
+                        <button
+                          key={option.value || 'all'}
+                          type="button"
+                          onClick={() => handleResultFilterChange(option.value)}
+                          className={`inline-flex shrink-0 items-center self-stretch rounded-sm px-2 py-1 text-xs font-medium transition-all duration-200 ease-out ${active ? 'bg-[var(--color-signal-blue)] text-white shadow-sm' : 'text-theme-text-secondary hover:bg-theme-elevated hover:text-theme-text-primary'}`}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => void loadOverview()}
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-theme-border bg-theme-surface text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-primary sm:ml-2"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-theme-border bg-theme-surface text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-primary sm:ml-2"
                   aria-label="刷新任务列表"
                   title="刷新任务列表"
                 >
@@ -866,7 +888,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   </label>
                 ) : null}
                 <div>漏洞标题 / ID</div>
-                <div className="text-center">验证结果</div>
+                <div className="lg:pl-2">验证结果</div>
                 <div className="lg:pl-5">判定依据</div>
                 <div className="text-center">耗时</div>
               </div>
@@ -907,8 +929,8 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                         <div className="truncate text-sm font-normal text-theme-text-primary" title={task.name}>{task.name}</div>
                         <div className="mt-1 font-mono text-xs text-theme-text-faint">{task.vuln_id || task.case_id || '-'}</div>
                       </div>
-                      <div className="flex items-center justify-center">
-                        <TaskOutcomeBadge status={task.status} verdict={task.verdict} />
+                      <div className="flex items-center lg:pl-2">
+                        <TaskOutcomeInline status={task.status} verdict={task.verdict} />
                       </div>
                       <div className="min-w-0 lg:flex lg:items-center lg:pl-5">
                         <div className="mb-1 text-xs font-medium text-theme-text-muted lg:hidden">判定依据</div>
@@ -1008,9 +1030,9 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                         <button
                           type="button"
                           onClick={() => setSessionViewOpen(false)}
-                          className="inline-flex items-center gap-1.5 text-sm font-medium text-theme-text-secondary transition hover:text-theme-text-primary"
+                          className="inline-flex items-center gap-2 text-sm font-medium text-theme-text-secondary transition hover:text-theme-text-primary"
                         >
-                          <ArrowLeft size={15} strokeWidth={2.2} />返回验证详情
+                          <ArrowLeft size={16} strokeWidth={2.2} />返回验证详情
                         </button>
                         <div>
                           <div className="text-lg font-bold text-theme-text-primary">会话记录</div>
@@ -1035,7 +1057,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                             <SessionFileButton key={file.path} file={file} active={selectedSessionPath === file.path} onClick={() => void loadSessionFile(file.path)} />
                           ))}
                           {!sessionFiles.length && !sessionLoading ? <div className="py-8 text-center text-sm text-theme-text-muted">未找到 session JSONL 文件</div> : null}
-                          {sessionLoading && !sessionFiles.length ? <div className="flex items-center justify-center gap-2 py-8 text-sm text-theme-text-muted"><Loader2 size={15} className="animate-spin" />正在扫描会话文件...</div> : null}
+                          {sessionLoading && !sessionFiles.length ? <div className="flex items-center justify-center gap-2 py-8 text-sm text-theme-text-muted"><Loader2 size={16} className="animate-spin" />正在扫描会话文件...</div> : null}
                         </div>
                       </aside>
 
@@ -1065,8 +1087,8 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <OutcomePill item={outcomeBadge(undefined, detail.verdict)} />
                         {devMode ? (
-                          <button onClick={() => void handleRerun(detail.id)} aria-label="重新执行" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated">
-                            <RotateCcw size={13} />重新执行
+                          <button onClick={() => void handleRerun(detail.id)} aria-label="重新执行" className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-theme-border px-3 py-1.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated">
+                            <RotateCcw size={16} strokeWidth={2.2} />重新执行
                           </button>
                         ) : null}
                       </div>
@@ -1123,8 +1145,8 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="text-base font-medium text-theme-text-primary">时间线</div>
                       {devMode && detail.work_dir ? (
-                        <button onClick={() => void openSessionView()} aria-label="会话记录" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated">
-                          <FileText size={13} />会话记录
+                        <button onClick={() => void openSessionView()} aria-label="会话记录" className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-theme-border px-3 py-1.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated">
+                          <FileText size={16} strokeWidth={2.2} />会话记录
                         </button>
                       ) : null}
                     </div>

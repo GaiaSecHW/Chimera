@@ -296,46 +296,21 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     const vulnApi = api.domains.vuln.vuln;
     const loadStats = async () => {
       if (mounted) setVulnSuspectLoading(true);
-      const perProject = (projects || []).map((p) =>
-        Promise.allSettled([
-          scheduleApi.listUserTasks(p.id, { page_size: 1 }),
-          fetch(`${API_BASE}/api/agent/agents/stats?project_id=${encodeURIComponent(p.id)}`, { headers: getHeaders() })
-            .then((r) => handleResponse(r))
-            .catch(() => null),
-        ]),
-      );
-      const [vulnRes, ...projectResults] = await Promise.allSettled([
+      const [vulnRes, taskRes, envRes] = await Promise.allSettled([
         vulnApi.getOverview(),
-        ...perProject,
+        scheduleApi.listGlobalTasks({ page: 1, page_size: 1 }),
+        fetch(`${API_BASE}/api/agent/agents/stats`, { headers: getHeaders() })
+          .then((r) => handleResponse(r))
+          .catch(() => null),
       ]);
       if (!mounted) return;
-      let taskTotalSum = 0;
-      let taskQueuedSum = 0;
-      let taskRunningSum = 0;
-      let taskFailedSum = 0;
-      let envTotal = 0;
-      let anyTaskOk = false;
-      let anyEnvOk = false;
-      projectResults.forEach((res) => {
-        if (res.status !== 'fulfilled') return;
-        const [taskR, envR] = res.value;
-        if (taskR.status === 'fulfilled' && taskR.value?.stats) {
-          anyTaskOk = true;
-          taskTotalSum += Number(taskR.value.stats.total || 0);
-          taskQueuedSum += Number(taskR.value.stats.queued || 0);
-          taskRunningSum += Number(taskR.value.stats.running || 0);
-          taskFailedSum += Number(taskR.value.stats.failed || 0);
-        }
-        if (envR.status === 'fulfilled' && envR.value) {
-          anyEnvOk = true;
-          envTotal += Number(envR.value?.summary?.total_agents || 0);
-        }
-      });
-      setTaskCount(anyTaskOk ? taskTotalSum : null);
-      setTaskQueued(anyTaskOk ? taskQueuedSum : null);
-      setTaskRunning(anyTaskOk ? taskRunningSum : null);
-      setTaskFailed(anyTaskOk ? taskFailedSum : null);
-      setEnvCount(anyEnvOk ? envTotal : null);
+      const taskData = taskRes.status === 'fulfilled' ? taskRes.value : null;
+      const taskStats = taskData?.stats || {};
+      setTaskCount(taskData ? Number(taskStats.total || 0) : null);
+      setTaskQueued(taskData ? Number(taskStats.queued || 0) : null);
+      setTaskRunning(taskData ? Number(taskStats.running || 0) : null);
+      setTaskFailed(taskData ? Number(taskStats.failed || 0) : null);
+      setEnvCount(envRes.status === 'fulfilled' ? Number(envRes.value?.summary?.total_agents || 0) : null);
       const vulnOverview = vulnRes.status === 'fulfilled' ? vulnRes.value : null;
       setVulnTotal(vulnOverview ? Number(vulnOverview?.metrics?.total_cases || 0) : null);
       setVulnConfirmed(vulnOverview ? Number(vulnOverview?.human_finished_reason_counts?.vulnerable || 0) : null);

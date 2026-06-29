@@ -138,25 +138,16 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   const versionDropdownRef = useRef<HTMLDivElement>(null);
 
   const loadStats = async () => {
-    const envStats = (projects || []).map((p) =>
-      fetch(`${API_BASE}/api/agent/agents/stats?project_id=${encodeURIComponent(p.id)}`, { headers: getHeaders() })
-        .then((r) => handleResponse(r))
-        .catch(() => null),
-    );
-    const [taskRes, vulnRes, ...envResults] = await Promise.allSettled([
+    const [taskRes, vulnRes, envRes] = await Promise.allSettled([
       scheduleApi.listGlobalTasks({ page: 1, page_size: 1 }),
       vulnApi.getOverview(),
-      ...envStats,
+      fetch(`${API_BASE}/api/agent/agents/stats`, { headers: getHeaders() })
+        .then((r) => handleResponse(r))
+        .catch(() => null),
     ]);
     setTaskCount(taskRes.status === 'fulfilled' ? Number(taskRes.value?.total || 0) : null);
     setVulnCount(vulnRes.status === 'fulfilled' ? Number(vulnRes.value?.human_finished_reason_counts?.vulnerable || 0) : null);
-    const envTotal = envResults.reduce<number>((sum, res) => {
-      if (res.status === 'fulfilled' && res.value) {
-        return sum + Number(res.value?.summary?.total_agents || 0);
-      }
-      return sum;
-    }, 0);
-    setEnvCount(envResults.some((res) => res.status === 'fulfilled') ? envTotal : null);
+    setEnvCount(envRes.status === 'fulfilled' ? Number(envRes.value?.summary?.total_agents || 0) : null);
   };
 
   useEffect(() => {
@@ -656,20 +647,25 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       />
 
       {/* Stat blocks — 4 columns */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 bg-theme-surface">
         {[
           { label: '项目', value: tableTotal, icon: Building2, color: LK.primary },
           { label: '任务', value: taskCount !== null ? taskCount : '-', icon: Layers, color: LK.success },
           { label: '环境', value: envCount !== null ? envCount : '-', icon: Server, color: LK.warning },
           { label: '漏洞', value: vulnCount !== null ? vulnCount : '-', icon: AlertTriangle, color: LK.error },
-        ].map((stat) => (
+        ].map((stat, i) => (
           <div
             key={stat.label}
-            className="flex items-center justify-between rounded-xl p-4"
-            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+            className="relative flex items-center justify-between p-4"
           >
+            {i > 0 && (
+              <span
+                className="absolute left-0 top-1/2 -translate-y-1/2 h-10 w-px"
+                style={{ backgroundColor: LK.border }}
+              />
+            )}
             <div>
-              <div className="text-xs" style={{ color: LK.muted }}>
+              <div className="text-sm" style={{ color: LK.muted }}>
                 {stat.label}
               </div>
               <div className="mt-1 text-3xl font-semibold tabular-nums" style={{ color: stat.color }}>
@@ -713,7 +709,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
           >
             <Plus size={16} /> 初始化项目
           </button>
-          <div className="relative flex flex-1 items-center">
+          <div className="relative flex flex-1 items-center max-w-[420px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
             <input
               type="text"
@@ -725,10 +721,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
           </div>
           <button
             onClick={handleRefresh}
-            className="shrink-0 rounded-lg px-4 py-2.5 transition-colors"
-            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = LK.primary; e.currentTarget.style.color = LK.primarySoft; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = LK.border; e.currentTarget.style.color = LK.body; }}
+            className="button-surface px-4 py-2.5 text-sm ml-auto"
             title="刷新列表"
           >
             <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
@@ -754,9 +747,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
               key: 'department_name',
               header: '归属部门',
               width: '15%',
-              sortable: true,
-              sortKey: 'department_name',
-              defaultDirection: 'asc',
               render: (project) => (
                 <span className="text-sm" style={{ color: LK.body }}>
                   {project.department_name || '未绑定'}
@@ -767,9 +757,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
               key: 'product_version',
               header: '产品版本',
               width: '15%',
-              sortable: true,
-              sortKey: 'product_version',
-              defaultDirection: 'asc',
               render: (project) => (
                 <div className="text-sm font-medium" style={{ color: LK.inkSoft }}>
                   {project.product_version || project.product_version_name || '未归属版本'}
@@ -780,9 +767,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
               key: 'owner_name',
               header: '创建人',
               width: '15%',
-              sortable: true,
-              sortKey: 'owner_name',
-              defaultDirection: 'asc',
               render: (project) => (
                 <span className="text-sm" style={{ color: LK.body }}>
                   {project.owner_name || '-'}
@@ -848,40 +832,42 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
             },
           ];
           return (
-            <DataTable<SecurityProject>
-              columns={columns}
-              data={tableProjects}
-              rowKey={(project) => project.id}
-              showRowNumber={true}
-              loading={tableLoading}
-              sort={{ field: sortField, direction: sortDirection }}
-              onSortChange={({ field, direction }) => handleSortChange(field, direction)}
-              pagination={
-                tableTotal > 0
-                  ? {
-                      page: safePage,
-                      perPage: pageSize,
-                      total: tableTotal,
-                      perPageOptions: [10, 20, 50, 100],
-                      onPageChange: (next) => setCurrentPage(next),
-                      onPerPageChange: (next) => handlePageSizeChange(next),
-                    }
-                  : undefined
-              }
-              empty={
-                <div className="flex flex-col items-center gap-3 py-14 text-center">
-                  <div
-                    className="flex h-10 w-10 items-center justify-center rounded-md"
-                    style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}
-                  >
-                    <Building2 size={20} />
+            <div className='px-4'>
+              <DataTable<SecurityProject>
+                columns={columns}
+                data={tableProjects}
+                rowKey={(project) => project.id}
+                showRowNumber={true}
+                loading={tableLoading}
+                sort={{ field: sortField, direction: sortDirection }}
+                onSortChange={({ field, direction }) => handleSortChange(field, direction)}
+                pagination={
+                  tableTotal > 0
+                    ? {
+                        page: safePage,
+                        perPage: pageSize,
+                        total: tableTotal,
+                        perPageOptions: [10, 20, 50, 100],
+                        onPageChange: (next) => setCurrentPage(next),
+                        onPerPageChange: (next) => handlePageSizeChange(next),
+                      }
+                    : undefined
+                }
+                empty={
+                  <div className="flex flex-col items-center gap-3 py-14 text-center">
+                    <div
+                      className="flex h-10 w-10 items-center justify-center rounded-md"
+                      style={{ backgroundColor: LK.surfaceRaised, color: LK.muted }}
+                    >
+                      <Building2 size={20} />
+                    </div>
+                    <p className="text-sm" style={{ color: LK.muted }}>
+                      {debouncedSearch.trim() ? '没有匹配的项目' : '当前没有项目'}
+                    </p>
                   </div>
-                  <p className="text-sm" style={{ color: LK.muted }}>
-                    {debouncedSearch.trim() ? '没有匹配的项目' : '当前没有项目'}
-                  </p>
-                </div>
-              }
-            />
+                }
+              />
+            </div>
           );
         })()}
       </section>

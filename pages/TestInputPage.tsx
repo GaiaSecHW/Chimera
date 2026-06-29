@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   ChevronDown,
+  ChevronRight,
   Code2,
   Eye,
   FileBox,
@@ -720,19 +721,22 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   setSelectedType(inputType);
                   setPage(1);
                 }}
-                className={`stat-card relative rounded-xl border p-5 text-left bg-theme-surface transition border-theme-border ${selectedType === inputType ? 'is-selected' : ''}`}
+                className={`stat-card group relative flex items-center gap-4 rounded-xl border p-4 text-left bg-theme-surface transition cursor-pointer border-theme-border ${selectedType === inputType ? 'is-selected' : ''}`}
               >
-                <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.2em] ${meta.tone}`}>
+                <div className={`w-12 h-12 flex-none rounded-lg flex items-center justify-center ${meta.tone}`}>
                   {meta.icon}
-                  {meta.label}
                 </div>
-                <div className="mt-4 flex items-center justify-between gap-4">
-                  <div className="text-[11px] font-medium uppercase tracking-[0.18em] opacity-70">上传记录</div>
-                  <div className="flex items-baseline gap-3 text-right">
-                    <div className="text-3xl font-bold">{stats.total_uploads}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold uppercase tracking-[0.18em] opacity-70">{meta.label}</div>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <div className="text-3xl font-bold tabular-nums">{stats.total_uploads}</div>
                     <div className="text-xs font-semibold opacity-80">{formatUploadBytes(stats.stored_total_size_bytes)}</div>
                   </div>
                 </div>
+                <ChevronRight
+                  size={18}
+                  className={`flex-none transition-all duration-200 group-hover:translate-x-0.5 ${selectedType === inputType ? 'text-brand-primary opacity-100' : 'text-theme-text-faint opacity-60 group-hover:text-brand-primary group-hover:opacity-100'}`}
+                />
               </button>
             );
           })}
@@ -754,7 +758,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                 <Plus size={16} />
                 新建上传
               </button>
-              <div className="relative w-full lg:max-w-sm lg:flex-1">
+              <div className="relative max-w-[420px] flex-1">
                 <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
                 <input
                   value={searchTerm}
@@ -799,10 +803,10 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                 onClick={() => {
                   void Promise.all([loadOverview(), loadRecords()]);
                 }}
-                className="lg:ml-auto inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary transition hover:border-theme-border hover:text-theme-text-primary"
+                className="button-surface px-4 py-2.5 text-sm ml-auto"
+                title="刷新列表"
               >
                 <RefreshCw size={16} className={(loading || overviewLoading) ? 'animate-spin' : ''} />
-                刷新
               </button>
             </div>
           </div>

@@ -969,6 +969,8 @@ const TIMELINE_EVENT_LABELS: Record<string, string> = {
   stage_retry_full_cleanup_finished: '严格清理完成',
   stage_waiting_downstream_progress: '等待下游继续推进',
   downstream_marked_stale: '下游结果过期',
+  dataflow_execution_signature_change_suppressed: '误重建已抑制',
+  stale_dataflow_rebuild_reverted: '误重建已回滚',
   task_cancelled: '任务取消',
   task_delete_requested: '删除请求',
   task_completed: '任务完成',
@@ -5662,7 +5664,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           </button>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+                      <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-6">
                         <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3">
                           <div className="text-xs font-bold text-theme-text-muted">归档任务</div>
                           <div className="mt-1 text-lg font-semibold text-theme-text-primary">{(selectedArchiveNode.detail as any)?.job_count ?? 0}</div>
@@ -5674,6 +5676,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                         <div className="rounded-2xl border border-rose-500/20 bg-rose-500/15 px-4 py-3">
                           <div className="text-xs font-bold text-rose-500">失败</div>
                           <div className="mt-1 text-lg font-semibold text-rose-400">{(selectedArchiveNode.detail as any)?.failed_count ?? 0}</div>
+                        </div>
+                        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/15 px-4 py-3">
+                          <div className="text-xs font-bold text-amber-500">总尝试</div>
+                          <div className="mt-1 text-lg font-semibold text-amber-400">{(selectedArchiveNode.detail as any)?.retry_attempt_total ?? 0}</div>
+                        </div>
+                        <div className="rounded-2xl border border-fuchsia-500/20 bg-fuchsia-500/15 px-4 py-3">
+                          <div className="text-xs font-bold text-fuchsia-400">重试任务</div>
+                          <div className="mt-1 text-lg font-semibold text-fuchsia-300">{(selectedArchiveNode.detail as any)?.retried_job_count ?? 0}</div>
                         </div>
                         <div className="rounded-2xl border border-blue-500/20 bg-blue-500/15 px-4 py-3">
                           <div className="text-xs font-bold text-blue-500">总耗时</div>
@@ -5695,7 +5705,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                               {archiveStatusLabel(job.archive_status)}
                             </span>
                             <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">
-                              尝试 {job.attempts || 0}
+                              尝试 {job.retry_attempt_count ?? job.attempts ?? 0}
                             </span>
                           </div>
                           <div className="mt-3 break-all text-base font-semibold text-theme-text-primary">{job.item_key || job.item_id}</div>
@@ -6089,7 +6099,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                 <td className="px-3 py-3">
                                   <div className="font-bold text-theme-text-secondary">{item.total_retry_count || 0}</div>
                                   <div className="mt-1 text-[11px] text-theme-text-muted">
-                                    自动 {item.auto_retry_count || 0} / 重跑 {item.rerun_count || 0}
+                                    自动 {item.auto_retry_count || 0} / 重跑 {item.rerun_count || 0} / 重建 {item.rebuild_rerun_count || 0}
                                   </div>
                                 </td>
                                 {isSystemAnalysisStageTable ? (
@@ -6237,7 +6247,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                               <div>
                                                 <div className="text-theme-text-muted">重试统计</div>
                                                 <div className="mt-1 text-theme-text-primary">
-                                                  总计 {item.total_retry_count || 0}，自动重试 {item.auto_retry_count || 0}，重跑 {item.rerun_count || 0}
+                                                  总计 {item.total_retry_count || 0}，自动重试 {item.auto_retry_count || 0}，重跑 {item.rerun_count || 0}，重建重跑 {item.rebuild_rerun_count || 0}
                                                 </div>
                                               </div>
                                               <div>

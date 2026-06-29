@@ -87,6 +87,7 @@ export interface NavItem {
   requiresProject?: boolean;
   healthKey?: HealthStatusKey;
   subItems?: SubNavItem[];
+  defaultExpanded?: boolean;
 }
 
 export interface NavSection {
@@ -402,7 +403,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (view === 'home') return 'home';
   if (view.startsWith('task-') || view === 'task-list' || view === 'task-center-timeline') return 'test-task';
   if (view === 'vuln-intake' || view === 'vuln-overview' || view === 'vuln-engine') return 'alert-center';
-  if (view === 'sec-assessment-project' || view === 'sec-baseline-mgmt') return 'sec-assessment';
+  if (view.startsWith('sec-assessment-') || view.startsWith('sec-baseline-')) return 'sec-assessment';
   if (view === 'vuln-engine' || view.startsWith('vuln-')) return 'vuln-center';
   if (view === 'project-mgmt' || view === 'project-detail' || view === 'product-mgmt') return 'assets-center';
   if (view.startsWith('test-input-')) return 'assets-center';
@@ -508,7 +509,10 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
       title: '安全评估',
       items: [
         { id: 'sec-assessment-project', label: '安全评估项目', icon: ClipboardList },
-        { id: 'sec-baseline-mgmt', label: '安全功能基线管理', icon: ShieldCheck },
+        { id: 'sec-baseline', label: '安全功能基线管理', icon: ShieldCheck, defaultExpanded: true, subItems: [
+          { id: 'sec-baseline-mgmt', label: '基线列表' },
+          { id: 'sec-baseline-org-tree', label: '组织树管理' },
+        ] },
       ],
     },
   ],

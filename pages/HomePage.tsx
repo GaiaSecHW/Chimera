@@ -104,7 +104,7 @@ const MODE_ICONS: Record<string, React.ReactNode> = {
 
 // 宣传轮播：image 字段暂留空，后续补充宣传图 URL 即可显示；link 默认 '#'，补充后点击在新标签打开。
 const PROMO_SLIDES = [
-  { title: '第一章 · 降生', subtitle: '四世神裔，融源之子的来历', image: 'https://pic.ibaotu.com/01/87/87/09N888piCU8v.jpg-0.jpg!wwuo340v2', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22379614?l=zh-cn' },
+  { title: '第一章 · 降生', subtitle: '四世神裔，融源之子的来历', image: '', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22379614?l=zh-cn' },
   { title: '第二章 · 三身', subtitle: '一体三面，各司其职的完美共生', image: '', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22382361?l=zh-cn' },
   { title: '第三章 · 吐息', subtitle: '烈焰淬炼，重塑万物本真', image: '', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22385845?l=zh-cn' },
   { title: '第四章 · 破局', subtitle: '旧维失效，新序诞生的必然', image: '', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386057?l=zh-cn' },
@@ -166,28 +166,28 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
               <div className="absolute inset-0 rounded-2xl opacity-60 blur-xl" style={{ background: 'radial-gradient(circle, var(--brand-primary) 0%, transparent 70%)' }} />
               <img alt="Chimera" className="relative w-14 h-14 rounded-2xl" src="/logo.png" />
             </div>
+            <h1
+                className="text-4xl font-bold tracking-tight md:text-5xl xl:text-6xl 2xl:text-7xl"
+                style={{
+                  background: 'linear-gradient(120deg, var(--brand-primary) 0%, #818cf8 45%, #c084fc 100%)',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  color: 'transparent',
+                }}
+            >
+              ICSL Chimera
+            </h1>
             <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-theme-text-muted backdrop-blur" style={{ backgroundColor: GLASS_BG, borderColor: GLASS_BORDER }}>
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               AI 安全验证平台
             </span>
-            <ServiceBuildVersionBadge version={__CHIMERA_BUILD_VERSION__} />
           </div>
           <div className="flex flex-col gap-6 lg:flex-row lg:justify-between lg:items-center">
-            <h1
-              className="text-4xl font-bold tracking-tight md:text-5xl xl:text-6xl 2xl:text-7xl"
-              style={{
-                background: 'linear-gradient(120deg, var(--brand-primary) 0%, #818cf8 45%, #c084fc 100%)',
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                color: 'transparent',
-              }}
-            >
-              ICSL Chimera
-            </h1>
+
             <div className="max-w-3xl border-l-2 pl-6 lg:max-w-2xl xl:max-w-3xl 2xl:max-w-4xl" style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 40%, transparent)' }}>
               <p className="text-sm leading-relaxed text-theme-text-secondary md:text-base">
-                智能体群协作 AI 安全验证平台。面向安全团队与产品团队，将安全专家的经验转化为可复用的自动化能力。
+                面向安全验证的群体AI智能体平台。将ICSL安全专家的经验与智慧，转化为可编排、可进化的AI智能体集群，以龙尾、羊角、狮首三种模式，驱动自动化安全验证，看护每一个版本风险。
               </p>
             </div>
           </div>
