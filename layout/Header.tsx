@@ -133,7 +133,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex justify-start  flex-1 min-w-0 overflow-visible">
-          <nav className="flex items-center gap-1 flex-wrap max-w-full">
+          <nav className="flex items-center gap-1 max-w-full">
             {visibleNavItems.map((item) => {
               const isActive = currentTopLevelNav === item.id;
 
@@ -148,7 +148,7 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <button
                         onClick={() => setIsAssetsCenterOpen((v) => !v)}
-                        className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                        className={`flex items-center gap-1 px-1 sm:px-1.5 lg:px-2 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
                           isActive ? 'head-tab-active' : 'head-tab-hover'
                         }`}
                       >
@@ -194,7 +194,7 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <button
                         onClick={() => setIsSystemAdminOpen((v) => !v)}
-                        className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                        className={`flex items-center gap-1 px-1 sm:px-1.5 lg:px-2 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
                             isActive ? 'head-tab-active' : 'head-tab-hover'
                         }`}
                       >
@@ -233,7 +233,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <React.Fragment key={item.id}>
                   <button
                     onClick={() => onSelectTopLevelNav(item.id)}
-                    className={`px-3 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                    className={`px-1 sm:px-1.5 lg:px-2 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
                         isActive ? 'head-tab-active' : 'head-tab-hover'
                     }`}
                   >
