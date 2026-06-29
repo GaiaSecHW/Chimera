@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { DataTable, DataTableColumn, DropdownSelect, Modal, PageHeader } from '../../design-system';
-import { Bug, CheckCircle2, FileText, Loader2, Pause, Play, Plus, RefreshCw, Rocket, Search, Shield, Trash2, X } from 'lucide-react';
+import { Activity, Ban, Bug, CheckCircle2, FileText, Loader2, Pause, Play, Plus, RefreshCw, Rocket, Search, Shield, Trash2, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { ServicePageTitle } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -14,6 +14,7 @@ import {
   ScheduleCenterUserTask,
   ScheduleCenterUserTaskType,
   ScheduleCenterUserTaskListResponse,
+  ScheduleCenterUserTaskStats,
   SecurityProject,
   UserInfo,
 } from '../../types/types';
@@ -136,7 +137,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
   const [tasks, setTasks] = useState<ScheduleCenterUserTask[]>([]);
   // 漏洞数量角标已下线：不再查询接口、不在任务列表显示数量。恢复时取消注释下方声明及相关链路即可。
   // const [taskVulnCounts, setTaskVulnCounts] = useState<Record<string, number | undefined>>({});
-  const [stats, setStats] = useState<Record<string, number>>({});
+  const [stats, setStats] = useState<ScheduleCenterUserTaskStats>({ total: 0, pending: 0, running: 0, failed: 0, success: 0, cancelled: 0 });
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState(() => searchParams.get('task') || '');
   const [page, setPage] = useState(1);
@@ -252,7 +253,6 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
       } catch { /* nazhua 不可达时不影响列表加载 */ }
 
       setTasks(taskItems);
-      setStats(taskResp.stats || {});
       setTotal(taskResp.total || 0);
       // 漏洞数量角标已下线：不再查询每个任务的漏洞数量
       // void fetchTaskVulnCounts(taskItems);
@@ -263,9 +263,20 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
     }
   };
 
+  const loadStats = async () => {
+    if (!projectId) return;
+    try {
+      const resp = await scheduleApi.getUserTaskStats(projectId);
+      setStats(resp);
+    } catch {
+      // 统计接口失败不阻塞任务列表，保留上一次的统计快照
+    }
+  };
+
   useEffect(() => {
     setPage(1);
     void loadData(1, pageSize, sortBy, sortDirection, query);
+    void loadStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
   useEffect(() => { setSelectedTaskIds([]); }, [projectId, query, page, pageSize, sortBy, sortDirection]);
@@ -379,6 +390,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
       notify('已加入删除队列', 'success');
       setSelectedTaskIds([]);
       await loadData();
+      void loadStats();
     } catch (err: any) {
       notify(err?.message || '删除入队失败', 'error');
     } finally {
@@ -395,6 +407,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
       setChangeProjectTask(null);
       setChangeProjectTargetId('');
       await loadData();
+      void loadStats();
     } catch (err: any) {
       const status = err?.status ?? err?.response?.status;
       if (status === 409) notify('任务运行中，无法转移，请等待完成后再试', 'error');
@@ -452,10 +465,12 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
   };
 
   const statsCards = [
-    { label: '总任务', value: stats.total || total, icon: Shield, color: 'var(--text-primary)', shadow: 'var(--mask-primary)'},
-    { label: '排队中', value: stats.queued || 0, icon: Rocket, color: '#D97706', shadow: 'rgba(217, 119, 6, 0.08)' },
-    { label: '运行中', value: stats.running || 0, icon: CheckCircle2, color: '#2563EB', shadow: 'rgba(37, 99, 235, 0.08)' },
-    { label: '失败', value: stats.failed || 0, icon: X, color: '#DC2626', shadow: 'rgba(220, 38, 38, 0.08)' },
+    { label: '总任务', value: stats.total, icon: Shield, color: 'var(--text-primary)', shadow: 'var(--mask-primary)' },
+    { label: '等待中', value: stats.pending, icon: Rocket, color: '#D97706', shadow: 'rgba(217, 119, 6, 0.08)' },
+    { label: '运行中', value: stats.running, icon: Activity, color: '#2563EB', shadow: 'rgba(37, 99, 235, 0.08)' },
+    { label: '成功', value: stats.success, icon: CheckCircle2, color: '#30A46C', shadow: 'rgba(48, 164, 108, 0.08)' },
+    { label: '失败', value: stats.failed, icon: X, color: '#DC2626', shadow: 'rgba(220, 38, 38, 0.08)' },
+    { label: '已取消', value: stats.cancelled, icon: Ban, color: '#8b95a8', shadow: 'rgba(139, 149, 168, 0.08)' },
   ];
 
   return (
@@ -468,7 +483,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
         description="统一展示当前项目下的所有测试任务，追踪分发、执行与同步状态"
       />
 
-      <div className={`grid grid-cols-4 ${hideActionBar ? "bg-theme-bg-app" : "bg-theme-surface"}`}>
+      <div className={`grid grid-cols-6 ${hideActionBar ? "bg-theme-bg-app" : "bg-theme-surface"}`}>
         {statsCards.map((item, i) => {
           const Icon = item.icon;
           return (
@@ -530,7 +545,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                     className="form-input w-full pl-10"
                 />
               </div>
-              <button onClick={() => void loadData()} className="button-surface px-4 py-2.5 text-sm ml-auto" title="刷新列表">
+              <button onClick={() => { void loadData(); void loadStats(); }} className="button-surface px-4 py-2.5 text-sm ml-auto" title="刷新列表">
                 <RefreshCw size={16} />
               </button>
             </div>

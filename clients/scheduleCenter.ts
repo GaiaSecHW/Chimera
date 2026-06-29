@@ -1,4 +1,5 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
+import { ScheduleCenterUserTaskStats } from '../types/types';
 
 export interface ScheduleCenterUploadTask {
   task_id: string;
@@ -116,6 +117,12 @@ export const scheduleCenterApi = {
       { headers: getHeaders() },
     ));
   },
+
+  getUserTaskStats: async (projectId: string): Promise<ScheduleCenterUserTaskStats> =>
+    handleResponse(await fetch(
+      `${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/user-tasks/stats`,
+      { headers: getHeaders() },
+    )),
 
   listUploadTasks: async (projectId: string, uploadId: string): Promise<ScheduleCenterUploadTaskListResponse> =>
     handleResponse(await fetch(
