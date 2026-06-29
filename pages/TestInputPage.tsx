@@ -721,23 +721,22 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                   setSelectedType(inputType);
                   setPage(1);
                 }}
-                className={`stat-card group relative rounded-xl border p-5 text-left bg-theme-surface transition cursor-pointer border-theme-border ${selectedType === inputType ? 'is-selected' : ''}`}
+                className={`stat-card group relative flex items-center gap-4 rounded-xl border p-4 text-left bg-theme-surface transition cursor-pointer border-theme-border ${selectedType === inputType ? 'is-selected' : ''}`}
               >
-                <ChevronRight
-                  size={16}
-                  className={`pointer-events-none absolute right-5 top-5 transition-all duration-200 group-hover:translate-x-0.5 ${selectedType === inputType ? 'text-brand-primary opacity-100' : 'text-theme-text-faint opacity-60 group-hover:text-brand-primary group-hover:opacity-100'}`}
-                />
-                <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.2em] ${meta.tone}`}>
+                <div className={`w-12 h-12 flex-none rounded-lg flex items-center justify-center ${meta.tone}`}>
                   {meta.icon}
-                  {meta.label}
                 </div>
-                <div className="mt-4 flex items-center justify-between gap-4">
-                  <div className="text-[11px] font-medium uppercase tracking-[0.18em] opacity-70">上传记录</div>
-                  <div className="flex items-baseline gap-3 text-right">
-                    <div className="text-3xl font-bold">{stats.total_uploads}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold uppercase tracking-[0.18em] opacity-70">{meta.label}</div>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <div className="text-3xl font-bold tabular-nums">{stats.total_uploads}</div>
                     <div className="text-xs font-semibold opacity-80">{formatUploadBytes(stats.stored_total_size_bytes)}</div>
                   </div>
                 </div>
+                <ChevronRight
+                  size={18}
+                  className={`flex-none transition-all duration-200 group-hover:translate-x-0.5 ${selectedType === inputType ? 'text-brand-primary opacity-100' : 'text-theme-text-faint opacity-60 group-hover:text-brand-primary group-hover:opacity-100'}`}
+                />
               </button>
             );
           })}
