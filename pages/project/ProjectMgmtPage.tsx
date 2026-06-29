@@ -138,25 +138,16 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   const versionDropdownRef = useRef<HTMLDivElement>(null);
 
   const loadStats = async () => {
-    const envStats = (projects || []).map((p) =>
-      fetch(`${API_BASE}/api/agent/agents/stats?project_id=${encodeURIComponent(p.id)}`, { headers: getHeaders() })
-        .then((r) => handleResponse(r))
-        .catch(() => null),
-    );
-    const [taskRes, vulnRes, ...envResults] = await Promise.allSettled([
+    const [taskRes, vulnRes, envRes] = await Promise.allSettled([
       scheduleApi.listGlobalTasks({ page: 1, page_size: 1 }),
       vulnApi.getOverview(),
-      ...envStats,
+      fetch(`${API_BASE}/api/agent/agents/stats`, { headers: getHeaders() })
+        .then((r) => handleResponse(r))
+        .catch(() => null),
     ]);
     setTaskCount(taskRes.status === 'fulfilled' ? Number(taskRes.value?.total || 0) : null);
     setVulnCount(vulnRes.status === 'fulfilled' ? Number(vulnRes.value?.human_finished_reason_counts?.vulnerable || 0) : null);
-    const envTotal = envResults.reduce<number>((sum, res) => {
-      if (res.status === 'fulfilled' && res.value) {
-        return sum + Number(res.value?.summary?.total_agents || 0);
-      }
-      return sum;
-    }, 0);
-    setEnvCount(envResults.some((res) => res.status === 'fulfilled') ? envTotal : null);
+    setEnvCount(envRes.status === 'fulfilled' ? Number(envRes.value?.summary?.total_agents || 0) : null);
   };
 
   useEffect(() => {

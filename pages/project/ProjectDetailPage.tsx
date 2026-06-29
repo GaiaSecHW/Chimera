@@ -156,7 +156,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
       const [taskResp, envResp, vulnResp] = await Promise.all([
         scheduleCenterApi.listUserTasks(projectId, { page: 1, page_size: 20 }).catch(() => ({ items: [], total: 0 })),
         environmentApi.getAgents(projectId, { page: 1, per_page: 20 }).catch(() => ({ agents: [], total: 0 })),
-        api.vuln.listCases({ project_id: projectId, page: 1, page_size: 20 }).catch(() => ({ items: [], total: 0 })),
+        api.vuln.listCases({ project_id: projectId, human_confirmed: true, page: 1, page_size: 20 }).catch(() => ({ items: [], total: 0 })),
       ]);
       setTaskCount(Number(taskResp.total || 0));
       setEnvCount(Number(envResp.total || 0));

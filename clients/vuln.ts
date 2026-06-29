@@ -299,6 +299,7 @@ export interface VulnCaseListParams {
   evolution_round?: number;
   global_vuln_id?: string;
   final_result?: 'vulnerable' | 'not_vulnerable' | 'inconclusive' | 'analyzing';
+  human_confirmed?: boolean;
 }
 
 export interface VulnCaseListResponse {
