@@ -4,6 +4,7 @@ import {
   Bot,
   CheckCircle2,
   Database,
+  Link2,
   Loader2,
   Plus,
   RefreshCw,
@@ -84,6 +85,54 @@ interface FormState {
 type ErrorMap = Partial<Record<keyof FormState | 'catalog' | 'root', string>>;
 
 const isInt = (value: string): boolean => /^\d+$/.test(value.trim()) && Number.isSafeInteger(Number(value));
+
+interface ParsedServiceUrl {
+  deployment?: string;
+  namespace?: string;
+  service_port?: string;
+  api_prefix?: string;
+  health_path?: string;
+}
+
+/**
+ * Parse a k8s service DNS URL like
+ *   http://{deployment}.{namespace}.svc.cluster.local:{port}{path}
+ * into the microservice form fields. Returns null when blank or invalid.
+ * The path is split at the last "/" so that
+ *   /api/project/health -> api_prefix=/api/project, health_path=/health
+ */
+const parseMicroserviceUrl = (input: string): ParsedServiceUrl | null => {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    return null;
+  }
+  const parts = url.hostname.split('.');
+  if (parts.length < 2) return null;
+  const result: ParsedServiceUrl = {
+    deployment: parts[0],
+    namespace: parts[1],
+  };
+  // URL.port strips default ports (80 for http, 443 for https), so extract from raw input
+  const portMatch = trimmed.match(/^https?:\/\/[^/]+:(\d+)/);
+  const port = portMatch ? portMatch[1] : url.port;
+  if (port) result.service_port = port;
+  const pathname = url.pathname;
+  if (pathname && pathname !== '/') {
+    const clean = pathname.replace(/\/+$/, '');
+    const segments = clean.split('/').filter(Boolean);
+    if (segments.length === 1) {
+      result.health_path = '/' + segments[0];
+    } else if (segments.length >= 2) {
+      result.health_path = '/' + segments[segments.length - 1];
+      result.api_prefix = '/' + segments.slice(0, -1).join('/');
+    }
+  }
+  return result;
+};
 
 const validate = (form: FormState): ErrorMap => {
   const errors: ErrorMap = {};
@@ -193,6 +242,7 @@ export const ToolRegistrationPage: React.FC = () => {
   const [agentAppsLoading, setAgentAppsLoading] = useState(false);
   const [myTools, setMyTools] = useState<ToolListItem[]>([]);
   const [listLoading, setListLoading] = useState(false);
+  const [microserviceUrl, setMicroserviceUrl] = useState('');
 
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -200,6 +250,27 @@ export const ToolRegistrationPage: React.FC = () => {
       if (!prev[key]) return prev;
       const next = { ...prev };
       delete next[key];
+      return next;
+    });
+  };
+
+  const handleMicroserviceUrlChange = (value: string) => {
+    setMicroserviceUrl(value);
+    const parsed = parseMicroserviceUrl(value);
+    if (!parsed) return;
+    setForm((prev) => ({
+      ...prev,
+      ...(parsed.deployment !== undefined ? { deployment: parsed.deployment } : {}),
+      ...(parsed.namespace !== undefined ? { namespace: parsed.namespace } : {}),
+      ...(parsed.service_port !== undefined ? { service_port: parsed.service_port } : {}),
+      ...(parsed.api_prefix !== undefined ? { api_prefix: parsed.api_prefix } : {}),
+      ...(parsed.health_path !== undefined ? { health_path: parsed.health_path } : {}),
+    }));
+    setErrors((prev) => {
+      const next = { ...prev };
+      (['deployment', 'namespace', 'service_port', 'api_prefix', 'health_path'] as const).forEach((k) => {
+        if (next[k]) delete next[k];
+      });
       return next;
     });
   };
@@ -283,6 +354,7 @@ export const ToolRegistrationPage: React.FC = () => {
       setForm(DEFAULT_FORM);
       setProbeResult(null);
       setProbeError('');
+      setMicroserviceUrl('');
       await refreshMyTools();
     } catch (error) {
       const message = error instanceof Error ? error.message : '工具注册失败';
@@ -297,6 +369,7 @@ export const ToolRegistrationPage: React.FC = () => {
     setErrors({});
     setProbeResult(null);
     setProbeError('');
+    setMicroserviceUrl('');
   };
 
   const kindOptions = useMemo(() => [
@@ -395,6 +468,18 @@ export const ToolRegistrationPage: React.FC = () => {
               <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-primary">
                 <Server size={15} /> 微服务连通信息
               </div>
+              <FormField
+                label="URL 快速填充"
+                hint="粘贴完整探活 URL，自动解析 deployment / namespace / service_port / api_prefix / health_path"
+              >
+                <Input
+                  value={microserviceUrl}
+                  onChange={(e) => handleMicroserviceUrlChange(e.target.value)}
+                  placeholder="http://{deployment}.{namespace}.svc.cluster.local:{port}{path}"
+                  prefix={<Link2 size={14} />}
+                  className="font-mono text-xs"
+                />
+              </FormField>
               <div className={inputGridClass}>
                 <FormField label="deployment" required error={errors.deployment}>
                   <Input
