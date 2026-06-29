@@ -137,7 +137,7 @@ export const useUiFeedback = () => {
           <div className="fixed inset-0 z-[270] bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-6">
             <div className="w-full max-w-lg bg-theme-surface rounded-3xl border border-theme-border shadow-section overflow-hidden">
               <div className="p-7 border-b border-theme-border">
-                <p className="text-[10px] font-semibold tracking-widest text-theme-text-faint uppercase">确认操作</p>
+                <p className="text-sm font-semibold tracking-widest  text-theme-text-primary uppercase">确认操作</p>
                 <h3 className="text-2xl font-semibold text-theme-text-primary mt-2">{confirmState.title}</h3>
                 <p className="text-sm text-theme-text-secondary mt-3 leading-relaxed whitespace-pre-wrap">{confirmState.message}</p>
               </div>
@@ -147,7 +147,7 @@ export const useUiFeedback = () => {
                     confirmState.resolve(false);
                     setConfirmState(null);
                   }}
-                  className="px-5 py-2.5 rounded-xl bg-theme-elevated text-theme-text-secondary font-bold hover:bg-theme-surface transition-all"
+                  className="btn-secondary"
                 >
                   {confirmState.cancelText}
                 </button>
@@ -156,7 +156,7 @@ export const useUiFeedback = () => {
                     confirmState.resolve(true);
                     setConfirmState(null);
                   }}
-                  className={`px-5 py-2.5 rounded-xl text-theme-text-inverse font-bold transition-all ${
+                  className={`px-3.5 py-2.5 rounded-lg text-theme-text-inverse text-sm transition-colors text-white ${
                     confirmState.danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-blue-600 hover:bg-blue-700'
                   }`}
                 >

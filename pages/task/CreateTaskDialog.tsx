@@ -980,15 +980,14 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           <div className="flex items-center justify-end gap-2 px-6 py-4" style={{ borderTop: `1px solid ${LK.border}` }}>
             <button
               onClick={handleClose}
-              className="btn-secondary rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-              style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+              className="btn-secondary"
             >
               取消
             </button>
             <button
               onClick={() => void createTask()}
               disabled={saving || uploading || !canCreateTask}
-              className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
+              className="btn-primary"
             >
               {saving ? '创建中...' : uploading ? '上传中...' : '创建任务'}
             </button>

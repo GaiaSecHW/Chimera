@@ -521,7 +521,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     helperText: string
   ) => (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>归属部门 <span className="required"> *</span></label>
+      <label className="text-sm font-semibold text-theme-text-secondary">归属部门 <span className="required"> *</span></label>
       <DropdownSelect
         value={value}
         onChange={onChange}
@@ -538,7 +538,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
 
   const renderProductComboBox = () => (
     <div className="space-y-1.5" ref={productDropdownRef}>
-      <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>产品名称 <span className="required"> *</span></label>
+      <label className="text-sm font-semibold text-theme-text-secondary">产品名称 <span className="required"> *</span></label>
       <div className="relative">
         <input
           placeholder="输入产品名称，或从列表选择..."
@@ -591,7 +591,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
 
   const renderVersionComboBox = () => (
     <div className="space-y-1.5" ref={versionDropdownRef}>
-      <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>版本号 <span className="required"> *</span></label>
+      <label className="text-sm font-semibold text-theme-text-secondary">版本号 <span className="required"> *</span></label>
       <div className="relative">
         <input
           placeholder={selectedProductId ? '输入版本号，或从列表选择...' : '请先选择或输入产品名称'}
@@ -906,7 +906,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 </div>
               )}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>项目名称 <span className="required"> *</span></label>
+                <label className="text-sm font-semibold text-theme-text-secondary">项目名称 <span className="required"> *</span></label>
                 <input
                   required
                   placeholder="例如：核心业务 API 渗透测试"
@@ -916,7 +916,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>项目简述</label>
+                <label className="text-sm font-semibold text-theme-text-secondary">项目简述</label>
                 <textarea
                   rows={3}
                   placeholder="描述该项目的评估目标与范围..."
@@ -936,11 +936,11 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
 
               {renderVersionComboBox()}
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => { setIsCreateModalOpen(false); resetCreateForm(); }}
-                  className="flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
+                  className="btn-secondary"
                   style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
                   onMouseEnter={(e) => (e.currentTarget.style.color = LK.ink)}
                   onMouseLeave={(e) => (e.currentTarget.style.color = LK.body)}
@@ -950,7 +950,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50"
+                  className="btn btn-primary"
                   style={{ backgroundColor: LK.primary, color: '#ffffff' }}
                   onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
                   onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
@@ -1049,7 +1049,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 </div>
               )}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>项目名称 <span className="required"> *</span></label>
+                <label className="text-sm font-semibold text-theme-text-secondary">项目名称 <span className="required"> *</span></label>
                 <input
                   required
                   placeholder="例如：核心业务 API 渗透测试"
@@ -1059,7 +1059,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium" style={{ color: LK.mutedSoft }}>项目简述</label>
+                <label className="text-sm font-semibold text-theme-text-secondary">项目简述</label>
                 <textarea
                   rows={3}
                   placeholder="描述该项目的评估目标与范围..."

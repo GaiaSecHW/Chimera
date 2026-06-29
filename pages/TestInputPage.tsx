@@ -1394,7 +1394,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-3">
-              <button onClick={() => setDeleteTarget(null)} className="btn btn-secondary">取消</button>
+              <button onClick={() => setDeleteTarget(null)} className="btn-secondary">取消</button>
               <button onClick={() => { void executeDelete(); }} className="btn btn-danger-soft">确认删除</button>
             </div>
           </div>
