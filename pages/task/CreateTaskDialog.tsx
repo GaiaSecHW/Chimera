@@ -665,7 +665,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   </div>
                   {!canUseLionHead ? (
                     <div className="mt-1.5 text-xs" style={{ color: LK.mutedSoft }}>
-                      狮首模式正在测试阶段目前仅限 ICSL 部门使用
+                      狮首当前处于测试阶段，敬请期待
                     </div>
                   ) : null}
                 </div>
