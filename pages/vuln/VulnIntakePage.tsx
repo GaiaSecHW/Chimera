@@ -318,6 +318,19 @@ const getEffectiveResult = (item: any) => String(item?.finished_reason || item?.
 
 const isHumanFinishedCase = (item: any) => item?.is_human_finished === true;
 
+const getReporterName = (item: any) => String(item?.reporter?.name || '').trim();
+
+const hasConfiguredConfirmEngine = (item: any, engineTools: Set<string>) => {
+  const reporterName = getReporterName(item);
+  return !!reporterName && engineTools.has(reporterName);
+};
+
+const shouldEnterVulnCenter = (item: any, engineTools: Set<string>) => {
+  if (item?.engine_confirmed_vulnerable === true) return true;
+  if (isHumanFinishedCase(item)) return true;
+  return !hasConfiguredConfirmEngine(item, engineTools);
+};
+
 const matchesFinalResultFilter = (item: any, filters: string[]) => {
   if (!filters || filters.length === 0) return true;
   const effective = isHumanFinishedCase(item) ? getEffectiveResult(item) : '';
@@ -821,9 +834,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       };
       const matchesFinalResult = (item: any) => matchesFinalResultFilter(item, finalResultFilter);
       const matchesSuspect = (item: any): boolean => {
-        if (item.is_human_finished) return true;
-        const reporterName: string = item?.reporter?.name || '';
-        if (reporterName && engineTools.has(reporterName)) {
+        if (isHumanFinishedCase(item)) return true;
+        if (hasConfiguredConfirmEngine(item, engineTools)) {
           return getEffectiveResult(item) === 'vulnerable';
         }
         return true;
@@ -862,7 +874,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         sortDirection,
       );
       const filtered = merged
-        .filter((it) => it?.engine_confirmed_vulnerable === true || (it?.current_stage === 'validation' && (it?.validation_result === 'inconclusive' || it?.validation_result === 'manual_terminated')))
+        .filter((it) => shouldEnterVulnCenter(it, engineTools))
         .filter(matchesSuspect)
         .filter(matchesFinalResult);
       const nextPage = pageOverride ?? currentPage;
@@ -1775,9 +1787,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       };
       const matchesFinalResult = (item: any) => matchesFinalResultFilter(item, finalResultFilter);
       const matchesSuspect = (item: any): boolean => {
-        if (item.is_human_finished) return true;
-        const reporterName: string = item?.reporter?.name || '';
-        if (reporterName && engineTools.has(reporterName)) {
+        if (isHumanFinishedCase(item)) return true;
+        if (hasConfiguredConfirmEngine(item, engineTools)) {
           return getEffectiveResult(item) === 'vulnerable';
         }
         return true;
@@ -1786,11 +1797,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       const taskIds = taskFilter.length > 0 ? taskFilter : [undefined];
       for (const taskId of taskIds) {
         const first = await vulnApi.vuln.listCases({ ...baseParams, source_task_id: taskId, page: 1, page_size: 500 });
-        ids.push(...(first.items || []).filter((it: any) => it?.engine_confirmed_vulnerable === true).filter(matchesSuspect).filter(matchesFinalResult).map((item: any) => item.id).filter(Boolean));
+        ids.push(...(first.items || []).filter((it: any) => shouldEnterVulnCenter(it, engineTools)).filter(matchesSuspect).filter(matchesFinalResult).map((item: any) => item.id).filter(Boolean));
         const pages = Math.ceil(Number(first.total || 0) / 500);
         for (let page = 2; page <= pages; page += 1) {
           const next = await vulnApi.vuln.listCases({ ...baseParams, source_task_id: taskId, page, page_size: 500 });
-          ids.push(...(next.items || []).filter((it: any) => it?.engine_confirmed_vulnerable === true).filter(matchesSuspect).filter(matchesFinalResult).map((item: any) => item.id).filter(Boolean));
+          ids.push(...(next.items || []).filter((it: any) => shouldEnterVulnCenter(it, engineTools)).filter(matchesSuspect).filter(matchesFinalResult).map((item: any) => item.id).filter(Boolean));
         }
       }
       const reportIds = Array.from(new Set(ids));
