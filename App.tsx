@@ -475,8 +475,8 @@ const AppShell: React.FC = () => {
   }, [user, currentView, navigateToView]);
 
   // 开发者角色登录后默认进入首页（/home），而非系统管理控制台（/dashboard）。
-  // handleLogout 会把 URL 留在 /dashboard，导致下次登录时 currentView 继承为 'dashboard'，
-  // 这里在用户加载后把开发者从 dashboard 视图重定向回首页。管理员不受影响。
+  // handleLogout 已将 URL 重定向到 /home，这里作为安全兜底：防止开发者通过
+  // 直接访问 URL 等方式停留在 dashboard 视图，在用户加载后重定向回首页。管理员不受影响。
   useEffect(() => {
     if (!user) return;
     const access = getUserAccess(user);
@@ -599,7 +599,7 @@ const AppShell: React.FC = () => {
     setUser(null);
     setProjects([]);
     setSelectedProjectId('');
-    navigateToView('dashboard');
+    navigateToView('home');
   };
 
   const handleForcedPasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
