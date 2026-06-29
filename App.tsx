@@ -584,6 +584,13 @@ const AppShell: React.FC = () => {
     try {
       const data = await platformApi.auth.login(credentials);
       localStorage.setItem('chimera_token', data.access_token);
+      // 同步恢复上次选中的项目 ID，避免 fetchProjects 异步完成前点击
+      // 需要项目的视图（task-list / vuln-list 等）被 PROJECT_REQUIRED_VIEWS
+      // 重定向逻辑踢回首页。fetchProjects 完成后会校验并修正此值。
+      const storedProjectId = localStorage.getItem('last_project_id');
+      if (storedProjectId) {
+        setSelectedProjectId(storedProjectId);
+      }
       setToken(data.access_token);
     } catch (err: any) {
       setLoginError(err.message || "登录失败，请检查用户名和密码");
