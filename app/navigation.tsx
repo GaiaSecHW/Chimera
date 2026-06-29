@@ -555,7 +555,7 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
         { id: 'binary-security', label: '盖亚-二进制固件', icon: Settings, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
         { id: 'source-security', label: '盖亚-源码', icon: Settings, aliases: ['source-security-detail'], requiresProject: true },
         { id: 'kg-source-security', label: '知识图谱-源码漏洞挖掘', icon: Settings, aliases: ['kg-source-security-detail'], requiresProject: true },
-        { id: 'cfg-db-vuln-tool', label: 'CFG-数据库漏洞挖掘', icon: GitBranch, aliases: ['cfg-db-vuln-detail'], requiresProject: true },
+        { id: 'cfg-db-vuln-tool', label: '知识图谱-源码（CFG+DFG）', icon: GitBranch, aliases: ['cfg-db-vuln-detail'], requiresProject: true },
         { id: 'binary-module-security', label: '盖亚-二进制模块', icon: Settings, aliases: ['binary-module-security-detail'], requiresProject: true },
         { id: 'app-security-scan', label: 'turing 扫描工具', icon: Smartphone, aliases: ['app-security-scan-detail', 'app-security-scan-monitor'], requiresProject: true },
         { id: 'redline-verification', label: '红线验证', icon: ShieldCheck, aliases: ['redline-verification-detail'], requiresProject: true },

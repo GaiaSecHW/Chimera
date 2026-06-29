@@ -1,93 +1,46 @@
 /* @refresh reset */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Background, Controls, Edge, Handle, MarkerType, Node, NodeProps, Position, ReactFlow } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import { ArrowLeft, Loader2, RefreshCw, PlayCircle, Search, ShieldAlert, Network, Table2, Bug, ShieldCheck } from 'lucide-react';
+import {
+  Loader2, RefreshCw, PlayCircle, Search, ShieldAlert, Bug,
+  Check, Crosshair, ListChecks, Sparkles, AlertTriangle, Layers,
+} from 'lucide-react';
 
 import { api } from '../../clients/api';
 import type { CfgPipelineDetail, CfgPipelineEntry, CfgPipelineEntriesResponse, CfgPipelineFindings } from '../../clients/cfgPipeline';
 import { useUiFeedback } from '../../components/UiFeedback';
-
-const STAGE_LABEL: Record<string, string> = {
-  entry_analysis: '入口分析',
-  dataflow_vuln_scan: '数据库漏洞挖掘',
-};
+import { PageHeader } from '../../design-system';
 
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
-// ── Dispatch tree (xyflow): pipeline root → fan-out child audit tasks ────────
+// pipeline 仍在推进的状态(非终态)→ 需要轮询。pending 是刚创建、worker 尚未接手的
+// 初态:之前漏掉它导致「新建后入口不自动刷新,要退出重进」。把它纳入即可实时刷新。
+const LIVE_STATUSES = new Set(['pending', 'analyzing', 'auditing']);
+
 interface ChildRow { task_id: string; function_name: string; status: string; finding_count: number }
 
-function childTone(c: ChildRow): { node: string; badge: string } {
-  if (c.finding_count > 0) return { node: 'border-rose-300 bg-rose-50 text-rose-800', badge: 'bg-rose-100 text-rose-700' };
-  if (c.status === 'running' || c.status === 'pending') return { node: 'border-blue-300 bg-blue-50 text-blue-800', badge: 'bg-blue-100 text-blue-700' };
-  if (c.status === 'failed' || c.status === 'error' || c.status === 'cancelled') return { node: 'border-amber-300 bg-amber-50 text-amber-800', badge: 'bg-amber-100 text-amber-700' };
-  if (c.status === 'passed') return { node: 'border-emerald-300 bg-emerald-50 text-emerald-800', badge: 'bg-emerald-100 text-emerald-700' };
-  return { node: 'border-slate-300 bg-white text-slate-700', badge: 'bg-slate-100 text-slate-600' };
-}
-
-interface RootNodeData extends Record<string, unknown> { label: string; total: number; passed: number }
-function RootNode({ data }: NodeProps<Node<RootNodeData>>) {
-  return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-white shadow-md">
-      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border !border-slate-600 !bg-slate-400" />
-      <div className="text-sm font-semibold">{data.label}</div>
-      <div className="mt-0.5 text-[11px] text-slate-300">{data.passed}/{data.total} 子任务完成</div>
-    </div>
-  );
-}
-
-interface ChildNodeData extends Record<string, unknown> { row: ChildRow }
-function ChildNode({ data }: NodeProps<Node<ChildNodeData>>) {
-  const c = data.row;
-  const tone = childTone(c);
-  return (
-    <div className={`min-w-[180px] rounded-lg border px-3 py-2 shadow-sm ${tone.node}`}>
-      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border !border-slate-300 !bg-slate-400" />
-      <div className="truncate text-xs font-semibold" style={{ fontFamily: MONO }}>{c.function_name}</div>
-      <div className="mt-1 flex items-center gap-1.5">
-        <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${tone.badge}`}>{c.status}</span>
-        {c.finding_count > 0
-          ? <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-rose-700"><Bug size={10} />{c.finding_count}</span>
-          : c.status === 'passed' ? <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-600"><ShieldCheck size={10} />0</span> : null}
-      </div>
-    </div>
-  );
-}
-
-const dispatchNodeTypes = { rootNode: RootNode, childNode: ChildNode };
-
-function buildDispatchGraph(name: string, total: number, passed: number, children: ChildRow[]): { nodes: Node[]; edges: Edge[] } {
-  const nodes: Node[] = [{
-    id: '__root__', type: 'rootNode', position: { x: 0, y: Math.max(0, (children.length - 1) * 33) },
-    data: { label: name || '挖掘任务', total, passed } as RootNodeData,
-  }];
-  const edges: Edge[] = [];
-  children.forEach((c, i) => {
-    nodes.push({ id: c.task_id, type: 'childNode', position: { x: 320, y: i * 66 }, data: { row: c } as ChildNodeData });
-    edges.push({
-      id: `e_${c.task_id}`, source: '__root__', target: c.task_id,
-      markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: '#cbd5e1' },
-      style: { stroke: '#cbd5e1' },
-    });
-  });
-  return { nodes, edges };
-}
-
-const SEV_COLOR: Record<string, string> = {
-  CRITICAL: 'bg-red-100 text-red-700',
-  HIGH: 'bg-orange-100 text-orange-700',
-  MEDIUM: 'bg-amber-100 text-amber-700',
-  LOW: 'bg-blue-100 text-blue-700',
-  INFO: 'bg-gray-100 text-gray-600',
+const CHILD_STATUS_TONE: Record<string, string> = {
+  running: 'border-sky-400/40 bg-sky-500/12 text-sky-200',
+  pending: 'border-sky-400/40 bg-sky-500/12 text-sky-200',
+  passed: 'border-emerald-400/40 bg-emerald-500/12 text-emerald-200',
+  failed: 'border-amber-400/40 bg-amber-500/12 text-amber-200',
+  error: 'border-amber-400/40 bg-amber-500/12 text-amber-200',
+  cancelled: 'border-theme-border bg-theme-surface text-theme-text-muted',
 };
 
-// reason buckets to help the user cut 1000s of candidates down to signal
-// "High value" highlights entries more likely to carry attacker-controlled
-// input. The manager-based source detector reports channel/subkind
-// (NETWORK/IPC/FILE + net.*/ipc.*/file.read) plus a free-text Chinese reason,
-// so match those signals; the trailing patterns keep the older rule-based
-// reason tags working too.
+const SEV_COLOR: Record<string, string> = {
+  CRITICAL: 'border-red-400/40 bg-red-500/15 text-red-200',
+  HIGH: 'border-orange-400/40 bg-orange-500/15 text-orange-200',
+  MEDIUM: 'border-amber-400/40 bg-amber-500/15 text-amber-200',
+  LOW: 'border-sky-400/40 bg-sky-500/15 text-sky-200',
+  INFO: 'border-theme-border bg-theme-surface text-theme-text-muted',
+};
+
+// 攻击面(channel)就是入口的来源通道。空值归一成「未分类」。
+const UNCLASSIFIED = '未分类';
+const surfaceOf = (e: CfgPipelineEntry): string => String(e.channel || '').trim().toUpperCase() || UNCLASSIFIED;
+
+// reason buckets to help the user cut 1000s of candidates down to signal.
+// "High value" highlights entries more likely to carry attacker-controlled input.
 function isHighValue(e?: { reason?: string | null; channel?: string | null; entry_point_kind?: string | null } | null): boolean {
   if (!e) return false;
   const ch = (e.channel || '').toUpperCase();
@@ -97,6 +50,17 @@ function isHighValue(e?: { reason?: string | null; channel?: string | null; entr
   const reason = e.reason || '';
   return /syscall_caller|name_match|register_callback|fops_table|parse_caller|extern_c|macro_export|外部|网络|输入|gRPC|socket|recv/i.test(reason);
 }
+
+// 阶段进度小药丸:用于顶部 stepper。
+type StepState = 'pending' | 'active' | 'done' | 'failed';
+const STEP_DOT: Record<StepState, string> = {
+  pending: 'border-theme-border bg-theme-surface text-theme-text-faint',
+  active: 'border-sky-400/60 bg-sky-500/15 text-sky-300 ring-2 ring-sky-400/20',
+  done: 'border-emerald-400/60 bg-emerald-500/15 text-emerald-300',
+  failed: 'border-rose-400/60 bg-rose-500/15 text-rose-300',
+};
+
+type TabKey = 'entries' | 'vuln';
 
 export const CfgDbVulnDetailPage: React.FC<{ projectId: string; taskId: string; onBack: () => void }> = ({ projectId, taskId, onBack }) => {
   const appApi = api.domains.execution.cfgPipeline;
@@ -110,7 +74,8 @@ export const CfgDbVulnDetailPage: React.FC<{ projectId: string; taskId: string; 
   const [fanningOut, setFanningOut] = useState(false);
   const [filter, setFilter] = useState('');
   const [onlyHighValue, setOnlyHighValue] = useState(false);
-  const [s2View, setS2View] = useState<'graph' | 'table'>('graph');
+  const [activeSurface, setActiveSurface] = useState<string>('ALL');
+  const [tab, setTab] = useState<TabKey>('entries');
 
   const openChild = useCallback((childTaskId: string) => {
     window.dispatchEvent(new CustomEvent('chimera-navigate-view', {
@@ -123,9 +88,9 @@ export const CfgDbVulnDetailPage: React.FC<{ projectId: string; taskId: string; 
     try {
       const d = await appApi.getPipeline(taskId);
       setDetail(d);
-      if (d.stages.entry_analysis.status === 'passed') {
-        const er = await appApi.getEntries(taskId);
-        setEntriesResp(er);
+      const s1 = d.stages.entry_analysis;
+      if (s1.status === 'passed' || d.status === 'entries_ready' || s1.entry_count > 0) {
+        try { setEntriesResp(await appApi.getEntries(taskId)); } catch { /* 入口尚未落盘,下次轮询再取 */ }
       }
       if (d.stages.dataflow_vuln_scan.summary.total > 0) {
         setFindings(await appApi.getFindings(taskId));
@@ -137,30 +102,40 @@ export const CfgDbVulnDetailPage: React.FC<{ projectId: string; taskId: string; 
     }
   }, [appApi, taskId, notify]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { setLoading(true); refresh(); }, [refresh]);
 
-  // poll while a stage is in flight
+  // 轮询:只要 pipeline 还在推进(pending/analyzing/auditing)就每 4s 刷新。
+  // 关键修复:之前只在 analyzing/auditing 轮询,漏了 pending(刚创建时的初态),
+  // 导致入口分析完成也不自动刷新,必须退出重进。
   useEffect(() => {
     if (!detail) return;
-    const active = detail.status === 'analyzing' || detail.status === 'auditing';
-    if (!active) return;
-    const t = setInterval(refresh, 5000);
+    if (!LIVE_STATUSES.has(detail.status)) return;
+    const t = setInterval(refresh, 4000);
     return () => clearInterval(t);
   }, [detail, refresh]);
 
   const entryKey = (e: CfgPipelineEntry) => e.source_id || `${e.function_name}@${e.source_file}:${e.line}`;
 
+  const allEntries = entriesResp?.entries || [];
+
+  // 攻击面分组:统计每个通道的入口数,用于「按攻击面批量选择」。
+  const surfaces = useMemo(() => {
+    const m = new Map<string, number>();
+    allEntries.forEach((e) => m.set(surfaceOf(e), (m.get(surfaceOf(e)) || 0) + 1));
+    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
+  }, [allEntries]);
+
   const visibleEntries = useMemo(() => {
-    const all = entriesResp?.entries || [];
     const f = filter.trim().toLowerCase();
-    return all.filter((e) => {
+    return allEntries.filter((e) => {
+      if (activeSurface !== 'ALL' && surfaceOf(e) !== activeSurface) return false;
       if (onlyHighValue && !isHighValue(e)) return false;
       if (!f) return true;
       return (e.function_name || '').toLowerCase().includes(f)
         || (e.source_file || '').toLowerCase().includes(f)
         || (e.reason || '').toLowerCase().includes(f);
     });
-  }, [entriesResp, filter, onlyHighValue]);
+  }, [allEntries, filter, onlyHighValue, activeSurface]);
 
   const toggle = (e: CfgPipelineEntry) => {
     const k = entryKey(e);
@@ -170,13 +145,24 @@ export const CfgDbVulnDetailPage: React.FC<{ projectId: string; taskId: string; 
   };
   const toggleAllVisible = () => {
     const next = new Set(selected);
-    const allSel = visibleEntries.every((e) => next.has(entryKey(e)));
+    const allSel = visibleEntries.length > 0 && visibleEntries.every((e) => next.has(entryKey(e)));
     visibleEntries.forEach((e) => allSel ? next.delete(entryKey(e)) : next.add(entryKey(e)));
     setSelected(next);
   };
 
+  // 按攻击面批量选择:勾选该通道下全部入口(若已全选则全部取消)。
+  const selectSurface = (surface: string) => {
+    const group = allEntries.filter((e) => surfaceOf(e) === surface);
+    const allSel = group.length > 0 && group.every((e) => selected.has(entryKey(e)));
+    const next = new Set(selected);
+    group.forEach((e) => allSel ? next.delete(entryKey(e)) : next.add(entryKey(e)));
+    setSelected(next);
+  };
+  const surfaceSelectedCount = (surface: string) =>
+    allEntries.filter((e) => surfaceOf(e) === surface && selected.has(entryKey(e))).length;
+
   const fanOut = async () => {
-    const chosen = (entriesResp?.entries || []).filter((e) => selected.has(entryKey(e)));
+    const chosen = allEntries.filter((e) => selected.has(entryKey(e)));
     if (chosen.length === 0) { notify('请先勾选入口', 'error'); return; }
     setFanningOut(true);
     try {
@@ -184,6 +170,7 @@ export const CfgDbVulnDetailPage: React.FC<{ projectId: string; taskId: string; 
       notify(`已创建 ${r.created_count} 个审计子任务`, 'success');
       setSelected(new Set());
       await refresh();
+      setTab('vuln');
     } catch (e: any) {
       notify(`下发失败：${e?.message || e}`, 'error');
     } finally {
@@ -191,14 +178,30 @@ export const CfgDbVulnDetailPage: React.FC<{ projectId: string; taskId: string; 
     }
   };
 
-  if (loading) return <div className="p-10 flex justify-center text-gray-500"><Loader2 className="w-5 h-5 animate-spin" /></div>;
-  if (!detail) return <div className="p-10 text-gray-500">未找到该任务<button className="ml-2 underline" onClick={onBack}>返回</button></div>;
+  if (loading) {
+    return <div className="flex justify-center py-24 text-theme-text-muted"><Loader2 className="h-5 w-5 animate-spin" /></div>;
+  }
+  if (!detail) {
+    return (
+      <div className="px-6 py-24 text-center text-theme-text-muted">
+        未找到该任务
+        <button className="ml-2 text-indigo-400 underline hover:text-indigo-300" onClick={onBack}>返回</button>
+      </div>
+    );
+  }
 
   const s1 = detail.stages.entry_analysis;
   const s2 = detail.stages.dataflow_vuln_scan;
+  const entryReady = s1.status === 'passed' || detail.status === 'entries_ready' || s1.entry_count > 0;
+  const entryFailed = s1.status === 'failed' || s1.status === 'error';
 
-  // Merge fan-out children: prefer findings.children (has finding_count),
-  // fall back to the pipeline's stage children list.
+  const step1: StepState = entryReady ? 'done' : entryFailed ? 'failed' : 'active';
+  const step2: StepState = s2.summary.total === 0
+    ? (entryReady ? 'active' : 'pending')
+    : (detail.status === 'auditing' ? 'active'
+      : detail.status === 'completed' ? 'done'
+      : detail.status === 'completed_with_errors' ? 'failed' : 'done');
+
   const childRows: ChildRow[] = (findings?.children && findings.children.length > 0)
     ? findings.children
     : (s2.children || []).map((c: any) => ({
@@ -207,160 +210,301 @@ export const CfgDbVulnDetailPage: React.FC<{ projectId: string; taskId: string; 
         status: c.status,
         finding_count: 0,
       }));
-  const dispatchGraph = buildDispatchGraph(detail.name, s2.summary.total, s2.summary.passed, childRows);
+
+  const steps: { key: string; label: string; state: StepState; meta: string }[] = [
+    { key: 'entry_analysis', label: '入口分析', state: step1, meta: entryReady ? `${s1.entry_count} 入口` : entryFailed ? '失败' : '分析中…' },
+    { key: 'dataflow_vuln_scan', label: '漏洞挖掘', state: step2, meta: s2.summary.total > 0 ? `${s2.summary.total} 子任务` : '待下发' },
+  ];
+
+  const tabs: { key: TabKey; label: string; icon: React.ReactNode; badge?: number }[] = [
+    { key: 'entries', label: '攻击入口', icon: <Crosshair className="h-4 w-4" />, badge: entryReady ? s1.entry_count : undefined },
+    { key: 'vuln', label: '漏洞挖掘', icon: <ShieldAlert className="h-4 w-4" />, badge: s2.summary.total || undefined },
+  ];
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="mx-auto max-w-6xl px-6 py-6">
       {feedbackNodes}
-      <button onClick={onBack} className="text-sm text-gray-500 flex items-center gap-1 mb-3 hover:text-gray-700">
-        <ArrowLeft className="w-4 h-4" /> 返回列表
-      </button>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold">{detail.name}</h1>
-        <button onClick={refresh} className="px-3 py-1.5 rounded border text-sm flex items-center gap-1 hover:bg-gray-50">
-          <RefreshCw className="w-4 h-4" /> 刷新
-        </button>
-      </div>
+
+      <PageHeader
+        back={{ label: '返回列表', onClick: onBack }}
+        title={detail.name}
+        description="入口分析 → 勾选攻击入口 → 漏洞挖掘"
+        actions={
+          <button
+            onClick={refresh}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm font-medium text-theme-text-secondary transition-colors hover:bg-theme-elevated"
+          >
+            <RefreshCw className="h-4 w-4" /> 刷新
+          </button>
+        }
+      />
 
       {/* stage stepper */}
-      <div className="flex items-center gap-2 mb-6 text-sm">
-        {detail.stage_sequence.map((stage, i) => (
-          <React.Fragment key={stage}>
-            <div className="px-3 py-1.5 rounded border bg-white">
-              <span className="font-medium">{STAGE_LABEL[stage] || stage}</span>
-              {stage === 'entry_analysis' && <span className="ml-2 text-gray-500">{s1.status} · {s1.entry_count} 入口</span>}
-              {stage === 'dataflow_vuln_scan' && <span className="ml-2 text-gray-500">{s2.summary.total} 子任务</span>}
+      <div className="mt-5 flex items-center gap-3">
+        {steps.map((st, i) => (
+          <React.Fragment key={st.key}>
+            <div className="flex items-center gap-2.5 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5">
+              <span className={`flex h-6 w-6 flex-none items-center justify-center rounded-full border text-xs font-semibold ${STEP_DOT[st.state]}`}>
+                {st.state === 'done' ? <Check size={13} strokeWidth={2.5} />
+                  : st.state === 'active' ? <Loader2 size={13} className="animate-spin" />
+                  : st.state === 'failed' ? <AlertTriangle size={12} /> : i + 1}
+              </span>
+              <div>
+                <div className="text-sm font-medium text-theme-text-primary">{st.label}</div>
+                <div className="text-xs text-theme-text-muted">{st.meta}</div>
+              </div>
             </div>
-            {i < detail.stage_sequence.length - 1 && <span className="text-gray-300">→</span>}
+            {i < steps.length - 1 && <div className={`h-px w-8 ${st.state === 'done' ? 'bg-emerald-400/50' : 'bg-theme-border'}`} />}
           </React.Fragment>
         ))}
       </div>
 
-      {/* Stage 1: entry analysis */}
-      <section className="mb-8">
-        <h2 className="font-semibold mb-2 flex items-center gap-2"><Search className="w-4 h-4" /> 入口分析</h2>
-        {s1.status !== 'passed' ? (
-          <div className="text-gray-500 flex items-center gap-2 py-4">
-            <Loader2 className="w-4 h-4 animate-spin" /> 入口分析进行中（{s1.status}）…
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center gap-3 mb-2 text-sm">
-              <input className="form-input flex-1" placeholder="过滤函数名/文件/reason"
-                     value={filter} onChange={(e) => setFilter(e.target.value)} />
-              <label className="flex items-center gap-1 whitespace-nowrap">
-                <input type="checkbox" checked={onlyHighValue} onChange={(e) => setOnlyHighValue(e.target.checked)} />
-                仅高价值入口
-              </label>
-              <span className="text-gray-500 whitespace-nowrap">
-                显示 {visibleEntries.length} / 共 {s1.entry_count}，已选 {selected.size}
-              </span>
-              <button onClick={fanOut} disabled={fanningOut || selected.size === 0}
-                      className="px-3 py-1.5 rounded bg-blue-600 text-white flex items-center gap-1 disabled:opacity-50">
-                {fanningOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlayCircle className="w-4 h-4" />}
-                审计选中入口
-              </button>
-            </div>
-            {s1.warnings?.length > 0 && (
-              <div className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1 mb-2">{s1.warnings.join('；')}</div>
+      {/* tab bar */}
+      <div className="mt-6 flex items-center gap-1 border-b border-theme-border">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`relative -mb-px inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+              tab === t.key
+                ? 'border-b-2 border-indigo-400 text-theme-text-primary'
+                : 'border-b-2 border-transparent text-theme-text-muted hover:text-theme-text-secondary'
+            }`}
+          >
+            {t.icon}
+            {t.label}
+            {t.badge != null && (
+              <span className={`rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${tab === t.key ? 'bg-indigo-500/20 text-indigo-200' : 'bg-theme-elevated text-theme-text-muted'}`}>{t.badge}</span>
             )}
-            <div className="border rounded overflow-auto max-h-[420px]">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600 sticky top-0">
-                  <tr>
-                    <th className="px-3 py-2 w-8"><input type="checkbox"
-                        checked={visibleEntries.length > 0 && visibleEntries.every((e) => selected.has(entryKey(e)))}
-                        onChange={toggleAllVisible} /></th>
-                    <th className="text-left px-3 py-2">函数</th>
-                    <th className="text-left px-3 py-2">通道/类型</th>
-                    <th className="text-left px-3 py-2">文件:行</th>
-                    <th className="text-left px-3 py-2">reason</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleEntries.map((e) => (
-                    <tr key={entryKey(e)} className="border-t hover:bg-gray-50">
-                      <td className="px-3 py-1.5"><input type="checkbox" checked={selected.has(entryKey(e))} onChange={() => toggle(e)} /></td>
-                      <td className="px-3 py-1.5 font-mono">{e.function_name}</td>
-                      <td className="px-3 py-1.5 text-xs">
-                        {e.channel && <span className="inline-block rounded bg-blue-50 text-blue-700 px-1.5 py-0.5 mr-1">{e.channel}</span>}
-                        <span className="text-gray-500">{e.entry_point_kind}</span>
-                      </td>
-                      <td className="px-3 py-1.5 text-gray-500 font-mono text-xs">{e.source_file}:{e.line}</td>
-                      <td className="px-3 py-1.5 text-xs">
-                        <span className={isHighValue(e) ? 'text-emerald-700' : 'text-gray-400'}>{e.reason}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </section>
+          </button>
+        ))}
+      </div>
 
-      {/* Stage 2: DB vuln mining */}
-      <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="font-semibold flex items-center gap-2"><ShieldAlert className="w-4 h-4" /> 数据库漏洞挖掘</h2>
-          {s2.summary.total > 0 && (
-            <div className="flex gap-1 rounded-lg border bg-gray-50 p-0.5 text-sm">
-              <button onClick={() => setS2View('graph')} className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-medium ${s2View === 'graph' ? 'bg-white shadow-sm text-slate-900' : 'text-gray-500'}`}><Network className="w-3.5 h-3.5" />派发树</button>
-              <button onClick={() => setS2View('table')} className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-medium ${s2View === 'table' ? 'bg-white shadow-sm text-slate-900' : 'text-gray-500'}`}><Table2 className="w-3.5 h-3.5" />表格</button>
-            </div>
-          )}
-        </div>
-        {s2.summary.total === 0 ? (
-          <div className="text-gray-400 py-3">尚未下发审计子任务。请在上方勾选入口后点击「审计选中入口」。</div>
-        ) : (
-          <>
-            <div className="flex flex-wrap gap-2 mb-3 text-sm">
-              {(['total', 'running', 'passed', 'failed'] as const).map((k) => (
-                <span key={k} className="px-2 py-1 rounded bg-gray-100">{k}: {(s2.summary as any)[k]}</span>
-              ))}
-              {findings && Object.entries(findings.by_severity).map(([sev, n]) => (
-                <span key={sev} className={`px-2 py-1 rounded ${SEV_COLOR[sev] || 'bg-gray-100'}`}>{sev}: {n}</span>
-              ))}
-            </div>
-            {s2View === 'graph' ? (
-              <div className="border rounded-lg overflow-hidden bg-theme-elevated" style={{ height: Math.min(620, Math.max(260, childRows.length * 70 + 40)) }}>
-                <ReactFlow
-                  nodes={dispatchGraph.nodes}
-                  edges={dispatchGraph.edges}
-                  nodeTypes={dispatchNodeTypes}
-                  onNodeClick={(_, node) => { if (node.id !== '__root__') openChild(node.id); }}
-                  fitView nodesDraggable={false} nodesConnectable={false} elementsSelectable panOnDrag zoomOnScroll
-                  proOptions={{ hideAttribution: true }}
-                >
-                  <Background color="#e2e8f0" gap={18} />
-                  <Controls showInteractive={false} />
-                </ReactFlow>
+      {/* ───────────────── Tab 1: 攻击入口 ───────────────── */}
+      {tab === 'entries' && (
+        <section className="mt-5 overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
+          {!entryReady ? (
+            entryFailed ? (
+              <div className="flex flex-col items-center gap-2 py-16 text-center">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-rose-500/15 text-rose-300"><AlertTriangle className="h-5 w-5" /></div>
+                <div className="text-sm font-medium text-theme-text-secondary">入口分析失败</div>
+                {s1.warnings?.length > 0 && <div className="max-w-md text-xs text-theme-text-faint">{s1.warnings.join('；')}</div>}
               </div>
             ) : (
-              <div className="border rounded overflow-auto max-h-[360px]">
+              <div className="flex flex-col items-center gap-3 py-20 text-center">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-sky-500/15 text-sky-300"><Loader2 className="h-5 w-5 animate-spin" /></div>
+                <div className="text-sm font-medium text-theme-text-secondary">正在分析攻击入口…</div>
+                <div className="text-xs text-theme-text-faint">页面会自动刷新，分析完成后入口将出现在这里</div>
+              </div>
+            )
+          ) : (
+            <div className="p-5">
+              {/* attack-surface batch selectors */}
+              <div className="mb-3">
+                <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-theme-text-muted">
+                  <Layers className="h-3.5 w-3.5" /> 按攻击面批量选择
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setActiveSurface('ALL')}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      activeSurface === 'ALL'
+                        ? 'border-indigo-400/60 bg-indigo-500/12 text-indigo-200'
+                        : 'border-theme-border bg-theme-app text-theme-text-secondary hover:bg-theme-elevated'
+                    }`}
+                  >
+                    全部 <span className="tabular-nums opacity-70">{allEntries.length}</span>
+                  </button>
+                  {surfaces.map(([surface, count]) => {
+                    const selCount = surfaceSelectedCount(surface);
+                    const filtering = activeSurface === surface;
+                    return (
+                      <div
+                        key={surface}
+                        className={`inline-flex items-center overflow-hidden rounded-lg border ${
+                          filtering ? 'border-indigo-400/60' : 'border-theme-border'
+                        }`}
+                      >
+                        {/* 点标签 = 仅筛选该攻击面 */}
+                        <button
+                          onClick={() => setActiveSurface(filtering ? 'ALL' : surface)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors ${
+                            filtering ? 'bg-indigo-500/12 text-indigo-200' : 'bg-theme-app text-theme-text-secondary hover:bg-theme-elevated'
+                          }`}
+                        >
+                          {surface}
+                          <span className="tabular-nums opacity-70">{count}</span>
+                          {selCount > 0 && <span className="rounded-full bg-emerald-500/20 px-1.5 text-[10px] font-semibold text-emerald-300">{selCount}</span>}
+                        </button>
+                        {/* 勾选按钮 = 批量选/反选该攻击面全部入口 */}
+                        <button
+                          onClick={() => selectSurface(surface)}
+                          title="选中 / 取消该攻击面全部入口"
+                          className="border-l border-theme-border bg-theme-surface px-2 py-1.5 text-theme-text-muted transition-colors hover:bg-theme-elevated hover:text-emerald-300"
+                        >
+                          <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* toolbar */}
+              <div className="mb-3 flex flex-wrap items-center gap-2.5">
+                <div className="relative min-w-[220px] flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-theme-text-faint" />
+                  <input
+                    className="w-full rounded-lg border border-theme-border bg-theme-app py-2 pl-9 pr-3 text-sm text-theme-text-primary placeholder:text-theme-text-faint focus:border-indigo-400/60 focus:outline-none"
+                    placeholder="过滤函数名 / 文件 / reason"
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                  />
+                </div>
+                <button
+                  onClick={() => setOnlyHighValue((v) => !v)}
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                    onlyHighValue
+                      ? 'border-emerald-400/50 bg-emerald-500/12 text-emerald-300'
+                      : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated'
+                  }`}
+                >
+                  <Sparkles className="h-3.5 w-3.5" /> 仅高价值入口
+                </button>
+                <span className="text-xs text-theme-text-muted">
+                  显示 <span className="tabular-nums text-theme-text-secondary">{visibleEntries.length}</span> / 共 <span className="tabular-nums text-theme-text-secondary">{s1.entry_count}</span> · 已选 <span className="tabular-nums text-indigo-300">{selected.size}</span>
+                </span>
+                <button
+                  onClick={fanOut}
+                  disabled={fanningOut || selected.size === 0}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-indigo-500 to-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition-all hover:from-indigo-400 hover:to-sky-400 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+                >
+                  {fanningOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
+                  审计选中入口
+                </button>
+              </div>
+              {s1.warnings?.length > 0 && (
+                <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-none" />
+                  {s1.warnings.join('；')}
+                </div>
+              )}
+
+              {/* entry table */}
+              <div className="overflow-auto rounded-xl border border-theme-border" style={{ maxHeight: 520 }}>
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-gray-600 sticky top-0">
+                  <thead className="sticky top-0 z-10 bg-theme-elevated text-xs uppercase tracking-wide text-theme-text-faint">
                     <tr>
-                      <th className="text-left px-3 py-2">入口函数</th>
-                      <th className="text-left px-3 py-2">状态</th>
-                      <th className="text-right px-3 py-2">发现漏洞</th>
+                      <th className="w-10 px-3 py-2.5">
+                        <input
+                          type="checkbox"
+                          className="accent-indigo-500"
+                          checked={visibleEntries.length > 0 && visibleEntries.every((e) => selected.has(entryKey(e)))}
+                          onChange={toggleAllVisible}
+                        />
+                      </th>
+                      <th className="px-3 py-2.5 text-left font-medium">函数</th>
+                      <th className="px-3 py-2.5 text-left font-medium">攻击面 / 类型</th>
+                      <th className="px-3 py-2.5 text-left font-medium">文件:行</th>
+                      <th className="px-3 py-2.5 text-left font-medium">理由</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleEntries.length === 0 ? (
+                      <tr><td colSpan={5} className="px-3 py-10 text-center text-sm text-theme-text-faint">没有匹配的入口</td></tr>
+                    ) : visibleEntries.map((e) => {
+                      const sel = selected.has(entryKey(e));
+                      const hv = isHighValue(e);
+                      return (
+                        <tr
+                          key={entryKey(e)}
+                          onClick={() => toggle(e)}
+                          className={`cursor-pointer border-t border-theme-border-subtle align-top transition-colors ${sel ? 'bg-indigo-500/10' : 'hover:bg-theme-elevated'}`}
+                        >
+                          <td className="px-3 py-2.5"><input type="checkbox" className="accent-indigo-500" checked={sel} readOnly /></td>
+                          <td className="px-3 py-2.5 font-mono text-theme-text-primary">
+                            <span className="inline-flex items-center gap-1.5">
+                              {hv && <span className="h-1.5 w-1.5 flex-none rounded-full bg-emerald-400" title="高价值入口" />}
+                              {e.function_name}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 text-xs">
+                            <span className="inline-block rounded-md border border-indigo-400/30 bg-indigo-500/12 px-1.5 py-0.5 font-medium text-indigo-200">{surfaceOf(e)}</span>
+                            {e.entry_point_kind && <span className="ml-1.5 text-theme-text-muted">{e.entry_point_kind}</span>}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs text-theme-text-muted">{e.source_file}:{e.line}</td>
+                          <td className="px-3 py-2.5 text-xs">
+                            <span className={`block max-w-[360px] leading-relaxed ${hv ? 'text-emerald-200' : 'text-theme-text-secondary'}`}>
+                              {e.reason || <span className="text-theme-text-faint">—</span>}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ───────────────── Tab 2: 漏洞挖掘 ───────────────── */}
+      {tab === 'vuln' && (
+        <section className="mt-5 overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
+          {s2.summary.total === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-16 text-center">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-theme-elevated text-theme-text-faint"><ListChecks className="h-5 w-5" /></div>
+              <div className="text-sm text-theme-text-secondary">尚未下发审计子任务</div>
+              <div className="text-xs text-theme-text-faint">在「攻击入口」页勾选入口后点击「审计选中入口」</div>
+              <button onClick={() => setTab('entries')} className="mt-1 text-xs font-medium text-indigo-300 hover:text-indigo-200">前往攻击入口 →</button>
+            </div>
+          ) : (
+            <div className="p-5">
+              <div className="mb-3 flex flex-wrap gap-2 text-xs">
+                {(['total', 'running', 'passed', 'failed'] as const).map((k) => (
+                  <span key={k} className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border bg-theme-app px-2.5 py-1 text-theme-text-secondary">
+                    <span className="text-theme-text-faint">{k}</span>
+                    <span className="tabular-nums font-semibold text-theme-text-primary">{(s2.summary as any)[k]}</span>
+                  </span>
+                ))}
+                {findings && Object.entries(findings.by_severity).map(([sev, n]) => (
+                  <span key={sev} className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-medium ${SEV_COLOR[sev] || 'border-theme-border bg-theme-app text-theme-text-muted'}`}>
+                    {sev} <span className="tabular-nums font-semibold">{n}</span>
+                  </span>
+                ))}
+              </div>
+
+              <div className="overflow-auto rounded-xl border border-theme-border" style={{ maxHeight: 520 }}>
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-theme-elevated text-xs uppercase tracking-wide text-theme-text-faint">
+                    <tr>
+                      <th className="px-3 py-2.5 text-left font-medium">入口函数</th>
+                      <th className="px-3 py-2.5 text-left font-medium">状态</th>
+                      <th className="px-3 py-2.5 text-right font-medium">发现漏洞</th>
                     </tr>
                   </thead>
                   <tbody>
                     {childRows.map((c) => (
-                      <tr key={c.task_id} className="border-t hover:bg-gray-50 cursor-pointer" onClick={() => openChild(c.task_id)}>
-                        <td className="px-3 py-1.5 font-mono text-blue-700">{c.function_name}</td>
-                        <td className="px-3 py-1.5">{c.status}</td>
-                        <td className="px-3 py-1.5 text-right">{c.finding_count > 0 ? <span className="font-semibold text-rose-600">{c.finding_count}</span> : c.finding_count}</td>
+                      <tr key={c.task_id} className="cursor-pointer border-t border-theme-border-subtle transition-colors hover:bg-theme-elevated" onClick={() => openChild(c.task_id)}>
+                        <td className="px-3 py-2.5 font-mono text-indigo-300">{c.function_name}</td>
+                        <td className="px-3 py-2.5">
+                          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${CHILD_STATUS_TONE[c.status] || 'border-theme-border bg-theme-surface text-theme-text-muted'}`}>{c.status}</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums">
+                          {c.finding_count > 0
+                            ? <span className="inline-flex items-center gap-1 font-semibold text-rose-300"><Bug className="h-3.5 w-3.5" />{c.finding_count}</span>
+                            : <span className="text-theme-text-faint">0</span>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            )}
-          </>
-        )}
-      </section>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 };
