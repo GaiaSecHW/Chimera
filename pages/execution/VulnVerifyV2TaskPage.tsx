@@ -155,7 +155,7 @@ const OutcomePill: React.FC<{ item: ReturnType<typeof outcomeBadge>; size?: 'nor
       {item.loading ? (
         <Loader2 size={isSm ? 14 : 18} strokeWidth={isSm ? 2.5 : 2.8} className={`shrink-0 animate-spin ${item.iconCls}`} />
       ) : Icon ? (
-        <Icon size={isSm ? 13 : 16} strokeWidth={2.2} className={`shrink-0 ${item.iconCls}`} />
+        <Icon size={isSm ? 13 : 17} strokeWidth={isSm ? 2.2 : 2.5} className={`shrink-0 ${item.iconCls}`} />
       ) : null}
       {item.iconOnly ? null : <span className={`truncate ${item.iconCls}`}>{item.label}</span>}
     </span>
@@ -176,13 +176,13 @@ const TaskOutcomeInline: React.FC<{ status?: string; verdict?: string | null }> 
     return <span className="inline-flex items-center gap-2 text-sm font-normal text-theme-text-muted"><Minus size={16} strokeWidth={2.2} className="shrink-0" />已取消</span>;
   }
   if (verdict === 'confirmed') {
-    return <span className="inline-flex items-center gap-2 text-sm font-normal text-theme-text-primary"><AlertTriangle size={16} strokeWidth={2.2} className="shrink-0 text-[var(--color-signal-red)]" />已确认</span>;
+    return <span className="inline-flex items-center gap-2 text-sm font-normal text-theme-text-primary"><AlertTriangle size={17} strokeWidth={2.5} className="shrink-0 text-[var(--color-signal-red)]" />已确认</span>;
   }
   if (verdict === 'ruled_out') {
-    return <span className="inline-flex items-center gap-2 text-sm font-normal text-theme-text-primary"><SquareCheck size={16} strokeWidth={2.2} className="shrink-0 text-[var(--color-signal-cyan)]" />已排除</span>;
+    return <span className="inline-flex items-center gap-2 text-sm font-normal text-theme-text-primary"><SquareCheck size={17} strokeWidth={2.5} className="shrink-0 text-[var(--color-signal-cyan)]" />已排除</span>;
   }
   if (verdict === 'unresolved') {
-    return <span className="inline-flex items-center gap-2 text-sm font-normal text-theme-text-primary"><CircleHelp size={16} strokeWidth={2.2} className="shrink-0 text-[var(--color-signal-amber)]" />不可证</span>;
+    return <span className="inline-flex items-center gap-2 text-sm font-normal text-theme-text-primary"><CircleHelp size={17} strokeWidth={2.5} className="shrink-0 text-[var(--color-signal-amber)]" />不可证</span>;
   }
   return <span className="inline-flex items-center gap-2 text-sm font-normal text-theme-text-muted"><Minus size={16} strokeWidth={2.2} className="shrink-0" />未产出</span>;
 };
@@ -239,7 +239,7 @@ const SummaryCard: React.FC<{ label: string; value: React.ReactNode; hint?: Reac
   return (
     <div className="rounded-2xl border border-theme-border bg-theme-surface p-4">
       <div className={`inline-flex items-center gap-2 text-sm font-semibold ${color}`}>
-        {Icon ? <Icon size={16} strokeWidth={2.2} className="shrink-0" /> : null}
+        {Icon ? <Icon size={17} strokeWidth={2.5} className="shrink-0" /> : null}
         <span>{label}</span>
       </div>
       {hint ? <div className="mt-5 text-sm text-theme-text-muted">{hint}</div> : null}
@@ -281,7 +281,7 @@ const DimensionCard: React.FC<{ dimKey: string; status?: boolean | null; detail?
     <div className="grid grid-cols-[minmax(156px,188px)_minmax(0,1fr)] items-start gap-3 py-3">
       <div className="flex min-w-0 items-start gap-2">
         <div className={`flex h-8 w-8 shrink-0 items-center justify-center ${statusCls}`} title={statusTone.label}>
-          <StatusIcon size={16} strokeWidth={2.1} />
+          <StatusIcon size={17} strokeWidth={2.5} />
         </div>
         <div className={`min-w-0 truncate pt-1 text-base font-semibold leading-6 ${statusCls}`}>{conclusion}</div>
       </div>

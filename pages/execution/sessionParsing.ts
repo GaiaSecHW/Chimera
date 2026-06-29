@@ -92,10 +92,11 @@ export function parseSessionMessageParts(content: unknown): Array<Record<string,
       parts.push({ type: 'thinking', text: part.thinking || part.text || '' });
     } else if (contentType === 'toolCall') {
       parts.push({
+        ...part,
         type: 'toolCall',
-        name: part.name || '',
-        id: part.id || '',
-        arguments: part.arguments || {},
+        name: part.name || part.toolName || '',
+        id: part.id || part.toolCallId || '',
+        arguments: part.arguments || part.input || {},
       });
     } else if (contentType === 'toolResult') {
       parts.push({ type: 'toolResult', text: part.text || '' });
@@ -251,12 +252,13 @@ export function parseSessionJsonlObject(obj: Record<string, any>, rawLine: strin
   if (eventType === 'message' || eventType === 'message_end') {
     const msg = message;
     const role = String(msg.role || '');
+    const timestamp = obj.timestamp || msg.timestamp || '';
     const event: AppSaSessionEvent = {
       type: 'message',
       line: lineNo,
       event_index: lineNo,
-      timestamp: obj.timestamp || '',
-      display_timestamp: obj.timestamp || '',
+      timestamp,
+      display_timestamp: timestamp,
       role,
       render_role: role,
       parts: parseSessionMessageParts(msg.content),
