@@ -10,6 +10,9 @@ import { useUiFeedback } from '../../components/UiFeedback';
 
 const PAGE_SIZE_OPTIONS = [50, 100, 200] as const;
 const CANCELLABLE_TASK_STATUSES = new Set(['pending', 'running']);
+const ACTIVE_TASK_STATUSES = new Set(['pending', 'running']);
+const ACTIVE_LIST_AUTO_REFRESH_MS = 15_000;
+const IDLE_LIST_AUTO_REFRESH_MS = 60_000;
 
 // 隐藏的开发者模式：首次点击 v2 胶囊后的 2 秒内连续点击 7 次切换；纯内存态，刷新即关闭；触发成功时一次性提示。
 function useDevMode() {
@@ -448,6 +451,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const [total, setTotal] = useState(0);
   const [stats, setStats] = useState<VulnVerifyV2ProjectStats | null>(null);
   const [loading, setLoading] = useState(false);
+  const [autoRefreshing, setAutoRefreshing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [verdictFilter, setVerdictFilter] = useState('');
@@ -475,6 +479,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const devBadgeRef = useRef<HTMLSpanElement | null>(null);
   const detailScrollRef = useRef<HTMLDivElement | null>(null);
   const closeDetailTimerRef = useRef<number | null>(null);
+  const autoRefreshInFlightRef = useRef(false);
 
   const offset = (page - 1) * perPage;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
@@ -488,6 +493,8 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   const selectedVisibleTaskIds = useMemo(() => selectedDevTaskIds.filter((id) => visibleTaskIds.includes(id)), [selectedDevTaskIds, visibleTaskIds]);
   const selectedCancellableTaskIds = useMemo(() => selectedVisibleTaskIds.filter((id) => cancellableTaskIds.includes(id)), [cancellableTaskIds, selectedVisibleTaskIds]);
   const allVisibleTasksSelected = visibleTaskIds.length > 0 && visibleTaskIds.every((id) => selectedDevTaskIdSet.has(id));
+  const hasActiveVisibleTask = useMemo(() => tasks.some((task) => ACTIVE_TASK_STATUSES.has(String(task.status || ''))), [tasks]);
+  const listAutoRefreshIntervalMs = hasActiveVisibleTask ? ACTIVE_LIST_AUTO_REFRESH_MS : IDLE_LIST_AUTO_REFRESH_MS;
 
   const handleDevBadgeClickWithPosition = useCallback(() => {
     const rect = devBadgeRef.current?.getBoundingClientRect();
@@ -526,9 +533,10 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
   }, []);
 
 
-  const loadOverview = useCallback(async () => {
+  const loadOverview = useCallback(async (options?: { silent?: boolean }) => {
     if (!projectId) return;
-    setLoading(true);
+    const silent = Boolean(options?.silent);
+    if (!silent) setLoading(true);
     try {
       const searchText = search.trim() || undefined;
       const [list, stat] = await Promise.all([
@@ -544,15 +552,44 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
       setTasks(list.items || []);
       setTotal(Number(list.total || 0));
       setStats(stat);
-      setMessage(null);
+      if (!silent) setMessage(null);
     } catch (e: any) {
-      setMessage(e?.message || String(e));
+      if (!silent) setMessage(e?.message || String(e));
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [projectId, resultFilter, statusFilter, verdictFilter, search, perPage, offset]);
 
+  const refreshOverviewSilently = useCallback(async () => {
+    if (!projectId || autoRefreshInFlightRef.current) return;
+    autoRefreshInFlightRef.current = true;
+    setAutoRefreshing(true);
+    try {
+      await loadOverview({ silent: true });
+    } finally {
+      autoRefreshInFlightRef.current = false;
+      setAutoRefreshing(false);
+    }
+  }, [loadOverview, projectId]);
+
   useEffect(() => { void loadOverview(); }, [loadOverview]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    let cancelled = false;
+    let timer: number | null = null;
+    const tick = async () => {
+      if (document.visibilityState === 'visible') {
+        await refreshOverviewSilently();
+      }
+      if (!cancelled) timer = window.setTimeout(tick, listAutoRefreshIntervalMs);
+    };
+    timer = window.setTimeout(tick, listAutoRefreshIntervalMs);
+    return () => {
+      cancelled = true;
+      if (timer !== null) window.clearTimeout(timer);
+    };
+  }, [listAutoRefreshIntervalMs, projectId, refreshOverviewSilently]);
 
   useEffect(() => {
     if (!devMode) {
@@ -834,7 +871,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string }> = ({ projectI
                   aria-label="刷新任务列表"
                   title="刷新任务列表"
                 >
-                  <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                  <RefreshCw size={16} className={loading || autoRefreshing ? 'animate-spin' : ''} />
                 </button>
               </div>
 
