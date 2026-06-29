@@ -969,6 +969,8 @@ const TIMELINE_EVENT_LABELS: Record<string, string> = {
   stage_retry_full_cleanup_finished: '严格清理完成',
   stage_waiting_downstream_progress: '等待下游继续推进',
   downstream_marked_stale: '下游结果过期',
+  dataflow_execution_signature_change_suppressed: '误重建已抑制',
+  stale_dataflow_rebuild_reverted: '误重建已回滚',
   task_cancelled: '任务取消',
   task_delete_requested: '删除请求',
   task_completed: '任务完成',
