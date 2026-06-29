@@ -468,20 +468,25 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
         description="统一展示当前项目下的所有测试任务，追踪分发、执行与同步状态"
       />
 
-      <div className="grid gap-3 md:grid-cols-4">
-        {statsCards.map((item) => {
+      <div className="grid grid-cols-4 bg-theme-surface">
+        {statsCards.map((item, i) => {
           const Icon = item.icon;
           return (
             <div
               key={item.label}
-              className="flex items-center justify-between rounded-xl p-4"
-              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+              className="relative flex items-center justify-between p-4"
             >
+              {i > 0 && (
+                <span
+                  className="absolute left-0 top-1/2 -translate-y-1/2 h-10 w-px"
+                  style={{ backgroundColor: LK.border }}
+                />
+              )}
               <div>
-                <div className="text-xs" style={{ color: LK.muted }}>
+                <div className="text-sm" style={{ color: LK.muted }}>
                   {item.label}
                 </div>
-                <div className="mt-1 text-3xl font-semibold tabular-nums text-theme-text-primary" style={{ color: item.color }}>
+                <div className="mt-1 text-3xl font-semibold tabular-nums" style={{ color: item.color }}>
                   {item.value}
                 </div>
               </div>

@@ -647,20 +647,25 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       />
 
       {/* Stat blocks — 4 columns */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 bg-theme-surface">
         {[
           { label: '项目', value: tableTotal, icon: Building2, color: LK.primary },
           { label: '任务', value: taskCount !== null ? taskCount : '-', icon: Layers, color: LK.success },
           { label: '环境', value: envCount !== null ? envCount : '-', icon: Server, color: LK.warning },
           { label: '漏洞', value: vulnCount !== null ? vulnCount : '-', icon: AlertTriangle, color: LK.error },
-        ].map((stat) => (
+        ].map((stat, i) => (
           <div
             key={stat.label}
-            className="flex items-center justify-between rounded-xl p-4"
-            style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+            className="relative flex items-center justify-between p-4"
           >
+            {i > 0 && (
+              <span
+                className="absolute left-0 top-1/2 -translate-y-1/2 h-10 w-px"
+                style={{ backgroundColor: LK.border }}
+              />
+            )}
             <div>
-              <div className="text-xs" style={{ color: LK.muted }}>
+              <div className="text-sm" style={{ color: LK.muted }}>
                 {stat.label}
               </div>
               <div className="mt-1 text-3xl font-semibold tabular-nums" style={{ color: stat.color }}>
