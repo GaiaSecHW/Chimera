@@ -861,7 +861,10 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         sortField,
         sortDirection,
       );
-      const filtered = merged.filter((it) => it?.engine_confirmed_vulnerable === true).filter(matchesSuspect).filter(matchesFinalResult);
+      const filtered = merged
+        .filter((it) => it?.engine_confirmed_vulnerable === true || (it?.current_stage === 'validation' && (it?.validation_result === 'inconclusive' || it?.validation_result === 'manual_terminated')))
+        .filter(matchesSuspect)
+        .filter(matchesFinalResult);
       const nextPage = pageOverride ?? currentPage;
       setSuspicions(filtered.slice((nextPage - 1) * pageSize, nextPage * pageSize));
       setListTotal(filtered.length);
