@@ -8,6 +8,7 @@ import { orchestrationClients } from './orchestration';
 import { platformClients } from './platform';
 import { projectClients } from './project';
 import { secoctoClients } from './secocto';
+import { toolRegistryApi } from './toolRegistry';
 import { vulnClients } from './vuln-domain';
 
 export const api = {
@@ -23,6 +24,7 @@ export const api = {
     assessment: assessmentClients,
     secocto: secoctoClients,
     cairn: cairnApi,
+    toolRegistry: toolRegistryApi,
   },
 
   // Legacy flat entrypoints kept for compatibility during migration.

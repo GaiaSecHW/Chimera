@@ -2612,7 +2612,7 @@ export interface DeployScriptListResponse {
 export type ViewType =
   | 'home' | 'dashboard' | 'admin-dashboard' | 'project-mgmt' | 'project-detail' | 'product-mgmt' | 'static-packages' | 'static-package-detail' | 'deploy-script-mgmt'
   | 'task-nuzhua' | 'task-smart-jar' | 'task-apk-smart-scan' | 'task-binary-end-to-end' | 'task-web-end-to-end'
-  | 'developer-atomic-capability' | 'developer-atomic-capability-overview' | 'developer-tools' | 'developer-tools-overview'
+  | 'developer-atomic-capability' | 'developer-atomic-capability-overview' | 'developer-tools' | 'developer-tools-overview' | 'tool-registration'
   | 'public-resource-pvc-management' | 'public-resource-task-management' | 'test-input-release' | 'test-input-code' | 'test-input-doc' | 'test-input-tasks' | 'test-input-other' | 'pvc-management' | 'project-file-explorer' | 'fileserver-archive-tasks'
   | 'config-center-root' | 'config-center-llm' | 'config-center-llm-chat' | 'aigw-dashboard' | 'aigw-config' | 'aigw-keys' | 'aigw-logs' | 'aigw-admin' | 'chimera-platform-schedule'
   | 'chimera-platform-schedule-config' | 'task-center-timeline'

@@ -30,6 +30,7 @@ import {
   Network,
   Package,
   Play,
+  Plus,
   ServerCog,
   Settings,
   Shield,
@@ -308,6 +309,7 @@ const DEVELOPER_TOOL_VIEWS = new Set<string>([
   'redline-verification',
   'redline-verification-detail',
   'cairn-blackboard',
+  'tool-registration',
 ]);
 const ASSESSMENT_VIEWS = new Set([
   'pentest-exec-code',
@@ -545,6 +547,7 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
       title: '开发者工具',
       items: [
         { id: 'developer-tools-overview', label: '工具总览', icon: Settings, requiresProject: true, aliases: ['developer-tools'] },
+        { id: 'tool-registration', label: '工具注册', icon: Plus },
         { id: 'binary-security', label: '盖亚-二进制固件', icon: Settings, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
         { id: 'source-security', label: '盖亚-源码', icon: Settings, aliases: ['source-security-detail'], requiresProject: true },
         { id: 'kg-source-security', label: '知识图谱-源码漏洞挖掘', icon: Settings, aliases: ['kg-source-security-detail'], requiresProject: true },
