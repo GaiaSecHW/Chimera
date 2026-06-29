@@ -2651,6 +2651,9 @@ export type ViewType =
   | 'kg-source-security' | 'kg-source-security-detail'
   | 'binary-module-security' | 'binary-module-security-detail'
   | 'app-security-scan' | 'app-security-scan-detail' | 'app-security-scan-monitor'
+  | 'cfg-db-vuln-tool' | 'cfg-db-vuln-detail'
+  | 'redline-verification' | 'redline-verification-detail'
+  | 'cairn-blackboard'
   | 'mobile-security-ipc-vuln'
   // [DISABLED] 数据流漏洞挖掘 - 方便后续复用
   // | 'pentest-exec-dataflow-vuln' | 'pentest-exec-dataflow-vuln-task-list' | 'pentest-exec-dataflow-vuln-task-detail' | 'pentest-exec-dataflow-vuln-system-config'

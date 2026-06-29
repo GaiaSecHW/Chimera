@@ -71,6 +71,10 @@ const AppShell: React.FC = () => {
   const environmentApi = api.domains.environment;
   const queryParams = new URLSearchParams(window.location.search);
   const isServiceTerminalWindow = queryParams.get('service_terminal') === '1';
+  // 工具总览页 iframe 嵌入模式：?tool_embed=1 时隐藏 Header/Sidebar，只渲染页面内容。
+  // 与 service_terminal 不同，不走早返回——仍需走完整的鉴权/项目加载流程，
+  // 仅在外层布局上有条件地隐藏 Header 与 Sidebar。
+  const isToolEmbed = queryParams.get('tool_embed') === '1';
 
   const [token, setToken] = useState<string | null>(() => {
     const v = localStorage.getItem('chimera_token') || localStorage.getItem('secflow_token');
@@ -680,6 +684,7 @@ const AppShell: React.FC = () => {
   return (
     <UploadCenterProvider>
       <div className="flex h-screen flex-col bg-theme-app text-theme-text-primary overflow-hidden font-sans">
+        {!isToolEmbed && (
         <Header 
           user={user} 
           currentTopLevelNav={activeTopLevelNav}
@@ -699,12 +704,13 @@ const AppShell: React.FC = () => {
           setCurrentView={navigateToView}
           handleLogout={handleLogout}
         />
+        )}
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {(() => {
             const hideSidebarViews = new Set(['project-mgmt', 'project-detail', 'test-input-root']);
             const hideSidebarNavs = new Set(['home', 'test-task', 'vuln-center']);
-            if (hideSidebarNavs.has(activeTopLevelNav) || hideSidebarViews.has(String(currentView))) return null;
+            if (isToolEmbed || hideSidebarNavs.has(activeTopLevelNav) || hideSidebarViews.has(String(currentView))) return null;
             return (
               <Sidebar
                 user={user}

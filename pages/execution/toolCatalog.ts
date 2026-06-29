@@ -1,4 +1,4 @@
-import { type LucideIcon, Boxes, FileCode2, Shield, Smartphone } from 'lucide-react';
+import { type LucideIcon, Boxes, FileCode2, GitBranch, Network, Shield, ShieldCheck, Smartphone } from 'lucide-react';
 import type { ViewType } from '../../types/types';
 
 export interface ToolUsageSection {
@@ -17,6 +17,12 @@ export interface ToolDescriptor {
   viewId: ViewType;
   icon: LucideIcon;
   usageSections: ToolUsageSection[];
+  /**
+   * iframe 嵌入地址。不提供时按 SPA 路由动态拼装 `?tool_embed=1#/{viewId}`，
+   * 使工具总览页的 iframe 以无外壳模式加载同站 SPA 页面。
+   * 外部微服务（如黑板）直接写死绝对/相对路径。
+   */
+  embedUrl?: string;
 }
 
 export const toolCatalog: ToolDescriptor[] = [
@@ -117,6 +123,107 @@ export const toolCatalog: ToolDescriptor[] = [
       {
         title: '结果重点',
         description: '重点查看三阶段（检测、挖掘、验证）各阶段的任务进度与状态、Token 消耗统计、最终漏洞产出，以及任务运行时间线和异常信息。',
+      },
+    ],
+  },
+  {
+    id: 'kg-source-security',
+    name: '知识图谱-源码漏洞挖掘',
+    summary: '基于知识图谱的源码漏洞挖掘，结合代码语义与调用关系图发现深层漏洞链路。',
+    thumbnailDescription: '适合对源码工程做知识图谱驱动的深度漏洞挖掘与路径分析。',
+    inputDescription: '输入源码目录、项目上下文、图谱构建参数与漏洞挖掘策略。',
+    resultDescription: '输出图谱节点/边、漏洞路径、可疑 sink/source 链路与挖掘结论。',
+    tags: ['知识图谱', '源码漏洞挖掘', '语义分析'],
+    viewId: 'kg-source-security',
+    icon: Network,
+    usageSections: [
+      {
+        title: '适用场景',
+        description: '用于基于知识图谱对源码工程进行深度漏洞挖掘，适合需要结合代码语义和调用关系图发现深层漏洞链路的场景。',
+      },
+      {
+        title: '输入重点',
+        description: '重点关注源码路径、图谱构建范围、漏洞挖掘策略以及 sink/source 配置。图谱覆盖范围越完整，漏洞链路发现越准确。',
+      },
+      {
+        title: '结果重点',
+        description: '重点查看图谱节点与边、漏洞路径、可疑调用链路和最终挖掘结论，判断是否需要扩大图谱范围或调整挖掘策略。',
+      },
+    ],
+  },
+  {
+    id: 'cfg-db-vuln-tool',
+    name: '知识图谱-源码（CFG+DFG）',
+    summary: '结合控制流图（CFG）与数据流图（DFG）的源码漏洞分析工具，覆盖跨过程数据流追踪。',
+    thumbnailDescription: '适合对源码做 CFG+DFG 双图驱动的漏洞发现与数据流追踪。',
+    inputDescription: '输入源码目录、项目上下文、CFG/DFG 构建参数与漏洞分析配置。',
+    resultDescription: '输出 CFG/DFG 图、数据流追踪结果、漏洞结论与跨过程调用链。',
+    tags: ['CFG', 'DFG', '数据流追踪', '跨过程分析'],
+    viewId: 'cfg-db-vuln-tool',
+    icon: GitBranch,
+    usageSections: [
+      {
+        title: '适用场景',
+        description: '用于结合控制流图与数据流图对源码进行漏洞分析，适合需要跨过程数据流追踪和深层污点传播分析的场景。',
+      },
+      {
+        title: '输入重点',
+        description: '重点关注源码路径、CFG/DFG 构建范围、污点 source/sink 配置以及分析深度参数。双图构建范围直接决定追踪覆盖度。',
+      },
+      {
+        title: '结果重点',
+        description: '重点查看 CFG/DFG 图结构、数据流追踪路径、跨过程调用链和最终漏洞结论，判断是否需要补充 source/sink 或调整分析深度。',
+      },
+    ],
+  },
+  {
+    id: 'redline-verification',
+    name: '红线验证',
+    summary: '针对安全红线规则做自动化验证，确认目标是否满足红线合规要求。',
+    thumbnailDescription: '适合对安全红线规则做批量验证与合规核查。',
+    inputDescription: '输入目标信息、红线规则集、验证参数与项目上下文。',
+    resultDescription: '输出红线规则验证结果、合规状态、不合规项明细与修复建议。',
+    tags: ['红线验证', '合规核查', '自动化验证'],
+    viewId: 'redline-verification',
+    icon: ShieldCheck,
+    usageSections: [
+      {
+        title: '适用场景',
+        description: '用于对安全红线规则做自动化验证，适合需要批量确认目标是否满足红线合规要求的场景。',
+      },
+      {
+        title: '输入重点',
+        description: '重点关注目标信息、红线规则集选择、验证参数与项目关联。规则集选择直接决定验证覆盖范围。',
+      },
+      {
+        title: '结果重点',
+        description: '重点查看红线规则验证结果、合规状态、不合规项明细和修复建议，判断是否需要补跑或人工复核。',
+      },
+    ],
+  },
+  {
+    id: 'cairn-blackboard',
+    name: '黑板',
+    summary: 'Cairn 黑板协作工具，提供可视化画布与团队协同标注能力。',
+    thumbnailDescription: '适合团队在可视化画布上做协同标注与信息整理。',
+    inputDescription: '直接打开黑板服务，无需额外输入。',
+    resultDescription: '提供可视化画布、协同标注、信息整理与团队协作能力。',
+    tags: ['黑板', '协同标注', '可视化画布'],
+    viewId: 'cairn-blackboard',
+    icon: Network,
+    embedUrl: '/nazhua/',
+    usageSections: [
+      {
+        title: '适用场景',
+        description: '用于团队在可视化画布上做协同标注与信息整理，适合需要实时协作和信息可视化的场景。',
+      },
+      {
+        title: '输入重点',
+        description: '直接打开黑板服务即可使用，无需额外输入参数。',
+      },
+      {
+        title: '结果重点',
+        description: '重点使用画布的协同标注、信息整理和团队协作能力。',
       },
     ],
   },

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ArrowLeft,
   Bot,
   Box,
   Edit2,
@@ -22,6 +23,7 @@ import { PageHeader } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { aigwApi } from '../../clients/aigw';
 import type { AiGatewayModelAlias, UserInfo, ViewType } from '../../types/types';
+import { toolCatalog, type ToolDescriptor } from './toolCatalog';
 
 const LK = {
   primary: '#2563EB', primarySoft: '#7590ff', primaryDeep: 'var(--brand-primary-hover)',
@@ -607,6 +609,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedAppId, setSelectedAppId] = useState('');
   const [expandedHarness, setExpandedHarness] = useState('');
+  const [activeTool, setActiveTool] = useState<ToolDescriptor | null>(null);
   const [harnessBranches, setHarnessBranches] = useState<Record<string, Array<{ name: string; commit: Record<string, unknown>; protected: boolean }>>>({});
   const [pipelineApp, setPipelineApp] = useState<AgentApp | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -772,6 +775,37 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
     { icon: <Lock size={12} />, value: formatDate(app.updatedAt), label:"更新时间", color:"text-theme-text-secondary", show: true },
   ];
 
+  // 微服务工具卡片点击后进入嵌入视图：iframe 加载工具页面，返回按钮回到卡片列表。
+  // SPA 路由类工具用 ?tool_embed=1#/{viewId} 以无外壳模式加载同站页面；
+  // 外部微服务（如黑板）直接用 embedUrl 指定的路径。
+  if (activeTool) {
+    const embedUrl = activeTool.embedUrl ?? `?tool_embed=1#/${activeTool.viewId}`;
+    const ToolIcon = activeTool.icon;
+    return (
+      <div className="absolute inset-0 flex flex-col bg-theme-app">
+        <div className="flex items-center gap-3 border-b border-theme-border bg-theme-surface px-4 py-3">
+          <button
+            type="button"
+            onClick={() => setActiveTool(null)}
+            className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm font-medium text-theme-text-secondary transition hover:bg-theme-elevated"
+          >
+            <ArrowLeft size={16} />
+            返回工具总览
+          </button>
+          <div className="flex items-center gap-2">
+            <ToolIcon size={18} className="text-theme-text-secondary" />
+            <span className="text-sm font-semibold text-theme-text-primary">{activeTool.name}</span>
+          </div>
+        </div>
+        <iframe
+          src={embedUrl}
+          title={activeTool.name}
+          className="min-h-0 flex-1 w-full border-none bg-theme-surface"
+        />
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: '32px 32px 40px' }}>
       {feedbackNodes}
@@ -860,6 +894,40 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
             ))}
           </div>
         )}
+      </section>
+
+      {/* 微服务工具卡片 */}
+      <section style={{ marginTop: '32px', borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '24px' }}>
+        <div className="mb-5">
+          <h2 className="text-lg font-semibold text-theme-text-primary">微服务工具</h2>
+          <p className="mt-1 text-sm text-theme-text-secondary">点击卡片在下方嵌入查看工具页面，支持返回工具总览。</p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-3">
+          {toolCatalog.map((tool) => {
+            const Icon = tool.icon;
+            return (
+              <button
+                key={tool.id}
+                type="button"
+                onClick={() => setActiveTool(tool)}
+                className="group flex flex-col rounded-xl border border-theme-border bg-theme-surface p-5 text-left transition hover:-translate-y-0.5 hover:border-cyan-500/20"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
+                    <Icon size={19} />
+                  </div>
+                  <h3 className="truncate text-lg font-semibold text-theme-text-primary">{tool.name}</h3>
+                </div>
+                <p className="mt-3 text-sm leading-relaxed text-theme-text-secondary line-clamp-2">{tool.summary}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {tool.tags.map((tag) => (
+                    <span key={tag} className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-medium text-theme-text-secondary">{tag}</span>
+                  ))}
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </section>
 
       {createOpen ? <AgentAppModal mode="create" saving={saving} departments={departments} canChoosePublic={true} modelAliases={modelAliases} modelAliasesLoading={modelAliasesLoading} onClose={() => setCreateOpen(false)} onSubmit={handleCreate} /> : null}
