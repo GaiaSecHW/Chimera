@@ -941,9 +941,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                   type="button"
                   onClick={() => { setIsCreateModalOpen(false); resetCreateForm(); }}
                   className="btn-secondary"
-                  style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = LK.ink)}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = LK.body)}
                 >
                   取消
                 </button>
@@ -951,9 +948,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                   type="submit"
                   disabled={isSubmitting}
                   className="btn btn-primary"
-                  style={{ backgroundColor: LK.primary, color: '#ffffff' }}
-                  onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-                  onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
                 >
                   {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}
                   立即创建
@@ -1079,24 +1073,18 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
 
               {renderVersionComboBox()}
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
-                  style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = LK.ink)}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = LK.body)}
+                  className="btn-secondary"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50"
-                  style={{ backgroundColor: LK.primary, color: '#ffffff' }}
-                  onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-                  onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
+                  className="btn btn-primary"
                 >
                   {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <Edit3 size={16} />}
                   保存修改

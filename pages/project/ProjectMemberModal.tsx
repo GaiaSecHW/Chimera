@@ -285,11 +285,11 @@ export const ProjectMemberModal: React.FC<ProjectMemberModalProps> = ({ projectI
             <table className="min-w-full divide-y divide-theme-border">
               <thead className="bg-theme-elevated text-left text-[11px] font-medium uppercase tracking-[0.18em] text-theme-text-muted">
                 <tr>
-                  <th className="px-4 py-3">用户名</th>
-                  <th className="px-4 py-3">部门</th>
-                  <th className="px-4 py-3">身份</th>
-                  <th className="px-4 py-3">加入时间</th>
-                  <th className="px-4 py-3 text-right">操作</th>
+                  <th className="px-4 py-3 text-sm text-theme-text-primary">用户名</th>
+                  <th className="px-4 py-3 text-sm text-theme-text-primary">部门</th>
+                  <th className="px-4 py-3 text-sm text-theme-text-primary">身份</th>
+                  <th className="px-4 py-3 text-sm text-theme-text-primary">加入时间</th>
+                  <th className="px-4 py-3 text-sm text-theme-text-primary text-left">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme-border text-sm">
@@ -319,15 +319,19 @@ export const ProjectMemberModal: React.FC<ProjectMemberModalProps> = ({ projectI
                         )}
                       </td>
                       <td className="px-4 py-3 text-xs text-theme-text-muted">{formatDateTime(m.created_at)}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-left">
                         {m.is_creator ? (
-                          <span className="text-xs text-theme-text-faint">—</span>
+                          <span className="text-xs text-theme-text-faint pl-1.5">—</span>
                         ) : (
                           <button
                             onClick={() => handleRemove(m.user_id)}
                             disabled={removingId === m.user_id}
                             title="移除成员"
-                            className="inline-flex items-center justify-center rounded-lg border border-rose-500/20 px-2 py-1.5 text-rose-400 transition hover:bg-rose-500/15 disabled:opacity-60"
+                            className="inline-flex items-center justify-center rounded-lg p-1.5 transition-colors"
+                            style={{ color: `var(--text-secondary)` }}
+                            onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = `var(--danger-soft)`; e.currentTarget.style.color = `var(--danger)`; } }}
+                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = `var(--text-secondary)`; }}
+
                           >
                             {removingId === m.user_id ? <Loader2 className="animate-spin" size={14} /> : <Trash2 size={14} />}
                           </button>
@@ -345,7 +349,7 @@ export const ProjectMemberModal: React.FC<ProjectMemberModalProps> = ({ projectI
         <div className="flex justify-end border-t border-theme-border px-6 py-4">
           <button
             onClick={onClose}
-            className="rounded-lg border border-theme-border bg-theme-elevated px-4 py-2 text-sm font-semibold text-theme-text-secondary transition hover:text-theme-text-primary"
+            className="btn-secondary"
           >
             关闭
           </button>
