@@ -111,6 +111,15 @@ const TASK_TYPE_OPTIONS = [
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
+const compareScheduleTaskEventsDesc = (left: ScheduleUserTaskEvent, right: ScheduleUserTaskEvent): number => {
+  const leftTime = left.created_at ? new Date(left.created_at).getTime() : 0;
+  const rightTime = right.created_at ? new Date(right.created_at).getTime() : 0;
+  if (leftTime !== rightTime) {
+    return rightTime - leftTime;
+  }
+  return String(right.id || '').localeCompare(String(left.id || ''));
+};
+
 type ColumnKey = 'name' | 'taskType' | 'status' | 'project' | 'queueState' | 'retryCount' | 'createdBy' | 'createdAt' | 'updatedAt' | 'timeRange' | 'actions';
 
 const ALL_COLUMNS: Array<{ key: ColumnKey; label: string; defaultVisible: boolean }> = [
@@ -859,7 +868,8 @@ export const ChimeraScheduleCenterPage: React.FC<ChimeraScheduleCenterPageProps>
             project_id: taskEventFilters.projectId || undefined,
           }) as ScheduleUserTaskEventListResponse
         : await scheduleApi.listProjectUserTaskEvents(effectiveProjectId, params) as ScheduleUserTaskEventListResponse;
-      setTaskEventItems(payload.items || []);
+      const sortedItems = [...(payload.items || [])].sort(compareScheduleTaskEventsDesc);
+      setTaskEventItems(sortedItems);
       setTaskEventTotal(Number(payload.total || 0));
       if (taskEventFilters.scope === 'project') {
         setNotice(`当前查看项目级调度日志: ${projectNameMap.get(effectiveProjectId) || effectiveProjectId}`);

@@ -220,13 +220,13 @@ const retryFailureSignature = (items: StageItem[]) =>
       const status = String(item.status || '').toLowerCase();
       const downstreamStatus = String(item.downstream_status || '').toLowerCase();
       const lastResult = String(item.result?.sync_observation?.last_result || '').toLowerCase();
-      const recoveryReason = String(item.result?.sync_observation?.recovery_reason || '').toLowerCase();
+      const syncStatus = String(item.result?.sync_observation?.sync_status || '').toLowerCase();
       return ['failed', 'error', 'cancelled'].includes(status)
         || ['failed', 'cancelled', 'downstream_missing'].includes(downstreamStatus)
-        || lastResult === 'recovered_for_redispatch'
-        || recoveryReason === 'downstream_missing_requeue';
+        || lastResult === 'observation_gap_detected'
+        || syncStatus === 'observation_gap_detected';
     })
-    .map((item) => `${item.id}:${item.status || ''}:${item.downstream_task_id || ''}:${item.downstream_status || ''}:${item.result?.sync_observation?.last_result || ''}:${item.result?.sync_observation?.recovery_reason || ''}`)
+    .map((item) => `${item.id}:${item.status || ''}:${item.downstream_task_id || ''}:${item.downstream_status || ''}:${item.result?.sync_observation?.last_result || ''}:${item.result?.sync_observation?.sync_status || ''}`)
     .sort();
 
 const assertNoRetrySideEffects = (before: TaskSnapshot, after: TaskSnapshot) => {
@@ -273,8 +273,8 @@ const assertBlockedTask = async (page: Page, request: APIRequestContext, token: 
     snapshot.entryItems.some((item) =>
       String(item.status || '').toLowerCase() === 'cancelled'
       && (
-        String(item.result?.sync_observation?.last_result || '').toLowerCase() === 'recovered_for_redispatch'
-        || String(item.result?.sync_observation?.recovery_reason || '').toLowerCase() === 'downstream_missing_requeue'
+        String(item.result?.sync_observation?.last_result || '').toLowerCase() === 'observation_gap_detected'
+        || String(item.result?.sync_observation?.sync_status || '').toLowerCase() === 'observation_gap_detected'
       )),
   ).toBeTruthy();
 

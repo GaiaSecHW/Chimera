@@ -15,6 +15,21 @@ const stripMonacoSourcemaps = {
   },
 };
 
+// 临时绕过 vite:build-import-analysis 的 acorn 解析失败:
+// esbuild 全量压缩对累积相似 JSX 产出的语法,acorn(build-import-analysis)无法解析。
+// 将该插件的 generateBundle 置为 no-op,跳过解析;不影响运行时(仅不生成 module preload 链接)。
+const disableBuildImportAnalysis = {
+  name: 'disable-build-import-analysis',
+  enforce: 'pre' as const,
+  configResolved(config: any) {
+    const plugins = (config.plugins as any[]) || [];
+    const target = plugins.find((p: any) => p.name === 'vite:build-import-analysis');
+    if (target && target.generateBundle) {
+      target.generateBundle = async function () { /* no-op: skip acorn parse */ };
+    }
+  },
+};
+
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     const buildTime = env.BUILD_TIME || new Date().toISOString().replace('T', ' ').slice(0, 19);
@@ -158,7 +173,7 @@ export default defineConfig(({ mode }) => {
           },
         },
       },
-      plugins: [react(), stripMonacoSourcemaps],
+      plugins: [react(), stripMonacoSourcemaps, disableBuildImportAnalysis],
       define: {
         __BUILD_TIME__: JSON.stringify(buildTime),
         __CHIMERA_BUILD_VERSION__: JSON.stringify(buildVersion),
