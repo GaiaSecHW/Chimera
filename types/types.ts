@@ -2390,6 +2390,26 @@ export interface ScheduleCenterUserTaskListResponse {
   sort_direction?: string | null;
 }
 
+/**
+ * 项目下用户任务的 5 档状态统计（由后端按 display_status 收敛）。
+ * GET /api/chirmera-platform-schedule/projects/{project_id}/user-tasks/stats
+ *
+ * 收敛口径：
+ *  - pending:   pending、stopped
+ *  - running:   running、dispatching、queued、created、unknown、retry_wait、paused 等非终态
+ *  - failed:    failed
+ *  - success:   success、partial_success
+ *  - cancelled: cancelled
+ */
+export interface ScheduleCenterUserTaskStats {
+  total: number;
+  pending: number;
+  running: number;
+  failed: number;
+  success: number;
+  cancelled: number;
+}
+
 export interface ScheduleCenterUserTaskDeleteQueueItem {
   id: string;
   project_id: string;
