@@ -266,11 +266,13 @@
     background-color: var(--bg-surface);
     border: 1px solid var(--border-default);
   }
-  .button-surface:hover {
+  .button-surface.disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+  .button-surface:not(:disabled):hover {
     color: var(--brand-primary);
     border-color: var(--brand-primary);
   }
-
   .theme-form-input {
     @apply rounded-xl border outline-none font-semibold transition-all;
     background-color: var(--bg-surface);
@@ -396,7 +398,10 @@
     color: var(--text-muted);
     border: 1px solid var(--border-default);
   }
-  .btn-secondary:hover {
+  .btn-secondary:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+  .btn-secondary:not(:disabled):hover {
     background-color: var(--bg-surface);
     color: var(--text-primary);
   }

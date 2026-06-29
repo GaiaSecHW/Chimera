@@ -702,10 +702,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
           <button
             onClick={openCreateModal}
             disabled={!userPermissions || selectableDepartments.length === 0}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ backgroundColor: LK.primary, color: '#ffffff' }}
-            onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primaryDeep; }}
-            onMouseLeave={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = LK.primary; }}
+            className="btn btn-primary flex gap-1"
           >
             <Plus size={16} /> 初始化项目
           </button>

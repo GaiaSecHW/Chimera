@@ -504,7 +504,12 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
       <div className="bg-theme-surface">
         {!hideActionBar && (
           <div className="flex items-center gap-2 rounded-xl px-4 py-3">
-              <button onClick={openCreateDialog} className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" style={{ backgroundColor: LK.primary, color: '#ffffff' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.primaryDeep; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = LK.primary; }}><Plus size={15} />创建任务</button>
+              <button onClick={openCreateDialog}
+                className="btn btn-primary flex gap-1"
+              >
+                <Plus size={16} />
+                创建任务
+              </button>
               <button
                   onClick={() => void submitDelete(selectedTaskIds)}
                   disabled={!selectedTaskIds.length || deleteSubmitting}

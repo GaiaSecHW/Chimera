@@ -13,7 +13,7 @@ import {
   RefreshCw,
   Search,
   Trash2,
-  Upload,
+  UploadCloud,
   X,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -752,7 +752,7 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
             <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
               <button
                 onClick={() => openCreateModal(selectedType === 'all' ? 'document' : selectedType)}
-                className="btn btn-primary"
+                className="btn btn-primary flex gap-1"
                 style={{ color: '#ffffff' }}
               >
                 <Plus size={16} />
@@ -1280,33 +1280,38 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
                     保留原始文件，不自动解压
                   </label>
 
-                  <div className="rounded-[1.25rem] border border-dashed border-theme-border bg-theme-elevated px-4 py-5 text-center">
- <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg bg-theme-elevated text-theme-text-secondary">
-                      <Upload size={22} />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => fileInputRef.current?.click()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        fileInputRef.current?.click();
+                      }
+                    }}
+                    className="group cursor-pointer rounded-xl border border-dashed border-theme-border bg-theme-elevated/30 p-4 text-center transition-colors hover:border-theme-text-muted hover:bg-theme-elevated focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-text-muted"
+                  >
+                    <UploadCloud
+                      size={24}
+                      className="mx-auto text-theme-text-muted transition-colors group-hover:text-theme-text-primary"
+                    />
+                    <div className="mt-1 text-sm font-semibold text-theme-text-primary">
+                      {keepOriginal ? '点击上传原始文件' : '点击上传压缩包'}
                     </div>
-                    <div className="mt-3 text-sm font-semibold text-theme-text-primary">{keepOriginal ? '上传原始文件' : '上传压缩包'}</div>
                     <div className="mt-1 text-xs leading-5 text-theme-text-muted">
                       {keepOriginal
                         ? '当前保留原始文件模式下，支持上传任意文件，一次可选择多个文件。'
-                        : '支持`zip / tar / tar.gz / tgz / tar.bz2 / tbz2 / tar.xz / txz`，一次可选择多个文件。'}
+                        : '支持 zip / tar / tar.gz / tgz / tar.bz2 / tbz2 / tar.xz / txz，一次可选择多个文件。'}
                     </div>
-                    <div className="mt-3">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="rounded-lg bg-theme-elevated px-4 py-3 text-sm font-semibold text-white hover:bg-theme-elevated"
-                      >
-                        选择文件
-                      </button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        accept={keepOriginal ? undefined : '.zip,.tar,.tar.gz,.tgz,.tar.bz2,.tbz2,.tar.xz,.txz'}
-                        className="hidden"
-                        onChange={(event) => addFilesToQueue(event.target.files)}
-                      />
-                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept={keepOriginal ? undefined : '.zip,.tar,.tar.gz,.tgz,.tar.bz2,.tbz2,.tar.xz,.txz'}
+                      className="hidden"
+                      onChange={(event) => addFilesToQueue(event.target.files)}
+                    />
                   </div>
 
                   <div className="space-y-3">
