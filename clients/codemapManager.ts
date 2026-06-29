@@ -70,7 +70,7 @@ export interface CodemapBuildAnalyze {
   task_id: string;
   overall: string;
   analyze_status: string;   // pending | running | done | failed
-  scale: { functions: number; files: number };
+  scale?: { functions: number; files: number };
   error: string | null;
 }
 

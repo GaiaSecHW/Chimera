@@ -308,8 +308,8 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
   const staticRunning = az === 'running' ||
     (!az && (s === 'building_analyze' || s === 'queued' || s === 'accepted'));
   const staticFailed = az === 'failed' || (!az && s === 'failed' && !hasRepairProgress);
-  const funcCount = analyze?.scale.functions ?? 0;
-  const fileCount = analyze?.scale.files ?? 0;
+  const funcCount = analyze?.scale?.functions ?? 0;
+  const fileCount = analyze?.scale?.files ?? 0;
 
   // ② 入口分析:SS3 起以 /build/attack-surface 为真相源(attack_status 四态:
   //    pending/running/done/failed,旧 ok 已并入 done;entries 全图绝对计数)。
