@@ -166,25 +166,25 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
               <div className="absolute inset-0 rounded-2xl opacity-60 blur-xl" style={{ background: 'radial-gradient(circle, var(--brand-primary) 0%, transparent 70%)' }} />
               <img alt="Chimera" className="relative w-14 h-14 rounded-2xl" src="/logo.png" />
             </div>
+            <h1
+                className="text-4xl font-bold tracking-tight md:text-5xl xl:text-6xl 2xl:text-7xl"
+                style={{
+                  background: 'linear-gradient(120deg, var(--brand-primary) 0%, #818cf8 45%, #c084fc 100%)',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  color: 'transparent',
+                }}
+            >
+              ICSL Chimera
+            </h1>
             <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-theme-text-muted backdrop-blur" style={{ backgroundColor: GLASS_BG, borderColor: GLASS_BORDER }}>
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               AI 安全验证平台
             </span>
-            <ServiceBuildVersionBadge version={__CHIMERA_BUILD_VERSION__} />
           </div>
           <div className="flex flex-col gap-6 lg:flex-row lg:justify-between lg:items-center">
-            <h1
-              className="text-4xl font-bold tracking-tight md:text-5xl xl:text-6xl 2xl:text-7xl"
-              style={{
-                background: 'linear-gradient(120deg, var(--brand-primary) 0%, #818cf8 45%, #c084fc 100%)',
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                color: 'transparent',
-              }}
-            >
-              ICSL Chimera
-            </h1>
+
             <div className="max-w-3xl border-l-2 pl-6 lg:max-w-2xl xl:max-w-3xl 2xl:max-w-4xl" style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 40%, transparent)' }}>
               <p className="text-sm leading-relaxed text-theme-text-secondary md:text-base">
                 智能体群协作 AI 安全验证平台。面向安全团队与产品团队，将安全专家的经验转化为可复用的自动化能力。
