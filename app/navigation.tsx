@@ -366,6 +366,7 @@ const EVOLUTION_VIEWS = new Set([
   'binary-security-config',
   'binary-security-metrics',
   'system-analysis-evolution',
+  'entry-analysis-evolution',
   'secocto-overview',
   'secocto-skills',
   'secocto-memories',
@@ -619,7 +620,7 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
     {
       title: '入口分析进化',
       items: [
-        { id: 'entry-analysis-evolution', label: '失败诊断报告', icon: FileText, requiresProject: true },
+        { id: 'entry-analysis-evolution', label: '失败诊断报告', icon: FileText },
       ],
     },
     {
