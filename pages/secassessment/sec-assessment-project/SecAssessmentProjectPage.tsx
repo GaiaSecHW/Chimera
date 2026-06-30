@@ -14,6 +14,7 @@ import type { ProjectListItem, ProjectStatus } from './types';
 import { ProjectCreateModal } from './components/ProjectCreateModal';
 
 interface SecAssessmentProjectPageProps {
+  projectId?: string;
   onNavigateToView?: (view: string) => void;
 }
 
@@ -32,7 +33,7 @@ const SYNC_OPTIONS = [
   { value: 'sync_failed', label: '同步失败' },
 ];
 
-export const SecAssessmentProjectPage: React.FC<SecAssessmentProjectPageProps> = ({ onNavigateToView }) => {
+export const SecAssessmentProjectPage: React.FC<SecAssessmentProjectPageProps> = ({ projectId, onNavigateToView }) => {
   const [list, setList] = useState<ProjectListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
@@ -120,7 +121,7 @@ export const SecAssessmentProjectPage: React.FC<SecAssessmentProjectPageProps> =
 
   const columns = useMemo<DataTableColumn<ProjectListItem>[]>(() => [
     {
-      key: 'name', header: '项目',
+      key: 'name', header: '项目', width: 220,
       render: (p) => (
         <div className="min-w-0">
           <div className="text-theme-text-primary font-medium truncate">{p.project_name}</div>
@@ -128,13 +129,13 @@ export const SecAssessmentProjectPage: React.FC<SecAssessmentProjectPageProps> =
         </div>
       ),
     },
-    { key: 'baseline', header: '基线', render: (p) => <span className="text-theme-text-secondary text-sm">{p.baseline_name || '—'}</span> },
+    { key: 'baseline', header: '基线', width: 160, render: (p) => <span className="text-theme-text-secondary text-sm truncate">{p.baseline_name || '—'}</span> },
     {
-      key: 'status', header: '状态', width: 90,
+      key: 'status', header: '状态', width: 100,
       render: (p) => <ProjectStatusBadge status={p.project_status} />,
     },
-    { key: 'executor', header: '负责人', render: (p) => <span className="text-theme-text-secondary text-sm">{p.executor || '—'}</span> },
-    { key: 'priority', header: '优先级', width: 70, render: (p) => <span className="text-theme-text-muted tabular-nums">{p.priority}</span> },
+    { key: 'executor', header: '负责人', width: 100, render: (p) => <span className="text-theme-text-secondary text-sm">{p.executor || '—'}</span> },
+    { key: 'priority', header: '优先级', width: 80, render: (p) => <span className="text-theme-text-muted tabular-nums">{p.priority}</span> },
     {
       key: 'rate', header: '合规率', width: 120,
       render: (p) => {
@@ -152,8 +153,8 @@ export const SecAssessmentProjectPage: React.FC<SecAssessmentProjectPageProps> =
         );
       },
     },
-    { key: 'sync', header: '同步', width: 80, render: (p) => <SyncBadge status={p.sync_status} /> },
-    { key: 'time', header: '入队时间', width: 140, render: (p) => <span className="text-xs text-theme-text-muted font-mono">{fmtTime(p.create_time)}</span> },
+    { key: 'sync', header: '同步', width: 90, render: (p) => <SyncBadge status={p.sync_status} /> },
+    { key: 'time', header: '入队时间', width: 160, render: (p) => <span className="text-xs text-theme-text-muted font-mono">{fmtTime(p.create_time)}</span> },
     {
       key: 'actions', header: '操作', align: 'right', width: 150,
       render: (p) => (
@@ -234,7 +235,7 @@ export const SecAssessmentProjectPage: React.FC<SecAssessmentProjectPageProps> =
               rowKey={(p) => String(p.id)}
               loading={loading && list.length === 0}
               showRowNumber
-              minWidth={1100}
+              minWidth={1240}
               onRowClick={(p) => onNavigateToView?.(`sec-assessment-project-detail-${p.id}`)}
               empty={<EmptyState variant="inline" title="暂无匹配的评估项目" />}
             />
@@ -242,7 +243,7 @@ export const SecAssessmentProjectPage: React.FC<SecAssessmentProjectPageProps> =
         </div>
       </div>
 
-      <ProjectCreateModal open={createOpen} onClose={() => setCreateOpen(false)} onCreated={fetchList} />
+      <ProjectCreateModal open={createOpen} onClose={() => setCreateOpen(false)} onCreated={fetchList} projectId={projectId || ''} />
     </div>
   );
 };

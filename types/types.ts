@@ -18,6 +18,9 @@ export interface UserInfo {
   department_member_id?: number | null;
   department_id?: number | null;
   department_name?: string | null;
+  // 部门层级路径（根到当前部门）。后端 validate-token / login 响应应携带；
+  // 缺失时 isIcslDepartment 回退到 department_name 字符串匹配。
+  department_path?: { id: number; name: string }[] | null;
   created_at?: string;
   updated_at?: string;
 }

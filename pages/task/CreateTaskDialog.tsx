@@ -127,11 +127,20 @@ const getLocalUserInfo = (): UserInfo | null => {
   }
 };
 
-/* 狮首模式仅限 ICSL 部门（含子部门，如 ICSL/安全）使用。 */
-const isIcslDepartment = (departmentName?: string | null): boolean => {
-  if (!departmentName) return false;
-  const trimmed = departmentName.trim();
-  return trimmed === 'ICSL' || trimmed.startsWith('ICSL/');
+/* 狮首模式仅限 ICSL 部门（含子部门，如 ICSL/安全）使用。
+   优先按 department_path 数组判断层级归属（叶子部门名不带 ICSL/ 前缀时也能命中，
+   例如 ICSL/渗透测试部 的 department_name 只是 "渗透测试部"）；
+   若后端未返回 path，回退到 department_name 的字符串前缀匹配。 */
+const isIcslDepartment = (
+  user?: { department_path?: { id: number; name: string }[] | null; department_name?: string | null } | null,
+): boolean => {
+  if (!user) return false;
+  const path = Array.isArray(user.department_path) ? user.department_path : null;
+  if (path && path.length > 0) {
+    return path.some((node) => (node?.name || '').trim() === 'ICSL');
+  }
+  const name = (user.department_name || '').trim();
+  return name === 'ICSL' || name.startsWith('ICSL/');
 };
 
 /* ------------------------------------------------------------------ */
@@ -183,7 +192,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   // 狮首模式限 ICSL 部门（含子部门）或超级管理员（super_admin）使用
   const platformRole = getPlatformRole(currentUser);
   const isAdminRole = platformRole === 'super_admin';
-  const canUseLionHead = isIcslDepartment(currentUser?.department_name) || isAdminRole;
+  const canUseLionHead = isIcslDepartment(currentUser) || isAdminRole;
 
   /* --- form state --- */
   const [saving, setSaving] = useState(false);
