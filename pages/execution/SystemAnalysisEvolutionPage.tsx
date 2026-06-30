@@ -32,11 +32,9 @@ function formatTime(ts: string | null | undefined): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
-interface SystemAnalysisEvolutionPageProps {
-  projectId?: string;
-}
+interface SystemAnalysisEvolutionPageProps {}
 
-export const SystemAnalysisEvolutionPage: React.FC<SystemAnalysisEvolutionPageProps> = ({ projectId }) => {
+export const SystemAnalysisEvolutionPage: React.FC<SystemAnalysisEvolutionPageProps> = () => {
   const appApi = api.domains.execution.appSystemAnalyse;
   const { notify } = useUiFeedback();
 
@@ -53,7 +51,6 @@ export const SystemAnalysisEvolutionPage: React.FC<SystemAnalysisEvolutionPagePr
     else setRefreshing(true);
     try {
       const resp = await appApi.listFailureDebugReports({
-        project_id: projectId || undefined,
         page: 1,
         per_page: 100,
       });
@@ -64,7 +61,7 @@ export const SystemAnalysisEvolutionPage: React.FC<SystemAnalysisEvolutionPagePr
       setLoading(false);
       setRefreshing(false);
     }
-  }, [appApi, projectId, notify]);
+  }, [appApi, notify]);
 
   useEffect(() => {
     void loadReports();
@@ -137,6 +134,7 @@ export const SystemAnalysisEvolutionPage: React.FC<SystemAnalysisEvolutionPagePr
           <ExecutionTable>
             <ExecutionTableHead>
               <ExecutionTableTh>报告ID</ExecutionTableTh>
+              <ExecutionTableTh>项目</ExecutionTableTh>
               <ExecutionTableTh>任务名称</ExecutionTableTh>
               <ExecutionTableTh>状态</ExecutionTableTh>
               <ExecutionTableTh>失败阶段</ExecutionTableTh>
@@ -149,6 +147,7 @@ export const SystemAnalysisEvolutionPage: React.FC<SystemAnalysisEvolutionPagePr
               {reports.map((r) => (
                 <tr key={r.id} className={executionTableRowClassName}>
                   <ExecutionTableTd className="font-mono text-xs">#{r.id}</ExecutionTableTd>
+                  <ExecutionTableTd className="text-xs text-theme-text-muted">{r.project_id || '-'}</ExecutionTableTd>
                   <ExecutionTableTd>
                     <button
                       className="text-left text-theme-text-primary hover:text-blue-400"
