@@ -108,7 +108,7 @@ export const SystemAnalysisEvolutionPage: React.FC<SystemAnalysisEvolutionPagePr
 
   return (
     <div className="min-h-full">
-      <ServicePageTitle title="系统分析进化" />
+      <ServicePageTitle title="bug修复" />
       <div className="mt-4 flex items-center justify-between">
         <p className="text-sm text-theme-text-muted">
           任务失败时，系统自动使用 LLM 对失败原因进行调试，生成问题现象 / 根因 / 解决方法 / 代码现场 / 补丁代码报告。

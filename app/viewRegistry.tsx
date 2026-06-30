@@ -55,6 +55,7 @@ import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage'
 import { EntryAnalysisTaskDetailPage } from '../pages/execution/EntryAnalysisTaskDetailPage';
 import { EntryAnalysisConfigPage } from '../pages/execution/EntryAnalysisConfigPage';
 import { EntryAnalysisEvolutionPage } from '../pages/execution/EntryAnalysisEvolutionPage';
+import { EntryAnalysisEvolutionDetailPage } from '../pages/execution/EntryAnalysisEvolutionPage';
 import { WorkflowInstancePage } from '../pages/orchestration/WorkflowInstancePage';
 import { WorkflowInstanceDetailPage } from '../pages/orchestration/WorkflowInstanceDetailPage';
 import { WorkflowInstanceLogsPage } from '../pages/orchestration/WorkflowInstanceLogsPage';
@@ -155,6 +156,7 @@ export interface ViewRegistryContext {
   activeB2SItemId: string;
   activeSystemAnalysisTaskId: string;
   activeEntryAnalysisTaskId: string;
+  activeEntryAnalysisDebugReportId: string;
   activeDataflowAnalysisTaskId: string;
   activeDataflowVulnScanTaskId: string;
   activeCfgGuidedExploreTaskId: string;
@@ -192,6 +194,7 @@ export interface ViewRegistryContext {
   setActiveB2SItemId: (id: string) => void;
   setActiveSystemAnalysisTaskId: (id: string) => void;
   setActiveEntryAnalysisTaskId: (id: string) => void;
+  setActiveEntryAnalysisDebugReportId: (id: string) => void;
   setActiveDataflowAnalysisTaskId: (id: string) => void;
   setActiveDataflowVulnScanTaskId: (id: string) => void;
   setActiveCfgGuidedExploreTaskId: (id: string) => void;
@@ -436,6 +439,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'system-analysis-config':
       return <SystemAnalysisConfigPage projectId={ctx.selectedProjectId} />;
     case 'system-analysis-evolution':
+    case 'system-analysis-bug-fix':
       return <SystemAnalysisEvolutionPage projectId={ctx.selectedProjectId} />;
     case 'pentest-dataflow':
     case 'dataflow-analysis-task':
@@ -611,7 +615,22 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'entry-analysis-config':
       return <EntryAnalysisConfigPage projectId={ctx.selectedProjectId} />;
     case 'entry-analysis-evolution':
-      return <EntryAnalysisEvolutionPage projectId={ctx.selectedProjectId} />;
+      return (
+        <EntryAnalysisEvolutionPage
+          projectId={ctx.selectedProjectId}
+          onOpenDetail={(reportId) => {
+            ctx.setActiveEntryAnalysisDebugReportId(reportId);
+            ctx.setCurrentView('entry-analysis-evolution-detail');
+          }}
+        />
+      );
+    case 'entry-analysis-evolution-detail':
+      return (
+        <EntryAnalysisEvolutionDetailPage
+          reportId={ctx.activeEntryAnalysisDebugReportId}
+          onBack={() => ctx.setCurrentView('entry-analysis-evolution')}
+        />
+      );
     case 'pentest-exec-code':
       return <ExecutionCodeAuditPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-work':
