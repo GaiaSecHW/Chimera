@@ -638,8 +638,8 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
       }
       try {
         await uploaderRef.current.triggerUpload();
+        uploaderRef.current?.reset();
         setIsUploadModalOpen(false);
-        uploaderRef.current.reset();
         setUploadDisplayName('');
         await Promise.all([loadOverview(), loadRecords()]);
       } catch (error: any) {

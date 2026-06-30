@@ -412,18 +412,6 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setRefreshing(true);
     setError(null);
     try {
-      if (isAllProjectsScope) {
-        await load({ silent: true });
-        return;
-      }
-      const activeTaskIds = items
-        .filter((item) => !TERMINAL.has(item.status))
-        .map((item) => item.id);
-      if (activeTaskIds.length > 0) {
-        await Promise.allSettled(
-          activeTaskIds.map((taskId) => executionApi.binarySecurity.syncDownstreamStatus(projectId, taskId, { force: true })),
-        );
-      }
       await load({ silent: true });
     } catch (e: any) {
       setError(e?.message || '刷新失败');
