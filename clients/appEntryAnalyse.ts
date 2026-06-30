@@ -103,6 +103,11 @@ export const appEntryAnalyseApi = {
       method: 'POST', headers: getHeaders(),
     })),
 
+  deleteDebugReport: async (reportId: string): Promise<{ report_id: string; deleted: boolean }> =>
+    handleResponse(await fetch(`${BASE}/debug-reports/${encodeURIComponent(reportId)}`, {
+      method: 'DELETE', headers: getHeaders(),
+    })),
+
   debugReportDownloadUrl: (reportId: string): string =>
     `${BASE}/debug-reports/${encodeURIComponent(reportId)}/download`,
 
