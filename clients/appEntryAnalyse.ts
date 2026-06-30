@@ -3,6 +3,8 @@ import type { ServiceHealthMeta } from '../components/execution/serviceHealthMet
 import {
   AppEaFunctionDetail,
   AppEaTaskActionResponse,
+  AppEaDebugReport,
+  AppEaDebugReportListResponse,
   AppEaSessionIndex,
   AppEaSessionMeta,
   AppEaSessionSnapshot,
@@ -82,6 +84,27 @@ export const appEntryAnalyseApi = {
 
   getSlotCluster: async (): Promise<EntryAnalyseSlotClusterSummary> =>
     getJsonWithDedupe(`${BASE}/workers/slot-cluster`, { headers: getHeaders() }),
+
+  // ── 失败诊断报告 ──
+  listDebugReports: async (params: { project_id?: string; status?: string; page?: number; page_size?: number } = {}): Promise<AppEaDebugReportListResponse> => {
+    const query = new URLSearchParams();
+    if (params.project_id) query.append('project_id', params.project_id);
+    if (params.status) query.append('status', params.status);
+    query.append('page', String(params.page ?? 1));
+    query.append('page_size', String(params.page_size ?? 20));
+    return getJsonWithDedupe(`${BASE}/debug-reports?${query.toString()}`, { headers: getHeaders() });
+  },
+
+  getDebugReport: async (reportId: string): Promise<AppEaDebugReport> =>
+    handleResponse(await fetch(`${BASE}/debug-reports/${encodeURIComponent(reportId)}`, { headers: getHeaders() })),
+
+  reanalyzeDebugReport: async (reportId: string): Promise<{ report_id: string; status: string }> =>
+    handleResponse(await fetch(`${BASE}/debug-reports/${encodeURIComponent(reportId)}/reanalyze`, {
+      method: 'POST', headers: getHeaders(),
+    })),
+
+  debugReportDownloadUrl: (reportId: string): string =>
+    `${BASE}/debug-reports/${encodeURIComponent(reportId)}/download`,
 
   getTask: async (taskId: string, options: { includeFunctionCatalog?: boolean } = {}): Promise<AppEaTaskDetail> => {
     const query = new URLSearchParams();

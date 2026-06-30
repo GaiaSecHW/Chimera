@@ -617,6 +617,12 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
   ],
   evolution: [
     {
+      title: '入口分析进化',
+      items: [
+        { id: 'entry-analysis-evolution', label: '失败诊断报告', icon: FileText, requiresProject: true },
+      ],
+    },
+    {
       title: '二进制进化',
       items: [
         { id: 'binary-evolution-center', label: '进化中心', icon: Sparkles, requiresProject: true, subItems: [

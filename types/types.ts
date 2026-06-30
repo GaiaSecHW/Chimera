@@ -5141,3 +5141,32 @@ export interface SaFailureDebugReportDetail extends SaFailureDebugReportListItem
   } | null;
   debug_error?: string | null;
 }
+
+// ── 失败诊断报告（debugger 角色 LLM 分析失败任务产出）──
+export interface AppEaDebugReport {
+  report_id: string;
+  task_id: string;
+  project_id: string;
+  task_name: string;
+  status: 'pending' | 'running' | 'passed' | 'failed' | 'error';
+  model?: string | null;
+  task_status?: string | null;
+  phenomenon?: string | null;
+  root_cause?: string | null;
+  solution?: string | null;
+  code_scene?: string | null;
+  patch_code?: string | null;
+  report_path?: string | null;
+  error?: string | null;
+  owner_pod?: string | null;
+  created_at?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+}
+
+export interface AppEaDebugReportListResponse {
+  total: number;
+  page: number;
+  page_size: number;
+  items: AppEaDebugReport[];
+}

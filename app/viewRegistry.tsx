@@ -54,6 +54,7 @@ import { FramaCAdminPage } from '../pages/execution/FramaCAdminPage';
 import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage';
 import { EntryAnalysisTaskDetailPage } from '../pages/execution/EntryAnalysisTaskDetailPage';
 import { EntryAnalysisConfigPage } from '../pages/execution/EntryAnalysisConfigPage';
+import { EntryAnalysisEvolutionPage } from '../pages/execution/EntryAnalysisEvolutionPage';
 import { WorkflowInstancePage } from '../pages/orchestration/WorkflowInstancePage';
 import { WorkflowInstanceDetailPage } from '../pages/orchestration/WorkflowInstanceDetailPage';
 import { WorkflowInstanceLogsPage } from '../pages/orchestration/WorkflowInstanceLogsPage';
@@ -609,6 +610,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       );
     case 'entry-analysis-config':
       return <EntryAnalysisConfigPage projectId={ctx.selectedProjectId} />;
+    case 'entry-analysis-evolution':
+      return <EntryAnalysisEvolutionPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-code':
       return <ExecutionCodeAuditPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-work':
