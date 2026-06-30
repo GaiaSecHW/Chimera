@@ -1915,7 +1915,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     { value: 'not_vulnerable', label: '不是漏洞' },
   ];
   const selectedFinalResultLabel = finalResultFilter.length === 0
-    ? '全部结果'
+    ? '全部状态'
     : finalResultFilter.length === 1
       ? FINAL_RESULT_OPTIONS.find((o) => o.value === finalResultFilter[0])?.label || finalResultFilter[0]
       : `已选 ${finalResultFilter.length} 项`;
@@ -2346,7 +2346,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
     return (
       <div className="overflow-hidden rounded-xl bg-theme-surface border border-theme-border">
-        <div className="px-5 py-4 xl:px-6 border-b border-theme-border-subtle bg-gradient-radial">
+        <div className="px-4 py-4 border-b border-theme-border-subtle bg-gradient-radial">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <button
               type="button"
@@ -2375,7 +2375,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               <p className="mt-1 line-clamp-2 text-sm leading-6 text-theme-text-muted">{selectedDetail.summary || '暂无摘要'}</p>
             </div>
           </div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {/*<div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-lg px-3 py-2.5 bg-theme-elevated border border-theme-border">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">状态</div>
               <div className="mt-1 text-sm font-semibold text-theme-text-primary">{toUserVulnStatusText(selectedDetail)}</div>
@@ -2392,17 +2392,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">开放任务</div>
               <div className="mt-1 text-sm font-semibold tabular-nums text-theme-text-primary">{stats.openTasks}</div>
             </div>
-          </div>
+          </div>*/}
         </div>
 
-        <div className="px-5 pt-4 xl:px-6 border-b border-theme-border-subtle bg-theme-elevated/80">
+        <div className="px-4 pt-4 border-b border-theme-border-subtle bg-theme-elevated/80">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">详情视图</div>
+              <div className="text-xl font-semibold uppercase tracking-wider text-theme-text-primary">详情视图</div>
               <div className="mt-1 text-sm text-theme-text-muted">先看结论，再查看报告、证据、过程和关联上下文。</div>
-            </div>
-            <div className="hidden rounded-lg px-3 py-2 text-xs font-semibold xl:block bg-theme-surface text-theme-text-secondary border border-theme-border">
-              当前：{detailTabs.find((tab) => tab.key === detailActiveTab)?.label}
             </div>
           </div>
           <div className="flex gap-2 overflow-x-auto pb-3">
@@ -2427,14 +2424,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           </div>
         </div>
 
-        <div className="p-6 xl:p-8">
+        <div className="p-4">
           {detailActiveTab === 'overview' && (
             <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {/*<div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {overviewCards.map((card) => (
                   <DetailMetricCard key={card.label} label={card.label} value={card.value} hint={card.hint} />
                 ))}
-              </div>
+              </div>*/}
               <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
                 <div className="space-y-4">
                   <DetailSectionCard title="漏洞摘要" subtitle="先看本条漏洞的结论、摘要和对象定位。">
@@ -2549,7 +2546,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               <div className="rounded-xl p-5 bg-theme-surface border border-theme-border">
                 <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-theme-border-subtle">
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">漏洞报告</div>
+                    {/*<div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">漏洞报告</div>*/}
                     <div className="mt-1 text-lg font-semibold text-theme-text-primary">{reportDocument?.title || reportItems.find((item) => item.report_id === selectedReportId)?.title || '未选择报告'}</div>
                     <div className="mt-1 text-xs text-theme-text-muted">
                       类型：{reportDocument?.report_kind || reportItems.find((item) => item.report_id === selectedReportId)?.report_kind || 'unknown'} · 阶段：{toStageText(reportDocument?.stage || reportItems.find((item) => item.report_id === selectedReportId)?.stage)} · 来源：{reportDocument?.source_service_id || reportItems.find((item) => item.report_id === selectedReportId)?.source_service_id || '未提供'}
@@ -2560,7 +2557,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                     {reportDocument?.generated_at ? <div className="rounded-lg px-3 py-2 text-xs bg-theme-elevated text-theme-text-muted">生成时间：{formatTime(reportDocument.generated_at)}</div> : null}
                   </div>
                 </div>
-                <div ref={reportScrollRef} className="mt-5 min-h-[28rem] max-h-[calc(100vh-22rem)] overflow-auto pr-1">
+                <div ref={reportScrollRef} className="mt-5 min-h-[28rem] overflow-auto pr-1">
                   {reportLoading ? (
                     <div className="flex items-center gap-2 text-sm text-theme-text-muted"><Loader2 size={16} className="animate-spin" /> 正在加载报告...</div>
                   ) : reportError ? (
@@ -2953,7 +2950,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                           onChange={clearFinalResultFilter}
                           className="h-4 w-4 rounded border-theme-border"
                         />
-                        全部结果
+                        全部状态
                       </label>
                       {FINAL_RESULT_OPTIONS.map((opt) => {
                         const checked = finalResultFilter.includes(opt.value);

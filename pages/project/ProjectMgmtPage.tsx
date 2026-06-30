@@ -714,7 +714,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" size={16} />
             <input
               type="text"
-              placeholder="搜索项目名称、负责人、归属部门、产品路径、版本号..."
+              placeholder="搜索项目名称"
               className="form-input w-full pl-10"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
@@ -732,7 +732,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
           const columns: DataTableColumn<SecurityProject>[] = [
             {
               key: 'name',
-              header: '项目',
+              header: '项目名称',
               width: '20%',
               render: (project) => (
                 <button

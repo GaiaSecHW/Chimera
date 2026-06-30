@@ -541,7 +541,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
                 <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="搜索任务名、工具、状态"
+                    placeholder="搜索任务名称、工具"
                     className="form-input w-full pl-10"
                 />
               </div>
@@ -554,7 +554,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
           const taskColumns: DataTableColumn<ScheduleCenterUserTask>[] = [
             {
               key: 'name',
-              header: '任务名',
+              header: '任务名称',
               width: '20%',
               render: (task) => <div className="text-sm">{task.name}</div>,
             },

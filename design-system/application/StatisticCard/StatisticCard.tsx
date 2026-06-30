@@ -51,8 +51,8 @@ export const StatisticCard: React.FC<StatisticCardProps> = ({
     )}
   >
     <div className="min-w-0">
-      <p className="text-xs uppercase tracking-wider text-theme-text-muted">{label}</p>
-      <p className={cx('mt-1 text-3xl font-semibold tabular-nums', toneClass[tone])}>{value}</p>
+      <p className="text-sm uppercase tracking-wider text-theme-text-muted">{label}</p>
+      <p className={cx('mt-1 text-xl font-semibold tabular-nums', toneClass[tone])}>{value}</p>
       {trend && (
         <span
           className={cx(
