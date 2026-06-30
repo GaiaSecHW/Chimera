@@ -151,7 +151,7 @@ export const SystemAnalysisEvolutionPage: React.FC<SystemAnalysisEvolutionPagePr
         ) : (
           <ExecutionTable>
             <ExecutionTableHead>
-              <ExecutionTableTh>报告ID</ExecutionTableTh>
+              <ExecutionTableTh>序号</ExecutionTableTh>
               <ExecutionTableTh>项目</ExecutionTableTh>
               <ExecutionTableTh>任务名称</ExecutionTableTh>
               <ExecutionTableTh>状态</ExecutionTableTh>
@@ -162,9 +162,9 @@ export const SystemAnalysisEvolutionPage: React.FC<SystemAnalysisEvolutionPagePr
               <ExecutionTableTh className="text-right">操作</ExecutionTableTh>
             </ExecutionTableHead>
             <tbody>
-              {reports.map((r) => (
+              {reports.map((r, idx) => (
                 <tr key={r.id} className={executionTableRowClassName}>
-                  <ExecutionTableTd className="font-mono text-xs">#{r.id}</ExecutionTableTd>
+                  <ExecutionTableTd className="font-mono text-xs">#{idx + 1}</ExecutionTableTd>
                   <ExecutionTableTd className="text-xs text-theme-text-muted">{r.project_id || '-'}</ExecutionTableTd>
                   <ExecutionTableTd>
                     <button
@@ -224,7 +224,7 @@ export const SystemAnalysisEvolutionPage: React.FC<SystemAnalysisEvolutionPagePr
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
         size="xl"
-        title={detail ? `失败调试报告 #${detail.id}` : '失败调试报告'}
+        title={detail ? `失败调试报告` : '失败调试报告'}
         description={detail ? `任务: ${detail.task_name} (${detail.task_id})` : undefined}
       >
         {detailLoading ? (
