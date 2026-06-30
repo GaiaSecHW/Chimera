@@ -6799,6 +6799,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
+                      onClick={() => setTimelinePage(1)}
+                      disabled={normalizedTimelinePage <= 1}
+                      className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40"
+                    >
+                      首页
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setTimelinePage((current) => Math.max(1, current - 1))}
                       disabled={normalizedTimelinePage <= 1}
                       className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40"
@@ -6812,6 +6820,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40"
                     >
                       下一页
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTimelinePage(timelineTotalPages)}
+                      disabled={normalizedTimelinePage >= timelineTotalPages}
+                      className="rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold text-theme-text-secondary disabled:opacity-40"
+                    >
+                      尾页
                     </button>
                   </div>
                 </div>
