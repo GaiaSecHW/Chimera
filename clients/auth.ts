@@ -112,7 +112,7 @@ export const authApi = {
     return handleResponse(response);
   },
 
-  createUser: async (payload: { username: string; password?: string; role_ids?: number[] }): Promise<UserInfo> => {
+  createUser: async (payload: { username: string; password?: string; role_ids?: number[]; department_id?: number }): Promise<UserInfo> => {
     const response = await fetch(`${API_BASE}/api/auth/users`, {
       method: 'POST',
       headers: getHeaders(),
