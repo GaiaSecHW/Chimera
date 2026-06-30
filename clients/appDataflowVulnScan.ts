@@ -62,10 +62,33 @@ export interface DataflowVulnTraceTreeNode {
 export interface DataflowVulnGraphResponse {
   task_id: string;
   available: boolean;
+  mode?: 'v1' | 'dataflow_v2';
   run_root: string;
   summary: Record<string, number>;
   trace_tree?: DataflowVulnTraceTreeNode | null;
   graph: Record<string, any>;
+}
+
+// ── v2 (dataflow-v2) DFS 路径树类型 (与 v1 解耦, v1 剥离后保留) ────────────────
+export interface DataflowVulnV2PathStep {
+  function: string;
+  function_id?: string;
+  depth: number;
+  order: number;
+  status?: string;
+  from?: string;
+}
+export interface DataflowVulnV2Path {
+  path_id: string;
+  steps: DataflowVulnV2PathStep[];
+}
+export interface DataflowVulnV2TraceTreeNode {
+  function: string;
+  function_id?: string;
+  depth: number;
+  order?: number;
+  status?: string;
+  children: DataflowVulnV2TraceTreeNode[];
 }
 
 export const appDataflowVulnScanApi = {
