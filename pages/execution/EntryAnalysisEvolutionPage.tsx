@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, Download, Loader2, RefreshCw, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, RefreshCw, RotateCcw, Trash2 } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { AppEaDebugReport } from '../../types/types';
 import { ServicePageTitle } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { showConfirm } from '../../components/DialogService';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -101,6 +102,23 @@ export function EntryAnalysisEvolutionPage({
     }
   }, [appApi, notify, loadList]);
 
+  const deleteReport = useCallback(async (reportId: string, taskName: string) => {
+    const ok = await showConfirm({
+      title: '删除诊断报告',
+      message: `确认删除报告「${taskName}」？删除后不再显示（标记为已处理）。`,
+      confirmText: '删除',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await appApi.deleteDebugReport(reportId);
+      notify('已删除', 'success');
+      loadList();
+    } catch (e: any) {
+      notify(e?.message || '删除失败', 'error');
+    }
+  }, [appApi, notify, loadList]);
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
@@ -158,6 +176,10 @@ export function EntryAnalysisEvolutionPage({
                         <RotateCcw className="w-4 h-4" />
                       </button>
                     )}
+                    <button onClick={() => deleteReport(r.report_id, r.task_name || r.task_id)} title="删除(标记已处理)"
+                      className="text-theme-text-secondary hover:text-red-400">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </td>
               </tr>
