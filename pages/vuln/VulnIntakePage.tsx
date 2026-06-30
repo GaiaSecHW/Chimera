@@ -303,8 +303,7 @@ const getCaseSortValue = (item: any, field: SortField) => {
   if (field === 'created_at') return parseTimeMs(item?.created_at);
   if (field === 'confidence' || field === 'cvss_score') return Number(item?.[field] || 0);
   if (field === 'conclusion') {
-    const isTerminal = item?.is_human_finished === true;
-    const effective = isTerminal ? String(item?.finished_reason || item?.validation_result || '').trim() : '';
+    const effective = getHumanConfirmationResult(item) || (item?.is_human_finished === true ? getEffectiveResult(item) : '');
     if (effective === 'vulnerable') return 4;
     if (effective === 'not_vulnerable' || effective === 'non_vulnerable') return 3;
     if (effective === 'inconclusive' || effective === 'manual_terminated') return 2;
@@ -314,6 +313,8 @@ const getCaseSortValue = (item: any, field: SortField) => {
 };
 
 const getEffectiveResult = (item: any) => String(item?.finished_reason || item?.validation_result || '').trim();
+
+const getHumanConfirmationResult = (item: any) => String(item?.human_confirmation?.result || '').trim();
 
 const isHumanFinishedCase = (item: any) => item?.is_human_finished === true;
 
@@ -332,7 +333,7 @@ const shouldEnterVulnCenter = (item: any, engineTools: Set<string>) => {
 
 const matchesFinalResultFilter = (item: any, filters: string[]) => {
   if (!filters || filters.length === 0) return true;
-  const effective = isHumanFinishedCase(item) ? getEffectiveResult(item) : '';
+  const effective = getHumanConfirmationResult(item) || (isHumanFinishedCase(item) ? getEffectiveResult(item) : '');
   const isVulnerable = effective === 'vulnerable';
   const isRuledOut = effective === 'not_vulnerable' || effective === 'non_vulnerable';
   return filters.some((f) => {
@@ -828,6 +829,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     }
     return { source: '', text: '', engineName: '' };
   }, [selectedDetail, selectedTimeline, confirmRecords]);
+  const engineConclusionReason = useMemo(() => {
+    if (!selectedDetail) return { text: '', engineName: '' };
+    const completed = (confirmRecords || [])
+      .filter((record: any) => record && (record.status === 'completed' || record.result) && record.engine_name)
+      .sort((a: any, b: any) => (b.completed_at || b.created_at || '').localeCompare(a.completed_at || a.created_at || ''));
+    const top = completed[0];
+    return { text: top?.reason || '', engineName: top?.engine_name || '' };
+  }, [selectedDetail, confirmRecords]);
   const relatedRefs = Array.isArray(workspaceSummary.related_execution_refs) ? workspaceSummary.related_execution_refs : [];
   const processManualTasks = Array.isArray(selectedDetail?.manual_tasks) ? selectedDetail.manual_tasks : [];
   const processActions = Array.isArray(selectedDetail?.actions) ? selectedDetail.actions : [];
@@ -2011,13 +2020,15 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       width: '12%',
       render: (item: any) => (
         <div className="min-w-0">
-          {item.is_human_finished ? (
-            <div className={`text-sm font-semibold ${(item.finished_reason || item.validation_result) === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-secondary'}`}>
-              {toConclusionText(item.finished_reason || item.validation_result)}
-            </div>
-          ) : (
-            <span className="text-sm text-theme-text-faint">—</span>
-          )}
+          {(() => {
+            const conclusion = getHumanConfirmationResult(item) || (item.is_human_finished ? String(item.finished_reason || item.validation_result || '').trim() : '');
+            if (!conclusion) return <span className="text-sm text-theme-text-faint">—</span>;
+            return (
+              <div className={`text-sm font-semibold ${conclusion === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-secondary'}`}>
+                {toConclusionText(conclusion)}
+              </div>
+            );
+          })()}
         </div>
       ),
     },
@@ -2465,35 +2476,18 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                         <div className={`mt-1 text-sm font-semibold ${selectedDetail.validation_result === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-primary'}`}>
                           {selectedDetail.validation_result ? (toConclusionText(selectedDetail.validation_result) || '—') : '—'}
                         </div>
-                        {!selectedDetail.finished_reason && (conclusionReason.source === 'engine' || conclusionReason.source === 'human') ? (
+                        {engineConclusionReason.engineName ? (
                           <div className="mt-1 text-[11px] font-medium text-theme-text-muted">
-                            来源: {conclusionReason.source === 'engine'
-                              ? `${conclusionReason.engineName || '引擎'}判定`
-                              : '人工判定'}
+                            来源: {engineConclusionReason.engineName}判定
                           </div>
                         ) : null}
-                        {!selectedDetail.finished_reason && conclusionReason.text ? (
+                        {engineConclusionReason.text ? (
                           <div className="mt-3">
                             <div className="text-xs font-semibold text-theme-text-muted-soft">判定理由</div>
-                            <MarkdownViewer content={conclusionReason.text} emptyText="暂无判定理由" />
+                            <MarkdownViewer content={engineConclusionReason.text} emptyText="暂无判定理由" />
                           </div>
                         ) : null}
                       </div>
-                      {selectedDetail.finished_reason ? (
-                        <div className="rounded-xl p-4 bg-brand-soft border border-brand-border">
-                          <div className="text-xs font-semibold text-brand-primary">人工确认（终审）</div>
-                          <div className={`mt-1 text-sm font-semibold ${selectedDetail.finished_reason === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-primary'}`}>
-                            {toConclusionText(selectedDetail.finished_reason) || '—'}
-                          </div>
-                          <div className="mt-1 text-[11px] font-medium text-theme-text-muted">来源: 人工判定</div>
-                          {conclusionReason.source === 'human' && conclusionReason.text ? (
-                            <div className="mt-3">
-                              <div className="text-xs font-semibold text-theme-text-muted-soft">确认理由</div>
-                              <MarkdownViewer content={conclusionReason.text} emptyText="暂无确认理由" />
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
                       <div className="rounded-xl p-4 bg-theme-elevated">
                         <div className="text-xs font-semibold text-theme-text-muted-soft">对象定位</div>
                         <div className="mt-1 break-all text-sm font-semibold text-theme-text-primary">{selectedDetail.subject?.locator || '未提供定位信息'}</div>
@@ -2513,6 +2507,21 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       <div><span className="font-semibold text-theme-text-primary">最近更新：</span>{formatTime(selectedDetail.updated_at)}</div>
                     </div>
                   </DetailSectionCard>
+                  {selectedDetail.finished_reason ? (
+                    <div className="rounded-xl p-4 bg-brand-soft border border-brand-border">
+                      <div className="text-xs font-semibold text-brand-primary">人工确认（终审）</div>
+                      <div className={`mt-1 text-sm font-semibold ${selectedDetail.finished_reason === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-primary'}`}>
+                        {toConclusionText(selectedDetail.finished_reason) || '—'}
+                      </div>
+                      <div className="mt-1 text-[11px] font-medium text-theme-text-muted">来源: 人工判定</div>
+                      {conclusionReason.source === 'human' && conclusionReason.text ? (
+                        <div className="mt-3">
+                          <div className="text-xs font-semibold text-theme-text-muted-soft">确认理由</div>
+                          <MarkdownViewer content={conclusionReason.text} emptyText="暂无确认理由" />
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -3063,6 +3072,24 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               <div className="mt-1 text-sm font-semibold text-theme-text-primary">{confirmingCase.title || '未命名漏洞'}</div>
               <div className="mt-1 font-mono text-[11px] text-theme-text-faint">{confirmingCase.id}</div>
             </div>
+            {manualConfirmResult === 'vulnerable' && (
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold text-theme-text-secondary">漏洞种类</span>
+                <select
+                  value={manualConfirmCategory}
+                  onChange={(event) => {
+                    setManualConfirmCategory(event.target.value);
+                    if (manualConfirmError) setManualConfirmError('');
+                  }}
+                  className="form-select"
+                >
+                  <option value="">请选择漏洞种类</option>
+                  {vulnCategories.map((item) => (
+                    <option key={item.code} value={item.code}>{item.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
             <div className="grid gap-2 sm:grid-cols-2">
               <button
                 type="button"
@@ -3089,24 +3116,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 <div className={`mt-1 text-xs ${manualConfirmResult === 'not_vulnerable' ? 'text-state-danger' : 'text-theme-text-muted'}`}>需要填写确认原因。</div>
               </button>
             </div>
-            {manualConfirmResult === 'vulnerable' && (
-              <label className="grid gap-2">
-                <span className="text-sm font-semibold text-theme-text-secondary">漏洞种类</span>
-                <select
-                  value={manualConfirmCategory}
-                  onChange={(event) => {
-                    setManualConfirmCategory(event.target.value);
-                    if (manualConfirmError) setManualConfirmError('');
-                  }}
-                  className="form-select"
-                >
-                  <option value="">请选择漏洞种类</option>
-                  {vulnCategories.map((item) => (
-                    <option key={item.code} value={item.code}>{item.name}</option>
-                  ))}
-                </select>
-              </label>
-            )}
             {manualConfirmResult === 'not_vulnerable' && (
               <textarea
                 value={manualConfirmReason}
