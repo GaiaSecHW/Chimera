@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
+  Bug,
   Check,
   ChevronDown,
   ClipboardCopy,
@@ -27,7 +28,7 @@ import {
   Sparkles,
   TerminalSquare,
   Trash2,
-  X,
+  X, Shield, Rocket, CheckCircle2, Ban,
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { authApi } from '../../clients/auth';
@@ -2095,27 +2096,25 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   const renderDownloadCenter = () => (
     <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-        <div className="metric-card rounded-xl px-4 py-3.5">
-          <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">下载任务总数</div>
-          <div className="metric-value mt-2 text-2xl font-bold tabular-nums text-theme-text-primary">{downloadStats.total || 0}</div>
-        </div>
-        <div className="metric-card rounded-xl px-4 py-3.5">
-          <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">处理中</div>
-          <div className="metric-value mt-2 text-2xl font-bold tabular-nums text-state-warning">{(downloadStats.pending || 0) + (downloadStats.processing || 0)}</div>
-        </div>
-        <div className="metric-card rounded-xl px-4 py-3.5">
-          <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">可下载</div>
-          <div className="metric-value mt-2 text-2xl font-bold tabular-nums text-state-success">{downloadStats.downloadable || 0}</div>
-        </div>
-        <div className="metric-card rounded-xl px-4 py-3.5">
-          <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">失败</div>
-          <div className="metric-value mt-2 text-2xl font-bold tabular-nums text-state-danger">{downloadStats.failed || 0}</div>
-        </div>
-        <div className="metric-card rounded-xl px-4 py-3.5">
-          <div className="metric-label text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">已过期</div>
-          <div className="metric-value mt-2 text-2xl font-bold tabular-nums text-theme-text-faint">{downloadStats.expired || 0}</div>
-        </div>
+      <div className="grid grid-cols-5 bg-theme-surface">
+        {[
+          { label: '下载任务总数', value: downloadStats.total || 0, icon: Download, color: '#2563EB', shadow: 'rgba(37, 99, 235, 0.08)' },
+          { label: '处理中', value: (downloadStats.pending || 0) + (downloadStats.processing || 0), icon: Loader2, color: '#D97706', shadow: 'rgba(217, 119, 6, 0.08)' },
+          { label: '可下载', value: downloadStats.downloadable || 0, icon: Check, color: '#30A46C', shadow: 'rgba(48, 164, 108, 0.08)' },
+          { label: '失败', value: downloadStats.failed || 0, icon: X, color: '#DC2626', shadow: 'rgba(220, 38, 38, 0.08)' },
+          { label: '已过期', value: downloadStats.expired || 0, icon: FileClock, color: 'var(--text-primary)', shadow: 'var(--mask-primary)' },
+        ].map((stat, i) => (
+          <div key={stat.label} className="relative flex items-center justify-between p-4">
+            {i > 0 && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-10 w-px bg-theme-border" />}
+            <div>
+              <div className="text-sm text-theme-text-muted">{stat.label}</div>
+              <div className={`mt-1 text-3xl font-semibold tabular-nums`} style={{ color: stat.color }}>{stat.value}</div>
+            </div>
+            <div className={`flex h-9 w-9 items-center justify-center rounded-md`} style={{ color: stat.color, backgroundColor: stat.shadow }}>
+              <stat.icon size={18} />
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="rounded-xl overflow-hidden bg-theme-surface border border-theme-border">
@@ -2126,16 +2125,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               <h3 className="mt-1 text-xl font-semibold text-theme-text-primary">漏洞报告异步下载任务</h3>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="rounded-lg px-3 py-2 text-[11px] font-semibold uppercase tracking-wider bg-theme-elevated text-theme-text-muted">
-                {downloadJobs.length} 条记录
-              </div>
-              <button
-                type="button"
-                onClick={() => loadDownloadCenter()}
-                className="btn btn-secondary btn-sm inline-flex items-center gap-2"
-              >
-                <RefreshCw size={14} />
-                刷新
+              <button onClick={() => loadDownloadCenter()} className="button-surface px-4 py-2.5 text-sm ml-auto" title="刷新列表">
+                <RefreshCw size={16} />
               </button>
             </div>
           </div>
@@ -2804,10 +2795,23 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           />
           {rootTab === 'download-center' ? renderDownloadCenter() : (
           <>
-          <div className="grid gap-3 grid-cols-3">
-            <StatisticCard label="疑似漏洞" value={stats.total} />
-            <StatisticCard label="确认是漏洞" value={stats.confirmed} tone="danger" />
-            <StatisticCard label="确认非漏洞" value={stats.ruledOut} tone="success" />
+          <div className="grid grid-cols-3 bg-theme-surface">
+            {[
+              { label: '疑似漏洞', value: stats.total, icon: ShieldAlert, color: '#2563EB' },
+              { label: '确认是漏洞', value: stats.confirmed, icon: Bug, color: '#DC2626' },
+              { label: '确认非漏洞', value: stats.ruledOut, icon: ShieldCheck, color: '#30A46C' },
+            ].map((stat, i) => (
+              <div key={stat.label} className="relative flex items-center justify-between p-4">
+                {i > 0 && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-10 w-px bg-theme-border" />}
+                <div>
+                  <div className="text-sm text-theme-text-muted">{stat.label}</div>
+                  <div className={`mt-1 text-3xl font-semibold tabular-nums`}  style={{ color: stat.color }}>{stat.value}</div>
+                </div>
+                <div className={`flex h-9 w-9 items-center justify-center rounded-md`} style={{ backgroundColor: `${stat.color}22`, color: stat.color }}>
+                  <stat.icon size={18} />
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="table-container">
