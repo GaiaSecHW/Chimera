@@ -2094,6 +2094,135 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     },
   ];
 
+  const downloadJobColumns: DataTableColumn<any>[] = [
+    {
+      key: 'job_id',
+      header: '任务 ID',
+      width: '18%',
+      render: (job: any) => (
+        <div className="truncate font-semibold font-mono text-theme-text-primary" title={job.job_id}>{job.job_id}</div>
+      ),
+    },
+    {
+      key: 'scope_type',
+      header: '类型',
+      width: '6%',
+      render: (job: any) => (
+        <div className="truncate font-semibold text-theme-text-secondary">{job.scope_type === 'single' ? '单个' : '批量'}</div>
+      ),
+    },
+    {
+      key: 'report_count',
+      header: '报告数',
+      width: '6%',
+      render: (job: any) => <div className="truncate font-semibold tabular-nums text-theme-text-primary">{job.report_count}</div>,
+    },
+    {
+      key: 'status',
+      header: '状态',
+      width: '6%',
+      render: (job: any) => (
+        <span className={`whitespace-nowrap rounded-lg px-1 py-1 text-[10px] font-semibold uppercase tracking-wider ${toneOf(job.status === 'succeeded' ? 'low' : job.status === 'failed' ? 'critical' : job.status === 'expired' ? undefined : 'medium')}`}>
+          {toDownloadStatusText(job.status)}
+        </span>
+      ),
+    },
+    {
+      key: 'output_filename',
+      header: '文件名',
+      width: '12%',
+      render: (job: any) => <div className="truncate text-theme-text-muted" title={job.output_filename || '-'}>{job.output_filename || '-'}</div>,
+    },
+    {
+      key: 'output_size_bytes',
+      header: '大小',
+      width: '6%',
+      render: (job: any) => <div className="truncate font-semibold tabular-nums text-theme-text-secondary">{formatBytes(job.output_size_bytes)}</div>,
+    },
+    {
+      key: 'created_by',
+      header: '创建人',
+      width: '8%',
+      render: (job: any) => <div className="truncate text-theme-text-muted" title={job.created_by || '-'}>{job.created_by || '-'}</div>,
+    },
+    {
+      key: 'created_at',
+      header: '创建时间',
+      width: '10%',
+      render: (job: any) => <div className="truncate text-theme-text-faint" title={formatTime(job.created_at)}>{formatTime(job.created_at)}</div>,
+    },
+    {
+      key: 'finished_at',
+      header: '完成时间',
+      width: '10%',
+      render: (job: any) => <div className="truncate text-theme-text-faint" title={formatTime(job.finished_at)}>{formatTime(job.finished_at)}</div>,
+    },
+    {
+      key: 'expires_at',
+      header: '过期时间',
+      width: '10%',
+      render: (job: any) => <div className="truncate text-theme-text-faint" title={formatTime(job.expires_at)}>{formatTime(job.expires_at)}</div>,
+    },
+    {
+      key: 'last_error',
+      header: '错误摘要',
+      width: '8%',
+      render: (job: any) => <div className="truncate text-xs text-state-danger" title={job.last_error || '-'}>{job.last_error || '-'}</div>,
+    },
+    {
+      key: 'actions',
+      header: '操作',
+      width: '8%',
+      render: (job: any) => (
+        <div className="flex flex-wrap gap-1.5">
+          {job.downloadable ? (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); handleDownloadJobFile(job); }}
+              disabled={downloadActionJobId === job.job_id}
+              title="下载"
+              className="rounded-md p-1.5 transition-colors"
+              style={{ color: 'var(--text-secondary)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--brand-primary-mask)'; e.currentTarget.style.color = '#2563EB'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+            >
+              <Download size={16} />
+            </button>
+          ) : null}
+          {job.status === 'failed' ? (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); handleRetryDownloadJob(job.job_id); }}
+              disabled={downloadActionJobId === job.job_id}
+              title="重试"
+              className="rounded-md p-1.5 transition-colors"
+              style={{ color: 'var(--text-secondary)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--brand-primary-mask)'; e.currentTarget.style.color = '#2563EB'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+            >
+              <RefreshCw size={16} />
+            </button>
+          ) : null}
+          {['succeeded', 'failed', 'expired'].includes(job.status) ? (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); handleDeleteDownloadJob(job.job_id); }}
+              disabled={downloadActionJobId === job.job_id}
+              title="删除"
+              className="rounded-md p-1.5 transition-colors"
+              style={{ color: 'var(--text-secondary)' }}
+              onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.backgroundColor = 'var(--danger-soft)'; e.currentTarget.style.color = 'var(--danger)' } }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+
+            >
+              <Trash2 size={16} />
+            </button>
+          ) : null}
+        </div>
+      ),
+    },
+  ];
+
   const renderDownloadCenter = () => (
     <div className="space-y-4">
       <div className="grid grid-cols-5 bg-theme-surface">
@@ -2116,89 +2245,30 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
           </div>
         ))}
       </div>
-
-      <div className="rounded-xl overflow-hidden bg-theme-surface border border-theme-border">
-        <div className="px-5 py-4 xl:px-6 border-b border-theme-border-subtle">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">下载中心</div>
-              <h3 className="mt-1 text-xl font-semibold text-theme-text-primary">漏洞报告异步下载任务</h3>
+      <div className="bg-theme-surface">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between px-4 py-3">
+          <div>
+            <h3 className="mt-1 text-xl font-semibold text-theme-text-primary">漏洞报告异步下载任务</h3>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="rounded-lg px-3 py-2 text-[11px] font-semibold uppercase tracking-wider bg-theme-elevated text-theme-text-muted">
+              {downloadJobs.length} 条记录
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button onClick={() => loadDownloadCenter()} className="button-surface px-4 py-2.5 text-sm ml-auto" title="刷新列表">
-                <RefreshCw size={16} />
-              </button>
-            </div>
+            <button onClick={() => loadDownloadCenter()} className="button-surface px-4 py-2.5 text-sm" title="刷新列表">
+              <RefreshCw size={16} />
+            </button>
           </div>
         </div>
-        <div className="overflow-hidden">
-          <div className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-3 px-4 py-2.5 border-b border-theme-border bg-theme-elevated">
-            {['任务 ID', '类型', '报告数', '状态', '文件名', '大小', '创建人', '创建时间', '完成时间', '过期时间', '错误摘要', '操作'].map((label) => (
-              <div key={label} className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted-soft">{label}</div>
-            ))}
-          </div>
-          {downloadJobsLoading ? (
-            <div className="px-4 py-8 text-sm bg-theme-surface text-theme-text-faint">正在加载下载任务...</div>
-          ) : downloadJobs.length === 0 ? (
-            <div className="px-4 py-8 text-sm bg-theme-surface text-theme-text-faint">当前项目还没有下载任务。</div>
-          ) : (
-            downloadJobs.map((job) => (
-              <div key={job.job_id} className="grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.2fr] gap-3 px-4 py-3 text-sm last:border-b-0 border-b border-theme-border-subtle bg-theme-surface">
-                <div className="min-w-0">
-                  <div className="truncate font-semibold font-mono text-theme-text-primary">{job.job_id}</div>
-                </div>
-                <div className="font-semibold text-theme-text-secondary">{job.scope_type === 'single' ? '单个' : '批量'}</div>
-                <div className="font-semibold tabular-nums text-theme-text-primary">{job.report_count}</div>
-                <div>
-                  <span className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${toneOf(job.status === 'succeeded' ? 'low' : job.status === 'failed' ? 'critical' : job.status === 'expired' ? undefined : 'medium')}`}>
-                    {toDownloadStatusText(job.status)}
-                  </span>
-                </div>
-                <div className="truncate text-theme-text-muted">{job.output_filename || '-'}</div>
-                <div className="font-semibold tabular-nums text-theme-text-secondary">{formatBytes(job.output_size_bytes)}</div>
-                <div className="truncate text-theme-text-muted">{job.created_by || '-'}</div>
-                <div className="text-theme-text-faint">{formatTime(job.created_at)}</div>
-                <div className="text-theme-text-faint">{formatTime(job.finished_at)}</div>
-                <div className="text-theme-text-faint">{formatTime(job.expires_at)}</div>
-                <div className="truncate text-xs text-state-danger">{job.last_error || '-'}</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {job.downloadable ? (
-                    <button
-                      type="button"
-                      onClick={() => handleDownloadJobFile(job)}
-                      disabled={downloadActionJobId === job.job_id}
-                      title="下载"
-                      className="btn btn-sm bg-state-success-soft text-state-success border-state-success-border inline-flex items-center gap-1 rounded-lg border px-2"
-                    >
-                      <Download size={12} />
-                    </button>
-                  ) : null}
-                  {job.status === 'failed' ? (
-                    <button
-                      type="button"
-                      onClick={() => handleRetryDownloadJob(job.job_id)}
-                      disabled={downloadActionJobId === job.job_id}
-                      title="重试"
-                      className="btn btn-sm bg-state-warning-soft text-state-warning border-state-warning-border inline-flex items-center gap-1 rounded-lg border px-2"
-                    >
-                      <RefreshCw size={12} />
-                    </button>
-                  ) : null}
-                  {['succeeded', 'failed', 'expired'].includes(job.status) ? (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteDownloadJob(job.job_id)}
-                      disabled={downloadActionJobId === job.job_id}
-                      title="删除"
-                      className="btn btn-sm bg-state-danger-soft text-state-danger border-state-danger-border inline-flex items-center gap-1 rounded-lg border px-2"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            ))
-          )}
+        <div className="px-4 pb-4">
+          <DataTable
+            columns={downloadJobColumns}
+            data={downloadJobs}
+            rowKey={(job: any) => job.job_id}
+            loading={downloadJobsLoading}
+            empty={<span className="text-sm text-theme-text-faint">当前项目还没有下载任务。</span>}
+            showRowNumber
+            className="[&_table]:table-fixed"
+          />
         </div>
       </div>
     </div>
@@ -2814,7 +2884,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
             ))}
           </div>
 
-          <div className="table-container">
+          <div className="bg-theme-surface">
             <div className="flex items-center gap-3 px-4 py-3">
               <div className="relative max-w-[420px] flex-1">
                 <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-faint" />
