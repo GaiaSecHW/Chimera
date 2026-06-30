@@ -446,7 +446,7 @@ export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | nul
     case 'assets-center': return 'project-mgmt';
     case 'asset-supply': return 'public-resource-pvc-management';
     case 'alert-center': return 'vuln-intake';
-    case 'sec-assessment': return 'sec-assessment-project';
+    case 'sec-assessment': return 'sec-assessment-project-list';
     case 'assessment': return 'assessment-coming-soon';
     case 'observe': return 'observe-coming-soon';
     case 'skill': return 'skill-secocto-skills';
@@ -509,7 +509,11 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
     {
       title: '安全评估',
       items: [
-        { id: 'sec-assessment-project', label: '安全评估项目', icon: ClipboardList },
+        { id: 'sec-assessment-project', label: '安全评估项目', icon: ClipboardList, defaultExpanded: true, subItems: [
+          { id: 'sec-assessment-project-list', label: '项目列表' },
+          { id: 'sec-assessment-workers', label: 'Worker 管理' },
+          { id: 'sec-assessment-config', label: '系统配置' },
+        ] },
         { id: 'sec-baseline', label: '安全功能基线管理', icon: ShieldCheck, defaultExpanded: true, subItems: [
           { id: 'sec-baseline-mgmt', label: '基线列表' },
           { id: 'sec-baseline-org-tree', label: '组织树管理' },
@@ -553,14 +557,16 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
       items: [
         { id: 'developer-tools-overview', label: '工具总览', icon: Settings, requiresProject: true, aliases: ['developer-tools'] },
         { id: 'tool-registration', label: '工具注册', icon: Plus },
-        { id: 'binary-security', label: '盖亚-二进制固件', icon: Settings, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
-        { id: 'source-security', label: '盖亚-源码', icon: Settings, aliases: ['source-security-detail'], requiresProject: true },
-        { id: 'kg-source-security', label: '知识图谱-源码漏洞挖掘', icon: Settings, aliases: ['kg-source-security-detail'], requiresProject: true },
-        { id: 'cfg-db-vuln-tool', label: '知识图谱-源码（CFG+DFG）', icon: GitBranch, aliases: ['cfg-db-vuln-detail'], requiresProject: true },
-        { id: 'binary-module-security', label: '盖亚-二进制模块', icon: Settings, aliases: ['binary-module-security-detail'], requiresProject: true },
-        { id: 'app-security-scan', label: 'turing 扫描工具', icon: Smartphone, aliases: ['app-security-scan-detail', 'app-security-scan-monitor'], requiresProject: true },
-        { id: 'redline-verification', label: '红线验证', icon: ShieldCheck, aliases: ['redline-verification-detail'], requiresProject: true },
-        { id: 'cairn-blackboard', label: '黑板', icon: Network },
+        // 以下微服务工具入口已迁移至「工具总览」页面的微服务工具卡片，
+        // 点击卡片在 iframe 中嵌入查看，不再占用左侧菜单。
+        // { id: 'binary-security', label: '盖亚-二进制固件', icon: Settings, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
+        // { id: 'source-security', label: '盖亚-源码', icon: Settings, aliases: ['source-security-detail'], requiresProject: true },
+        // { id: 'kg-source-security', label: '知识图谱-源码漏洞挖掘', icon: Settings, aliases: ['kg-source-security-detail'], requiresProject: true },
+        // { id: 'cfg-db-vuln-tool', label: '知识图谱-源码（CFG+DFG）', icon: GitBranch, aliases: ['cfg-db-vuln-detail'], requiresProject: true },
+        // { id: 'binary-module-security', label: '盖亚-二进制模块', icon: Settings, aliases: ['binary-module-security-detail'], requiresProject: true },
+        // { id: 'app-security-scan', label: 'turing 扫描工具', icon: Smartphone, aliases: ['app-security-scan-detail', 'app-security-scan-monitor'], requiresProject: true },
+        // { id: 'redline-verification', label: '红线验证', icon: ShieldCheck, aliases: ['redline-verification-detail'], requiresProject: true },
+        // { id: 'cairn-blackboard', label: '黑板', icon: Network },
       ],
     },
   ],
@@ -631,7 +637,7 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
         { id: 'secocto-overview', label: '总览', icon: LayoutDashboard },
         { id: 'secocto-skills', label: '技能进化', icon: GraduationCap },
         { id: 'secocto-memories', label: '记忆进化', icon: Brain },
-        { id: 'secocto-vulns', label: '漏洞管理', icon: ShieldAlert },
+        { id: 'secocto-vulns', label: '进化素材', icon: ShieldAlert },
         { id: 'system-analysis-evolution', label: '系统分析进化', icon: Sparkles },
       ],
     },

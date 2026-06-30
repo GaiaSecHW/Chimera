@@ -13,6 +13,7 @@ import type {
   KgInputEligibility,
 } from './kgInputEligibility';
 import { resolveSechpsInstruction } from './taskCenterInstruction';
+import { getPlatformRole } from '../../utils/rbac';
 import type {
   AgentAppSummary,
   ProjectInputUploadRecord,
@@ -125,6 +126,13 @@ const getLocalUserInfo = (): UserInfo | null => {
   }
 };
 
+/* 狮首模式仅限 ICSL 部门（含子部门，如 ICSL/安全）使用。 */
+const isIcslDepartment = (departmentName?: string | null): boolean => {
+  if (!departmentName) return false;
+  const trimmed = departmentName.trim();
+  return trimmed === 'ICSL' || trimmed.startsWith('ICSL/');
+};
+
 /* ------------------------------------------------------------------ */
 /*  LOKI design tokens                                                 */
 /* ------------------------------------------------------------------ */
@@ -171,6 +179,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const scheduleApi = api.domains.platform.scheduleCenter;
   const fileserverApi = api.domains.assets.fileserver;
   const currentUser = useMemo(() => getLocalUserInfo(), []);
+  // 狮首模式限 ICSL 部门（含子部门）或超级管理员（super_admin）使用
+  const platformRole = getPlatformRole(currentUser);
+  const isAdminRole = platformRole === 'super_admin';
+  const canUseLionHead = isIcslDepartment(currentUser?.department_name) || isAdminRole;
 
   /* --- form state --- */
   const [saving, setSaving] = useState(false);
@@ -336,10 +348,12 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   useEffect(() => {
     if (open) {
       setSelectedProjectId(projectId);
-      if (preSelectedMode) setMode(preSelectedMode);
+      if (preSelectedMode && (preSelectedMode !== 'lion-head' || canUseLionHead)) {
+        setMode(preSelectedMode);
+      }
       void loadDialogData();
     }
-  }, [open, projectId, preSelectedMode]);
+  }, [open, projectId, preSelectedMode, canUseLionHead]);
 
   useEffect(() => {
     if (open && selectedProjectId) {
@@ -627,20 +641,33 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 <div className="flex-1 shrink-0">
                   <div className="mb-1.5 text-sm font-semibold" style={{ color: LK.inkSoft }}>模式</div>
                   <div className="flex gap-1 rounded-lg p-1" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}>
-                    {MODE_OPTIONS.map((item) => (
-                      <button
-                        key={item.value}
-                        type="button"
-                        onClick={() => setMode(item.value)}
-                        className="flex-1 rounded-md px-3 py-1.5 text-sm font-bold transition-all"
-                        style={mode === item.value
-                          ? { backgroundColor: LK.primary, color: '#fff' }
-                          : { color: LK.body }}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
+                    {MODE_OPTIONS.map((item) => {
+                      const isLion = item.value === 'lion-head';
+                      const itemDisabled = isLion && !canUseLionHead;
+                      return (
+                        <button
+                          key={item.value}
+                          type="button"
+                          onClick={() => { if (!itemDisabled) setMode(item.value); }}
+                          disabled={itemDisabled}
+                          title={itemDisabled ? '仅 ICSL 部门可用' : undefined}
+                          className="flex-1 rounded-md px-3 py-1.5 text-sm font-bold transition-all"
+                          style={mode === item.value
+                            ? { backgroundColor: LK.primary, color: '#fff' }
+                            : itemDisabled
+                              ? { color: LK.mutedSoft, cursor: 'not-allowed', opacity: 0.5 }
+                              : { color: LK.body }}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
                   </div>
+                  {!canUseLionHead ? (
+                    <div className="mt-1.5 text-xs" style={{ color: LK.mutedSoft }}>
+                      狮首当前处于测试阶段，敬请期待
+                    </div>
+                  ) : null}
                 </div>
               </div>
 

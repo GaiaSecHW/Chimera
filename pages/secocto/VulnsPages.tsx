@@ -165,7 +165,7 @@ export const SecOctoVulnsListPage: React.FC<VulnsListProps> = ({ onNavigateDetai
 
   // 业界 vuln list 通用做法(Snyk / GitHub Security / SonarCloud / DefectDojo):
   //   把严重度/状态计数做成"KPI + Filter 二合一"的可点击芯片,而不是占大量纵向空间的统计卡。
-  //   - "漏洞总数" = reset(清空 severity / status / query)
+  //   - "漏洞素材总数" = reset(清空 severity / status / query)
   //   - 严重度芯片之间互斥(高/中/低 同维度,点同一个再次取消)
   //   - 状态芯片之间互斥(已确认/待确认,同上)
   //   - 严重度 + 状态可叠加(不同维度)
@@ -185,7 +185,7 @@ export const SecOctoVulnsListPage: React.FC<VulnsListProps> = ({ onNavigateDetai
   }> = [
     {
       key: 'all',
-      label: '漏洞总数',
+      label: '漏洞素材总数',
       count: headerTotal,
       dotCls: 'bg-brand-primary',
       activeBgCls: 'bg-brand-primary text-white border-brand-primary',
@@ -288,15 +288,15 @@ export const SecOctoVulnsListPage: React.FC<VulnsListProps> = ({ onNavigateDetai
       {/* 页头 — 与"技能进化"/"记忆进化"同款渐变标题 + 副标(搜索框已下移到表格上方) */}
       <div className="pb-5">
         <h1 className="text-2xl font-bold text-theme-text-primary mb-1">
-          漏洞
-          <span className="bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-400 bg-clip-text text-transparent">管理</span>
+          进化
+          <span className="bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-400 bg-clip-text text-transparent">素材库</span>
         </h1>
         <p className="text-sm text-theme-text-secondary">
-          Agent 发现的安全漏洞,支持人工审核与反馈 · 共 {headerTotal} 个漏洞
+          Agent 发现的安全漏洞素材,支持人工审核与反馈 · 共 {headerTotal} 个漏洞素材
         </p>
       </div>
 
-      {/* KPI + Filter 二合一芯片栏(左) + 搜索框(右,与"漏洞总数"对齐在同一行) */}
+      {/* KPI + Filter 二合一芯片栏(左) + 搜索框(右,与"漏洞素材总数"对齐在同一行) */}
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <div className="flex flex-wrap gap-2 min-w-0">
           {FILTER_CHIPS.map((chip) => (

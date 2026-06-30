@@ -71,6 +71,10 @@ const AppShell: React.FC = () => {
   const environmentApi = api.domains.environment;
   const queryParams = new URLSearchParams(window.location.search);
   const isServiceTerminalWindow = queryParams.get('service_terminal') === '1';
+  // 工具总览页 iframe 嵌入模式：?tool_embed=1 时隐藏 Header/Sidebar，只渲染页面内容。
+  // 与 service_terminal 不同，不走早返回——仍需走完整的鉴权/项目加载流程，
+  // 仅在外层布局上有条件地隐藏 Header 与 Sidebar。
+  const isToolEmbed = queryParams.get('tool_embed') === '1';
 
   const [token, setToken] = useState<string | null>(() => {
     const v = localStorage.getItem('chimera_token') || localStorage.getItem('secflow_token');
@@ -471,8 +475,8 @@ const AppShell: React.FC = () => {
   }, [user, currentView, navigateToView]);
 
   // 开发者角色登录后默认进入首页（/home），而非系统管理控制台（/dashboard）。
-  // handleLogout 会把 URL 留在 /dashboard，导致下次登录时 currentView 继承为 'dashboard'，
-  // 这里在用户加载后把开发者从 dashboard 视图重定向回首页。管理员不受影响。
+  // handleLogout 已将 URL 重定向到 /home，这里作为安全兜底：防止开发者通过
+  // 直接访问 URL 等方式停留在 dashboard 视图，在用户加载后重定向回首页。管理员不受影响。
   useEffect(() => {
     if (!user) return;
     const access = getUserAccess(user);
@@ -580,6 +584,13 @@ const AppShell: React.FC = () => {
     try {
       const data = await platformApi.auth.login(credentials);
       localStorage.setItem('chimera_token', data.access_token);
+      // 同步恢复上次选中的项目 ID，避免 fetchProjects 异步完成前点击
+      // 需要项目的视图（task-list / vuln-list 等）被 PROJECT_REQUIRED_VIEWS
+      // 重定向逻辑踢回首页。fetchProjects 完成后会校验并修正此值。
+      const storedProjectId = localStorage.getItem('last_project_id');
+      if (storedProjectId) {
+        setSelectedProjectId(storedProjectId);
+      }
       setToken(data.access_token);
     } catch (err: any) {
       setLoginError(err.message || "登录失败，请检查用户名和密码");
@@ -595,7 +606,7 @@ const AppShell: React.FC = () => {
     setUser(null);
     setProjects([]);
     setSelectedProjectId('');
-    navigateToView('dashboard');
+    navigateToView('home');
   };
 
   const handleForcedPasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -680,6 +691,7 @@ const AppShell: React.FC = () => {
   return (
     <UploadCenterProvider>
       <div className="flex h-screen flex-col bg-theme-app text-theme-text-primary overflow-hidden font-sans">
+        {!isToolEmbed && (
         <Header 
           user={user} 
           currentTopLevelNav={activeTopLevelNav}
@@ -699,12 +711,13 @@ const AppShell: React.FC = () => {
           setCurrentView={navigateToView}
           handleLogout={handleLogout}
         />
+        )}
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {(() => {
             const hideSidebarViews = new Set(['project-mgmt', 'project-detail', 'test-input-root']);
             const hideSidebarNavs = new Set(['home', 'test-task', 'vuln-center']);
-            if (hideSidebarNavs.has(activeTopLevelNav) || hideSidebarViews.has(String(currentView))) return null;
+            if (isToolEmbed || hideSidebarNavs.has(activeTopLevelNav) || hideSidebarViews.has(String(currentView))) return null;
             return (
               <Sidebar
                 user={user}
