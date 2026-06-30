@@ -66,7 +66,8 @@ export function EntryAnalysisEvolutionPage({ projectId }: { projectId: string })
   const loadList = useCallback(async () => {
     setLoading(true);
     try {
-      const resp = await appApi.listDebugReports({ project_id: projectId || undefined, page, page_size: pageSize });
+      // 微服务级界面：不按项目过滤，展示全部失败诊断报告
+      const resp = await appApi.listDebugReports({ page, page_size: pageSize });
       setReports(resp.items || []);
       setTotal(resp.total || 0);
     } catch (e: any) {
@@ -74,7 +75,7 @@ export function EntryAnalysisEvolutionPage({ projectId }: { projectId: string })
     } finally {
       setLoading(false);
     }
-  }, [appApi, projectId, page, notify]);
+  }, [appApi, page, notify]);
 
   useEffect(() => { loadList(); }, [loadList]);
 
