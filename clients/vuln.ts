@@ -1,6 +1,21 @@
 import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse } from './base';
 import type { ServiceHealthMeta } from '../components/execution/serviceHealthMeta';
 
+export interface VulnCategoryItem {
+  id: number;
+  code: string;
+  name: string;
+  description?: string | null;
+  sort_order: number;
+  status: string;
+}
+
+export interface ValidationResultPayload {
+  validation_result: string;
+  category?: string;
+  summary?: string;
+}
+
 export interface VulnCaseDisplaySummary {
   title?: string;
   subtitle?: string;
@@ -10,6 +25,7 @@ export interface VulnCaseDisplaySummary {
   decision_status?: string;
   validation_result?: string | null;
   finished_reason?: string | null;
+  confirmed_category?: string | null;
   reporter?: Record<string, any>;
   subject?: Record<string, any>;
   source_task?: Record<string, any> | null;
@@ -640,11 +656,17 @@ export const vulnApi = {
       body: JSON.stringify(payload),
     })),
 
-  submitValidationResult: async (caseId: string, payload: any): Promise<any> =>
+  submitValidationResult: async (caseId: string, payload: ValidationResultPayload): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}/validation/result`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(payload)
+    })),
+
+  getVulnCategories: async (): Promise<{ items: VulnCategoryItem[]; total: number }> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/vuln-categories`, {
+      method: 'GET',
+      headers: getHeaders(),
     })),
 
   dispatchActions: async (caseId: string, payload: any): Promise<any> =>

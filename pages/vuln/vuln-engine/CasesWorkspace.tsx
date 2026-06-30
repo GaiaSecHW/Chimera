@@ -138,6 +138,7 @@ export const CasesWorkspace: React.FC<any> = ({
   validationForm,
   setValidationForm,
   validationResultOptions,
+  vulnCategories,
   submittingValidation,
   handleSubmitValidationResult,
   refreshAll,
@@ -917,6 +918,16 @@ export const CasesWorkspace: React.FC<any> = ({
                         <option key={item} value={item}>{labelOf(item, VALIDATION_RESULT_LABELS)}</option>
                       ))}
                     </select>
+                    <select
+                      value={validationForm.category || ''}
+                      onChange={(event) => setValidationForm({ ...validationForm, category: event.target.value })}
+                      className="form-select w-full text-sm"
+                    >
+                      <option value="">不指定漏洞种类</option>
+                      {(vulnCategories || []).map((item: any) => (
+                        <option key={item.code} value={item.code}>{item.name}</option>
+                      ))}
+                    </select>
                     <textarea
                       value={validationForm.summary}
                       onChange={(event) => setValidationForm({ ...validationForm, summary: event.target.value })}
@@ -938,7 +949,7 @@ export const CasesWorkspace: React.FC<any> = ({
             {selectedCaseDetail.current_stage === 'finished' && (
               <div className="rounded-lg p-4 space-y-4" style={{ backgroundColor: LK.surfaceGlass, border: `1px solid ${LK.border}` }}>
                 <div className="flex items-center gap-2"><CheckCheck size={16} style={{ color: LK.muted }} /><h5 className="font-semibold" style={{ color: LK.ink }}>终态闭环卡</h5></div>
-                <div className="grid grid-cols-1 xl:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 xl:grid-cols-5 gap-3">
                   <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
                     <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>结束原因</div>
                     <div className="mt-1 font-semibold" style={{ color: LK.ink }}>{labelOf(selectedCaseDetail.finished_reason, FINISHED_REASON_LABELS)}</div>
@@ -946,6 +957,10 @@ export const CasesWorkspace: React.FC<any> = ({
                   <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
                     <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>验证结论</div>
                     <div className="mt-1 font-semibold" style={{ color: LK.ink }}>{labelOf(selectedCaseDetail.validation_result, VALIDATION_RESULT_LABELS)}</div>
+                  </div>
+                  <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>漏洞种类</div>
+                    <div className="mt-1 font-semibold" style={{ color: LK.ink }}>{selectedCaseDetail.confirmed_category ? ((vulnCategories || []).find((c: any) => c.code === selectedCaseDetail.confirmed_category)?.name || selectedCaseDetail.confirmed_category) : '-'}</div>
                   </div>
                   <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
                     <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>结果回传</div>

@@ -188,6 +188,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
   });
   const [decisionForm, setDecisionForm] = useState(DEFAULT_DECISION_FORM);
   const [validationForm, setValidationForm] = useState(DEFAULT_VALIDATION_FORM);
+  const [vulnCategories, setVulnCategories] = useState<any[]>([]);
   const [submittingCase, setSubmittingCase] = useState(false);
   const [submittingService, setSubmittingService] = useState(false);
   const [dispatching, setDispatching] = useState(false);
@@ -598,6 +599,10 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
   };
 
   useEffect(() => {
+    vulnApi.vuln.getVulnCategories().then((resp) => setVulnCategories(resp.items || [])).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     loadWorkspace();
   }, [projectId, actionQueueFilter, stageFilter, stageScopeKey, effectiveListEntryMode]);
 
@@ -840,6 +845,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
     try {
       await vulnApi.vuln.submitValidationResult(selectedCaseId, {
         validation_result: validationForm.validation_result,
+        category: validationForm.category || undefined,
         summary: validationForm.summary || undefined,
       });
       await refreshAll();
@@ -1336,6 +1342,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
           validationForm={validationForm}
           setValidationForm={setValidationForm}
           validationResultOptions={VALIDATION_RESULT_OPTIONS}
+          vulnCategories={vulnCategories}
           submittingValidation={submittingValidation}
           handleSubmitValidationResult={handleSubmitValidationResult}
           refreshAll={refreshAll}
@@ -1366,6 +1373,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
               onCreateAutoVerify={selectedCaseDetail?.current_stage === 'triage' ? () => handleOpenAutoVerifyCreate(selectedCaseDetail.id) : undefined}
               stageActionContent={stageSpecificPanel}
               confirmRecords={confirmRecords}
+              vulnCategories={vulnCategories}
             />
           ) : undefined}
           enableBulkSelection={!hideCasePool}
