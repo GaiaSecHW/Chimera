@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { saveHomeCreateTaskMode } from '../utils/executionReturnContext';
 import { ServiceBuildVersionBadge } from '../components/execution/ServiceBuildVersion';
+import banner1Img from '../homeBanner/banner1.png';
+import banner2Img from '../homeBanner/banner2.png';
+import banner3Img from '../homeBanner/banner3.png';
+import banner4Img from '../homeBanner/banner4.png';
+import banner5Img from '../homeBanner/banner5.png';
+import banner6Img from '../homeBanner/banner6.png';
+import banner7Img from '../homeBanner/banner7.png';
 
 interface HomePageProps {
   setCurrentView: (view: string) => void;
@@ -102,18 +109,14 @@ const MODE_ICONS: Record<string, React.ReactNode> = {
   ),
 };
 
-// public 目录资源前缀：遵循 vite base 配置（dev='/' / prod='./'），
-// 避免子路径部署时绝对路径 /xxx 解析到域名根而裂图。
-const PUB = import.meta.env.BASE_URL;
-// 宣传轮播：image 字段暂留空，后续补充宣传图 URL 即可显示；link 默认 '#'，补充后点击在新标签打开。
 const PROMO_SLIDES = [
-  { title: '第一章 · 降生', subtitle: '四世神裔，融源之子的来历', image: `${PUB}homeBanner/banner1.png`, link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22379614?l=zh-cn' },
-  { title: '第二章 · 三身', subtitle: '一体三面，各司其职的完美共生', image: `${PUB}homeBanner/banner2.png`, link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22382361?l=zh-cn' },
-  { title: '第三章 · 吐息', subtitle: '烈焰淬炼，重塑万物本真', image: `${PUB}homeBanner/banner3.png`, link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22385845?l=zh-cn' },
-  { title: '第四章 · 破局', subtitle: '旧维失效，新序诞生的必然', image: `${PUB}homeBanner/banner4.png`, link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386057?l=zh-cn' },
-  { title: '第五章 · 驭者', subtitle: '顺势而为，维度跃升', image: `${PUB}homeBanner/banner5.png`, link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386058?l=zh-cn' },
-  { title: '第六章 · 群像', subtitle: '从一躯真身，到一世图腾', image: `${PUB}homeBanner/banner6.png`, link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386060?l=zh-cn' },
-  { title: '第七章 · 永续', subtitle: '图腾永生，融合求真永不止歇', image: `${PUB}homeBanner/banner7.png`, link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386062?l=zh-cn' },
+  { title: '第一章 · 降生', subtitle: '四世神裔，融源之子的来历', image: banner1Img, link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22379614?l=zh-cn' },
+  { title: '第二章 · 三身', subtitle: '一体三面，各司其职的完美共生', image: banner2Img, link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22382361?l=zh-cn' },
+  { title: '第三章 · 吐息', subtitle: '烈焰淬炼，重塑万物本真', image: banner3Img, link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22385845?l=zh-cn' },
+  { title: '第四章 · 破局', subtitle: '旧维失效，新序诞生的必然', image: banner4Img, link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386057?l=zh-cn' },
+  { title: '第五章 · 驭者', subtitle: '顺势而为，维度跃升', image: banner5Img, link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386058?l=zh-cn' },
+  { title: '第六章 · 群像', subtitle: '从一躯真身，到一世图腾', image: banner6Img, link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386060?l=zh-cn' },
+  { title: '第七章 · 永续', subtitle: '图腾永生，融合求真永不止歇', image: banner7Img, link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386062?l=zh-cn' }
 ];
 
 export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
@@ -166,7 +169,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
           <div className="flex items-center gap-4">
             <div className="relative">
               <div className="absolute inset-0 rounded-2xl opacity-60 blur-xl" style={{ background: 'radial-gradient(circle, var(--brand-primary) 0%, transparent 70%)' }} />
-              <img alt="Chimera" className="relative w-14 h-14 rounded-2xl" src={`${PUB}logo.png`} />
+              <img alt="Chimera" className="relative w-14 h-14 rounded-2xl" src={`/logo.png`} />
             </div>
             <h1
                 className="text-4xl font-bold tracking-tight md:text-5xl xl:text-6xl 2xl:text-7xl"
