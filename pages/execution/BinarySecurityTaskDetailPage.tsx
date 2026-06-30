@@ -1064,10 +1064,10 @@ const buildStrategyDraft = (policy: BinarySecurityTaskPolicy | undefined, stages
     ? [...MODULE_RISK_OPTIONS]
     : (normalizedRiskLevels.length > 0 ? normalizedRiskLevels : ['高']);
   const normalizedEntryMode = String(nextPolicy.entry_selection_mode || 'auto') === 'manual_confirm' ? 'manual_confirm' : 'auto';
-  const normalizedEntryAutoStrategy = String(nextPolicy.entry_auto_selection_strategy || 'all') === 'top_n_per_module_by_confidence'
+  const normalizedEntryAutoStrategy = String(nextPolicy.entry_auto_selection_strategy || 'top_n_per_module_by_confidence') === 'top_n_per_module_by_confidence'
     ? 'top_n_per_module_by_confidence'
     : 'all';
-  const normalizedEntryAutoTopN = Math.max(1, Math.min(999, safeInt(nextPolicy.entry_auto_selection_top_n, 3)));
+  const normalizedEntryAutoTopN = Math.max(1, Math.min(999, safeInt(nextPolicy.entry_auto_selection_top_n, 20)));
   return {
     stage_options: Object.fromEntries(stages.map((stageName) => [
       stageName,
@@ -1091,7 +1091,7 @@ const buildStrategyDraft = (policy: BinarySecurityTaskPolicy | undefined, stages
     module_selection_mode: normalizedMode,
     entry_selection_mode: normalizedEntryMode,
     entry_auto_selection_strategy: normalizedEntryAutoStrategy,
-    entry_auto_selection_top_n: normalizedEntryAutoStrategy === 'top_n_per_module_by_confidence' ? normalizedEntryAutoTopN : 3,
+    entry_auto_selection_top_n: normalizedEntryAutoStrategy === 'top_n_per_module_by_confidence' ? normalizedEntryAutoTopN : 20,
     module_risk_levels: effectiveRiskLevels,
   };
 };

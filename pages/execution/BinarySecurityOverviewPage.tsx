@@ -467,8 +467,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [stageStatsExpanded, setStageStatsExpanded] = useState(false);
   const [moduleSelectionMode, setModuleSelectionMode] = useState<'auto' | 'manual_confirm'>('auto');
   const [moduleRiskLevels, setModuleRiskLevels] = useState<string[]>(['高']);
-  const [entryAutoSelectionStrategy, setEntryAutoSelectionStrategy] = useState<'all' | 'top_n_per_module_by_confidence'>('all');
-  const [entryAutoSelectionTopN, setEntryAutoSelectionTopN] = useState(3);
+  const [entryAutoSelectionStrategy, setEntryAutoSelectionStrategy] = useState<'all' | 'top_n_per_module_by_confidence'>('top_n_per_module_by_confidence');
+  const [entryAutoSelectionTopN, setEntryAutoSelectionTopN] = useState(20);
   const [stageParallelism, setStageParallelism] = useState<Record<string, number>>(DEFAULT_STAGE_PARALLELISM);
   const [sourcePipelineProfile, setSourcePipelineProfile] = useState<SourcePipelineProfile>(sourcePipelineProfileMode === 'kg_source_vuln_scan' ? 'kg_source_vuln_scan' : 'default');
   const isAllProjectsScope = scopeFilter === 'all';
@@ -649,8 +649,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
 
   useEffect(() => {
     setSourcePipelineProfile(sourcePipelineProfileMode === 'kg_source_vuln_scan' ? 'kg_source_vuln_scan' : 'default');
-    setEntryAutoSelectionStrategy('all');
-    setEntryAutoSelectionTopN(3);
+    setEntryAutoSelectionStrategy('top_n_per_module_by_confidence');
+    setEntryAutoSelectionTopN(20);
   }, [sourcePipelineProfileMode]);
 
   useEffect(() => {
@@ -743,8 +743,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     });
     setModuleSelectionMode('auto');
     setModuleRiskLevels(['高']);
-    setEntryAutoSelectionStrategy('all');
-    setEntryAutoSelectionTopN(3);
+    setEntryAutoSelectionStrategy('top_n_per_module_by_confidence');
+    setEntryAutoSelectionTopN(20);
     setSourcePipelineProfile(sourcePipelineProfileMode === 'kg_source_vuln_scan' ? 'kg_source_vuln_scan' : 'default');
     setStageParallelism({
       ...defaults.stageParallelism,
