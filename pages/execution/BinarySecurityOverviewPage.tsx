@@ -983,7 +983,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               type="button"
               onClick={() => void openCreateDialog()}
               disabled={createDefaultsLoading || isAllProjectsScope}
-              className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:cursor-not-allowed disabled:opacity-60"
               title={isAllProjectsScope ? '全部项目模式下请切回当前项目后创建任务' : undefined}
             >
               {createDefaultsLoading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}

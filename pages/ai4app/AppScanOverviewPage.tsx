@@ -273,7 +273,7 @@ export const AppScanOverviewPage: React.FC<Props> = ({ projectId, onOpenTask, on
             <button
               type="button"
               onClick={() => setShowCreateDialog(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-medium text-white hover:bg-theme-elevated"
+              className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated"
             >
               <Plus size={16} />
               创建任务
