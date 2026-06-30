@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, Check, ChevronRight, CircleHelp, Clock3, FileText, Loader2, Minus, PanelRightClose, RefreshCw, RotateCcw, Search, Server, SquareCheck, Wrench, X } from 'lucide-react';
-import { vulnVerifyV2Api, VulnVerifyV2Attempt, VulnVerifyV2ProjectStats, VulnVerifyV2Result, VulnVerifyV2Task, VulnVerifyV2TaskDetail } from '../../clients/vulnVerifyV2';
+import { AlertTriangle, ArrowLeft, Check, ChevronRight, CircleHelp, Clock3, FileText, Loader2, Minus, PanelRightClose, RefreshCw, RotateCcw, Search, Send, Server, SquareCheck, Wrench, X } from 'lucide-react';
+import { vulnVerifyV2Api, VulnVerifyV2AdminPushResult, VulnVerifyV2Attempt, VulnVerifyV2ProjectStats, VulnVerifyV2Result, VulnVerifyV2Task, VulnVerifyV2TaskDetail } from '../../clients/vulnVerifyV2';
 import { fileserverApi } from '../../clients/fileserver';
 import type { ProjectFilesystemEntry, SecurityProject } from '../../types/types';
 import { VulnVerifyV2SessionPreview } from './VulnVerifyV2SessionPreview';
 import { VulnVerifyV2ServiceOverviewPanel } from './VulnVerifyV2ServiceOverviewPanel';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { PageHeader } from '../../design-system';
-import { useUiFeedback } from '../../components/UiFeedback';
+
 
 const PAGE_SIZE_OPTIONS = [50, 100, 200] as const;
 const CANCELLABLE_TASK_STATUSES = new Set(['pending', 'running']);
@@ -196,6 +196,159 @@ const AttemptStatusBadge: React.FC<{ status?: string }> = ({ status }) => {
     return <OutcomePill size="sm" item={{ label: '成功', iconCls: 'text-[var(--color-signal-green)]', boxCls: '', iconOnly: true, Icon: Check }} />;
   }
   return <OutcomePill size="sm" item={outcomeBadge(status, null)} />;
+};
+
+type OperationResultLevel = 'success' | 'warning' | 'error';
+
+interface OperationResultDialogState {
+  title: string;
+  message?: string;
+  level: OperationResultLevel;
+  items?: Array<{ id: string; label?: string; status: 'success' | 'failed' | 'skipped'; reason?: string }>;
+}
+
+const OperationResultDialog: React.FC<{ state: OperationResultDialogState; onClose: () => void }> = ({ state, onClose }) => {
+  const toneCls = state.level === 'error'
+    ? 'text-[var(--color-signal-red)] border-[var(--color-signal-red-border)] bg-[var(--color-signal-red-bg)]'
+    : state.level === 'warning'
+      ? 'text-[var(--color-signal-amber)] border-[var(--color-signal-amber-border)] bg-[var(--color-signal-amber-bg)]'
+      : 'text-[var(--color-signal-green)] border-[var(--color-signal-green-border)] bg-[var(--color-signal-green-bg)]';
+  const successCount = state.items?.filter((item) => item.status === 'success').length || 0;
+  const failedCount = state.items?.filter((item) => item.status === 'failed').length || 0;
+  const skippedCount = state.items?.filter((item) => item.status === 'skipped').length || 0;
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-6 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-label={state.title} onClick={onClose}>
+      <div className="flex max-h-[82vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-start justify-between gap-4 border-b border-theme-border px-5 py-4">
+          <div>
+            <div className="text-base font-semibold text-theme-text-primary">{state.title}</div>
+            {state.message ? <div className="mt-1 text-xs text-theme-text-muted">{state.message}</div> : null}
+          </div>
+          <button type="button" onClick={onClose} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-theme-border text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-primary" aria-label="关闭结果弹窗">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          <div className={`rounded-xl border px-4 py-3 text-xs ${toneCls}`}>{state.message || state.title}</div>
+          {state.items?.length ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border border-theme-border bg-theme-elevated px-4 py-3">
+                  <div className="text-xs text-theme-text-muted">成功</div>
+                  <div className="mt-1 text-2xl font-semibold text-[var(--color-signal-green)]">{successCount}</div>
+                </div>
+                <div className="rounded-xl border border-theme-border bg-theme-elevated px-4 py-3">
+                  <div className="text-xs text-theme-text-muted">跳过</div>
+                  <div className="mt-1 text-2xl font-semibold text-theme-text-secondary">{skippedCount}</div>
+                </div>
+                <div className="rounded-xl border border-[var(--color-signal-red-border)] bg-[var(--color-signal-red-bg)] px-4 py-3">
+                  <div className="text-xs text-[var(--color-signal-red)]">失败</div>
+                  <div className="mt-1 text-2xl font-semibold text-[var(--color-signal-red)]">{failedCount}</div>
+                </div>
+              </div>
+              <div className="overflow-hidden rounded-xl border border-theme-border">
+                <div className="grid grid-cols-[minmax(180px,1fr)_100px_minmax(180px,1fr)] gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2 text-xs font-medium text-theme-text-muted">
+                  <div>任务</div>
+                  <div>结果</div>
+                  <div>说明</div>
+                </div>
+                <div className="divide-y divide-theme-border">
+                  {state.items.map((item) => {
+                    const cls = item.status === 'success' ? 'text-[var(--color-signal-green)]' : item.status === 'failed' ? 'text-[var(--color-signal-red)]' : 'text-theme-text-muted';
+                    const label = item.status === 'success' ? '成功' : item.status === 'failed' ? '失败' : '跳过';
+                    return (
+                      <div key={item.id} className="grid grid-cols-[minmax(180px,1fr)_100px_minmax(180px,1fr)] gap-3 px-4 py-3 text-xs text-theme-text-secondary">
+                        <div className="min-w-0 truncate font-mono text-theme-text-primary" title={item.label || item.id}>{item.label || item.id}</div>
+                        <div className={cls}>{label}</div>
+                        <div className="min-w-0 break-words text-theme-text-muted">{item.reason || '-'}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          ) : null}
+        </div>
+        <div className="flex justify-end border-t border-theme-border px-5 py-4">
+          <button type="button" onClick={onClose} className="inline-flex h-9 items-center rounded-lg border border-theme-border bg-theme-surface px-4 text-sm text-theme-text-secondary transition hover:bg-theme-elevated hover:text-theme-text-primary">关闭</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PushResultDialog: React.FC<{ result: VulnVerifyV2AdminPushResult; onClose: () => void }> = ({ result, onClose }) => {
+  const summary = result.summary || { pushed: 0, skipped: 0, failed: 0 };
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-6 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-label="手动推送结果" onClick={onClose}>
+      <div className="flex max-h-[82vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-theme-border bg-theme-surface shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-start justify-between gap-4 border-b border-theme-border px-5 py-4">
+          <div>
+            <div className="text-base font-semibold text-theme-text-primary">手动推送结果</div>
+            <div className="mt-1 text-xs text-theme-text-muted">后端仅会实际推送 running / success 任务，其余任务会跳过。</div>
+          </div>
+          <button type="button" onClick={onClose} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-theme-border text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-primary" aria-label="关闭推送结果">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-theme-border bg-theme-elevated px-4 py-3">
+              <div className="text-xs text-theme-text-muted">成功推送</div>
+              <div className="mt-1 text-2xl font-semibold text-[var(--color-signal-green)]">{summary.pushed}</div>
+            </div>
+            <div className="rounded-xl border border-theme-border bg-theme-elevated px-4 py-3">
+              <div className="text-xs text-theme-text-muted">已跳过</div>
+              <div className="mt-1 text-2xl font-semibold text-theme-text-secondary">{summary.skipped}</div>
+            </div>
+            <div className="rounded-xl border border-[var(--color-signal-red-border)] bg-[var(--color-signal-red-bg)] px-4 py-3">
+              <div className="text-xs text-[var(--color-signal-red)]">失败</div>
+              <div className="mt-1 text-2xl font-semibold text-[var(--color-signal-red)]">{summary.failed}</div>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-theme-border">
+            <div className="grid grid-cols-[minmax(180px,1fr)_110px_120px_minmax(160px,1fr)] gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2 text-xs font-medium text-theme-text-muted">
+              <div>任务</div>
+              <div>状态</div>
+              <div>结果</div>
+              <div>说明</div>
+            </div>
+            <div className="divide-y divide-theme-border">
+              {(result.items || []).map((item) => {
+                const push = item.push;
+                const failed = push && !push.ok;
+                const skipped = Boolean(item.skipped || push?.skipped);
+                const resultText = failed ? '失败' : skipped ? '跳过' : item.dry_run ? '预览' : '成功';
+                const resultCls = failed ? 'text-[var(--color-signal-red)]' : skipped ? 'text-theme-text-muted' : 'text-[var(--color-signal-green)]';
+                const reason = item.reason || push?.error || (push?.status_code ? `HTTP ${push.status_code}` : '-');
+                return (
+                  <div key={item.task_id} className="grid grid-cols-[minmax(180px,1fr)_110px_120px_minmax(160px,1fr)] gap-3 px-4 py-3 text-xs text-theme-text-secondary">
+                    <div className="min-w-0">
+                      <div className="truncate font-mono text-theme-text-primary" title={item.task_id}>{item.task_id}</div>
+                      {item.vuln_id ? <div className="mt-1 truncate text-theme-text-muted" title={item.vuln_id}>{item.vuln_id}</div> : null}
+                    </div>
+                    <div>{item.status || '-'}</div>
+                    <div className={resultCls}>{resultText}</div>
+                    <div className="min-w-0 break-words text-theme-text-muted">{reason}</div>
+                    {item.payload ? (
+                      <details className="col-span-4 rounded-lg border border-theme-border bg-theme-elevated px-3 py-2">
+                        <summary className="cursor-pointer select-none text-theme-text-muted transition hover:text-theme-text-primary">Payload</summary>
+                        <pre className="mt-2 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-5 text-theme-text-secondary">{JSON.stringify(item.payload, null, 2)}</pre>
+                      </details>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end border-t border-theme-border px-5 py-4">
+          <button type="button" onClick={onClose} className="inline-flex h-9 items-center rounded-lg border border-theme-border bg-theme-surface px-4 text-sm text-theme-text-secondary transition hover:bg-theme-elevated hover:text-theme-text-primary">关闭</button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 function normalizeRuledOutBy(value: unknown): string[] {
@@ -445,7 +598,6 @@ const AttemptTimeline: React.FC<{ attempts: VulnVerifyV2Attempt[]; devMode?: boo
 
 export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: SecurityProject[] }> = ({ projectId, projects = [] }) => {
   const buildVersion = useServiceBuildVersion(vulnVerifyV2Api.getHealth);
-  const { feedbackNodes, notify } = useUiFeedback();
   const { enabled: devMode, onClick: handleDevBadgeClick, toast: devToast } = useDevMode();
 
   const [tasks, setTasks] = useState<VulnVerifyV2Task[]>([]);
@@ -476,6 +628,9 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: Secu
   const [selectedDevTaskIds, setSelectedDevTaskIds] = useState<string[]>([]);
   const [batchCancelling, setBatchCancelling] = useState(false);
   const [batchRerunning, setBatchRerunning] = useState(false);
+  const [pushingResults, setPushingResults] = useState(false);
+  const [pushResultDialog, setPushResultDialog] = useState<VulnVerifyV2AdminPushResult | null>(null);
+  const [operationResultDialog, setOperationResultDialog] = useState<OperationResultDialogState | null>(null);
   const [serviceOverviewOpen, setServiceOverviewOpen] = useState(false);
   const [devToastPos, setDevToastPos] = useState<{ top: number; left: number } | null>(null);
   const devBadgeRef = useRef<HTMLSpanElement | null>(null);
@@ -671,13 +826,13 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: Secu
   const handleRerun = useCallback(async (taskId: string) => {
     try {
       await vulnVerifyV2Api.rerunTask(projectId, taskId);
-      notify('已请求重新执行', 'success');
+      setOperationResultDialog({ title: '重新执行已提交', message: '已请求重新执行该任务。', level: 'success' });
       await loadOverview();
       if (selectedTaskId === taskId) await loadDetail(taskId);
     } catch (e: any) {
-      notify(e?.message || String(e), 'error', '重新执行失败');
+      setOperationResultDialog({ title: '重新执行失败', message: e?.message || String(e), level: 'error' });
     }
-  }, [projectId, loadOverview, loadDetail, selectedTaskId, notify]);
+  }, [projectId, loadOverview, loadDetail, selectedTaskId]);
 
   const loadSessionFile = useCallback(async (path: string, force = false) => {
     setSelectedSessionPath(path);
@@ -750,17 +905,25 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: Secu
       const results = await Promise.allSettled(taskIds.map((taskId) => vulnVerifyV2Api.terminateTask(projectId, taskId)));
       const successCount = results.filter((result) => result.status === 'fulfilled').length;
       const failedCount = results.length - successCount;
-      if (successCount) notify(`已取消 ${successCount} 个任务`, 'success');
-      if (failedCount) notify(`${failedCount} 个任务取消失败`, 'error', '批量取消未完全成功');
+      setOperationResultDialog({
+        title: failedCount ? '批量取消未完全成功' : '批量取消完成',
+        message: `成功 ${successCount}，失败 ${failedCount}`,
+        level: failedCount ? 'warning' : 'success',
+        items: results.map((result, index) => ({
+          id: taskIds[index],
+          status: result.status === 'fulfilled' ? 'success' : 'failed',
+          reason: result.status === 'fulfilled' ? '已取消' : (result.reason?.message || String(result.reason)),
+        })),
+      });
       setSelectedDevTaskIds([]);
       await loadOverview();
       if (selectedTaskId && taskIds.includes(selectedTaskId)) await loadDetail(selectedTaskId);
     } catch (e: any) {
-      notify(e?.message || String(e), 'error', '批量取消失败');
+      setOperationResultDialog({ title: '批量取消失败', message: e?.message || String(e), level: 'error' });
     } finally {
       setBatchCancelling(false);
     }
-  }, [loadDetail, loadOverview, notify, projectId, selectedCancellableTaskIds, selectedTaskId]);
+  }, [loadDetail, loadOverview, projectId, selectedCancellableTaskIds, selectedTaskId]);
 
   const handleBatchRerunTasks = useCallback(async () => {
     const taskIds = selectedVisibleTaskIds;
@@ -771,17 +934,41 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: Secu
       const results = await Promise.allSettled(taskIds.map((taskId) => vulnVerifyV2Api.rerunTask(projectId, taskId)));
       const successCount = results.filter((result) => result.status === 'fulfilled').length;
       const failedCount = results.length - successCount;
-      if (successCount) notify(`已请求重跑 ${successCount} 个任务`, 'success');
-      if (failedCount) notify(`${failedCount} 个任务重跑失败`, 'error', '批量重跑未完全成功');
+      setOperationResultDialog({
+        title: failedCount ? '批量重跑未完全成功' : '批量重跑已提交',
+        message: `成功 ${successCount}，失败 ${failedCount}`,
+        level: failedCount ? 'warning' : 'success',
+        items: results.map((result, index) => ({
+          id: taskIds[index],
+          status: result.status === 'fulfilled' ? 'success' : 'failed',
+          reason: result.status === 'fulfilled' ? '已请求重跑' : (result.reason?.message || String(result.reason)),
+        })),
+      });
       setSelectedDevTaskIds([]);
       await loadOverview();
       if (selectedTaskId && taskIds.includes(selectedTaskId)) await loadDetail(selectedTaskId);
     } catch (e: any) {
-      notify(e?.message || String(e), 'error', '批量重跑失败');
+      setOperationResultDialog({ title: '批量重跑失败', message: e?.message || String(e), level: 'error' });
     } finally {
       setBatchRerunning(false);
     }
-  }, [loadDetail, loadOverview, notify, projectId, selectedTaskId, selectedVisibleTaskIds]);
+  }, [loadDetail, loadOverview, projectId, selectedTaskId, selectedVisibleTaskIds]);
+
+  const handlePushSelectedResults = useCallback(async () => {
+    const taskIds = selectedVisibleTaskIds;
+    if (!taskIds.length || pushingResults) return;
+    if (!window.confirm(`确认手动推送选中的 ${taskIds.length} 个任务最新验证结果？后端仅会实际推送 running/success 任务。`)) return;
+    setPushingResults(true);
+    try {
+      const result = await vulnVerifyV2Api.adminPushResults({ task_ids: taskIds, dry_run: false });
+      setPushResultDialog(result);
+      await loadOverview({ silent: true });
+    } catch (e: any) {
+      setOperationResultDialog({ title: '手动推送最新结果失败', message: e?.message || String(e), level: 'error' });
+    } finally {
+      setPushingResults(false);
+    }
+  }, [loadOverview, pushingResults, selectedVisibleTaskIds]);
 
   const confirmedVulns = Number(stats?.confirmed ?? 0);
   const ruledOutVulns = Number(stats?.ruled_out ?? 0);
@@ -803,11 +990,12 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: Secu
           {devToast}
         </div>
       ) : null}
+      {operationResultDialog ? <OperationResultDialog state={operationResultDialog} onClose={() => setOperationResultDialog(null)} /> : null}
+      {pushResultDialog ? <PushResultDialog result={pushResultDialog} onClose={() => setPushResultDialog(null)} /> : null}
       {devMode && serviceOverviewOpen ? (
         <VulnVerifyV2ServiceOverviewPanel projects={projects} currentProjectId={projectId} onClose={() => setServiceOverviewOpen(false)} />
       ) : null}
       <div className="w-full space-y-8 px-4 pt-8 pb-10 lg:px-6 xl:px-8">
-        {feedbackNodes}
         <PageHeader
           className="border-b-0 !pb-0"
           title={<ServicePageTitle title={<span className="inline-flex items-baseline gap-1.5 py-2">漏洞验证<span ref={devBadgeRef} className="select-none text-xs font-medium text-theme-text-muted" onClick={handleDevBadgeClickWithPosition} role="presentation" aria-hidden>v2</span></span>} version={buildVersion} />}
@@ -899,6 +1087,16 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: Secu
                         清空选择
                       </button>
                     ) : null}
+                    <button
+                      type="button"
+                      disabled={!selectedVisibleTaskIds.length || pushingResults}
+                      onClick={() => void handlePushSelectedResults()}
+                      className="inline-flex h-8 shrink-0 items-center rounded-lg border border-theme-border bg-theme-surface px-3 text-xs font-medium text-theme-text-secondary transition hover:bg-theme-elevated hover:text-theme-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                      title="手动推送选中任务的最新验证结果；仅 running/success 会实际推送"
+                    >
+                      {pushingResults ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : <Send size={14} className="mr-1.5" />}
+                      手动推送最新结果{selectedVisibleTaskIds.length ? ` (${selectedVisibleTaskIds.length})` : ''}
+                    </button>
                     <button
                       type="button"
                       disabled={!selectedVisibleTaskIds.length || batchRerunning}

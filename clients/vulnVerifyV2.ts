@@ -107,6 +107,37 @@ export interface VulnVerifyV2TaskCaseIdsResponse {
   items: string[];
 }
 
+export interface VulnVerifyV2AdminPushRequest {
+  task_ids?: string[];
+  vuln_ids?: string[];
+  limit?: number;
+  dry_run?: boolean;
+}
+
+export interface VulnVerifyV2AdminPushResult {
+  items: Array<{
+    task_id: string;
+    vuln_id?: string | null;
+    status?: string | null;
+    skipped?: boolean;
+    reason?: string | null;
+    dry_run?: boolean;
+    payload?: Record<string, any>;
+    push?: {
+      ok: boolean;
+      skipped?: boolean;
+      attempts?: number;
+      status_code?: number | null;
+      error?: string | null;
+    };
+  }>;
+  summary: {
+    pushed: number;
+    skipped: number;
+    failed: number;
+  };
+}
+
 function normalizeCaseIds(caseIds?: string[] | null): string[] {
   if (!Array.isArray(caseIds)) return [];
   return caseIds
@@ -193,5 +224,12 @@ export const vulnVerifyV2Api = {
     handleResponse(await fetch(`${BASE}/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(taskId)}/rerun`, {
       method: 'POST',
       headers: getHeaders(),
+    })),
+
+  adminPushResults: async (payload: VulnVerifyV2AdminPushRequest): Promise<VulnVerifyV2AdminPushResult> =>
+    handleResponse(await fetch(`${BASE}/admin/results/push`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
     })),
 };
