@@ -52,6 +52,7 @@ export const DEFAULT_DECISION_FORM = {
 
 export const DEFAULT_VALIDATION_FORM = {
   validation_result: 'inconclusive',
+  category: '',
   summary: '',
 };
 
