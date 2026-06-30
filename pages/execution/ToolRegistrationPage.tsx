@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   Archive,
@@ -50,6 +50,7 @@ import {
   UserCog,
   Users,
   Workflow,
+  Upload,
   XCircle,
   Zap,
 } from 'lucide-react';
@@ -57,15 +58,14 @@ import {
 import { getAuthHeaders, handleResponse } from '../../clients/base';
 import { agentManageApiPath } from '../../clients/agentManage';
 import { toolRegistryApi } from '../../clients/toolRegistry';
+import { aigwApi } from '../../clients/aigw';
 import type {
   ProbeTestResponse,
-  ToolCreate,
+  ToolCreateParams,
   ToolInputType,
   ToolKind,
   ToolListItem,
-  ToolOperationLog,
   ToolResponse,
-  ToolReviewRecord,
   ToolStatus,
   ToolUpdate,
 } from '../../clients/toolRegistry';
@@ -81,12 +81,27 @@ import {
 } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { getPlatformRole } from '../../utils/rbac';
-import type { UserInfo } from '../../types/types';
+import type { AiGatewayModelAlias, UserInfo } from '../../types/types';
 
 interface AgentAppOption {
   id: string;
   name: string;
   engine: string;
+}
+
+interface DepartmentOption {
+  id: number;
+  name: string;
+}
+
+type AgentHarnessFileType = 'folder' | 'archive';
+
+interface AgentHarnessFileData {
+  type: AgentHarnessFileType;
+  name: string;
+  files?: File[];
+  file?: File;
+  size?: number;
 }
 
 const TOOL_ID_PATTERN = /^[A-Z]{1,10}$/;
@@ -168,11 +183,11 @@ const DEFAULT_FORM: FormState = {
   catalogJson: '',
   // agent
   engine: 'opencode',
-  agent_harness_gitea_url: '',
   start_command: '',
   input_requirements: '',
   default_agent_name: '',
-  is_public: false,
+  department_id: '',
+  model_alias_id: '',
 };
 
 interface FormState {
@@ -195,11 +210,11 @@ interface FormState {
   catalogJson: string;
   // agent-only
   engine: string;
-  agent_harness_gitea_url: string;
   start_command: string;
   input_requirements: string;
   default_agent_name: string;
-  is_public: boolean;
+  department_id: string;
+  model_alias_id: string;
 }
 
 type ErrorMap = Partial<Record<keyof FormState | 'catalog' | 'root', string>>;
@@ -273,19 +288,23 @@ const validate = (form: FormState): ErrorMap => {
     }
   } else {
     if (!form.engine) errors.engine = '请选择引擎';
-    if (!form.agent_harness_gitea_url.trim()) errors.agent_harness_gitea_url = '请输入 Harness Gitea URL';
     if (!form.default_agent_name.trim()) errors.default_agent_name = '请输入默认 Agent 名称';
+    if (!form.department_id) errors.department_id = '请选择部门范围';
   }
   return errors;
 };
 
-const buildPayload = (form: FormState): ToolCreate => {
+const buildCreateParams = (form: FormState, harnessFile: AgentHarnessFileData | null, isPublic: boolean): ToolCreateParams => {
   const base = {
     id: form.id.trim(),
     name: form.name.trim(),
     description: form.description.trim() || undefined,
     kind: form.kind,
     input_types: form.input_types,
+    view_id: form.view_id.trim() || undefined,
+    icon: form.icon.trim() || undefined,
+    menu_group: form.menu_group.trim() || undefined,
+    current_version: form.current_version.trim() || undefined,
   };
   if (form.kind === 'microservice') {
     let catalog: Record<string, unknown> | undefined;
@@ -310,20 +329,18 @@ const buildPayload = (form: FormState): ToolCreate => {
     ...base,
     agent: {
       engine: form.engine,
-      agent_harness_gitea_url: form.agent_harness_gitea_url.trim(),
+      default_agent_name: form.default_agent_name.trim(),
       start_command: form.start_command.trim() || undefined,
       input_requirements: form.input_requirements.trim() || undefined,
-      default_agent_name: form.default_agent_name.trim(),
-      is_public: form.is_public,
-      view_id: form.view_id.trim(),
-      icon: form.icon.trim() || undefined,
-      menu_group: form.menu_group.trim() || undefined,
-      current_version: form.current_version.trim() || undefined,
+      is_public: isPublic,
+      model_alias_id: form.model_alias_id || undefined,
     },
+    agent_harness_file: harnessFile?.file ?? null,
+    agent_harness_file_type: harnessFile?.type === 'folder' ? 'folder' : 'archive',
   };
 };
 
-const buildUpdatePayload = (form: FormState): ToolUpdate => {
+const buildUpdatePayload = (form: FormState, isPublic: boolean): ToolUpdate => {
   const payload: ToolUpdate = {
     name: form.name.trim(),
     description: form.description.trim() || undefined,
@@ -349,21 +366,21 @@ const buildUpdatePayload = (form: FormState): ToolUpdate => {
   } else {
     payload.agent = {
       engine: form.engine,
-      agent_harness_gitea_url: form.agent_harness_gitea_url.trim(),
+      default_agent_name: form.default_agent_name.trim(),
       start_command: form.start_command.trim() || undefined,
       input_requirements: form.input_requirements.trim() || undefined,
-      default_agent_name: form.default_agent_name.trim(),
-      is_public: form.is_public,
+      is_public: isPublic,
       view_id: form.view_id.trim(),
       icon: form.icon.trim() || undefined,
       menu_group: form.menu_group.trim() || undefined,
       current_version: form.current_version.trim() || undefined,
+      model_alias_id: form.model_alias_id.trim() ? Number(form.model_alias_id) : undefined,
     };
   }
   return payload;
 };
 
-const formFromToolDetail = (tool: ToolResponse): FormState => {
+const formFromToolDetail = (tool: ToolResponse, user: UserInfo | null): FormState => {
   const ms = tool.microservice;
   const ag = tool.agent;
   return {
@@ -383,11 +400,11 @@ const formFromToolDetail = (tool: ToolResponse): FormState => {
     service_port: ms?.service_port != null ? String(ms.service_port) : '8080',
     catalogJson: ms?.catalog ? JSON.stringify(ms.catalog, null, 2) : '',
     engine: ag?.engine ?? 'opencode',
-    agent_harness_gitea_url: ag?.agent_harness_gitea_url ?? '',
     start_command: ag?.start_command ?? '',
     input_requirements: ag?.input_requirements ?? '',
     default_agent_name: ag?.default_agent_name ?? '',
-    is_public: ag?.is_public ?? false,
+    department_id: ag?.is_public ? '__public__' : (user?.department_id != null ? String(user.department_id) : ''),
+    model_alias_id: ag?.model_alias_id != null ? String(ag.model_alias_id) : '',
   };
 };
 
@@ -411,27 +428,6 @@ const HEALTH_TONE: Record<string, string> = {
   healthy: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
   unhealthy: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
   unknown: 'bg-theme-elevated text-theme-text-secondary border-theme-border',
-};
-
-const REVIEW_ACTION_LABEL: Record<ToolReviewRecord['action'], string> = {
-  submit: '提交',
-  approve: '通过',
-  reject: '驳回',
-};
-const REVIEW_ACTION_TONE: Record<ToolReviewRecord['action'], string> = {
-  submit: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
-  approve: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  reject: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
-};
-const LOG_ACTION_LABEL: Record<ToolOperationLog['action'], string> = {
-  online: '上架',
-  offline: '下架',
-  edit_online: '在线编辑',
-};
-const LOG_ACTION_TONE: Record<ToolOperationLog['action'], string> = {
-  online: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  offline: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
-  edit_online: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
 };
 
 const Badge: React.FC<{ className?: string; children: React.ReactNode }> = ({ className, children }) => (
@@ -473,6 +469,8 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
   const [probeError, setProbeError] = useState('');
   const [agentApps, setAgentApps] = useState<AgentAppOption[]>([]);
   const [agentAppsLoading, setAgentAppsLoading] = useState(false);
+  const [modelAliases, setModelAliases] = useState<AiGatewayModelAlias[]>([]);
+  const [modelAliasesLoading, setModelAliasesLoading] = useState(false);
   const [myTools, setMyTools] = useState<ToolListItem[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [microserviceUrl, setMicroserviceUrl] = useState('');
@@ -485,13 +483,18 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
   const [reviewLoadingId, setReviewLoadingId] = useState<string | null>(null);
   const [detailTool, setDetailTool] = useState<ToolResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [reviews, setReviews] = useState<ToolReviewRecord[]>([]);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [logs, setLogs] = useState<ToolOperationLog[]>([]);
-  const [logsLoading, setLogsLoading] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingTool, setEditingTool] = useState<ToolListItem | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [agentHarnessFile, setAgentHarnessFile] = useState<AgentHarnessFileData | null>(null);
+  const archiveInputRef = useRef<HTMLInputElement>(null);
+
+  const effectiveUser = user;
+  const canChoosePublic = true;
+  const departments = useMemo<DepartmentOption[]>(() => {
+    if (!effectiveUser?.department_id) return [];
+    return [{ id: Number(effectiveUser.department_id), name: effectiveUser.department_name || `部门 ${effectiveUser.department_id}` }];
+  }, [effectiveUser?.department_id, effectiveUser?.department_name]);
 
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -558,9 +561,22 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
     }
   };
 
+  const refreshModelAliases = async () => {
+    setModelAliasesLoading(true);
+    try {
+      const aliases = await aigwApi.listModelAliases();
+      setModelAliases(Array.isArray(aliases) ? aliases.filter((alias: AiGatewayModelAlias) => alias.enabled !== false) : []);
+    } catch {
+      setModelAliases([]);
+    } finally {
+      setModelAliasesLoading(false);
+    }
+  };
+
   useEffect(() => {
     void refreshMyTools();
     void refreshAgentApps();
+    void refreshModelAliases();
   }, []);
 
   const handleKindChange = (kind: string) => {
@@ -599,20 +615,35 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
     }
   };
 
+  const handleFilesSelected = (files: FileList | null) => {
+    if (!files?.length) return;
+    const firstFile = files[0];
+    if (!firstFile.name.match(/\.(zip|7z|tar|tar\.gz|tgz)$/i)) {
+      notify('请上传 ZIP、TAR、TAR.GZ、TGZ、7Z 压缩包', 'error');
+      return;
+    }
+    setAgentHarnessFile({ type: 'archive', name: firstFile.name, file: firstFile, size: firstFile.size });
+  };
+
   const handleSubmit = async () => {
     const validationErrors = validate(form);
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) return;
 
+    const isPublic = canChoosePublic && form.department_id === '__public__';
+    if (form.kind === 'agent' && !editingTool && !agentHarnessFile) {
+      notify('请上传 AgentHarness 文件', 'error');
+      return;
+    }
     setSubmitting(true);
     try {
       if (editingTool) {
-        const payload = buildUpdatePayload(form);
+        const payload = buildUpdatePayload(form, isPublic);
         const updated = await toolRegistryApi.update(editingTool.id, payload);
         notify(`工具 ${updated.id} 已更新`, 'success');
       } else {
-        const payload = buildPayload(form);
-        const created = await toolRegistryApi.create(payload);
+        const params = buildCreateParams(form, agentHarnessFile, isPublic);
+        const created = await toolRegistryApi.create(params);
         notify(`工具 ${created.id} 已提交注册，状态：待审核（pending）`, 'success');
       }
       handleCloseForm();
@@ -632,6 +663,7 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
     setProbeError('');
     setMicroserviceUrl('');
     setIconPickerOpen(false);
+    setAgentHarnessFile(null);
   };
 
   const handleOpenCreate = () => {
@@ -642,6 +674,7 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
     setProbeError('');
     setMicroserviceUrl('');
     setIconPickerOpen(false);
+    setAgentHarnessFile(null);
     setFormOpen(true);
   };
 
@@ -650,9 +683,10 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
     setFormOpen(true);
     setErrors({});
     setForm(DEFAULT_FORM);
+    setAgentHarnessFile(null);
     try {
       const detail = await toolRegistryApi.get(tool.id);
-      setForm(formFromToolDetail(detail));
+      setForm(formFromToolDetail(detail, user));
     } catch (error) {
       notify(error instanceof Error ? error.message : '加载工具详情失败', 'error');
       setFormOpen(false);
@@ -669,6 +703,7 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
     setProbeError('');
     setMicroserviceUrl('');
     setIconPickerOpen(false);
+    setAgentHarnessFile(null);
   };
 
   const handleOnline = async (id: string) => {
@@ -713,36 +748,18 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
   const handleOpenDetail = async (tool: ToolListItem) => {
     setDetailLoading(true);
     setDetailTool(null);
-    setReviews([]);
-    setReviewsLoading(true);
-    setLogs([]);
-    setLogsLoading(true);
     try {
-      const [detailRes, reviewsRes, logsRes] = await Promise.allSettled([
-        toolRegistryApi.get(tool.id),
-        toolRegistryApi.listReviews(tool.id),
-        toolRegistryApi.listLogs(tool.id),
-      ]);
-      if (detailRes.status === 'fulfilled') {
-        setDetailTool(detailRes.value);
-      } else {
-        throw detailRes.reason;
-      }
-      setReviews(reviewsRes.status === 'fulfilled' ? reviewsRes.value?.items ?? [] : []);
-      setLogs(logsRes.status === 'fulfilled' ? logsRes.value?.items ?? [] : []);
+      const detail = await toolRegistryApi.get(tool.id);
+      setDetailTool(detail);
     } catch (error) {
       notify(error instanceof Error ? error.message : '加载工具详情失败', 'error');
     } finally {
       setDetailLoading(false);
-      setReviewsLoading(false);
-      setLogsLoading(false);
     }
   };
 
   const handleCloseDetail = () => {
     setDetailTool(null);
-    setReviews([]);
-    setLogs([]);
   };
 
   const refreshPendingTools = async () => {
@@ -1076,7 +1093,7 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
                 <Bot size={15} /> Agent 信息
               </div>
               <div className={inputGridClass}>
-                <FormField label="引擎" required error={errors.engine}>
+                <FormField label="使用引擎" required error={errors.engine}>
                   <Select
                     options={[
                       { value: 'opencode', label: 'OpenCode' },
@@ -1090,50 +1107,79 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
                     invalid={!!errors.engine}
                   />
                 </FormField>
-                <FormField label="默认 Agent 名称" required error={errors.default_agent_name}>
+                <FormField label="默认 Agent" required error={errors.default_agent_name}>
                   <Input
                     value={form.default_agent_name}
                     onChange={(e) => setField('default_agent_name', e.target.value)}
-                    placeholder="如 code-auditor"
+                    placeholder="例如 security-reviewer"
                     invalid={!!errors.default_agent_name}
-                  />
-                </FormField>
-                <FormField label="Harness Gitea URL" required error={errors.agent_harness_gitea_url} hint="Agent 仓库的 Gitea 地址">
-                  <Input
-                    value={form.agent_harness_gitea_url}
-                    onChange={(e) => setField('agent_harness_gitea_url', e.target.value)}
-                    placeholder="http://gitea/.../agent-helper"
-                    invalid={!!errors.agent_harness_gitea_url}
-                    className="font-mono text-xs"
                   />
                 </FormField>
                 <FormField label="启动命令" hint="可选">
                   <Input
                     value={form.start_command}
                     onChange={(e) => setField('start_command', e.target.value)}
-                    placeholder="如 python agent.py"
+                    placeholder={form.engine === 'script' ? '例如 python run.py' : '例如 /project:review'}
+                  />
+                </FormField>
+                <FormField label="部门范围" required error={errors.department_id}>
+                  <Select
+                    options={[
+                      ...(canChoosePublic ? [{ label: '公开', value: '__public__' }] : []),
+                      ...departments.map((d) => ({ label: d.name, value: String(d.id) })),
+                    ]}
+                    placeholder="请选择部门范围"
+                    value={form.department_id}
+                    onChange={(e) => setField('department_id', e.target.value)}
+                    invalid={!!errors.department_id}
                   />
                 </FormField>
               </div>
-              <FormField label="输入要求" hint="可选，描述 Agent 的输入需求">
+              <FormField label="模型" hint="可选，绑定 AI Gateway 模型别名">
+                <Select
+                  options={modelAliases.map((alias) => ({ label: alias.alias_name, value: String(alias.id) }))}
+                  placeholder={modelAliasesLoading ? '正在加载模型' : '请选择模型'}
+                  value={form.model_alias_id}
+                  onChange={(e) => setField('model_alias_id', e.target.value)}
+                  disabled={modelAliasesLoading}
+                />
+              </FormField>
+              <div>
+                <div className="text-sm font-semibold text-theme-text-primary">
+                  AgentHarness 文件 {!editingTool && <span className="text-rose-400">*</span>}
+                  {editingTool && <span className="text-theme-text-muted">（可选更新）</span>}
+                </div>
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    onClick={() => archiveInputRef.current?.click()}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-theme-border bg-theme-surface px-5 py-4 text-sm font-medium text-theme-text-secondary transition hover:bg-theme-elevated"
+                  >
+                    <Upload size={18} /> 上传压缩包
+                  </button>
+                </div>
+                <input
+                  ref={archiveInputRef}
+                  type="file"
+                  accept=".zip,.7z,.tar,.tar.gz,.tgz"
+                  className="hidden"
+                  onChange={(e) => handleFilesSelected(e.target.files)}
+                />
+                {agentHarnessFile ? (
+                  <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-cyan-500/20 bg-cyan-500/15 px-4 py-3 text-sm font-semibold text-cyan-300">
+                    <span className="truncate">压缩包：{agentHarnessFile.name}</span>
+                    <button type="button" onClick={() => setAgentHarnessFile(null)} className="text-cyan-300 hover:text-cyan-200">移除</button>
+                  </div>
+                ) : null}
+              </div>
+              <FormField label="Agent说明" hint="可选，说明 Agent 的用途、能力和适用场景">
                 <textarea
                   className="form-input w-full resize-y"
                   rows={2}
                   value={form.input_requirements}
                   onChange={(e) => setField('input_requirements', e.target.value)}
-                  placeholder="如 需要代码仓库路径"
+                  placeholder="说明 Agent 的用途、能力和适用场景"
                 />
-              </FormField>
-              <FormField label="是否公开">
-                <label className="flex items-center gap-2 text-sm text-theme-text-secondary">
-                  <input
-                    type="checkbox"
-                    checked={form.is_public}
-                    onChange={(e) => setField('is_public', e.target.checked)}
-                    className="h-4 w-4 rounded border-theme-border"
-                  />
-                  公开（所有租户可用）
-                </label>
               </FormField>
             </div>
           )}
@@ -1399,88 +1445,6 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
                 <DetailField label="审核备注" value={detailTool.review_note} />
                 <DetailField label="创建时间" value={formatTime(detailTool.created_at)} />
                 <DetailField label="更新时间" value={formatTime(detailTool.updated_at)} />
-              </div>
-
-              {/* 审批流程历史 */}
-              <div className="space-y-3 rounded-xl border border-theme-border bg-theme-elevated/40 p-4">
-                <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-primary">
-                  <ClipboardList size={15} /> 审批流程
-                </div>
-                {reviewsLoading ? (
-                  <div className="flex items-center py-3 text-xs text-theme-text-muted">
-                    <Loader2 size={14} className="mr-2 animate-spin" /> 加载中…
-                  </div>
-                ) : reviews.length === 0 ? (
-                  <div className="py-3 text-center text-xs text-theme-text-muted">暂无审批记录</div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="text-[10px] uppercase tracking-wider text-theme-text-muted">
-                        <tr>
-                          <th className="px-2 py-1.5 font-semibold">时间</th>
-                          <th className="px-2 py-1.5 font-semibold">操作</th>
-                          <th className="px-2 py-1.5 font-semibold">状态变更</th>
-                          <th className="px-2 py-1.5 font-semibold">操作人</th>
-                          <th className="px-2 py-1.5 font-semibold">备注</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-theme-border">
-                        {reviews.map((r) => (
-                          <tr key={r.id} className="bg-theme-surface">
-                            <td className="px-2 py-1.5 font-mono text-theme-text-muted">{formatTime(r.created_at)}</td>
-                            <td className="px-2 py-1.5">
-                              <Badge className={REVIEW_ACTION_TONE[r.action]}>{REVIEW_ACTION_LABEL[r.action]}</Badge>
-                            </td>
-                            <td className="px-2 py-1.5 font-mono text-theme-text-muted">
-                              {r.from_status ? STATUS_LABEL[r.from_status] : '—'} → {r.to_status ? STATUS_LABEL[r.to_status] : '—'}
-                            </td>
-                            <td className="px-2 py-1.5 text-theme-text-secondary">{r.operator || '-'}</td>
-                            <td className="px-2 py-1.5 text-theme-text-secondary break-all">{r.note || '-'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              {/* 操作日志 */}
-              <div className="space-y-3 rounded-xl border border-theme-border bg-theme-elevated/40 p-4">
-                <div className="flex items-center gap-2 text-sm font-semibold text-theme-text-primary">
-                  <Activity size={15} /> 操作日志
-                </div>
-                {logsLoading ? (
-                  <div className="flex items-center py-3 text-xs text-theme-text-muted">
-                    <Loader2 size={14} className="mr-2 animate-spin" /> 加载中…
-                  </div>
-                ) : logs.length === 0 ? (
-                  <div className="py-3 text-center text-xs text-theme-text-muted">暂无操作日志</div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="text-[10px] uppercase tracking-wider text-theme-text-muted">
-                        <tr>
-                          <th className="px-2 py-1.5 font-semibold">时间</th>
-                          <th className="px-2 py-1.5 font-semibold">操作</th>
-                          <th className="px-2 py-1.5 font-semibold">操作人</th>
-                          <th className="px-2 py-1.5 font-semibold">备注</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-theme-border">
-                        {logs.map((l) => (
-                          <tr key={l.id} className="bg-theme-surface">
-                            <td className="px-2 py-1.5 font-mono text-theme-text-muted">{formatTime(l.created_at)}</td>
-                            <td className="px-2 py-1.5">
-                              <Badge className={LOG_ACTION_TONE[l.action]}>{LOG_ACTION_LABEL[l.action]}</Badge>
-                            </td>
-                            <td className="px-2 py-1.5 text-theme-text-secondary">{l.operator || '-'}</td>
-                            <td className="px-2 py-1.5 text-theme-text-secondary break-all">{l.note || '-'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
               </div>
             </div>
           ) : null}
