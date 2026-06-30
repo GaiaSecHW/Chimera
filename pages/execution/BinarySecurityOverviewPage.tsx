@@ -467,6 +467,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [stageStatsExpanded, setStageStatsExpanded] = useState(false);
   const [moduleSelectionMode, setModuleSelectionMode] = useState<'auto' | 'manual_confirm'>('auto');
   const [moduleRiskLevels, setModuleRiskLevels] = useState<string[]>(['高']);
+  const [entryAutoSelectionStrategy, setEntryAutoSelectionStrategy] = useState<'all' | 'top_n_per_module_by_confidence'>('all');
+  const [entryAutoSelectionTopN, setEntryAutoSelectionTopN] = useState(3);
   const [stageParallelism, setStageParallelism] = useState<Record<string, number>>(DEFAULT_STAGE_PARALLELISM);
   const [sourcePipelineProfile, setSourcePipelineProfile] = useState<SourcePipelineProfile>(sourcePipelineProfileMode === 'kg_source_vuln_scan' ? 'kg_source_vuln_scan' : 'default');
   const isAllProjectsScope = scopeFilter === 'all';
@@ -647,6 +649,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
 
   useEffect(() => {
     setSourcePipelineProfile(sourcePipelineProfileMode === 'kg_source_vuln_scan' ? 'kg_source_vuln_scan' : 'default');
+    setEntryAutoSelectionStrategy('all');
+    setEntryAutoSelectionTopN(3);
   }, [sourcePipelineProfileMode]);
 
   useEffect(() => {
@@ -739,6 +743,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     });
     setModuleSelectionMode('auto');
     setModuleRiskLevels(['高']);
+    setEntryAutoSelectionStrategy('all');
+    setEntryAutoSelectionTopN(3);
     setSourcePipelineProfile(sourcePipelineProfileMode === 'kg_source_vuln_scan' ? 'kg_source_vuln_scan' : 'default');
     setStageParallelism({
       ...defaults.stageParallelism,
@@ -885,6 +891,11 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
           ),
           stage_parallelism: Object.fromEntries(stages.map((stage) => [stage, stageParallelism[stage] ?? 1])),
           module_selection_mode: isBinaryModuleTask || isKgSourcePage ? undefined : moduleSelectionMode,
+          entry_selection_mode: isBinaryModuleTask || isKgSourcePage ? undefined : 'auto',
+          entry_auto_selection_strategy: isBinaryModuleTask || isKgSourcePage || !isSourceTask ? undefined : entryAutoSelectionStrategy,
+          entry_auto_selection_top_n: isBinaryModuleTask || isKgSourcePage || !isSourceTask || entryAutoSelectionStrategy !== 'top_n_per_module_by_confidence'
+            ? undefined
+            : Math.max(1, Math.min(999, entryAutoSelectionTopN)),
           module_risk_levels: isBinaryModuleTask || isKgSourcePage ? undefined : moduleRiskLevels,
           knowledge_graph_upload_id: isKgSourcePage ? (knowledgeGraphUploadId.trim() || undefined) : undefined,
           knowledge_graph_db_name: isKgSourcePage ? (knowledgeGraphDbName.trim() || undefined) : undefined,
@@ -1568,6 +1579,42 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       </div>
                     </div>
                   </div>
+                  {isSourceTask ? (
+                    <div className="mt-5 rounded-2xl border border-theme-border bg-theme-elevated p-4">
+                      <div className="text-sm font-semibold text-theme-text-primary">入口自动筛选</div>
+                      <div className="mt-1 text-xs text-theme-text-muted">源码默认流程下，可按每个模块子任务产出的入口置信度排序，只选择前 N 个入口进入数据流漏洞挖掘。</div>
+                      <div className="mt-3 grid gap-2">
+                        {[
+                          { value: 'all', label: '全部入口' },
+                          { value: 'top_n_per_module_by_confidence', label: '每模块按置信度 Top N' },
+                        ].map((option) => (
+                          <label key={option.value} className="flex items-center gap-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary">
+                            <input
+                              type="radio"
+                              name="entryAutoSelectionStrategy"
+                              checked={entryAutoSelectionStrategy === option.value}
+                              onChange={() => setEntryAutoSelectionStrategy(option.value as 'all' | 'top_n_per_module_by_confidence')}
+                              className="h-4 w-4 border-theme-border text-theme-text-primary focus:ring-theme-border"
+                            />
+                            {option.label}
+                          </label>
+                        ))}
+                      </div>
+                      {entryAutoSelectionStrategy === 'top_n_per_module_by_confidence' ? (
+                        <label className="mt-4 block">
+                          <span className="block text-xs font-semibold text-theme-text-secondary">每个模块最多分析 N 个入口</span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={999}
+                            value={entryAutoSelectionTopN}
+                            onChange={(event) => setEntryAutoSelectionTopN(Math.max(1, Math.min(999, Number(event.target.value) || 1)))}
+                            className="mt-2 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary outline-none"
+                          />
+                        </label>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 

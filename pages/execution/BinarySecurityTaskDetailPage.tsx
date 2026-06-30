@@ -827,6 +827,8 @@ type TaskStrategyDraft = {
   partial_success_stage_advancement: Record<string, boolean>;
   module_selection_mode: 'auto' | 'manual_confirm';
   entry_selection_mode: 'auto' | 'manual_confirm';
+  entry_auto_selection_strategy: 'all' | 'top_n_per_module_by_confidence';
+  entry_auto_selection_top_n: number;
   module_risk_levels: string[];
 };
 type StrategySectionKey = 'stage_options' | 'module_strategy' | 'entry_strategy' | 'execution_policy';
@@ -1062,6 +1064,10 @@ const buildStrategyDraft = (policy: BinarySecurityTaskPolicy | undefined, stages
     ? [...MODULE_RISK_OPTIONS]
     : (normalizedRiskLevels.length > 0 ? normalizedRiskLevels : ['高']);
   const normalizedEntryMode = String(nextPolicy.entry_selection_mode || 'auto') === 'manual_confirm' ? 'manual_confirm' : 'auto';
+  const normalizedEntryAutoStrategy = String(nextPolicy.entry_auto_selection_strategy || 'all') === 'top_n_per_module_by_confidence'
+    ? 'top_n_per_module_by_confidence'
+    : 'all';
+  const normalizedEntryAutoTopN = Math.max(1, Math.min(999, safeInt(nextPolicy.entry_auto_selection_top_n, 3)));
   return {
     stage_options: Object.fromEntries(stages.map((stageName) => [
       stageName,
@@ -1084,6 +1090,8 @@ const buildStrategyDraft = (policy: BinarySecurityTaskPolicy | undefined, stages
     ),
     module_selection_mode: normalizedMode,
     entry_selection_mode: normalizedEntryMode,
+    entry_auto_selection_strategy: normalizedEntryAutoStrategy,
+    entry_auto_selection_top_n: normalizedEntryAutoStrategy === 'top_n_per_module_by_confidence' ? normalizedEntryAutoTopN : 3,
     module_risk_levels: effectiveRiskLevels,
   };
 };
@@ -1111,7 +1119,15 @@ const strategySectionEquals = (
     });
   }
   if (section === 'entry_strategy') {
-    return left.entry_selection_mode === right.entry_selection_mode;
+    return JSON.stringify({
+      entry_selection_mode: left.entry_selection_mode,
+      entry_auto_selection_strategy: left.entry_auto_selection_strategy,
+      entry_auto_selection_top_n: left.entry_auto_selection_top_n,
+    }) === JSON.stringify({
+      entry_selection_mode: right.entry_selection_mode,
+      entry_auto_selection_strategy: right.entry_auto_selection_strategy,
+      entry_auto_selection_top_n: right.entry_auto_selection_top_n,
+    });
   }
   return JSON.stringify({
     stage_parallelism: left.stage_parallelism,
@@ -2882,6 +2898,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         return {
           ...current,
           entry_selection_mode: strategySavedSnapshot.entry_selection_mode,
+          entry_auto_selection_strategy: strategySavedSnapshot.entry_auto_selection_strategy,
+          entry_auto_selection_top_n: strategySavedSnapshot.entry_auto_selection_top_n,
         };
       }
       return {
@@ -2916,9 +2934,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               module_selection_mode: strategyDraft.module_selection_mode,
               module_risk_levels: strategyDraft.module_risk_levels,
             }
-          : section === 'entry_strategy'
+        : section === 'entry_strategy'
             ? {
                 entry_selection_mode: strategyDraft.entry_selection_mode,
+                entry_auto_selection_strategy: strategyDraft.entry_selection_mode === 'auto'
+                  ? strategyDraft.entry_auto_selection_strategy
+                  : 'all',
+                entry_auto_selection_top_n: strategyDraft.entry_selection_mode === 'auto'
+                  && strategyDraft.entry_auto_selection_strategy === 'top_n_per_module_by_confidence'
+                  ? Math.max(1, Math.min(999, Number(strategyDraft.entry_auto_selection_top_n) || 1))
+                  : undefined,
               }
           : {
               stage_parallelism: Object.fromEntries(stageSequence.map((stageName) => [
@@ -5197,6 +5222,52 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       </label>
                     ))}
                   </div>
+                  {strategyDraft.entry_selection_mode === 'auto' ? (
+                    <div className="mt-5 rounded-2xl border border-theme-border bg-theme-surface p-4">
+                      <div className="text-sm font-semibold text-theme-text-primary">自动入口筛选</div>
+                      <p className="mt-1 text-xs text-theme-text-muted">自动模式下可选择保留全部入口，或按每个模块子任务的入口置信度排序，只取前 N 个进入 DFVS。</p>
+                      <div className="mt-4 grid gap-2">
+                        {[
+                          { value: 'all', label: '全部入口', description: '保持现有行为，模块内全部入口都进入数据流分析。' },
+                          { value: 'top_n_per_module_by_confidence', label: '每模块按置信度 Top N', description: '每个模块子任务内按入口置信度从高到低排序，只取前 N 个入口。' },
+                        ].map((option) => (
+                          <label key={option.value} className="flex items-center gap-3 rounded-xl border border-theme-border bg-theme-elevated px-4 py-3 text-sm font-semibold text-theme-text-secondary">
+                            <input
+                              type="radio"
+                              name="taskStrategyEntryAutoSelection"
+                              checked={strategyDraft.entry_auto_selection_strategy === option.value}
+                              disabled={!strategyEditable || Boolean(strategySavingSection)}
+                              onChange={() => setStrategyDraft((current) => (current ? {
+                                ...current,
+                                entry_auto_selection_strategy: option.value as 'all' | 'top_n_per_module_by_confidence',
+                              } : current))}
+                            />
+                            <div>
+                              <div className="font-bold text-theme-text-primary">{option.label}</div>
+                              <div className="text-xs text-theme-text-muted">{option.description}</div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                      {strategyDraft.entry_auto_selection_strategy === 'top_n_per_module_by_confidence' ? (
+                        <label className="mt-4 block">
+                          <span className="block text-xs font-semibold text-theme-text-secondary">每个模块最多分析 N 个入口</span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={999}
+                            value={strategyDraft.entry_auto_selection_top_n}
+                            disabled={!strategyEditable || Boolean(strategySavingSection)}
+                            onChange={(event) => setStrategyDraft((current) => (current ? {
+                              ...current,
+                              entry_auto_selection_top_n: Math.max(1, Math.min(999, Number(event.target.value) || 1)),
+                            } : current))}
+                            className="mt-2 w-full rounded-xl border border-theme-border bg-theme-elevated px-3 py-2 text-sm text-theme-text-primary outline-none"
+                          />
+                        </label>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </section>
               ) : null}
 
@@ -6487,7 +6558,13 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   </div>
                   <div className="rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                     <div className="text-theme-text-muted">选择模式</div>
-                    <div className="mt-1 text-sm font-semibold text-theme-text-primary">{entrySelection?.selection_mode === 'manual_confirm' ? '人工确认' : '自动选择'}</div>
+                    <div className="mt-1 text-sm font-semibold text-theme-text-primary">
+                      {entrySelection?.selection_mode === 'manual_confirm'
+                        ? '人工确认'
+                        : entrySelection?.auto_selection_strategy === 'top_n_per_module_by_confidence'
+                          ? `自动选择 / 每模块 Top ${entrySelection?.auto_selection_top_n || detail?.entry_auto_selection_top_n || 0}`
+                          : '自动选择 / 全部入口'}
+                    </div>
                   </div>
                   <div className="rounded-2xl bg-theme-surface px-3 py-2.5 text-xs text-theme-text-secondary">
                     <div className="text-theme-text-muted">状态</div>

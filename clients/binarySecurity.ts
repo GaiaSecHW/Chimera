@@ -20,6 +20,7 @@ export type BinarySecurityTaskListScope = 'current' | 'all';
 export type BinarySecurityPipelineProfile = 'default' | 'kg_source_vuln_scan' | string;
 export type BinarySecurityModuleSelectionMode = 'auto' | 'manual_confirm' | string;
 export type BinarySecurityEntrySelectionMode = 'auto' | 'manual_confirm' | string;
+export type BinarySecurityEntryAutoSelectionStrategy = 'all' | 'top_n_per_module_by_confidence' | string;
 export type BinarySecurityPipelineMode = 'barrier' | 'mixed_streaming';
 
 export interface BinarySecurityStageOption {
@@ -37,6 +38,8 @@ export interface BinarySecurityTaskPolicy {
   stage_options?: Record<string, BinarySecurityStageOption>;
   module_selection_mode?: BinarySecurityModuleSelectionMode;
   entry_selection_mode?: BinarySecurityEntrySelectionMode;
+  entry_auto_selection_strategy?: BinarySecurityEntryAutoSelectionStrategy;
+  entry_auto_selection_top_n?: number;
   module_risk_levels?: string[];
   knowledge_graph_upload_id?: string;
   knowledge_graph_db_name?: string;
@@ -274,6 +277,8 @@ export interface BinarySecurityTask {
   selected_risk_levels: string[];
   module_selection_mode: BinarySecurityModuleSelectionMode;
   entry_selection_mode: BinarySecurityEntrySelectionMode;
+  entry_auto_selection_strategy?: BinarySecurityEntryAutoSelectionStrategy;
+  entry_auto_selection_top_n?: number;
   candidate_entry_count: number;
   selected_entry_count: number;
   entry_count: number;
@@ -794,6 +799,8 @@ export interface BinarySecurityEntrySelection {
   task_id: string;
   status: string;
   selection_mode: BinarySecurityEntrySelectionMode;
+  auto_selection_strategy?: BinarySecurityEntryAutoSelectionStrategy;
+  auto_selection_top_n?: number;
   requires_confirmation: boolean;
   candidate_entries: BinarySecurityEntryContract[];
   selected_entry_keys: string[];
@@ -1202,6 +1209,8 @@ export const binarySecurityApi = {
       stage_parallelism?: Record<string, number>;
       module_selection_mode?: BinarySecurityModuleSelectionMode;
       entry_selection_mode?: BinarySecurityEntrySelectionMode;
+      entry_auto_selection_strategy?: BinarySecurityEntryAutoSelectionStrategy;
+      entry_auto_selection_top_n?: number;
       module_risk_levels?: string[];
     },
   ): Promise<BinarySecurityTaskDetail> => {
@@ -1324,6 +1333,8 @@ export const binarySecurityApi = {
         stage_parallelism?: Record<string, number>;
         module_selection_mode?: 'auto' | 'manual_confirm';
         entry_selection_mode?: 'auto' | 'manual_confirm';
+        entry_auto_selection_strategy?: BinarySecurityEntryAutoSelectionStrategy;
+        entry_auto_selection_top_n?: number;
         module_risk_levels?: string[];
         knowledge_graph_upload_id?: string;
         knowledge_graph_db_name?: string;
