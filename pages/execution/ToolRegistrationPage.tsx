@@ -8,6 +8,7 @@ import {
   Brain,
   Briefcase,
   Building2,
+  Check,
   CheckCircle2,
   ChevronDown,
   ClipboardList,
@@ -172,7 +173,6 @@ const DEFAULT_FORM: FormState = {
   input_types: [],
   view_id: '',
   icon: '',
-  menu_group: '开发者工具',
   current_version: '',
   // microservice
   namespace: '',
@@ -199,7 +199,6 @@ interface FormState {
   // shared registration fields
   view_id: string;
   icon: string;
-  menu_group: string;
   current_version: string;
   // microservice-only
   namespace: string;
@@ -274,7 +273,7 @@ const validate = (form: FormState): ErrorMap => {
   if (!form.id.trim()) errors.id = '请输入工具 ID';
   else if (!TOOL_ID_PATTERN.test(form.id.trim())) errors.id = 'ID 须为 1-10 位大写字母（如 BINSEC）';
   if (!form.name.trim()) errors.name = '请输入工具名称';
-  if (!form.view_id.trim()) errors.view_id = '请输入 view_id（菜单/路由标识）';
+  if (!form.view_id.trim()) errors.view_id = '请输入菜单/路由标识';
   if (form.input_types.length === 0) errors.input_types = '请至少选择一种输入类型';
   if (form.kind === 'microservice') {
     if (!form.namespace.trim()) errors.namespace = '请输入 K8s namespace';
@@ -303,7 +302,6 @@ const buildCreateParams = (form: FormState, harnessFile: AgentHarnessFileData | 
     input_types: form.input_types,
     view_id: form.view_id.trim() || undefined,
     icon: form.icon.trim() || undefined,
-    menu_group: form.menu_group.trim() || undefined,
     current_version: form.current_version.trim() || undefined,
   };
   if (form.kind === 'microservice') {
@@ -319,7 +317,6 @@ const buildCreateParams = (form: FormState, harnessFile: AgentHarnessFileData | 
         service_port: Number(form.service_port),
         view_id: form.view_id.trim(),
         icon: form.icon.trim() || undefined,
-        menu_group: form.menu_group.trim() || undefined,
         current_version: form.current_version.trim() || undefined,
         catalog,
       },
@@ -359,7 +356,6 @@ const buildUpdatePayload = (form: FormState, isPublic: boolean): ToolUpdate => {
       service_port: Number(form.service_port),
       view_id: form.view_id.trim(),
       icon: form.icon.trim() || undefined,
-      menu_group: form.menu_group.trim() || undefined,
       current_version: form.current_version.trim() || undefined,
       catalog,
     };
@@ -372,7 +368,6 @@ const buildUpdatePayload = (form: FormState, isPublic: boolean): ToolUpdate => {
       is_public: isPublic,
       view_id: form.view_id.trim(),
       icon: form.icon.trim() || undefined,
-      menu_group: form.menu_group.trim() || undefined,
       current_version: form.current_version.trim() || undefined,
       model_alias_id: form.model_alias_id.trim() ? Number(form.model_alias_id) : undefined,
     };
@@ -391,7 +386,6 @@ const formFromToolDetail = (tool: ToolResponse, user: UserInfo | null): FormStat
     input_types: tool.input_types ?? [],
     view_id: ms?.view_id ?? ag?.view_id ?? '',
     icon: ms?.icon ?? ag?.icon ?? '',
-    menu_group: ms?.menu_group ?? ag?.menu_group ?? '开发者工具',
     current_version: ms?.current_version ?? ag?.current_version ?? '',
     namespace: ms?.namespace ?? '',
     deployment: ms?.deployment ?? '',
@@ -475,6 +469,7 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
   const [listLoading, setListLoading] = useState(false);
   const [microserviceUrl, setMicroserviceUrl] = useState('');
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
+  const [inputTypePickerOpen, setInputTypePickerOpen] = useState(false);
   const [pendingTools, setPendingTools] = useState<ToolListItem[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -663,6 +658,7 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
     setProbeError('');
     setMicroserviceUrl('');
     setIconPickerOpen(false);
+    setInputTypePickerOpen(false);
     setAgentHarnessFile(null);
   };
 
@@ -674,6 +670,7 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
     setProbeError('');
     setMicroserviceUrl('');
     setIconPickerOpen(false);
+    setInputTypePickerOpen(false);
     setAgentHarnessFile(null);
     setFormOpen(true);
   };
@@ -703,6 +700,7 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
     setProbeError('');
     setMicroserviceUrl('');
     setIconPickerOpen(false);
+    setInputTypePickerOpen(false);
     setAgentHarnessFile(null);
   };
 
@@ -839,7 +837,6 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
           size="xl"
           className="!max-w-[900px]"
           title={editingTool ? '修改工具' : '注册新工具'}
-          description="带 * 为必填。工具 ID 须为 1-10 位大写字母；微服务需填 K8s 连通信息，Agent 需选择已上传的 Agent App。"
           footer={
             <div className="flex items-center justify-end gap-2">
               <Button variant="secondary" onClick={handleReset} disabled={submitting}>重置</Button>
@@ -879,27 +876,45 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
               />
             </FormField>
             <FormField label="输入类型" required hint="多选：工具接受的输入类型" error={errors.input_types}>
-              <div className="flex flex-wrap gap-2">
-                {INPUT_TYPE_OPTIONS.map(({ value, label }) => {
-                  const selected = form.input_types.includes(value);
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => toggleInputType(value)}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                        selected
-                          ? 'border-blue-500/30 bg-blue-500/15 text-blue-300'
-                          : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setInputTypePickerOpen((v) => !v)}
+                  className="form-select flex w-full items-center justify-between gap-2 text-left"
+                >
+                  <span className={`truncate flex-1 ${form.input_types.length ? 'text-theme-text-primary' : 'text-theme-text-muted'}`}>
+                    {form.input_types.length
+                      ? form.input_types.map((t) => INPUT_TYPE_OPTIONS.find((o) => o.value === t)?.label || t).join('、')
+                      : '请选择输入类型'}
+                  </span>
+                  <ChevronDown size={14} className={`shrink-0 text-theme-text-faint transition-transform ${inputTypePickerOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {inputTypePickerOpen ? (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setInputTypePickerOpen(false)} />
+                    <div className="absolute left-0 top-full z-20 mt-1 w-full rounded-lg border border-theme-border bg-theme-surface p-1.5">
+                      {INPUT_TYPE_OPTIONS.map(({ value, label }) => {
+                        const selected = form.input_types.includes(value);
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => toggleInputType(value)}
+                            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-theme-elevated"
+                          >
+                            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${selected ? 'border-blue-500 bg-blue-500 text-white' : 'border-theme-border'}`}>
+                              {selected ? <Check size={12} /> : null}
+                            </span>
+                            <span className={selected ? 'text-theme-text-primary' : 'text-theme-text-secondary'}>{label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : null}
               </div>
             </FormField>
-            <FormField label="view_id" required error={errors.view_id} hint="菜单/路由标识">
+            <FormField label="菜单/路由标识" required error={errors.view_id}>
               <Input
                 value={form.view_id}
                 onChange={(e) => setField('view_id', e.target.value)}
@@ -961,14 +976,7 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
                 ) : null}
               </div>
             </FormField>
-            <FormField label="menu_group" hint="菜单分组">
-              <Input
-                value={form.menu_group}
-                onChange={(e) => setField('menu_group', e.target.value)}
-                placeholder="如 开发者工具"
-              />
-            </FormField>
-            <FormField label="current_version" hint="当前版本（可选）">
+            <FormField label="当前版本（可选）">
               <Input
                 value={form.current_version}
                 onChange={(e) => setField('current_version', e.target.value)}

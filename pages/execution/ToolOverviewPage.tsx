@@ -845,7 +845,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   return (
     <div style={{ padding: '32px 32px 40px' }}>
       {feedbackNodes}
-      <PageHeader title="工具总览" description="统一管理 Agent 市场、AgentHarness 仓库、运行指标和平台内置扫描工具入口。页面参考 Agent 市场能力，并适配当前 Chimera 浅色卡片风格。" />
+      <PageHeader title="工具总览" description="统一管理 Agent 市场、AgentHarness 仓库、运行指标和平台内置扫描工具入口。" />
 
       {message ? (
         <div style={{ marginTop: '20px', borderRadius: '12px', border: `1px solid ${message.type === 'success' ? LK.success : LK.error}`, backgroundColor: message.type === 'success' ? LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '69, 192, 111') : LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '241, 93, 93'), padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: message.type === 'success' ? LK.success : LK.error }}>
