@@ -82,6 +82,7 @@ export interface ToolResponse {
   submitted_by?: string;
   submitted_by_name?: string;
   reviewed_by?: string;
+  reviewed_by_name?: string;
   review_note?: string;
   reviewed_at?: string;
   created_at?: string;

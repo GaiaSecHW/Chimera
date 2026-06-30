@@ -1448,7 +1448,7 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
 
               <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                 <DetailField label="提交人" value={detailTool.submitted_by_name} />
-                <DetailField label="审核人" value={detailTool.reviewed_by} />
+                <DetailField label="审核人" value={detailTool.reviewed_by_name} />
                 <DetailField label="审核时间" value={formatTime(detailTool.reviewed_at)} />
                 <DetailField label="审核备注" value={detailTool.review_note} />
                 <DetailField label="创建时间" value={formatTime(detailTool.created_at)} />
