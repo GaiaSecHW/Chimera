@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, Network, X } from 'lucide-react';
 import { api } from '../../clients/api';
-import { DropdownSelect } from '../../design-system';
+import { DropdownSelect, MarkdownViewer } from '../../design-system';
 import { TestInputUploader, TestInputUploaderHandle } from '../../components/TestInputUploader';
 import { getAuthHeaders, handleResponse } from '../../clients/base';
 import { agentManageApiPath } from '../../clients/agentManage';
@@ -13,6 +13,7 @@ import type {
   KgInputEligibility,
 } from './kgInputEligibility';
 import { resolveSechpsInstruction } from './taskCenterInstruction';
+import { AI4RED_GUIDE_MARKDOWN } from './ai4redGuide';
 import { getPlatformRole } from '../../utils/rbac';
 import type {
   AgentAppSummary,
@@ -200,6 +201,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [kgEligibilityLoading, setKgEligibilityLoading] = useState(false);
   const [kgEligibilityError, setKgEligibilityError] = useState('');
   const [toolCreateEnabledByTaskType, setToolCreateEnabledByTaskType] = useState<Record<string, boolean>>({});
+  const [showAi4redGuide, setShowAi4redGuide] = useState(false);
 
   /* --- sechps-specific state --- */
   const [moduleName, setModuleName] = useState('');
@@ -570,6 +572,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   if (!open) return null;
 
   return (
+    <>
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in"
       style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}
@@ -719,7 +722,21 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   className="rounded-lg px-3 py-2 text-xs"
                   style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.body }}
                 >
-                  {TASK_TYPE_HINTS[taskType]}
+                  {taskType === 'ai4red' ? (
+                    <>
+                      请上传一个压缩包（
+                      <button
+                        type="button"
+                        onClick={() => setShowAi4redGuide(true)}
+                        className="font-bold text-red-500 underline underline-offset-2 transition-colors hover:text-red-400"
+                      >
+                        具体要求见说明
+                      </button>
+                      ），需要勾选&ldquo;保留原始文件，不自动解压&rdquo;
+                    </>
+                  ) : (
+                    TASK_TYPE_HINTS[taskType]
+                  )}
                 </div>
               ) : null}
 
@@ -1021,6 +1038,38 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           </div>
       </div>
     </div>
+    {showAi4redGuide ? (
+      <div
+        className="fixed inset-0 z-[110] flex items-center justify-center p-6 animate-in fade-in"
+        style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}
+        onClick={() => setShowAi4redGuide(false)}
+      >
+        <div
+          className="flex max-h-[80vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl animate-in"
+          style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${LK.borderSoft}` }}>
+            <div className="text-lg font-semibold leading-7" style={{ color: LK.ink }}>
+              AI4RED 红线验证使用指南
+            </div>
+            <button
+              onClick={() => setShowAi4redGuide(false)}
+              className="rounded-lg p-2 transition-colors"
+              style={{ color: LK.muted }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = LK.surfaceRaised; e.currentTarget.style.color = LK.ink; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = LK.muted; }}
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+            <MarkdownViewer content={AI4RED_GUIDE_MARKDOWN} />
+          </div>
+        </div>
+      </div>
+    ) : null}
+    </>
   );
 };
 
