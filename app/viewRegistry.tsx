@@ -124,6 +124,7 @@ import { UserPermissionPage } from '../pages/platform/UserPermissionPage';
 import { DepartmentPage } from '../pages/platform/DepartmentPage';
 import { DepartmentMemberPage } from '../pages/platform/DepartmentMemberPage';
 import { ProjectPage } from '../pages/platform/ProjectPage';
+import { FeedbackMgmtPage } from '../pages/feedback/FeedbackMgmtPage';
 import { AdminDashboardPage } from '../pages/platform/AdminDashboardPage';
 import { AiGatewayDashboardPage } from '../pages/platform/AiGatewayDashboardPage';
 import { AiGatewayPage } from '../pages/platform/AiGatewayPage';
@@ -997,6 +998,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <DepartmentMemberPage />;
     case 'org-mgmt-projects':
       return <ProjectPage />;
+    case 'feedback-mgmt':
+      return <FeedbackMgmtPage />;
     default: {
       return (
         <div className="p-20 text-center">

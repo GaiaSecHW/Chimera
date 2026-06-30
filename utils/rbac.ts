@@ -130,6 +130,7 @@ const SUPER_ADMIN_ONLY_VIEWS = new Set<string>([
   'user-mgmt-online',
   'user-mgmt-machine',
   'org-mgmt-departments',
+  'feedback-mgmt',
 ]);
 
 const ORDINARY_ADMIN_VIEWS = new Set<string>([
