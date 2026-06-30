@@ -65,8 +65,8 @@ export const ServicePageTitle: React.FC<{
 }> = ({
   title,
   version,
-  className = 'mt-3',
-  titleClassName = 'text-3xl font-semibold tracking-tight text-theme-text-primary',
+  className = '',
+  titleClassName = 'text-2xl font-semibold tracking-tight text-theme-text-primary',
   badgeClassName = '',
 }) => (
   <div className={`flex flex-wrap items-center gap-3 ${className}`.trim()}>

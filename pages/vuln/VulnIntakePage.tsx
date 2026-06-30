@@ -342,6 +342,31 @@ const matchesFinalResultFilter = (item: any, filters: string[]) => {
   });
 };
 
+const getCaseTaskId = (item: any) =>
+  String(item?.source_task_id || item?.display_summary?.source_task?.task_id || item?.source_task?.task_id || '').trim();
+
+const caseMatchesSearch = (item: any, keyword: string, taskName?: string) => {
+  if (!keyword) return true;
+  const pool = [
+    item?.title,
+    item?.summary,
+    item?.id,
+    item?.reporter?.name,
+    item?.reporter?.version,
+    item?.subject?.locator,
+    item?.subject?.name,
+    item?.category,
+    item?.rule_id,
+    item?.rule_name,
+    item?.fingerprint,
+    getCaseTaskId(item),
+    taskName,
+  ]
+    .filter(Boolean)
+    .map((v) => String(v).toLowerCase());
+  return pool.some((v) => v.includes(keyword));
+};
+
 const getCaseListStats = (items: any[]) => {
   const confirmed = items.filter((item) => isHumanFinishedCase(item) && getEffectiveResult(item) === 'vulnerable').length;
   const ruledOut = items.filter((item) => {
@@ -611,8 +636,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [suspicions, setSuspicions] = useState<any[]>([]);
   const [overview, setOverview] = useState<any | null>(null);
-  const [listTotal, setListTotal] = useState(0);
-  const [listStats, setListStats] = useState({ total: 0, confirmed: 0, ruledOut: 0, inconclusive: 0 });
   const [selectedSuspicionId, setSelectedSuspicionId] = useState('');
   const [selectedDetail, setSelectedDetail] = useState<any | null>(null);
   const [selectedTimeline, setSelectedTimeline] = useState<any[]>([]);
@@ -718,12 +741,28 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     });
   }, [linkedFiles, linkedFileSearch]);
 
-  const totalFiltered = listTotal;
+  const taskNameById = useMemo(
+    () => new Map(taskOptions.map((task) => [task.id, task.name?.trim() || task.id])),
+    [taskOptions],
+  );
+
+  const filteredSuspicions = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    return suspicions
+      .filter((item) => {
+        const taskId = getCaseTaskId(item);
+        return caseMatchesSearch(item, keyword, taskNameById.get(taskId) || taskId);
+      })
+      .filter((item) => taskFilter.length === 0 || taskFilter.includes(getCaseTaskId(item)))
+      .filter((item) => matchesFinalResultFilter(item, finalResultFilter));
+  }, [suspicions, search, taskFilter, finalResultFilter, taskNameById]);
+  const listStats = useMemo(() => getCaseListStats(filteredSuspicions), [filteredSuspicions]);
+  const totalFiltered = filteredSuspicions.length;
   const totalPages = Math.max(1, Math.ceil(totalFiltered / Math.max(1, pageSize)));
   const normalizedPage = Math.min(Math.max(1, currentPage), totalPages);
   const sortedSuspicions = useMemo(
-    () => sortCases(suspicions, sortField, sortDirection),
-    [suspicions, sortField, sortDirection],
+    () => sortCases(filteredSuspicions, sortField, sortDirection),
+    [filteredSuspicions, sortField, sortDirection],
   );
   const pagedSuspicions = useMemo(
     () => sortedSuspicions.slice((normalizedPage - 1) * pageSize, normalizedPage * pageSize),
@@ -809,8 +848,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     if (!projectId) {
       setSuspicions([]);
       setOverview(null);
-      setListTotal(0);
-      setListStats({ total: 0, confirmed: 0, ruledOut: 0, inconclusive: 0 });
       setSelectedSuspicionIds([]);
       setSelectedSuspicionId('');
       setSelectedDetail(null);
@@ -832,11 +869,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         current_stage: stageFilter === 'all' ? undefined : stageFilter,
         reporter_type: reporterTypeFilter === 'all' ? undefined : reporterTypeFilter,
         cvss_band: cvssBandFilter === 'all' ? undefined : cvssBandFilter,
-        search: search.trim() || undefined,
         sort_field: sortField,
         sort_direction: sortDirection,
       };
-      const matchesFinalResult = (item: any) => matchesFinalResultFilter(item, finalResultFilter);
       const matchesSuspect = (item: any): boolean => {
         if (isHumanFinishedCase(item)) return true;
         if (hasConfiguredConfirmEngine(item, engineTools)) {
@@ -865,21 +900,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         }
         return items;
       };
-      const taskIds = taskFilter.length > 0 ? taskFilter : [undefined];
-      const chunks: any[][] = [];
-      for (const taskId of taskIds) {
-        if (requestSeq !== suspicionRequestSeq.current) return;
-        chunks.push(await fetchAllForTask(taskId));
-      }
       if (requestSeq !== suspicionRequestSeq.current) return;
-      const merged = Array.from(new Map(chunks.flat().map((item: any) => [item.id, item])).values());
+      const fetched = await fetchAllForTask(undefined);
+      if (requestSeq !== suspicionRequestSeq.current) return;
+      const merged = Array.from(new Map(fetched.map((item: any) => [item.id, item])).values());
       const filtered = merged
         .filter((it) => shouldEnterVulnCenter(it, engineTools))
-        .filter(matchesSuspect)
-        .filter(matchesFinalResult);
+        .filter(matchesSuspect);
       setSuspicions(filtered);
-      setListTotal(filtered.length);
-      setListStats(getCaseListStats(filtered));
       if (pageOverride !== undefined) {
         setCurrentPage(pageOverride);
       }
@@ -1184,7 +1212,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   useEffect(() => {
     void loadSuspicions();
-  }, [projectId, search, stageFilter, reporterTypeFilter, cvssBandFilter, taskFilter, finalResultFilter, enginesLoaded, engineTools]);
+  }, [projectId, stageFilter, reporterTypeFilter, cvssBandFilter, enginesLoaded, engineTools]);
 
   useEffect(() => {
     let mounted = true;
@@ -1891,11 +1919,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       ? FINAL_RESULT_OPTIONS.find((o) => o.value === finalResultFilter[0])?.label || finalResultFilter[0]
       : `已选 ${finalResultFilter.length} 项`;
 
-  const taskNameById = useMemo(
-    () => new Map(taskOptions.map((task) => [task.id, task.name?.trim() || task.id])),
-    [taskOptions],
-  );
-
   const getTaskName = (item: any) => {
     const taskId = String(item.source_task_id || item.display_summary?.source_task?.task_id || item.source_task?.task_id || '').trim();
     return taskId ? taskNameById.get(taskId) || taskId : '未提供';
@@ -1946,9 +1969,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     {
       key: 'title',
       header: '标题 / 摘要',
-      sortable: true,
-      sortKey: 'title',
-      defaultDirection: 'asc',
       width: '20%',
       render: (item: any) => (
         <div className="min-w-0">
@@ -2797,7 +2817,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="搜索标题、摘要"
+                  placeholder="搜索任务名称、摘要"
                   className="form-input w-full !pl-9"
                 />
               </div>
