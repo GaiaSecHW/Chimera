@@ -2889,6 +2889,10 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
                           <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
                             已派发: {item.confirm_engine_name}
                           </div>
+                        ) : toUserVulnStatusText(item) === '研判中' && !(item.current_stage === 'finished' || item.finished_reason || getEffectiveConclusion(item)) ? (
+                          <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
+                            人工研判中
+                          </div>
                         ) : null}
                       </div>
                       <div className="min-w-0">

@@ -41,6 +41,7 @@ type StageItem = {
     sync_observation?: {
       last_result?: string | null;
       recovery_reason?: string | null;
+      sync_status?: string | null;
     } | null;
   } | null;
 };
