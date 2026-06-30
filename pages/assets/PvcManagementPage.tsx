@@ -821,7 +821,9 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
             pvc.id,
             uploadBasePath,
             file,
-            (progress) => {
+            {
+              sourceLabel: '资产管理 PVC 文件上传',
+              onProgress: (progress) => {
               currentFileLoaded = Math.max(0, Math.min(progress.loaded_bytes, file.size || progress.total_bytes || 0));
               setFileUploadState((prev) => ({
                 ...prev,
@@ -832,6 +834,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 totalBytes,
                 speedBytesPerSec: progress.speed_bytes_per_sec,
               }));
+              },
             }
           );
           uploadSucceeded = true;

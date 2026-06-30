@@ -30,6 +30,7 @@ import {
   getUploadRecordDisplayName,
   isAllowedArchiveFileName,
 } from './baseResourcePageModel';
+import { appendTrackedProjectInputUpload, createTrackedProjectInputUpload } from '../../services/projectInputUploadWorkflows';
 
 interface BaseResourcePageProps {
   type: 'document' | 'software' | 'code' | 'other';
@@ -172,29 +173,23 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
     setUploadQueue((prev) => prev.map((item) => (item.status === 'failed' ? item : { ...item, status: 'uploading', progress: 35 })));
     try {
       if (isAppendMode && activeUploadId) {
-        await fileserverApi.appendProjectInputUpload({
-          upload_id: activeUploadId,
-          keep_original: keepOriginal,
-          upload_mode: keepOriginal ? 'raw' : 'archive',
+        await appendTrackedProjectInputUpload({
+          projectId,
+          uploadId: activeUploadId,
+          keepOriginal,
+          uploadMode: keepOriginal ? 'raw' : 'archive',
           files: readyItems.map((item) => item.file),
+          displayName: normalizedDisplayName,
         });
       } else {
-        const created = await fileserverApi.createProjectInputUpload({
-          project_id: projectId,
-          input_type: type,
-          keep_original: keepOriginal,
-          upload_mode: keepOriginal ? 'raw' : 'archive',
+        await createTrackedProjectInputUpload({
+          projectId,
+          inputType: type,
+          keepOriginal,
+          uploadMode: keepOriginal ? 'raw' : 'archive',
           files: readyItems.map((item) => item.file),
+          displayName: normalizedDisplayName,
         });
-        try {
-          await fileserverApi.updateProjectInputUploadDisplayName({
-            upload_id: created.upload_id,
-            project_id: projectId,
-            display_name: normalizedDisplayName,
-          });
-        } catch (renameError: any) {
-          throw new Error(renameError?.message || '文件已上传，但上传记录名称保存失败');
-        }
       }
       setUploadQueue((prev) => prev.map((item) => (item.status === 'failed' ? item : { ...item, status: 'completed', progress: 100 })));
       setIsUploadModalOpen(false);
@@ -205,6 +200,9 @@ export const BaseResourcePage: React.FC<BaseResourcePageProps> = ({ type, title,
       const message = error?.message || '上传失败';
       setUploadQueue((prev) => prev.map((item) => (item.status === 'failed' ? item : { ...item, status: 'failed', progress: 0, error: message })));
       setUploadErrorMessage(message);
+      if (options?.runInBackground) {
+        setIsUploadModalOpen(true);
+      }
     } finally {
       setIsUploadingBatch(false);
     }

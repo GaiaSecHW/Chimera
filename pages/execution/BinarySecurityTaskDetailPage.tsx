@@ -2246,6 +2246,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const executionApi = api.domains.execution;
   const navigate = useNavigate();
   const stageFlowRef = useRef<HTMLDivElement | null>(null);
+  const developerModeClickCountRef = useRef(0);
+  const developerModeResetTimerRef = useRef<number | null>(null);
   const [detail, setDetail] = useState<BinarySecurityTaskDetail | null>(null);
   const [timeline, setTimeline] = useState<any[]>([]);
   const [timelineTotal, setTimelineTotal] = useState(0);
@@ -2293,6 +2295,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [expandedSyncEventId, setExpandedSyncEventId] = useState<string | null>(null);
   const [timelinePage, setTimelinePage] = useState(1);
   const [timelinePageSize, setTimelinePageSize] = useState(200);
+  const [developerModeEnabled, setDeveloperModeEnabled] = useState(false);
   const [syncEventsPage, setSyncEventsPage] = useState(1);
   const [syncEventsPageSize, setSyncEventsPageSize] = useState(100);
   const [syncEventStageFilter, setSyncEventStageFilter] = useState('all');
@@ -3241,7 +3244,28 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     return () => observer.disconnect();
   }, [activeTab, stageSequence]);
 
-  const runAction = async (action: 'cancel' | 'retry' | 'continue' | 'delete' | 'force-reset', options?: { force?: boolean }) => {
+  const handleDeveloperModeProjectClick = () => {
+    if (developerModeEnabled) return;
+    developerModeClickCountRef.current += 1;
+    if (developerModeResetTimerRef.current != null) {
+      window.clearTimeout(developerModeResetTimerRef.current);
+    }
+    developerModeResetTimerRef.current = window.setTimeout(() => {
+      developerModeClickCountRef.current = 0;
+      developerModeResetTimerRef.current = null;
+    }, 1600);
+    if (developerModeClickCountRef.current >= 5) {
+      developerModeClickCountRef.current = 0;
+      if (developerModeResetTimerRef.current != null) {
+        window.clearTimeout(developerModeResetTimerRef.current);
+        developerModeResetTimerRef.current = null;
+      }
+      setDeveloperModeEnabled(true);
+      setNotice('你已进入开发者模式');
+    }
+  };
+
+  const runAction = async (action: 'cancel' | 'retry' | 'continue' | 'delete' | 'force-reset' | 'finish-success', options?: { force?: boolean }) => {
     if (!projectId || !taskId) return;
     if (action === 'delete') {
       const confirmed = await showConfirm(
@@ -3274,9 +3298,25 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       });
       if (!confirmed) return;
     }
+    if (action === 'finish-success') {
+      const confirmed = await showConfirm({
+        title: '开发者成功结束',
+        message: '该操作会先停止当前任务及其下游正在运行或待运行任务，然后将当前主任务直接收口为成功。该结果仅代表开发者强制结束，不代表真实业务执行成功，是否继续？',
+        confirmText: '确认成功结束',
+        cancelText: '取消',
+        danger: true,
+      });
+      if (!confirmed) return;
+    }
     setActionLoading(action);
     try {
       if (action === 'cancel') await executionApi.binarySecurity.cancelTask(projectId, taskId);
+      if (action === 'finish-success') {
+        const result = await executionApi.binarySecurity.finishTaskAsSuccess(projectId, taskId);
+        setNotice(result?.message || '成功结束已受理，后台正在停止下游并收口主任务');
+        await refreshActiveTab();
+        return;
+      }
       if (action === 'force-reset') {
         const result = await executionApi.binarySecurity.forceResetTaskToPending(projectId, taskId);
         setNotice(result?.message || '任务已强制重置为待调度');
@@ -3897,6 +3937,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   useEffect(() => {
     setDownstreamByItemId({});
   }, [taskId]);
+
+  useEffect(() => {
+    return () => {
+      if (developerModeResetTimerRef.current != null) {
+        window.clearTimeout(developerModeResetTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const validIds = new Set(visibleStageItems.map((item) => item.id));
@@ -4723,6 +4771,17 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               <RefreshCw size={16} />
               同步下游状态
             </button>
+            {developerModeEnabled ? (
+              <button
+                type="button"
+                title="开发者模式：停止当前及下游执行，并将主任务直接收口为成功"
+                onClick={() => void runAction('finish-success')}
+                disabled={actionLoading !== '' || isManualOperationInProgress}
+                className="rounded-xl border border-emerald-500/30 bg-emerald-500/15 px-4 py-2.5 text-sm font-bold text-emerald-300 disabled:opacity-60"
+              >
+                {actionLoading === 'finish-success' ? '成功结束中...' : '成功结束'}
+              </button>
+            ) : null}
             <button type="button" title={taskCancelSupported ? undefined : (manualOperationState?.blocking_reason || '当前任务不可取消')} onClick={() => void runAction('cancel')} disabled={actionLoading !== '' || !taskCancelSupported || isManualOperationInProgress} className="rounded-xl border border-rose-500/20 bg-rose-500/15 px-4 py-2.5 text-sm font-bold text-rose-400 disabled:opacity-60">取消</button>
             <button
               type="button"
@@ -5376,6 +5435,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   <h2 className="text-xl font-semibold text-theme-text-primary">任务总览</h2>
                   <p className="mt-2 text-sm text-theme-text-muted">总览包含任务主详情、阶段流转和下游子任务；事件记录和编排观测会在打开对应 Tab 后再请求后端。</p>
                   <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    <button
+                      type="button"
+                      onClick={handleDeveloperModeProjectClick}
+                      className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-left text-sm transition hover:bg-theme-elevated"
+                    >
+                      <div className="text-xs font-bold text-theme-text-muted">项目名称</div>
+                      <div className="mt-1 break-all font-semibold text-theme-text-primary">{detail.project_name || projectId || '-'}</div>
+                    </button>
                     <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm">
                       <div className="text-xs font-bold text-theme-text-muted">任务类型</div>
                       <div className="mt-1 font-semibold text-theme-text-primary">{taskTypeLabel(taskType)}</div>

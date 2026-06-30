@@ -1378,6 +1378,14 @@ export const binarySecurityApi = {
     return handleResponse(resp);
   },
 
+  finishTaskAsSuccess: async (projectId: string, taskId: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/finish-success`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
   deleteTask: async (projectId: string, taskId: string, options?: { force?: boolean }): Promise<BinarySecurityActionResult> => {
     const params = new URLSearchParams();
     if (options?.force) params.set('force', 'true');
