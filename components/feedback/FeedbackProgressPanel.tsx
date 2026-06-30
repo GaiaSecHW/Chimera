@@ -24,7 +24,7 @@ export function FeedbackProgressPanel({ open, onClose }: FeedbackProgressPanelPr
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<FeedbackItem | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const ui = useUiFeedback();
+  const { notify } = useUiFeedback();
 
   const loadData = useCallback(async (p: number) => {
     setLoading(true);
@@ -34,11 +34,11 @@ export function FeedbackProgressPanel({ open, onClose }: FeedbackProgressPanelPr
       setTotal(result.total);
       setPage(p);
     } catch (err) {
-      ui.notify(err instanceof Error ? err.message : '加载失败', 'error');
+      notify(err instanceof Error ? err.message : '加载失败', 'error');
     } finally {
       setLoading(false);
     }
-  }, [ui]);
+  }, [notify]);
 
   useEffect(() => {
     if (open) loadData(1);
@@ -59,10 +59,10 @@ export function FeedbackProgressPanel({ open, onClose }: FeedbackProgressPanelPr
     if (!confirm('确定要删除这条反馈意见吗？')) return;
     try {
       await feedbackApi.delete(id);
-      ui.notify('删除成功', 'success');
+      notify('删除成功', 'success');
       loadData(page);
     } catch (err) {
-      ui.notify(err instanceof Error ? err.message : '删除失败', 'error');
+      notify(err instanceof Error ? err.message : '删除失败', 'error');
     }
   };
 
@@ -77,18 +77,18 @@ export function FeedbackProgressPanel({ open, onClose }: FeedbackProgressPanelPr
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between p-4 border-b border-theme-border">
-            <h3 className="text-lg font-semibold text-theme-text">我的意见进展</h3>
-            <button onClick={onClose} className="text-theme-muted hover:text-theme-text">✕</button>
+            <h3 className="text-lg font-semibold text-theme-text-primary">我的意见进展</h3>
+            <button onClick={onClose} className="text-theme-text-muted hover:text-theme-text-primary">✕</button>
           </div>
           <div className="flex-1 overflow-y-auto p-4">
             {loading ? (
-              <div className="text-center py-8 text-theme-muted">加载中...</div>
+              <div className="text-center py-8 text-theme-text-muted">加载中...</div>
             ) : feedbacks.length === 0 ? (
-              <div className="text-center py-8 text-theme-muted">暂无意见反馈</div>
+              <div className="text-center py-8 text-theme-text-muted">暂无意见反馈</div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-theme-border text-theme-muted">
+                  <tr className="border-b border-theme-border text-theme-text-muted">
                     <th className="text-left py-2 px-2">意见内容</th>
                     <th className="text-left py-2 px-2">提交时间</th>
                     <th className="text-left py-2 px-2">答复内容</th>
@@ -98,7 +98,7 @@ export function FeedbackProgressPanel({ open, onClose }: FeedbackProgressPanelPr
                 </thead>
                 <tbody>
                   {feedbacks.map((fb) => (
-                    <tr key={fb.id} className="border-b border-theme-border/50">
+                    <tr key={fb.id} className="border-b border-theme-border">
                       <td className="py-2 px-2 max-w-[200px] truncate">{stripHtml(fb.content).slice(0, 50) || '—'}</td>
                       <td className="py-2 px-2 whitespace-nowrap">{formatDate(fb.createdAt)}</td>
                       <td className="py-2 px-2 max-w-[200px] truncate">
@@ -106,7 +106,7 @@ export function FeedbackProgressPanel({ open, onClose }: FeedbackProgressPanelPr
                       </td>
                       <td className="py-2 px-2 whitespace-nowrap">{formatDate(fb.replyAt)}</td>
                       <td className="py-2 px-2 text-center whitespace-nowrap">
-                        <button onClick={() => handleView(fb)} className="text-theme-primary hover:underline mr-2">查看</button>
+                        <button onClick={() => handleView(fb)} className="text-blue-600 hover:underline mr-2">查看</button>
                         <button onClick={() => handleDelete(fb.id)} className="text-red-500 hover:underline">删除</button>
                       </td>
                     </tr>
@@ -117,7 +117,7 @@ export function FeedbackProgressPanel({ open, onClose }: FeedbackProgressPanelPr
           </div>
           {totalPages > 1 && (
             <div className="flex items-center justify-between p-4 border-t border-theme-border">
-              <span className="text-sm text-theme-muted">共 {total} 条</span>
+              <span className="text-sm text-theme-text-muted">共 {total} 条</span>
               <div className="flex gap-2">
                 <button
                   onClick={() => loadData(page - 1)}

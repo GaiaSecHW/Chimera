@@ -59,34 +59,34 @@ export function FeedbackFloatingButton() {
             className="flex items-center justify-center w-12 h-12 rounded-xl bg-theme-surface border border-theme-border shadow-panel hover:shadow-lg transition-shadow"
             title="意见反馈"
           >
-            <MessageSquare size={22} className="text-theme-primary" />
+            <MessageSquare size={22} className="text-blue-600" />
           </button>
         ) : (
           <div className="w-48 rounded-xl bg-theme-surface border border-theme-border shadow-panel overflow-hidden">
             {/* Entry 1: 意见反馈 */}
             <button
               onClick={() => handleEntryClick('submit')}
-              className="w-full flex items-center gap-3 p-3 hover:bg-theme-muted transition-colors border-b border-theme-border/50"
+              className="w-full flex items-center gap-3 p-3 hover:bg-theme-elevated transition-colors border-b border-theme-border"
             >
               <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
                 <MessageSquarePlus size={18} className="text-blue-500" />
               </div>
               <div className="text-left">
-                <div className="text-sm font-medium text-theme-text">意见反馈</div>
-                <div className="text-xs text-theme-muted">提交新意见</div>
+                <div className="text-sm font-medium text-theme-text-primary">意见反馈</div>
+                <div className="text-xs text-theme-text-muted">提交新意见</div>
               </div>
             </button>
             {/* Entry 2: 查看进展 */}
             <button
               onClick={() => handleEntryClick('progress')}
-              className="w-full flex items-center gap-3 p-3 hover:bg-theme-muted transition-colors"
+              className="w-full flex items-center gap-3 p-3 hover:bg-theme-elevated transition-colors"
             >
               <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center">
                 <Clock size={18} className="text-green-500" />
               </div>
               <div className="text-left">
-                <div className="text-sm font-medium text-theme-text">查看进展</div>
-                <div className="text-xs text-theme-muted">跟踪处理结果</div>
+                <div className="text-sm font-medium text-theme-text-primary">查看进展</div>
+                <div className="text-xs text-theme-text-muted">跟踪处理结果</div>
               </div>
               {unreadCount > 0 && (
                 <span className="ml-auto bg-red-500 text-white text-xs font-semibold min-w-[20px] h-5 rounded-full flex items-center justify-center px-1.5">
