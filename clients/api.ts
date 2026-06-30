@@ -10,6 +10,7 @@ import { projectClients } from './project';
 import { secoctoClients } from './secocto';
 import { toolRegistryApi } from './toolRegistry';
 import { vulnClients } from './vuln-domain';
+import { feedbackClients } from './feedback-domain';
 
 export const api = {
   // Prefer grouped domain entrypoints in new code.
@@ -25,6 +26,7 @@ export const api = {
     secocto: secoctoClients,
     cairn: cairnApi,
     toolRegistry: toolRegistryApi,
+    feedback: feedbackClients,
   },
 
   // Legacy flat entrypoints kept for compatibility during migration.

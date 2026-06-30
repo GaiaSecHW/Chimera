@@ -139,6 +139,11 @@ export default defineConfig(({ mode }) => {
             agent: keepAliveHttpAgent,
             rewrite: (path) => path.replace(/^\/cairn-api/, ''),
           },
+          '/api/chirmera-platform-feedback': {
+            target: 'http://localhost:8080',
+            changeOrigin: true,
+            secure: false,
+          },
           '/api': {
             target: 'http://secflow.ai.icsl.huawei.com',
             changeOrigin: true,
