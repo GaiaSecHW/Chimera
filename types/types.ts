@@ -5111,3 +5111,30 @@ export interface AppDfaServiceConfig {
   result_dir: string;
   updated_at?: string | null;
 }
+
+// ── 系统分析失败调试报告 ───────────────────────────────────────────────
+export interface SaFailureDebugReportListItem {
+  id: number;
+  task_id: string;
+  project_id: string;
+  task_name: string;
+  status: string; // pending | running | done | error
+  error_kind?: string | null;
+  failing_stage?: string | null;
+  summary?: string | null;
+  report_path?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface SaFailureDebugReportDetail extends SaFailureDebugReportListItem {
+  report_json?: {
+    phenomenon?: string;
+    root_cause?: string;
+    solution?: string;
+    code_scene?: string;
+    patch_code?: string;
+    _model?: string;
+  } | null;
+  debug_error?: string | null;
+}

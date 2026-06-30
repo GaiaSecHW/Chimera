@@ -38,6 +38,7 @@ import { EnvProcessMonitorTasksPage } from '../pages/environment/EnvProcessMonit
 import { SystemAnalysisTaskPage } from '../pages/execution/SystemAnalysisTaskPage';
 import { SystemAnalysisTaskDetailPage } from '../pages/execution/SystemAnalysisTaskDetailPage';
 import { SystemAnalysisConfigPage } from '../pages/execution/SystemAnalysisConfigPage';
+import { SystemAnalysisEvolutionPage } from '../pages/execution/SystemAnalysisEvolutionPage';
 import { DataflowVulnScanTaskPage } from '../pages/execution/DataflowVulnScanTaskPage';
 import { DataflowVulnScanTaskDetailPage } from '../pages/execution/DataflowVulnScanTaskDetailPage';
 import { DataflowVulnScanConfigPage } from '../pages/execution/DataflowVulnScanConfigPage';
@@ -436,6 +437,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       );
     case 'system-analysis-config':
       return <SystemAnalysisConfigPage projectId={ctx.selectedProjectId} />;
+    case 'system-analysis-evolution':
+      return <SystemAnalysisEvolutionPage projectId={ctx.selectedProjectId} />;
     case 'pentest-dataflow':
     case 'dataflow-analysis-task':
     case 'dataflow-analysis-detail':

@@ -17,6 +17,8 @@ import {
   AppSaTaskResult,
   AppSaTaskStageEvents,
   AppSaTaskTimeline,
+  SaFailureDebugReportDetail,
+  SaFailureDebugReportListItem,
   SystemAnalysisModelsConfig,
   SystemAnalysisPromptTemplate,
   SystemAnalysisServiceConfig,
@@ -284,4 +286,28 @@ export const appSystemAnalyseApi = {
       headers: getHeaders(),
       body: JSON.stringify({ config }),
     })),
+
+  // ── 失败调试报告 ────────────────────────────────────────────────────────
+  listFailureDebugReports: async (params: {
+    project_id?: string;
+    status?: string;
+    page?: number;
+    per_page?: number;
+  } = {}): Promise<{ items: SaFailureDebugReportListItem[]; total: number; page: number; per_page: number }> => {
+    const query = new URLSearchParams();
+    if (params.project_id) query.append('project_id', params.project_id);
+    if (params.status) query.append('status', params.status);
+    if (params.page) query.append('page', String(params.page));
+    if (params.per_page) query.append('per_page', String(params.per_page));
+    return getJsonWithDedupe(`${BASE}/failure-debug-reports?${query.toString()}`, { headers: getHeaders() });
+  },
+
+  getFailureDebugReport: async (reportId: number): Promise<SaFailureDebugReportDetail> =>
+    handleResponse(await fetch(`${BASE}/failure-debug-reports/${reportId}`, { headers: getHeaders() })),
+
+  downloadFailureDebugReport: async (reportId: number): Promise<Blob> => {
+    const resp = await fetch(`${BASE}/failure-debug-reports/${reportId}/download`, { headers: getHeaders() });
+    if (!resp.ok) throw new Error(`下载失败 (${resp.status})`);
+    return resp.blob();
+  },
 };
