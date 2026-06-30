@@ -10,6 +10,7 @@ import { Sidebar } from './layout/Sidebar';
 import { Header } from './layout/Header';
 import { DialogViewport } from './components/DialogService';
 import { GlobalUploadWidget } from './components/upload-center/GlobalUploadWidget';
+import { FeedbackFloatingButton } from './components/feedback/FeedbackFloatingButton';
 import { UploadCenterProvider } from './services/uploadCenter';
 import { ServiceTerminalWindowPage } from './pages/environment/ServiceTerminalWindowPage';
 import { canAccessView, getUserAccess } from './utils/rbac';
@@ -918,6 +919,7 @@ const AppShell: React.FC = () => {
         `}</style>
       </div>
       <GlobalUploadWidget />
+      <FeedbackFloatingButton />
       <DialogViewport />
     </UploadCenterProvider>
   );
