@@ -16,6 +16,7 @@ const STATUS_LABEL: Record<string, string> = {
   running: '调试中',
   done: '已完成',
   error: '调试失败',
+  skipped: '已跳过',
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -23,6 +24,7 @@ const STATUS_COLOR: Record<string, string> = {
   running: 'bg-blue-500/15 text-blue-400',
   done: 'bg-emerald-500/15 text-emerald-400',
   error: 'bg-red-500/15 text-red-400',
+  skipped: 'bg-zinc-500/15 text-zinc-400',
 };
 
 function formatTime(ts: string | null | undefined): string {

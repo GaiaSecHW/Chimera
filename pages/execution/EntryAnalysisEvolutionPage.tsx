@@ -13,6 +13,7 @@ const STATUS_LABEL: Record<string, string> = {
   passed: '已完成',
   failed: '失败',
   error: '错误',
+  skipped: '已跳过',
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -21,6 +22,7 @@ const STATUS_COLOR: Record<string, string> = {
   passed: 'bg-emerald-500/15 text-emerald-400',
   failed: 'bg-red-500/15 text-red-400',
   error: 'bg-orange-500/15 text-orange-400',
+  skipped: 'bg-zinc-500/15 text-zinc-400',
 };
 
 const FIELD_LABELS: { key: keyof AppEaDebugReport; label: string }[] = [
