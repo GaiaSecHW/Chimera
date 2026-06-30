@@ -436,6 +436,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'system-analysis-config':
       return <SystemAnalysisConfigPage projectId={ctx.selectedProjectId} />;
     case 'system-analysis-evolution':
+    case 'system-analysis-bug-fix':
       return <SystemAnalysisEvolutionPage projectId={ctx.selectedProjectId} />;
     case 'pentest-dataflow':
     case 'dataflow-analysis-task':

@@ -366,6 +366,7 @@ const EVOLUTION_VIEWS = new Set([
   'binary-security-config',
   'binary-security-metrics',
   'system-analysis-evolution',
+  'system-analysis-bug-fix',
   'entry-analysis-evolution',
   'secocto-overview',
   'secocto-skills',
@@ -634,7 +635,9 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
         { id: 'secocto-skills', label: '技能进化', icon: GraduationCap },
         { id: 'secocto-memories', label: '记忆进化', icon: Brain },
         { id: 'secocto-vulns', label: '进化素材', icon: ShieldAlert },
-        { id: 'system-analysis-evolution', label: '系统分析进化', icon: Sparkles },
+        { id: 'system-analysis-evolution', label: '系统分析进化', icon: Sparkles, subItems: [
+          { id: 'system-analysis-bug-fix', label: 'bug修复' },
+        ] },
         { id: 'entry-analysis-evolution', label: '入口分析进化', icon: Sparkles, subItems: [
           { id: 'entry-analysis-evolution', label: 'bug修复' },
         ] },
