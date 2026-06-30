@@ -1425,6 +1425,7 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
                     <DetailField label="view_id" value={detailTool.microservice.view_id} mono />
                     <DetailField label="icon" value={detailTool.microservice.icon} />
                     <DetailField label="menu_group" value={detailTool.microservice.menu_group} />
+                    {detailTool.microservice.catalog ? <DetailField label="catalog" value={JSON.stringify(detailTool.microservice.catalog, null, 2)} mono full /> : null}
                   </div>
                 </div>
               ) : null}
@@ -1433,16 +1434,17 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
                 <div className="space-y-3 rounded-xl border border-theme-border bg-theme-elevated/40 p-4">
                   <div className="text-sm font-semibold text-theme-text-primary">Agent 详情</div>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                    <DetailField label="engine" value={detailTool.agent.engine} />
-                    <DetailField label="default_agent_name" value={detailTool.agent.default_agent_name} mono />
+                    <DetailField label="使用引擎" value={detailTool.agent.engine} />
+                    <DetailField label="默认 Agent" value={detailTool.agent.default_agent_name} mono />
                     <DetailField label="harness_gitea_url" value={detailTool.agent.agent_harness_gitea_url} mono full />
-                    <DetailField label="start_command" value={detailTool.agent.start_command} mono />
-                    <DetailField label="is_public" value={detailTool.agent.is_public ? '是' : '否'} />
-                    <DetailField label="view_id" value={detailTool.agent.view_id} mono />
+                    <DetailField label="启动命令" value={detailTool.agent.start_command} mono />
+                    <DetailField label="是否公开" value={detailTool.agent.is_public ? '是' : '否'} />
+                    <DetailField label="菜单/路由标识" value={detailTool.agent.view_id} mono />
                     <DetailField label="icon" value={detailTool.agent.icon} />
                     <DetailField label="menu_group" value={detailTool.agent.menu_group} />
+                    <DetailField label="模型" value={detailTool.agent.model_alias_id != null ? String(detailTool.agent.model_alias_id) : ''} mono />
                   </div>
-                  {detailTool.agent.input_requirements ? <DetailField label="输入要求" value={detailTool.agent.input_requirements} full /> : null}
+                  {detailTool.agent.input_requirements ? <DetailField label="Agent说明" value={detailTool.agent.input_requirements} full /> : null}
                 </div>
               ) : null}
 
