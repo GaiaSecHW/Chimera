@@ -1840,7 +1840,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
         setError('当前筛选下没有可导出的漏洞。');
         return;
       }
-      await vulnApi.vuln.createDownloadJob({ project_id: projectId, report_ids: reportIds });
+      await vulnApi.vuln.createDownloadJob({ project_id: projectId, report_ids: reportIds, output_format: 'xlsx' });
       setRootTab('download-center');
       await loadDownloadCenter();
       setSuccessMessage(`已创建 ${reportIds.length} 条漏洞的导出任务，请到下载中心查看。`);
