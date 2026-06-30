@@ -618,12 +618,6 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
   ],
   evolution: [
     {
-      title: '入口分析进化',
-      items: [
-        { id: 'entry-analysis-evolution', label: '失败诊断报告', icon: FileText },
-      ],
-    },
-    {
       title: '二进制进化',
       items: [
         { id: 'binary-evolution-center', label: '进化中心', icon: Sparkles, requiresProject: true, subItems: [
@@ -641,6 +635,9 @@ const SYSTEM_ADMIN_SIDEBAR_MAP: Record<string, NavSection[]> = {
         { id: 'secocto-memories', label: '记忆进化', icon: Brain },
         { id: 'secocto-vulns', label: '进化素材', icon: ShieldAlert },
         { id: 'system-analysis-evolution', label: '系统分析进化', icon: Sparkles },
+        { id: 'entry-analysis-evolution', label: '入口分析进化', icon: Sparkles, subItems: [
+          { id: 'entry-analysis-evolution', label: 'bug修复' },
+        ] },
       ],
     },
   ],
