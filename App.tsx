@@ -96,6 +96,7 @@ const AppShell: React.FC = () => {
   const [activeB2SItemId, setActiveB2SItemId] = useState<string>('');
   const [activeSystemAnalysisTaskId, setActiveSystemAnalysisTaskId] = useState<string>('');
   const [activeEntryAnalysisTaskId, setActiveEntryAnalysisTaskId] = useState<string>('');
+  const [activeEntryAnalysisDebugReportId, setActiveEntryAnalysisDebugReportId] = useState<string>('');
   const [activeDataflowAnalysisTaskId, setActiveDataflowAnalysisTaskId] = useState<string>('');
   const [activeDataflowVulnScanTaskId, setActiveDataflowVulnScanTaskId] = useState<string>('');
   const [activeCfgGuidedExploreTaskId, setActiveCfgGuidedExploreTaskId] = useState<string>('');
@@ -823,6 +824,7 @@ const AppShell: React.FC = () => {
                     activeB2SItemId,
                     activeSystemAnalysisTaskId,
                     activeEntryAnalysisTaskId,
+                    activeEntryAnalysisDebugReportId,
                     activeDataflowAnalysisTaskId,
                     activeDataflowVulnScanTaskId,
                     activeCfgGuidedExploreTaskId,
@@ -858,6 +860,7 @@ const AppShell: React.FC = () => {
                     setActiveB2SItemId: (id) => setActiveB2SItemId(id),
                     setActiveSystemAnalysisTaskId: (id) => setActiveSystemAnalysisTaskId(id),
                     setActiveEntryAnalysisTaskId: (id) => setActiveEntryAnalysisTaskId(id),
+                    setActiveEntryAnalysisDebugReportId: (id) => setActiveEntryAnalysisDebugReportId(id),
                     setActiveDataflowAnalysisTaskId: (id) => setActiveDataflowAnalysisTaskId(id),
                     setActiveDataflowVulnScanTaskId: (id) => setActiveDataflowVulnScanTaskId(id),
                     setActiveCfgGuidedExploreTaskId: (id) => setActiveCfgGuidedExploreTaskId(id),

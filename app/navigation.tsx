@@ -368,6 +368,7 @@ const EVOLUTION_VIEWS = new Set([
   'system-analysis-evolution',
   'system-analysis-bug-fix',
   'entry-analysis-evolution',
+  'entry-analysis-evolution-detail',
   'secocto-overview',
   'secocto-skills',
   'secocto-memories',
