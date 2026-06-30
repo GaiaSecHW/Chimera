@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -29,11 +29,13 @@ import {
   AdminDashboardStats,
   Agent,
   AiGatewayProviderStat,
+  Department,
   EnvTemplate,
   PackageStats,
   SecurityProject,
   StaticPackage,
 } from '../types/types';
+import { orgApi } from '../clients/org';
 
 interface DashboardPageProps {
   projects: SecurityProject[];
@@ -259,6 +261,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [providerStats, setProviderStats] = useState<AiGatewayProviderStat[]>([]);
   const [providerStatsLoading, setProviderStatsLoading] = useState(false);
 
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
+
+  useEffect(() => {
+    orgApi.listDepartments()
+      .then((data) => setDepartments(data || []))
+      .catch((e) => console.error('Failed to fetch departments', e));
+  }, []);
+
   const [taskCount, setTaskCount] = useState<number | null>(null);
   const [taskQueued, setTaskQueued] = useState<number | null>(null);
   const [taskRunning, setTaskRunning] = useState<number | null>(null);
@@ -290,31 +301,101 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     };
   }, []);
 
+  const rootDepartments = useMemo(
+    () => departments.filter((d) => !d.parent_id),
+    [departments],
+  );
+
+  const selectedDeptIds = useMemo(() => {
+    if (!selectedDepartmentId) return null;
+    const ids = new Set<number>([selectedDepartmentId]);
+    const walk = (parentId: number) => {
+      departments
+        .filter((d) => d.parent_id === parentId)
+        .forEach((d) => {
+          ids.add(d.id);
+          walk(d.id);
+        });
+    };
+    walk(selectedDepartmentId);
+    return ids;
+  }, [selectedDepartmentId, departments]);
+
+  const filteredProjects = useMemo(() => {
+    if (!selectedDeptIds) return projects;
+    return projects.filter(
+      (p) => p.department_id != null && selectedDeptIds.has(p.department_id),
+    );
+  }, [projects, selectedDeptIds]);
+
   useEffect(() => {
     let mounted = true;
     const scheduleApi = api.domains.platform.scheduleCenter;
     const vulnApi = api.domains.vuln.vuln;
     const loadStats = async () => {
       if (mounted) setVulnSuspectLoading(true);
-      const [vulnRes, taskRes, envRes] = await Promise.allSettled([
-        vulnApi.getOverview(),
-        scheduleApi.listGlobalTasks({ page: 1, page_size: 1 }),
-        fetch(`${API_BASE}/api/agent/agents/stats`, { headers: getHeaders() })
-          .then((r) => handleResponse(r))
-          .catch(() => null),
+      const filteredProjectIdSet = new Set((filteredProjects || []).map((p) => p.id));
+      const perProject = (filteredProjects || []).map((p) =>
+        Promise.allSettled([
+          scheduleApi.listUserTasks(p.id, { page_size: 1 }),
+          fetch(`${API_BASE}/api/agent/agents/stats?project_id=${encodeURIComponent(p.id)}`, { headers: getHeaders() })
+            .then((r) => handleResponse(r))
+            .catch(() => null),
+        ]),
+      );
+      const [breakdownRes, ...projectResults] = await Promise.allSettled([
+        vulnApi.getBreakdown(),
+        ...perProject,
       ]);
       if (!mounted) return;
-      const taskData = taskRes.status === 'fulfilled' ? taskRes.value : null;
-      const taskStats = taskData?.stats || {};
-      setTaskCount(taskData ? Number(taskStats.total || 0) : null);
-      setTaskQueued(taskData ? Number(taskStats.queued || 0) : null);
-      setTaskRunning(taskData ? Number(taskStats.running || 0) : null);
-      setTaskFailed(taskData ? Number(taskStats.failed || 0) : null);
-      setEnvCount(envRes.status === 'fulfilled' ? Number(envRes.value?.summary?.total_agents || 0) : null);
-      const vulnOverview = vulnRes.status === 'fulfilled' ? vulnRes.value : null;
-      setVulnTotal(vulnOverview ? Number(vulnOverview?.metrics?.total_cases || 0) : null);
-      setVulnConfirmed(vulnOverview ? Number(vulnOverview?.human_finished_reason_counts?.vulnerable || 0) : null);
-      setVulnRuledOut(vulnOverview ? Number(vulnOverview?.human_finished_reason_counts?.not_vulnerable || 0) : null);
+      let taskTotalSum = 0;
+      let taskQueuedSum = 0;
+      let taskRunningSum = 0;
+      let taskFailedSum = 0;
+      let envTotal = 0;
+      let anyTaskOk = false;
+      let anyEnvOk = false;
+      projectResults.forEach((res) => {
+        if (res.status !== 'fulfilled') return;
+        const [taskR, envR] = res.value;
+        if (taskR.status === 'fulfilled' && taskR.value?.stats) {
+          anyTaskOk = true;
+          taskTotalSum += Number(taskR.value.stats.total || 0);
+          taskQueuedSum += Number(taskR.value.stats.queued || 0);
+          taskRunningSum += Number(taskR.value.stats.running || 0);
+          taskFailedSum += Number(taskR.value.stats.failed || 0);
+        }
+        if (envR.status === 'fulfilled' && envR.value) {
+          anyEnvOk = true;
+          envTotal += Number(envR.value?.summary?.total_agents || 0);
+        }
+      });
+      setTaskCount(anyTaskOk ? taskTotalSum : null);
+      setTaskQueued(anyTaskOk ? taskQueuedSum : null);
+      setTaskRunning(anyTaskOk ? taskRunningSum : null);
+      setTaskFailed(anyTaskOk ? taskFailedSum : null);
+      setEnvCount(anyEnvOk ? envTotal : null);
+      const breakdown = breakdownRes.status === 'fulfilled' ? breakdownRes.value : null;
+      const breakdownProjects = breakdown?.projects || [];
+      const visibleBreakdownProjects = selectedDeptIds
+        ? breakdownProjects.filter((p) => filteredProjectIdSet.has(p.project_id))
+        : breakdownProjects;
+      setVulnTotal(breakdown ? visibleBreakdownProjects.reduce((s, p) => s + Number(p.total || 0), 0) : null);
+
+      const overviewResults = await Promise.allSettled(
+        (filteredProjects || []).map((p) => vulnApi.getOverview(p.id)),
+      );
+      let confirmedSum = 0;
+      let ruledOutSum = 0;
+      let anyOverviewOk = false;
+      overviewResults.forEach((r) => {
+        if (r.status !== 'fulfilled' || !r.value) return;
+        anyOverviewOk = true;
+        confirmedSum += Number(r.value?.human_finished_reason_counts?.vulnerable || 0);
+        ruledOutSum += Number(r.value?.human_finished_reason_counts?.not_vulnerable || 0);
+      });
+      setVulnConfirmed(anyOverviewOk ? confirmedSum : null);
+      setVulnRuledOut(anyOverviewOk ? ruledOutSum : null);
 
       // 疑似漏洞 = A (引擎工具且 finished_reason=vulnerable) + B (无引擎工具的所有上报)
       // engines 拉取失败时按"无引擎"降级：所有 case 都计入 B
@@ -336,6 +417,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           const resp = await vulnApi.listCases({ page, page_size: pageSize });
           const items: any[] = resp?.items || [];
           for (const c of items) {
+            if (selectedDeptIds && !filteredProjectIdSet.has(c?.project_id)) continue;
             const reporterName: string = c?.reporter?.name || c?.source_meta?.reporter?.name || '';
             if (reporterName && engineTools.has(reporterName)) {
               if (c?.finished_reason === 'vulnerable') aCount += 1;
@@ -358,7 +440,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return () => {
       mounted = false;
     };
-  }, [projects.length]);
+  }, [filteredProjects]);
 
   const localProjectsCount = (projects || []).length;
   const localAgentsTotal = (agents || []).length;
@@ -436,19 +518,32 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           title={<div className="flex flex-col gap-1"><span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}><BarChart3 size={13} /> 平台结果看板</span><span>Chimera 平台结果看板</span></div>}
           description="汇总各模块的结果性数据：交付范围、节点状态、工作流执行、服务健康、资源占用与 AI 网关调用。"
           actions={
-          <button
-            type="button"
-            onClick={() => setCurrentView('aigw-dashboard')}
-            className="btn btn-primary"
-          >
-            AI 网关详情 <ArrowUpRight size={16} />
-          </button>
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedDepartmentId ?? ''}
+              onChange={(e) => setSelectedDepartmentId(e.target.value ? Number(e.target.value) : null)}
+              className="px-4 py-2 rounded-lg text-sm font-medium outline-none transition-colors"
+              style={{ backgroundColor: LK.surface, color: LK.ink, border: `1px solid ${LK.border}` }}
+            >
+              <option value="">全部部门</option>
+              {rootDepartments.map((dept) => (
+                <option key={dept.id} value={dept.id}>{dept.name}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setCurrentView('aigw-dashboard')}
+              className="btn btn-primary"
+            >
+              AI 网关详情 <ArrowUpRight size={16} />
+            </button>
+          </div>
         }
         />
 
         <section className="grid grid-cols-3 gap-3">
           {[
-            { label: '项目', value: projects.length, icon: Building2, color: LK.primary },
+            { label: '项目', value: filteredProjects.length, icon: Building2, color: LK.primary },
             { label: '任务', value: taskCount !== null ? taskCount : '-', icon: Layers, color: LK.success },
             { label: '环境', value: envCount !== null ? envCount : '-', icon: Server, color: LK.warning },
           ].map((stat) => (
@@ -908,7 +1003,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         <SuspectVulnTaskBreakdownDialog
           open={suspectBreakdownOpen}
           onClose={() => setSuspectBreakdownOpen(false)}
-          projects={projects}
+          projects={filteredProjects}
         />
       </div>
     </div>

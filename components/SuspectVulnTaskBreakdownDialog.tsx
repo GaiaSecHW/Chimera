@@ -153,14 +153,18 @@ export const SuspectVulnTaskBreakdownDialog: React.FC<SuspectVulnTaskBreakdownDi
   };
 
   // Sort projects by name asc (zh-CN). Name resolves from prop, fallback id.
+  // Filter to only projects passed in via prop (department filtering).
   const sortedProjects = useMemo(() => {
     if (!data?.projects) return [];
-    return [...data.projects].sort((a, b) => {
-      const na = projectNameMap.get(a.project_id) || a.project_id;
-      const nb = projectNameMap.get(b.project_id) || b.project_id;
-      return na.localeCompare(nb, 'zh-CN');
-    });
-  }, [data, projectNameMap]);
+    const projectIds = new Set((projects || []).map((p) => p.id));
+    return [...data.projects]
+      .filter((p) => projectIds.size === 0 || projectIds.has(p.project_id))
+      .sort((a, b) => {
+        const na = projectNameMap.get(a.project_id) || a.project_id;
+        const nb = projectNameMap.get(b.project_id) || b.project_id;
+        return na.localeCompare(nb, 'zh-CN');
+      });
+  }, [data, projectNameMap, projects]);
 
   const countColor = (value: number, on: string) => (value > 0 ? on : LK.mutedSoft);
 
