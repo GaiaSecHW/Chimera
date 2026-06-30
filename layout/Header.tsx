@@ -101,6 +101,25 @@ export const Header: React.FC<HeaderProps> = ({
 
   const currentProject = projects.find((p) => p.id === selectedProjectId) || { name: '选择项目' };
 
+  const projectIndicatorRef = useRef<HTMLDivElement>(null);
+  const isFirstProjectRender = useRef(true);
+  useEffect(() => {
+    // 跳过首次挂载，仅在后续切换时闪烁
+    if (isFirstProjectRender.current) {
+      isFirstProjectRender.current = false;
+      return;
+    }
+    const el = projectIndicatorRef.current;
+    if (!el) return;
+    el.classList.remove('project-switch-flash');
+    // 强制 reflow 以便重复触发动画
+    void el.offsetWidth;
+    el.classList.add('project-switch-flash');
+    const onEnd = () => el.classList.remove('project-switch-flash');
+    el.addEventListener('animationend', onEnd, { once: true });
+    return () => el.removeEventListener('animationend', onEnd);
+  }, [selectedProjectId]);
+
   const visibleNavItems = getVisibleTopLevelNavItems(user);
   const activeSystemAdminChild = getSystemAdminActiveChild(String(currentView));
   const activeAssetsCenterChild = getAssetsCenterActiveChild(String(currentView));
@@ -247,16 +266,19 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="flex items-center justify-end gap-3 min-w-0">
           <div className="relative min-w-0 max-w-[15rem]" ref={projectDropdownRef}>
-            <button
-              onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-              className="flex items-center gap-2 px-1.5 py-1.5 max-w-[15rem] rounded-xl text-sm font-medium head-tab-hover"
-            >
-              <span className="truncate flex-1 text-left">{currentProject.name}</span>
-              <span onClick={(e) => { e.stopPropagation(); fetchProjects(true); }} className="shrink-0 text-theme-text-faint text-theme-text-primary-hover transition-all">
-                <RotateCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
-              </span>
-              <ChevronDown size={14} className="shrink-0 text-theme-text-faint" />
-            </button>
+            <div ref={projectIndicatorRef}>
+              <button
+                onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+                className="flex items-center gap-1.5 px-1.5 py-1 max-w-[13rem] rounded-xl text-xs font-medium opacity-70 hover:opacity-100 head-tab-hover transition-opacity"
+                title="快速切换项目（主入口在“项目管理”页）"
+              >
+                <span className="truncate flex-1 text-left">{currentProject.name}</span>
+                <span onClick={(e) => { e.stopPropagation(); fetchProjects(true); }} className="shrink-0 text-theme-text-faint text-theme-text-primary-hover transition-all">
+                  <RotateCw size={12} className={isRefreshing ? 'animate-spin' : ''} />
+                </span>
+                <ChevronDown size={12} className="shrink-0 text-theme-text-faint" />
+              </button>
+            </div>
             {isProjectDropdownOpen && (
               <div className="absolute top-full right-0 mt-2 w-48 bg-theme-surface border border-theme-border rounded-lg shadow-overlay p-2 z-50">
                 <input

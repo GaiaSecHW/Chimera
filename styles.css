@@ -972,3 +972,12 @@
 .stat-card.is-selected {
   outline: 1px solid var(--brand-primary);
 }
+@keyframes project-switch-flash {
+  0%   { background-color: var(--brand-primary-mask); box-shadow: 0 0 0 2px var(--brand-primary); }
+  60%  { background-color: var(--brand-primary-mask); box-shadow: 0 0 0 2px var(--brand-primary); }
+  100% { background-color: transparent; box-shadow: 0 0 0 0 transparent; }
+}
+.project-switch-flash {
+  animation: project-switch-flash 0.6s ease-out;
+  border-radius: 0.75rem;
+}
