@@ -1,5 +1,8 @@
 import React from 'react';
 import { SecAssessmentProjectPage } from './sec-assessment-project/SecAssessmentProjectPage';
+import { SecAssessmentDetailPage } from './sec-assessment-project/SecAssessmentDetailPage';
+import { SecAssessmentWorkersPage } from './sec-assessment-project/SecAssessmentWorkersPage';
+import { SecAssessmentConfigPage } from './sec-assessment-project/SecAssessmentConfigPage';
 import { SecBaselineMgmtPage } from './sec-baseline-mgmt/SecBaselineMgmtPage';
 import { SecBaselineDetailPage } from './sec-baseline-mgmt/SecBaselineDetailPage';
 import { SecBaselineCreatePage } from './sec-baseline-mgmt/SecBaselineCreatePage';
@@ -29,7 +32,12 @@ export interface SecAssessmentViewContext {
 export const renderSecAssessmentView = (ctx: SecAssessmentViewContext): React.ReactNode | null => {
   switch (ctx.currentView) {
     case 'sec-assessment-project':
-      return <SecAssessmentProjectPage projectId={ctx.projectId} />;
+    case 'sec-assessment-project-list':
+      return <SecAssessmentProjectPage onNavigateToView={ctx.setCurrentView} />;
+    case 'sec-assessment-workers':
+      return <SecAssessmentWorkersPage onNavigateToView={ctx.setCurrentView} />;
+    case 'sec-assessment-config':
+      return <SecAssessmentConfigPage />;
     case 'sec-baseline':
     case 'sec-baseline-mgmt':
       return <SecBaselineMgmtPage onNavigateToView={ctx.setCurrentView} />;
@@ -37,6 +45,11 @@ export const renderSecAssessmentView = (ctx: SecAssessmentViewContext): React.Re
       return <SecBaselineCreatePage onNavigateToView={ctx.setCurrentView} />;
     case 'sec-baseline-org-tree':
       return <SecBaselineOrgTreePage onNavigateToView={ctx.setCurrentView} />;
+  }
+
+  if (ctx.currentView.startsWith('sec-assessment-project-detail-')) {
+    const id = ctx.currentView.replace('sec-assessment-project-detail-', '');
+    return <SecAssessmentDetailPage projectId={id} onNavigateToView={ctx.setCurrentView} />;
   }
 
   if (ctx.currentView.startsWith('sec-baseline-detail-')) {
