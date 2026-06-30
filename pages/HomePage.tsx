@@ -104,13 +104,13 @@ const MODE_ICONS: Record<string, React.ReactNode> = {
 
 // 宣传轮播：image 字段暂留空，后续补充宣传图 URL 即可显示；link 默认 '#'，补充后点击在新标签打开。
 const PROMO_SLIDES = [
-  { title: '第一章 · 降生', subtitle: '四世神裔，融源之子的来历', image: '', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22379614?l=zh-cn' },
-  { title: '第二章 · 三身', subtitle: '一体三面，各司其职的完美共生', image: '', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22382361?l=zh-cn' },
-  { title: '第三章 · 吐息', subtitle: '烈焰淬炼，重塑万物本真', image: '', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22385845?l=zh-cn' },
-  { title: '第四章 · 破局', subtitle: '旧维失效，新序诞生的必然', image: '', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386057?l=zh-cn' },
-  { title: '第五章 · 驭者', subtitle: '顺势而为，维度跃升', image: '', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386058?l=zh-cn' },
-  { title: '第六章 · 群像', subtitle: '从一躯真身，到一世图腾', image: '', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386060?l=zh-cn' },
-  { title: '第七章 · 永续', subtitle: '图腾永生，融合求真永不止歇', image: '', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386062?l=zh-cn' },
+  { title: '第一章 · 降生', subtitle: '四世神裔，融源之子的来历', image: '/homeBanner/banner1.png', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22379614?l=zh-cn' },
+  { title: '第二章 · 三身', subtitle: '一体三面，各司其职的完美共生', image: '/homeBanner/banner2.png', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22382361?l=zh-cn' },
+  { title: '第三章 · 吐息', subtitle: '烈焰淬炼，重塑万物本真', image: '/homeBanner/banner3.png', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22385845?l=zh-cn' },
+  { title: '第四章 · 破局', subtitle: '旧维失效，新序诞生的必然', image: '/homeBanner/banner4.png', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386057?l=zh-cn' },
+  { title: '第五章 · 驭者', subtitle: '顺势而为，维度跃升', image: '/homeBanner/banner5.png', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386058?l=zh-cn' },
+  { title: '第六章 · 群像', subtitle: '从一躯真身，到一世图腾', image: '/homeBanner/banner6.png', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386060?l=zh-cn' },
+  { title: '第七章 · 永续', subtitle: '图腾永生，融合求真永不止歇', image: '/homeBanner/banner7.png', link: 'https://3ms.huawei.com/km/groups/337/blogs/details/22386062?l=zh-cn' },
     //
 ];
 
@@ -210,11 +210,6 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
               }}
             >
               <img src={slide.image} alt={slide.title} className="absolute inset-0 h-full w-full object-cover" style={{ display: slide.image ? 'block' : 'none' }} />
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, color-mix(in srgb, var(--bg-app) 70%, transparent) 0%, transparent 55%)' }} />
-              <div className="relative flex h-full max-w-xl flex-col justify-center gap-1.5 p-6 md:p-8">
-                <h3 className="text-lg font-bold text-theme-text-primary md:text-xl">{slide.title}</h3>
-                <p className="text-xs leading-relaxed text-theme-text-secondary md:text-sm">{slide.subtitle}</p>
-              </div>
             </div>
           ))}
           <div className="absolute bottom-3 right-4 flex items-center gap-1.5">

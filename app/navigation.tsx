@@ -445,7 +445,7 @@ export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | nul
     case 'assets-center': return 'project-mgmt';
     case 'asset-supply': return 'public-resource-pvc-management';
     case 'alert-center': return 'vuln-intake';
-    case 'sec-assessment': return 'sec-assessment-project';
+    case 'sec-assessment': return 'sec-assessment-project-list';
     case 'assessment': return 'assessment-coming-soon';
     case 'observe': return 'observe-coming-soon';
     case 'skill': return 'skill-secocto-skills';
@@ -508,7 +508,11 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
     {
       title: '安全评估',
       items: [
-        { id: 'sec-assessment-project', label: '安全评估项目', icon: ClipboardList },
+        { id: 'sec-assessment-project', label: '安全评估项目', icon: ClipboardList, defaultExpanded: true, subItems: [
+          { id: 'sec-assessment-project-list', label: '项目列表' },
+          { id: 'sec-assessment-workers', label: 'Worker 管理' },
+          { id: 'sec-assessment-config', label: '系统配置' },
+        ] },
         { id: 'sec-baseline', label: '安全功能基线管理', icon: ShieldCheck, defaultExpanded: true, subItems: [
           { id: 'sec-baseline-mgmt', label: '基线列表' },
           { id: 'sec-baseline-org-tree', label: '组织树管理' },
