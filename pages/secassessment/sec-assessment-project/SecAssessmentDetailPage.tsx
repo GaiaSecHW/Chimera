@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { Fragment, useCallback, useEffect, useState } from 'react';
 import {
   Share2, RefreshCw, MoreHorizontal, ChevronDown, ChevronRight,
   Pause, Play, Square, RotateCcw, Trash2, Server, Activity,
   CheckCircle2, AlertCircle, Clock, Cpu, Settings, Info,
+  Database, Compass, ClipboardCheck, FileText,
 } from 'lucide-react';
 import { PageHeader, DataTable, EmptyState } from '../../../design-system';
 import type { DataTableColumn } from '../../../design-system';
@@ -10,13 +11,14 @@ import { showConfirm, showAlert } from '../../../components/DialogService';
 import { secAssessmentApi } from './client';
 import {
   ProjectStatusBadge, SyncBadge, ActionBadge, fmtTime, fmtPercent,
-  PROJECT_STATUS_MAP, ENGINE_MAP, TIMEOUT_UNIT_MAP,
+  PROJECT_STATUS_MAP, ENGINE_MAP, TIMEOUT_UNIT_MAP, countByResult, buildItemTree,
 } from './constants';
 import type {
   ProjectDetail, OperationLogItem, EventItem,
+  BaselineTreeResponse, ExecutionResult, ExecutionUpdate,
 } from './types';
 import { ExecResultPanel } from './components/ExecResultPanel';
-import { ReportPanel } from './components/ReportPanel';
+import { ReportPanel, ResultDonut } from './components/ReportPanel';
 
 interface SecAssessmentDetailPageProps {
   projectId: string;
@@ -35,8 +37,24 @@ const TABS = [
 ] as const;
 type TabKey = typeof TABS[number]['key'];
 
-const PIPELINE_PHASES = ['baseline', 'context', 'assessment', 'report'] as const;
-const PHASE_LABEL: Record<string, string> = { baseline: '基线解析', context: '上下文', assessment: '评估', report: '报告' };
+type PhaseIconType = React.ComponentType<{ size?: number; className?: string }>;
+
+const PIPELINE_PHASES: { key: string; label: string; Icon: PhaseIconType; step: number }[] = [
+  { key: 'baseline', label: '基线解析', Icon: Database, step: 1 },
+  { key: 'context', label: '上下文', Icon: Compass, step: 2 },
+  { key: 'assessment', label: '评估', Icon: ClipboardCheck, step: 3 },
+  { key: 'report', label: '报告', Icon: FileText, step: 4 },
+];
+
+const PHASE_STATUS: Record<string, { label: string; Icon: PhaseIconType; color: string; border: string; bg: string; spin?: boolean }> = {
+  completed: { label: 'DONE', Icon: CheckCircle2, color: 'text-emerald-400', border: 'border-emerald-500/40', bg: 'bg-emerald-500/5' },
+  finish: { label: 'DONE', Icon: CheckCircle2, color: 'text-emerald-400', border: 'border-emerald-500/40', bg: 'bg-emerald-500/5' },
+  running: { label: 'RUNNING', Icon: RefreshCw, color: 'text-amber-400', border: 'border-amber-500/40', bg: 'bg-amber-500/5', spin: true },
+  executing: { label: 'RUNNING', Icon: RefreshCw, color: 'text-amber-400', border: 'border-amber-500/40', bg: 'bg-amber-500/5', spin: true },
+  failed: { label: 'FAILED', Icon: AlertCircle, color: 'text-rose-400', border: 'border-rose-500/40', bg: 'bg-rose-500/5' },
+  pending: { label: 'PENDING', Icon: Clock, color: 'text-amber-400', border: 'border-amber-500/30', bg: 'bg-amber-500/5' },
+};
+const DEFAULT_PHASE_STATUS: { label: string; Icon: PhaseIconType; color: string; border: string; bg: string; spin?: boolean } = { label: 'NOT STARTED', Icon: Clock, color: 'text-theme-text-faint', border: 'border-theme-border', bg: '' };
 
 export const SecAssessmentDetailPage: React.FC<SecAssessmentDetailPageProps> = ({ projectId, onNavigateToView }) => {
   const id = Number(projectId);
@@ -49,7 +67,11 @@ export const SecAssessmentDetailPage: React.FC<SecAssessmentDetailPageProps> = (
   const [events, setEvents] = useState<EventItem[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [eventsLoading, setEventsLoading] = useState(false);
-  const [pipelineExpanded, setPipelineExpanded] = useState<Set<string>>(new Set(PIPELINE_PHASES));
+  const [pipelineExpanded, setPipelineExpanded] = useState<Set<string>>(new Set(PIPELINE_PHASES.map((p) => p.key)));
+  const [baselineTree, setBaselineTree] = useState<BaselineTreeResponse | null>(null);
+  const [executions, setExecutions] = useState<ExecutionResult[]>([]);
+  const [execLoaded, setExecLoaded] = useState(false);
+  const [execLoading, setExecLoading] = useState(false);
 
   const fetchDetail = useCallback(async () => {
     setLoading(true);
@@ -77,6 +99,38 @@ export const SecAssessmentDetailPage: React.FC<SecAssessmentDetailPageProps> = (
     if (tab === 'logs' && logs.length === 0) fetchLogs();
     if (tab === 'events' && events.length === 0) fetchEvents();
   }, [tab]);
+
+  // Tab3/4/5 首次选中时统一拉取 baseline-tree + executions
+  const fetchExecData = useCallback(async () => {
+    setExecLoading(true);
+    try {
+      const [tree, execs] = await Promise.all([
+        secAssessmentApi.getBaselineTree(id),
+        secAssessmentApi.listExecutions(id),
+      ]);
+      setBaselineTree(tree);
+      setExecutions(Array.isArray(execs) ? execs : []);
+      setExecLoaded(true);
+    } catch {
+      setBaselineTree(null);
+      setExecutions([]);
+      setExecLoaded(true);
+    } finally {
+      setExecLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if ((tab === 'results' || tab === 'stats' || tab === 'report') && !execLoaded) {
+      fetchExecData();
+    }
+  }, [tab, execLoaded, fetchExecData]);
+
+  const handleSaveExecution = useCallback(async (eid: number, payload: ExecutionUpdate): Promise<ExecutionResult> => {
+    const updated = await secAssessmentApi.updateExecution(id, eid, payload);
+    setExecutions((prev) => prev.map((e) => (e.id === eid ? updated : e)));
+    return updated;
+  }, [id]);
 
   const runControl = async (kind: 'pause' | 'resume' | 'cancel' | 'reExecute' | 'delete' | 'sync') => {
     if (!detail) return;
@@ -191,11 +245,11 @@ export const SecAssessmentDetailPage: React.FC<SecAssessmentDetailPageProps> = (
 
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="px-5 md:px-6 2xl:px-8 py-5 space-y-4">
-          {tab === 'overview' && <OverviewTab detail={detail} onNavigateToView={onNavigateToView} />}
+          {tab === 'overview' && <OverviewTab detail={detail} executions={executions} onNavigateToView={onNavigateToView} />}
           {tab === 'pipeline' && <PipelineTab detail={detail} expanded={pipelineExpanded} setExpanded={setPipelineExpanded} />}
-          {tab === 'results' && <ExecResultPanel detail={detail} />}
-          {tab === 'stats' && <StatsTab detail={detail} />}
-          {tab === 'report' && <ReportPanel detail={detail} />}
+          {tab === 'results' && (execLoading ? <div className="p-10 text-center text-theme-text-muted">加载评估结果...</div> : <ExecResultPanel baselineTree={baselineTree} executions={executions} onExecutionUpdated={fetchExecData} onSaveExecution={handleSaveExecution} />)}
+          {tab === 'stats' && <StatsTab detail={detail} executions={executions} tree={baselineTree} />}
+          {tab === 'report' && <ReportPanel detail={detail} executions={executions} tree={baselineTree} />}
           {tab === 'worker' && <WorkerTab detail={detail} onNavigateToView={onNavigateToView} />}
           {tab === 'logs' && <LogsTab logs={logs} loading={logsLoading} />}
           {tab === 'events' && <EventsTab events={events} loading={eventsLoading} />}
@@ -206,7 +260,7 @@ export const SecAssessmentDetailPage: React.FC<SecAssessmentDetailPageProps> = (
 };
 
 // ===== Tab1 概览 =====
-const OverviewTab: React.FC<{ detail: ProjectDetail; onNavigateToView?: (v: string) => void }> = ({ detail, onNavigateToView }) => {
+const OverviewTab: React.FC<{ detail: ProjectDetail; executions: ExecutionResult[]; onNavigateToView?: (v: string) => void }> = ({ detail, executions, onNavigateToView }) => {
   const env = detail.chimera_env || {};
   const snap = detail.config_snapshot || {};
   const envEntries = Object.entries(env).filter(([k]) => k !== 'key');
@@ -262,14 +316,18 @@ const OverviewTab: React.FC<{ detail: ProjectDetail; onNavigateToView?: (v: stri
           <Tile label="已完成" value={detail.finish_count ?? '—'} tone="text-emerald-400" />
           <Tile label="合规率" value={rate != null ? `${rate.toFixed(2)}%` : '—'} tone="text-brand-primary" />
         </div>
-        <div className="text-xs text-theme-text-faint mt-2">分项(PASS/PARTIAL/FAIL/N_A)需后端补充 GET /api/projects/{detail.id}/executions 端点</div>
+        {executions.length > 0 && (
+          <div className="mt-4 flex justify-center">
+            <ResultDonut counts={countByResult(executions)} total={executions.length} />
+          </div>
+        )}
       </Card>
 
       {/* 运行配置 */}
       <Card title="运行配置(config_snapshot)" icon={<Settings size={14} />}>
         <Grid>
           <Field label="agent 引擎" value={ENGINE_MAP[snap.agent_engine_type as keyof typeof ENGINE_MAP]?.label || snap.agent_engine_type || '—'} />
-          <Field label="warp 最大重试" value={String(snap.max_retry ?? '—')} mono />
+          <Field label="tool 最大重试" value={String(snap.max_retry ?? '—')} mono />
           <Field label="agent 最大执行" value={String(snap.max_agent_exec_count ?? '—')} mono />
           <Field label="基线执行并发" value={String(snap.concurrency ?? '—')} mono />
           <Field label="最大超时" value={`${snap.max_timeout_value ?? '—'} ${TIMEOUT_UNIT_MAP[snap.max_timeout_unit as keyof typeof TIMEOUT_UNIT_MAP] || ''}`} mono />
@@ -284,93 +342,233 @@ const OverviewTab: React.FC<{ detail: ProjectDetail; onNavigateToView?: (v: stri
 // ===== Tab2 流水线 =====
 const PipelineTab: React.FC<{ detail: ProjectDetail; expanded: Set<string>; setExpanded: React.Dispatch<React.SetStateAction<Set<string>>> }> = ({ detail, expanded, setExpanded }) => {
   const cp = detail.checkpoint || {};
-  const toggle = (p: string) => setExpanded((prev) => {
+  const hasCp = Object.keys(cp).length > 0;
+  const toggle = (key: string) => setExpanded((prev) => {
     const next = new Set(prev);
-    if (next.has(p)) next.delete(p); else next.add(p);
+    if (next.has(key)) next.delete(key); else next.add(key);
     return next;
   });
+  const getStatus = (status?: string) => (status && PHASE_STATUS[status]) || DEFAULT_PHASE_STATUS;
+
+  if (!hasCp) {
+    return <div className="text-center text-theme-text-faint py-12 text-sm">无 checkpoint（项目未执行或已重置）</div>;
+  }
+
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {PIPELINE_PHASES.map((phase) => {
-        const info = cp[phase];
-        const isOpen = expanded.has(phase);
-        const statusIcon = !info ? <Clock size={14} className="text-theme-text-faint" />
-          : info.status === 'completed' ? <CheckCircle2 size={14} className="text-emerald-400" />
-          : info.status === 'failed' ? <AlertCircle size={14} className="text-rose-400" />
-          : <RefreshCw size={14} className="text-indigo-400 animate-spin" />;
-        return (
-          <div key={phase} className="rounded-xl border border-theme-border bg-theme-surface overflow-hidden">
-            <button className="w-full flex items-center gap-2 px-4 py-3 hover:bg-theme-elevated" onClick={() => toggle(phase)}>
-              {statusIcon}
-              <span className="text-sm font-medium text-theme-text-primary">{PHASE_LABEL[phase]}</span>
-              <span className="text-xs text-theme-text-faint ml-1">{info?.status || '未开始'}</span>
-              <span className="ml-auto">{isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
-            </button>
-            {isOpen && (
-              <div className="px-4 py-3 border-t border-theme-border-subtle space-y-2">
+    <div className="space-y-4">
+      <div className="flex items-center gap-1">
+        <span className="text-sm font-medium text-theme-text-primary">4 阶段流水线 Checkpoint</span>
+        <span className="text-xs text-theme-text-faint ml-2">点击卡片展开/收起详情</span>
+      </div>
+
+      {/* 水平步骤条 */}
+      <div className="flex items-stretch gap-1 overflow-x-auto custom-scrollbar pb-1">
+        {PIPELINE_PHASES.map((phase, i) => {
+          const info = cp[phase.key];
+          const st = getStatus(info?.status);
+          const isOpen = expanded.has(phase.key);
+          const PhaseIcon = phase.Icon;
+          const StatusIcon = st.Icon;
+          return (
+            <Fragment key={phase.key}>
+              <button
+                onClick={() => toggle(phase.key)}
+                className={`flex-1 min-w-[140px] rounded-xl border ${st.border} ${st.bg} bg-theme-surface p-3 text-left transition-all ${isOpen ? 'ring-1 ring-brand-primary/30' : 'hover:brightness-110'}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${st.color} border ${st.border}`}>{phase.step}</span>
+                  <PhaseIcon size={14} className={st.color} />
+                  <span className="text-sm font-medium text-theme-text-primary truncate">{phase.label}</span>
+                </div>
+                <div className="flex items-center gap-1 mt-1.5">
+                  <StatusIcon size={12} className={`${st.color} ${st.spin ? 'animate-spin' : ''}`} />
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${st.color}`}>{st.label}</span>
+                </div>
+              </button>
+              {i < PIPELINE_PHASES.length - 1 && (
+                <div className="flex items-center text-theme-text-faint shrink-0">
+                  <ChevronRight size={16} />
+                </div>
+              )}
+            </Fragment>
+          );
+        })}
+      </div>
+
+      {/* 细节区 */}
+      <div className="space-y-3">
+        {PIPELINE_PHASES.map((phase) => {
+          if (!expanded.has(phase.key)) return null;
+          const info = cp[phase.key];
+          const st = getStatus(info?.status);
+          const PhaseIcon = phase.Icon;
+          const StatusIcon = st.Icon;
+          return (
+            <div key={phase.key} className={`rounded-lg border ${st.border} bg-theme-elevated p-4 space-y-2`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <PhaseIcon size={15} className={st.color} />
+                  <span className="text-sm font-semibold text-theme-text-primary">{phase.label}</span>
+                </div>
+                <span className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider ${st.color}`}>
+                  <StatusIcon size={12} className={st.spin ? 'animate-spin' : ''} />
+                  {st.label}
+                </span>
+              </div>
+              <div>
+                <div className="text-xs text-theme-text-faint mb-1">artifact</div>
                 {info?.artifacts && info.artifacts.length > 0 ? (
-                  info.artifacts.map((a, i) => (
-                    <div key={i} className="text-xs font-mono text-theme-text-secondary break-all bg-theme-elevated rounded p-2">{a}</div>
-                  ))
+                  <div className="space-y-1">
+                    {info.artifacts.map((a, idx) => (
+                      <div key={idx} className="text-xs font-mono text-theme-text-secondary break-all bg-theme-surface rounded p-2 border border-theme-border-subtle">{a}</div>
+                    ))}
+                  </div>
                 ) : (
                   <div className="text-xs text-theme-text-faint">无 artifact</div>
                 )}
               </div>
-            )}
-          </div>
-        );
-      })}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
 
 // ===== Tab4 统计 =====
-const StatsTab: React.FC<{ detail: ProjectDetail }> = ({ detail }) => {
+const StatsTab: React.FC<{ detail: ProjectDetail; executions: ExecutionResult[]; tree: BaselineTreeResponse | null }> = ({ detail, executions, tree }) => {
   const rate = detail.compliance_rate != null ? Number(detail.compliance_rate) : null;
   const total = detail.total_items ?? 0;
   const finish = detail.finish_count ?? 0;
   const unfinished = Math.max(0, total - finish);
   const pct = total ? (finish / total) * 100 : 0;
+  const counts = countByResult(executions);
+
+  // 按一级维度分组
+  const dimensionStats = React.useMemo(() => {
+    if (!tree) return [];
+    const roots = buildItemTree(tree.nodes);
+    const dimMap = new Map<string, Record<string, number>>();
+    const walk = (nodes: any[], dimName?: string) => {
+      nodes.forEach((n) => {
+        if (n.node_type === 'level1') {
+          const name = n.name;
+          if (!dimMap.has(name)) dimMap.set(name, { PASS: 0, PARTIAL: 0, FAIL: 0, N_A: 0, OTHER: 0 });
+          walk(n.children, name);
+        } else if (n.node_type === 'item' && dimName) {
+          const exec = executions.find((e) => e.item_node_id === n.id);
+          const r = exec?.execute_result || 'OTHER';
+          const m = dimMap.get(dimName)!;
+          m[r in m ? r : 'OTHER'] = (m[r in m ? r : 'OTHER'] || 0) + 1;
+        } else {
+          walk(n.children, dimName);
+        }
+      });
+    };
+    walk(roots);
+    return Array.from(dimMap.entries());
+  }, [tree, executions]);
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-xl border border-theme-border bg-theme-surface p-4 text-center">
+      {/* 顶部汇总 — 5 个统一 tile */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="rounded-lg border border-theme-border-subtle bg-theme-elevated p-3 text-center">
           <div className="text-2xl font-bold text-theme-text-primary tabular-nums">{total}</div>
           <div className="text-xs text-theme-text-faint mt-1">总检查项</div>
         </div>
-        <div className="rounded-xl border border-theme-border bg-theme-surface p-4 text-center">
+        <div className="rounded-lg border border-theme-border-subtle bg-theme-elevated p-3 text-center">
           <div className="text-2xl font-bold text-emerald-400 tabular-nums">{finish}</div>
           <div className="text-xs text-theme-text-faint mt-1">已完成</div>
         </div>
-        <div className="rounded-xl border border-theme-border bg-theme-surface p-4 text-center">
+        <div className="rounded-lg border border-theme-border-subtle bg-theme-elevated p-3 text-center">
           <div className="text-2xl font-bold text-amber-400 tabular-nums">{unfinished}</div>
           <div className="text-xs text-theme-text-faint mt-1">未完成</div>
         </div>
-      </div>
-      <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
-        <div className="text-sm font-medium text-theme-text-primary mb-3">执行进度</div>
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-2 rounded-full bg-theme-elevated overflow-hidden">
-            <div className="h-full bg-brand-primary" style={{ width: `${Math.min(100, pct)}%` }} />
-          </div>
-          <span className="text-xs text-theme-text-secondary tabular-nums">{finish}/{total} ({pct.toFixed(1)}%)</span>
+        <div className="rounded-lg border border-theme-border-subtle bg-theme-elevated p-3 text-center">
+          <div className="text-2xl font-bold text-brand-primary tabular-nums">{pct.toFixed(1)}%</div>
+          <div className="text-xs text-theme-text-faint mt-1">执行进度</div>
+        </div>
+        <div className="rounded-lg border border-theme-border-subtle bg-theme-elevated p-3 text-center">
+          <div className="text-2xl font-bold text-brand-primary tabular-nums">{rate != null ? `${rate.toFixed(2)}%` : '—'}</div>
+          <div className="text-xs text-theme-text-faint mt-1">合规率</div>
         </div>
       </div>
-      <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
-        <div className="text-sm font-medium text-theme-text-primary mb-3">合规率</div>
-        {rate != null ? (
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-2 rounded-full bg-theme-elevated overflow-hidden">
-              <div className={`h-full ${rate >= 80 ? 'bg-emerald-400' : rate >= 60 ? 'bg-amber-400' : 'bg-rose-400'}`} style={{ width: `${Math.min(100, rate)}%` }} />
-            </div>
-            <span className="text-sm text-theme-text-secondary tabular-nums">{rate.toFixed(2)}%</span>
+
+      {/* 结论分布 */}
+      {executions.length > 0 && (
+        <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
+          <div className="text-sm font-medium text-theme-text-primary mb-3">评估结论分布</div>
+          <div className="space-y-2">
+            {[
+              { key: 'PASS', label: 'PASS', color: 'bg-emerald-400' },
+              { key: 'PARTIAL', label: 'PARTIAL', color: 'bg-amber-400' },
+              { key: 'FAIL', label: 'FAIL', color: 'bg-rose-400' },
+              { key: 'N_A', label: 'N_A', color: 'bg-sky-400' },
+              { key: 'MANUAL_REVIEW', label: 'MANUAL_REVIEW', color: 'bg-violet-400' },
+            ].map((r) => {
+              const c = counts[r.key] || 0;
+              const w = executions.length ? (c / executions.length) * 100 : 0;
+              return (
+                <div key={r.key} className="flex items-center gap-3">
+                  <span className="text-xs text-theme-text-secondary w-28 shrink-0">{r.label}</span>
+                  <div className="flex-1 h-2 rounded-full bg-theme-elevated overflow-hidden">
+                    <div className={`h-full ${r.color} transition-all`} style={{ width: `${w}%` }} />
+                  </div>
+                  <span className="text-xs text-theme-text-muted tabular-nums w-8 text-right">{c}</span>
+                </div>
+              );
+            })}
           </div>
-        ) : <span className="text-sm text-theme-text-faint">暂无</span>}
-      </div>
-      <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
-        <Info size={14} className="text-amber-400 mt-0.5 shrink-0" />
-        <span className="text-xs text-theme-text-secondary">分项统计(PASS/PARTIAL/FAIL/N_A/人工复核)与按一级维度分组需逐项 execution 数据,待后端补充 GET /api/projects/{detail.id}/executions 端点后启用。</span>
-      </div>
+        </div>
+      )}
+
+      {/* 按一级维度分组 — 堆叠条状图 */}
+      {dimensionStats.length > 0 && (
+        <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
+          <div className="text-sm font-medium text-theme-text-primary mb-3">按一级维度分组</div>
+          <div className="space-y-3">
+            {dimensionStats.map(([dim, c]) => {
+              const sum = (c.PASS || 0) + (c.PARTIAL || 0) + (c.FAIL || 0) + (c.N_A || 0) + (c.OTHER || 0);
+              const segs = [
+                { key: 'PASS', count: c.PASS || 0, color: 'bg-emerald-400' },
+                { key: 'PARTIAL', count: c.PARTIAL || 0, color: 'bg-amber-400' },
+                { key: 'FAIL', count: c.FAIL || 0, color: 'bg-rose-400' },
+                { key: 'N_A', count: c.N_A || 0, color: 'bg-sky-400' },
+                { key: 'OTHER', count: c.OTHER || 0, color: 'bg-zinc-500' },
+              ].filter((s) => s.count > 0);
+              return (
+                <div key={dim} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-theme-text-secondary truncate">{dim}</span>
+                    <span className="text-theme-text-faint tabular-nums">共 {sum}</span>
+                  </div>
+                  <div className="flex h-3 rounded-full overflow-hidden bg-theme-elevated">
+                    {sum > 0 && segs.map((s) => (
+                      <div key={s.key} className={`${s.color} transition-all`} style={{ width: `${(s.count / sum) * 100}%` }} />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-3 text-[10px]">
+                    {segs.map((s) => (
+                      <span key={s.key} className="flex items-center gap-1 text-theme-text-muted">
+                        <span className={`w-2 h-2 rounded-full ${s.color}`} />
+                        {s.key} {s.count}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-3 mt-4 pt-3 border-t border-theme-border-subtle text-[10px] text-theme-text-muted">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" />PASS</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400" />PARTIAL</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-400" />FAIL</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-sky-400" />N_A</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-zinc-500" />OTHER</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
