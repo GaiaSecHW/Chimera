@@ -120,6 +120,8 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   const [newProject, setNewProject] = useState<ProjectFormState>(EMPTY_FORM);
   const [editForm, setEditForm] = useState<ProjectFormState>(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
+  const [justSelectedId, setJustSelectedId] = useState<string | null>(null);
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [userPermissions, setUserPermissions] = useState<UserPermissionInfo | null>(null);
   const [productTree, setProductTree] = useState<ProductTreeNode[]>([]);
@@ -294,20 +296,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       setCurrentPage(totalPages);
     }
   }, [totalPages, currentPage]);
-
-  const handlePageSizeChange = (next: number) => {
-    setPageSize(next);
-    localStorage.setItem('chimera:projectList:pageSize', String(next));
-    setCurrentPage(1);
-  };
-
-  const handleSortChange = (field: string, direction: 'asc' | 'desc') => {
-    setSortField(field as ProjectSortField);
-    setSortDirection(direction);
-    setCurrentPage(1);
-    localStorage.setItem('chimera:projectList:sortField', field);
-    localStorage.setItem('chimera:projectList:sortDirection', direction);
-  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -520,6 +508,24 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     setActiveProjectId(id);
     setCurrentView('project-detail');
   };
+
+  // 卡片主体点击：选中 → 切换全局项目 → 约 300ms 后跳转测试任务页。
+  // 顺序保证：先 setSelectedProjectId，再延时 setCurrentView，避免 task-list 门禁踢回首页。
+  const handleCardSelect = (id: string) => {
+    setJustSelectedId(id);
+    setSelectedProjectId(id);
+    setActiveProjectId(id);
+    if (navTimerRef.current) clearTimeout(navTimerRef.current);
+    navTimerRef.current = setTimeout(() => {
+      setCurrentView('task-list');
+    }, 300);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (navTimerRef.current) clearTimeout(navTimerRef.current);
+    };
+  }, []);
 
   const renderDepartmentSelect = (
     value: string,
@@ -757,14 +763,25 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                     key={project.id}
                     role="button"
                     tabIndex={0}
-                    onClick={() => handleRowClick(project.id)}
+                    onClick={() => handleCardSelect(project.id)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleCardSelect(project.id); }}
                     className="group relative flex flex-col rounded-xl p-4 text-left transition-all"
                     style={{
-                      backgroundColor: LK.surfaceRaised,
-                      border: `1px solid ${LK.border}`,
+                      backgroundColor: justSelectedId === project.id ? LK.primaryMuted : LK.surfaceRaised,
+                      border: `1px solid ${justSelectedId === project.id ? LK.primary : LK.border}`,
+                      boxShadow: justSelectedId === project.id ? `0 8px 24px ${LK.primary}33` : 'none',
+                      transform: justSelectedId === project.id ? 'translateY(-2px)' : 'none',
                       cursor: 'pointer',
                     }}
                   >
+                    {justSelectedId === project.id && (
+                      <span
+                        className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full"
+                        style={{ backgroundColor: LK.primary, color: '#fff' }}
+                      >
+                        <Check size={14} />
+                      </span>
+                    )}
                     {/* 标题 + 详情入口 */}
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="truncate text-sm font-semibold" style={{ color: LK.ink }} title={project.name}>
