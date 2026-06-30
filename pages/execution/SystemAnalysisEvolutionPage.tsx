@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Download, Loader2, RefreshCw } from 'lucide-react';
+import { Download, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { SaFailureDebugReportDetail, SaFailureDebugReportListItem } from '../../types/types';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
 import { ServicePageTitle } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { showConfirm } from '../../components/DialogService';
 import { Modal } from '../../design-system/primitives';
 
 const REFRESH_INTERVAL_MS = 30_000;
@@ -103,6 +104,23 @@ export const SystemAnalysisEvolutionPage: React.FC<SystemAnalysisEvolutionPagePr
     }
   };
 
+  const handleDelete = async (report: SaFailureDebugReportListItem) => {
+    const ok = await showConfirm({
+      title: '删除报告',
+      message: `确认删除报告 #${report.id}（任务 ${report.task_name || report.task_id}）？\n删除后表示已处理，不可恢复。`,
+      confirmText: '删除',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await appApi.deleteFailureDebugReport(report.id);
+      notify('已删除', 'success');
+      await loadReports(true);
+    } catch (err: any) {
+      notify(`删除失败: ${err?.message || err}`, 'error');
+    }
+  };
+
   return (
     <div className="min-h-full">
       <ServicePageTitle title="bug修复" />
@@ -184,6 +202,13 @@ export const SystemAnalysisEvolutionPage: React.FC<SystemAnalysisEvolutionPagePr
                         disabled={downloadingId === r.id || r.status !== 'done'}
                       >
                         {downloadingId === r.id ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                      </button>
+                      <button
+                        className="btn-icon-sm text-red-400 hover:text-red-300"
+                        title="删除（标记已处理）"
+                        onClick={() => handleDelete(r)}
+                      >
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </ExecutionTableTd>

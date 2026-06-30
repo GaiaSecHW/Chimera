@@ -310,4 +310,12 @@ export const appSystemAnalyseApi = {
     if (!resp.ok) throw new Error(`下载失败 (${resp.status})`);
     return resp.blob();
   },
+
+  deleteFailureDebugReport: async (reportId: number): Promise<void> => {
+    const resp = await fetch(`${BASE}/failure-debug-reports/${reportId}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!resp.ok) throw new Error(`删除失败 (${resp.status})`);
+  },
 };
