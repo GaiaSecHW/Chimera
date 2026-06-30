@@ -343,6 +343,12 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
   // repair_total);回退口径沿用旧的 scale.repair_total>0。
   const repairStatus = repair?.repair_status ?? null;
   const repairHasProgress = repair ? repairTotal > 0 : hasRepairProgress;
+  // 部分修复完成:repair 已停(不在 building_repair / running),后端报失败,但已成功
+  // 修复 >1 个函数 → 视觉判完成(绿),提示词如实说「部分修复完成」。后端 repair_status
+  // 保持 failed,reconciler 据此自动重派剩余修复(与入口分析「部分识别完成」对称)。
+  const repairStopped = !(s === 'building_repair' || repairStatus === 'running');
+  const repairPartial =
+    repairStopped && (repairStatus === 'failed' || s === 'failed') && repairDone > 1;
 
   // 重跑按钮在任一构建阶段进行中时禁用(后端也会 409 兜底)。
   const busy = IN_PROGRESS_STATUSES.has(s);
@@ -418,9 +424,13 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
         {/* ③ 调用链修复 */}
         <StageCard
           label="调用链修复"
-          done={(repairStatus === 'done') || (repairHasProgress && repairPct === 100)}
+          done={(repairStatus === 'done') || (repairHasProgress && repairPct === 100) || repairPartial}
           badge={
-            repairHasProgress ? (
+            repairPartial ? (
+              <Pill tone={toneSuccess} title="部分修复完成:本轮已成功修复部分调用链,剩余将由系统自动重试修复">
+                部分修复完成
+              </Pill>
+            ) : repairHasProgress ? (
               <Pill tone={repairStatus === 'failed' || s === 'failed' ? toneWarn : repairPct === 100 ? toneSuccess : toneProgress}>
                 {repairPct}%
               </Pill>

@@ -65,6 +65,10 @@ function deriveStages(status: CodemapTaskStatus | null): StageState[] {
   // repair 进程只在 building_repair 态运行;一旦顶层 status 离开该态,repair 就已停止
   // (正常结束 / 失败退出 / 被入口重跑抢走 status),绝不能再显示 active 转圈。
   else if (s === 'building_repair') st3 = 'active';
+  // 部分修复完成:repair 已停且后端报失败,但已成功修复 >1 个函数(progress.completed)。
+  // 结果可用 → 视觉判完成,后端仍 failed(reconciler 据此自动重派),仅 tooltip 文案区分
+  // (见组件 stageLabel)。先于下面的失败判定,否则 error/failed 计数会把它压成红叉。
+  else if (hasRepair && (prog!.completed ?? 0) > 1) st3 = 'done';
   // 已离开 building_repair:repair 不在跑了,按终态判。
   // - error 标记 repair 失败(异常退出,计数可能没填满)→ 失败
   // - 有失败计数 → 部分失败
@@ -109,8 +113,20 @@ export const CodemapMetroProgress: React.FC<{ status: CodemapTaskStatus | null }
   // 让 tooltip 文案如实区分,不写成纯「已完成」。
   const attackPartial =
     status?.attack?.status === 'failed' && (status?.attack?.entries ?? 0) > 0;
-  const stageLabel = (i: number): string =>
-    i === 1 && attackPartial && stages[1] === 'done' ? '部分识别完成' : STATE_TEXT[stages[i]];
+  // 修复段「部分修复完成」:repair 已停且有失败信号(error含repair / failed计数 /
+  // overall=failed),但已成功修复 >1 个函数。st3 已判 done,tooltip 文案区分。
+  const _s = status?.overall ?? status?.status;
+  const _prog = status?.progress;
+  const repairFailSignal =
+    /repair/i.test(status?.error || '') || (_prog?.failed ?? 0) > 0 || _s === 'failed';
+  const repairPartial =
+    _s !== 'building_repair' && !!_prog && _prog.total > 0 &&
+    (_prog.completed ?? 0) > 1 && repairFailSignal;
+  const stageLabel = (i: number): string => {
+    if (i === 1 && attackPartial && stages[1] === 'done') return '部分识别完成';
+    if (i === 2 && repairPartial && stages[2] === 'done') return '部分修复完成';
+    return STATE_TEXT[stages[i]];
+  };
   const tip = `知识图谱构建进度 — ${STAGES.map((l, i) => `${l}:${stageLabel(i)}`).join(' · ')}`;
   const lineCls = (done: boolean) =>
     `h-0.5 flex-1 rounded-full ${done ? 'bg-emerald-400/70' : 'bg-theme-border'}`;
