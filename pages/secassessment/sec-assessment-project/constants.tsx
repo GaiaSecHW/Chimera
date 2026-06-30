@@ -10,6 +10,7 @@ import type {
   TimeoutUnit,
   NodeType,
   BaselineNodeOut,
+  BaselineNodeItem,
 } from './types';
 
 // 项目状态映射(8 态)
@@ -61,6 +62,13 @@ export const CONFIDENCE_MAP: Record<Confidence, { label: string; badge: string }
   high: { label: '高', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
   medium: { label: '中', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/20' },
   low: { label: '低', badge: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
+};
+
+// 优先级映射(基线节点 priority 字段)
+export const PRIORITY_MAP: Record<string, { label: string; badge: string }> = {
+  high: { label: 'HIGH', badge: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
+  medium: { label: 'MED', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/20' },
+  low: { label: 'LOW', badge: 'bg-sky-500/15 text-sky-400 border-sky-500/20' },
 };
 
 // 引擎类型映射
@@ -199,4 +207,67 @@ export function findNode(tree: BaselineTreeNode[], id: number): BaselineTreeNode
     if (c) return c;
   }
   return null;
+}
+
+// execute_result 色标(用于树 item 节点前缀圆点)
+export function resultDotColor(result?: string | null): string {
+  switch (result) {
+    case 'PASS': return 'bg-emerald-400';
+    case 'PARTIAL': return 'bg-amber-400';
+    case 'FAIL': return 'bg-rose-400';
+    case 'N_A': return 'bg-sky-400';
+    case 'MANUAL_REVIEW': return 'bg-violet-400';
+    default: return 'bg-theme-text-faint';
+  }
+}
+
+// ===== BaselineNodeItem 树(来自项目服务 baseline-tree) =====
+export interface ItemTreeNode extends BaselineNodeItem {
+  children: ItemTreeNode[];
+}
+
+export function buildItemTree(nodes: BaselineNodeItem[]): ItemTreeNode[] {
+  const map = new Map<number, ItemTreeNode>();
+  const roots: ItemTreeNode[] = [];
+  nodes.forEach((n) => map.set(n.id, { ...n, children: [] }));
+  nodes.forEach((n) => {
+    const node = map.get(n.id)!;
+    if (n.parent_id && map.has(n.parent_id)) {
+      map.get(n.parent_id)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+  roots.forEach(sortItemTree);
+  return roots;
+}
+
+function sortItemTree(node: ItemTreeNode) {
+  node.children.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id - b.id);
+  node.children.forEach(sortItemTree);
+}
+
+export function collectItemLeaves(node: ItemTreeNode, acc: ItemTreeNode[] = []): ItemTreeNode[] {
+  if (node.node_type === 'item') acc.push(node);
+  node.children.forEach((c) => collectItemLeaves(c, acc));
+  return acc;
+}
+
+export function findItemNode(tree: ItemTreeNode[], id: number): ItemTreeNode | null {
+  for (const n of tree) {
+    if (n.id === id) return n;
+    const c = findItemNode(n.children, id);
+    if (c) return c;
+  }
+  return null;
+}
+
+// 统计 execution 分项计数
+export function countByResult(executions: { execute_result?: string | null }[]): Record<string, number> {
+  const c: Record<string, number> = { PASS: 0, PARTIAL: 0, FAIL: 0, N_A: 0, MANUAL_REVIEW: 0, NONE: 0 };
+  executions.forEach((e) => {
+    const r = e.execute_result || 'NONE';
+    c[r] = (c[r] || 0) + 1;
+  });
+  return c;
 }

@@ -33,7 +33,7 @@ export const renderSecAssessmentView = (ctx: SecAssessmentViewContext): React.Re
   switch (ctx.currentView) {
     case 'sec-assessment-project':
     case 'sec-assessment-project-list':
-      return <SecAssessmentProjectPage onNavigateToView={ctx.setCurrentView} />;
+      return <SecAssessmentProjectPage projectId={ctx.projectId} onNavigateToView={ctx.setCurrentView} />;
     case 'sec-assessment-workers':
       return <SecAssessmentWorkersPage onNavigateToView={ctx.setCurrentView} />;
     case 'sec-assessment-config':

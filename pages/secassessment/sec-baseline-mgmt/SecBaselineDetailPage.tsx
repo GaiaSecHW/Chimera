@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ChevronDown, ChevronRight, Database, FileText, Folder, GitBranch, MoreHorizontal,
+  ChevronDown, ChevronRight, ChevronUp, Database, FileText, Folder, GitBranch, MoreHorizontal,
   Pencil, RefreshCw, Search, Share2, Trash2,
 } from 'lucide-react';
 import { PageHeader, EmptyState, DataTable } from '../../../design-system';
@@ -9,7 +9,7 @@ import { Modal, FormField, FormActionBar } from '../../../design-system';
 import { showConfirm, showAlert } from '../../../components/DialogService';
 import { secBaselineApi } from './client';
 import {
-  SyncBadge, PriorityBadge, Badge, ACTION_BADGE, coveragePercent, normalizeSources, NODE_TYPE_LABEL,
+  SyncBadge, PriorityBadge, Badge, ACTION_BADGE, PRIORITY_MAP, coveragePercent, normalizeSources, NODE_TYPE_LABEL,
 } from './constants';
 import type { BaselineDetail, NodeOut, NodeType, LogOut, EventOut, BaselineUpdate } from './types';
 import { NodeEditorModal } from './components/NodeEditorModal';
@@ -288,6 +288,26 @@ const NodesTab: React.FC<{ baselineId: number; detail: BaselineDetail }> = ({ ba
     return leaves;
   }, [selectedId, nodes, leafKw, leafPriority, leafKey, isLeafSelected]);
 
+  const getNodePath = useCallback((nodeId: number): NodeOut[] => {
+    const path: NodeOut[] = [];
+    let current: NodeOut | undefined = nodes.find((n) => n.id === nodeId);
+    while (current) {
+      path.unshift(current);
+      const pid = current.parent_id;
+      if (pid == null) break;
+      current = nodes.find((n) => n.id === pid);
+    }
+    return path;
+  }, [nodes]);
+
+  const toggleRow = (id: number) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   const renderTree = (n: NodeOut | typeof virtualRoot, depth: number, isRoot: boolean): React.ReactNode => {
     if (!nodeMatches(n, isRoot)) return null;
     const kids = isRoot ? childrenOf(ROOT_ID) : childrenOf((n as NodeOut).id);
@@ -348,25 +368,6 @@ const NodesTab: React.FC<{ baselineId: number; detail: BaselineDetail }> = ({ ba
     return '新增检查项';
   };
 
-  const leafColumns: DataTableColumn<NodeOut>[] = [
-    { key: 'code', header: '编码', render: (n) => <span className="font-mono text-theme-text-secondary">{n.code || '—'}</span> },
-    { key: 'name', header: '名称', render: (n) => <span className="text-theme-text-primary font-medium">{n.name}</span> },
-    { key: 'name_en', header: '英文名', render: (n) => <span className="text-theme-text-muted text-xs">{n.name_en || '—'}</span> },
-    { key: 'priority', header: '优先级', render: (n) => <PriorityBadge priority={n.priority} /> },
-    { key: 'key', header: '核心能力', render: (n) => n.is_key_ability ? <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/20">是</Badge> : <span className="text-xs text-theme-text-faint">否</span> },
-    { key: 'sources', header: '来源数', render: (n) => <span className="text-theme-text-secondary tabular-nums">{normalizeSources(n.sources).length}</span> },
-    {
-      key: 'actions', header: '操作', align: 'right',
-      render: (n) => (
-        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-          <button className="btn-ghost p-1.5 rounded hover:bg-theme-elevated text-theme-text-faint hover:text-brand-primary" title="查看" onClick={() => setModalState({ open: true, mode: 'view', node: n, parent: null })}><FileText size={14} /></button>
-          <button className="btn-ghost p-1.5 rounded hover:bg-theme-elevated text-theme-text-faint hover:text-brand-primary" title="编辑" onClick={() => setModalState({ open: true, mode: 'edit', node: n, parent: null })}><Pencil size={14} /></button>
-          <button className="btn-ghost p-1.5 rounded hover:bg-theme-elevated text-state-danger" title="删除" onClick={() => handleDeleteNode(n)}><Trash2 size={14} /></button>
-        </div>
-      ),
-    },
-  ];
-
   return (
     <div className="flex gap-4" style={{ maxHeight: 'calc(100vh - 220px)' }}>
       <div className="w-72 shrink-0 rounded-xl border border-theme-border bg-theme-surface flex flex-col">
@@ -404,14 +405,56 @@ const NodesTab: React.FC<{ baselineId: number; detail: BaselineDetail }> = ({ ba
               <select value={leafKey} onChange={(e) => setLeafKey(e.target.value)} className="form-select text-xs w-auto py-1"><option value="all">全部能力</option><option value="yes">核心能力项</option><option value="no">非核心能力项</option></select>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-              <DataTable
-                columns={leafColumns}
-                data={filteredLeaves}
-                rowKey={(n) => String(n.id)}
-                showRowNumber={false}
-                minWidth={720}
-                empty={<EmptyState variant="inline" title="无匹配的检查项" />}
-              />
+              {filteredLeaves.length === 0 ? (
+                <div className="px-6 py-12"><EmptyState variant="inline" title="无匹配的检查项" /></div>
+              ) : (
+                <table className="w-full text-left text-sm text-theme-text-secondary" style={{ minWidth: 720 }}>
+                  <thead className="border-b border-theme-border bg-theme-elevated text-xs font-bold uppercase tracking-[0.18em] text-theme-text-faint">
+                    <tr>
+                      <th className="px-4 py-3 whitespace-nowrap">编码</th>
+                      <th className="px-4 py-3">名称</th>
+                      <th className="px-4 py-3">英文名</th>
+                      <th className="px-4 py-3 whitespace-nowrap">优先级</th>
+                      <th className="px-4 py-3 whitespace-nowrap">核心能力</th>
+                      <th className="px-4 py-3 text-right whitespace-nowrap">来源数</th>
+                      <th className="px-4 py-3 text-right whitespace-nowrap">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody className="[&_td]:align-middle">
+                    {filteredLeaves.map((n) => {
+                      const expanded = expandedRows.has(n.id);
+                      return (
+                        <Fragment key={n.id}>
+                          <tr className="group transition-colors hover:bg-theme-elevated cursor-pointer" onClick={() => toggleRow(n.id)}>
+                            <td className="border-b border-theme-border px-4 py-3"><span className="font-mono text-theme-text-secondary">{n.code || '—'}</span></td>
+                            <td className="border-b border-theme-border px-4 py-3"><span className="text-theme-text-primary font-medium">{n.name}</span></td>
+                            <td className="border-b border-theme-border px-4 py-3"><span className="text-theme-text-muted text-xs">{n.name_en || '—'}</span></td>
+                            <td className="border-b border-theme-border px-4 py-3"><PriorityBadge priority={n.priority} /></td>
+                            <td className="border-b border-theme-border px-4 py-3">{n.is_key_ability ? <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/20">是</Badge> : <span className="text-xs text-theme-text-faint">否</span>}</td>
+                            <td className="border-b border-theme-border px-4 py-3 text-right tabular-nums text-theme-text-secondary">{normalizeSources(n.sources).length}</td>
+                            <td className="border-b border-theme-border px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-end gap-1">
+                                <button className="btn-ghost p-1.5 rounded hover:bg-theme-elevated text-theme-text-faint hover:text-brand-primary" title={expanded ? '收起' : '展开'} onClick={() => toggleRow(n.id)}>
+                                  {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                </button>
+                                <button className="btn-ghost p-1.5 rounded hover:bg-theme-elevated text-theme-text-faint hover:text-brand-primary" title="编辑" onClick={() => setModalState({ open: true, mode: 'edit', node: n, parent: null })}><Pencil size={14} /></button>
+                                <button className="btn-ghost p-1.5 rounded hover:bg-theme-elevated text-state-danger" title="删除" onClick={() => handleDeleteNode(n)}><Trash2 size={14} /></button>
+                              </div>
+                            </td>
+                          </tr>
+                          {expanded && (
+                            <tr>
+                              <td colSpan={7} className="border-b border-theme-border bg-theme-elevated p-4">
+                                <LeafReadonlyDetail node={n} path={getNodePath(n.id)} />
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
             </div>
           </>
         )}
@@ -426,6 +469,54 @@ const NodesTab: React.FC<{ baselineId: number; detail: BaselineDetail }> = ({ ba
         onClose={() => setModalState((s) => ({ ...s, open: false }))}
         onSaved={fetchNodes}
       />
+    </div>
+  );
+};
+
+// 行内只读详情(展开行)
+const LeafReadonlyDetail: React.FC<{ node: NodeOut; path: NodeOut[] }> = ({ node, path }) => {
+  const srcList = normalizeSources(node.sources);
+  const inline = (label: string, value: React.ReactNode, mono?: boolean) => (
+    <div>
+      <span className="text-theme-text-faint">{label}:</span>{' '}
+      <span className={`text-theme-text-secondary ${mono ? 'font-mono' : ''}`}>{value || '—'}</span>
+    </div>
+  );
+  return (
+    <div className="space-y-3">
+      <div className="text-xs text-theme-text-faint">{path.map((n) => n.name).join(' / ')}</div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+        {inline('编码', node.code, true)}
+        {inline('排序', node.sort_order, true)}
+        {inline('优先级', node.priority ? PRIORITY_MAP[node.priority]?.label : '—')}
+        {inline('核心能力', node.is_key_ability ? '是' : '否')}
+      </div>
+      {node.description && (
+        <div>
+          <div className="text-xs text-theme-text-faint mb-1">描述</div>
+          <div className="text-xs text-theme-text-secondary leading-relaxed">{node.description}</div>
+        </div>
+      )}
+      {node.verification && (
+        <div>
+          <div className="text-xs text-theme-text-faint mb-1">验证方法</div>
+          <div className="text-xs text-theme-text-secondary leading-relaxed">{node.verification}</div>
+        </div>
+      )}
+      <div>
+        <div className="text-xs text-theme-text-faint mb-1">来源文档 ({srcList.length})</div>
+        {srcList.length > 0 ? (
+          <div className="space-y-1">
+            {srcList.map((s, i) => (
+              <div key={i} className="text-xs">
+                <span className="font-mono text-theme-text-faint w-6 inline-block">{i + 1}</span>
+                <span className="text-theme-text-secondary">{s.document}</span>
+                {s.section && <span className="text-theme-text-faint font-mono ml-2">{s.section}</span>}
+              </div>
+            ))}
+          </div>
+        ) : <div className="text-xs text-theme-text-faint">无来源文档</div>}
+      </div>
     </div>
   );
 };

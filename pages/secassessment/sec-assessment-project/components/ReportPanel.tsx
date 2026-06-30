@@ -1,13 +1,18 @@
 import React from 'react';
-import { Download, Printer, Info, FileText } from 'lucide-react';
-import type { ProjectDetail } from '../types';
-import { PROJECT_STATUS_MAP, fmtTime, fmtPercent } from '../constants';
+import { Download, Printer } from 'lucide-react';
+import type { ProjectDetail, ExecutionResult, BaselineTreeResponse } from '../types';
+import {
+  PROJECT_STATUS_MAP, fmtTime, fmtPercent, countByResult, buildItemTree, findItemNode,
+  ExecResultBadge,
+} from '../constants';
 
 interface ReportPanelProps {
   detail: ProjectDetail;
+  executions: ExecutionResult[];
+  tree: BaselineTreeResponse | null;
 }
 
-export const ReportPanel: React.FC<ReportPanelProps> = ({ detail }) => {
+export const ReportPanel: React.FC<ReportPanelProps> = ({ detail, executions, tree }) => {
   const rate = detail.compliance_rate != null ? Number(detail.compliance_rate) : null;
   const total = detail.total_items ?? 0;
   const finish = detail.finish_count ?? 0;
@@ -86,35 +91,67 @@ export const ReportPanel: React.FC<ReportPanelProps> = ({ detail }) => {
 
           {/* 章节3 图表 */}
           <Section title="三、图表">
-            <div className="flex items-center justify-around py-4">
+            <div className="flex items-start justify-around py-4 gap-4 flex-wrap">
               <ComplianceGauge rate={rate} />
-            </div>
-            <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 mt-2">
-              <Info size={14} className="text-amber-400 mt-0.5 shrink-0" />
-              <span className="text-xs text-theme-text-secondary">
-                结论分布环形图与按一级维度分组堆叠图需逐项 execution 数据(后端待补充 GET /api/projects/{detail.id}/executions 端点)。
-              </span>
+              {executions.length > 0 && <ResultDonut counts={countByResult(executions)} total={executions.length} />}
             </div>
           </Section>
 
           {/* 章节4 基线项执行详情 */}
           <Section title="四、基线项执行详情">
-            <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
-              <FileText size={14} className="text-amber-400 mt-0.5 shrink-0" />
-              <span className="text-xs text-theme-text-secondary">
-                逐项评估结果(结论/置信/摘要/证据/反证/差距)需后端补充 GET /api/projects/{detail.id}/executions 端点后展示。
-              </span>
-            </div>
+            {executions.length === 0 ? (
+              <div className="text-sm text-theme-text-faint">暂无评估结果数据</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-xs border border-theme-border">
+                  <thead>
+                    <tr className="bg-theme-elevated text-theme-text-faint">
+                      <th className="px-2 py-1.5 text-left border-b border-theme-border">编码</th>
+                      <th className="px-2 py-1.5 text-left border-b border-theme-border">名称</th>
+                      <th className="px-2 py-1.5 text-left border-b border-theme-border">结论</th>
+                      <th className="px-2 py-1.5 text-left border-b border-theme-border">置信</th>
+                      <th className="px-2 py-1.5 text-left border-b border-theme-border">摘要</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {executions.map((e) => {
+                      const node = tree ? findItemNode(buildItemTree(tree.nodes), e.item_node_id) : null;
+                      return (
+                        <tr key={e.id} className="border-b border-theme-border-subtle">
+                          <td className="px-2 py-1.5 font-mono text-theme-text-faint">{e.item_code || '—'}</td>
+                          <td className="px-2 py-1.5 text-theme-text-primary">{node?.name || '—'}</td>
+                          <td className="px-2 py-1.5"><ExecResultBadge result={e.execute_result as any} /></td>
+                          <td className="px-2 py-1.5 text-theme-text-secondary">{e.confidence || '—'}</td>
+                          <td className="px-2 py-1.5 text-theme-text-secondary max-w-xs truncate">{e.summary || '—'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </Section>
 
           {/* 章节5 总体结论 */}
           <Section title="五、总体结论与改进建议">
             <div className="text-sm text-theme-text-secondary leading-relaxed">{conclusion}</div>
-            {rate != null && rate < 80 && (
-              <div className="mt-3 text-xs text-theme-text-muted">
-                改进建议:FAIL/PARTIAL 项的 recommendation 详情需逐项 execution 数据,待后端补端点后补充编号清单。
-              </div>
-            )}
+            {executions.length > 0 && (() => {
+              const failItems = executions.filter((e) => e.execute_result === 'FAIL' || e.execute_result === 'PARTIAL');
+              if (failItems.length === 0) return null;
+              return (
+                <div className="mt-3">
+                  <div className="text-xs font-medium text-theme-text-primary mb-1">改进建议清单({failItems.length} 项 FAIL/PARTIAL):</div>
+                  <ol className="list-decimal ml-5 space-y-1">
+                    {failItems.map((e, i) => (
+                      <li key={e.id} className="text-xs text-theme-text-secondary">
+                        <span className="font-mono text-theme-text-faint">[{e.item_code || e.item_node_id}]</span>{' '}
+                        {e.recommendation || e.summary || '—'}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              );
+            })()}
           </Section>
         </div>
       </div>
@@ -158,6 +195,57 @@ const ComplianceGauge: React.FC<{ rate: number | null }> = ({ rate }) => {
         <text x="80" y="80" textAnchor="middle" className="fill-theme-text-primary" style={{ fontSize: 22, fontWeight: 700 }}>{pct.toFixed(1)}%</text>
       </svg>
       <div className="text-xs text-theme-text-faint mt-1">合规率</div>
+    </div>
+  );
+};
+
+export const ResultDonut: React.FC<{ counts: Record<string, number>; total: number }> = ({ counts, total }) => {
+  const segments = [
+    { key: 'PASS', color: '#34d399' },
+    { key: 'PARTIAL', color: '#fbbf24' },
+    { key: 'FAIL', color: '#fb7185' },
+    { key: 'N_A', color: '#38bdf8' },
+    { key: 'MANUAL_REVIEW', color: '#a78bfa' },
+  ];
+  const r = 50;
+  const cx = 60;
+  const cy = 60;
+  let acc = 0;
+  return (
+    <div className="flex flex-col items-center">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--color-elevated, #2a2f3a)" strokeWidth="14" />
+        {total > 0 && segments.map((s) => {
+          const val = counts[s.key] || 0;
+          if (val === 0) return null;
+          const frac = val / total;
+          const dash = frac * 2 * Math.PI * r;
+          const seg = (
+            <circle
+              key={s.key}
+              cx={cx} cy={cy} r={r}
+              fill="none"
+              stroke={s.color}
+              strokeWidth="14"
+              strokeDasharray={`${dash} ${2 * Math.PI * r - dash}`}
+              strokeDashoffset={-acc * 2 * Math.PI * r}
+              transform={`rotate(-90 ${cx} ${cy})`}
+            />
+          );
+          acc += frac;
+          return seg;
+        })}
+        <text x={cx} y={cy + 5} textAnchor="middle" className="fill-theme-text-primary" style={{ fontSize: 18, fontWeight: 700 }}>{total}</text>
+      </svg>
+      <div className="text-xs text-theme-text-faint mt-1">结论分布</div>
+      <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
+        {segments.map((s) => (
+          <span key={s.key} className="flex items-center gap-1 text-[10px] text-theme-text-muted">
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+            {s.key} {counts[s.key] || 0}
+          </span>
+        ))}
+      </div>
     </div>
   );
 };
