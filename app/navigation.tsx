@@ -449,7 +449,7 @@ export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | nul
     case 'project-mgmt-nav': return 'project-mgmt';
     case 'test-task': return 'task-list';
     case 'vuln-center': return 'vuln-list';
-    case 'assets-center': return 'project-mgmt';
+    case 'assets-center': return 'test-input-root';
     case 'asset-supply': return 'public-resource-pvc-management';
     case 'alert-center': return 'vuln-intake';
     case 'sec-assessment': return 'sec-assessment-project-list';
