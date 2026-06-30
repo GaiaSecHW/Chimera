@@ -1122,15 +1122,15 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: Secu
               ) : null}
 
             <div className="overflow-hidden bg-theme-surface">
-              <div className={`hidden border-b border-theme-border bg-theme-elevated/80 px-4 py-3 text-xs font-medium text-theme-text-muted lg:grid ${devMode ? 'lg:grid-cols-[32px_minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px]' : 'lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px]'} lg:gap-4`}>
+              <div className={`hidden border-b border-theme-border bg-theme-elevated/80 px-4 py-3 text-xs font-medium text-theme-text-muted lg:grid ${devMode ? 'lg:grid-cols-[32px_minmax(260px,1.45fr)_112px_minmax(180px,1fr)_80px]' : 'lg:grid-cols-[minmax(260px,1.45fr)_112px_minmax(180px,1fr)_80px]'} lg:gap-5`}>
                 {devMode ? (
                   <label className="flex items-center justify-center" title="选择当前页任务">
                     <input type="checkbox" checked={allVisibleTasksSelected} disabled={!visibleTaskIds.length} onChange={toggleAllVisibleSelections} className="h-4 w-4 rounded border-theme-border bg-theme-surface" />
                   </label>
                 ) : null}
-                <div>漏洞标题 / ID</div>
+                <div className="lg:pr-3">漏洞标题 / ID</div>
                 <div className="lg:pl-2">验证结果</div>
-                <div className="lg:pl-5">判定依据</div>
+                <div className="lg:pl-1">判定依据</div>
                 <div className="text-center">耗时</div>
               </div>
               <div className="divide-y divide-theme-border">
@@ -1152,7 +1152,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: Secu
                           void loadDetail(task.id);
                         }
                       }}
-                      className={`group relative grid w-full cursor-pointer gap-2 px-4 py-4 text-left transition-colors hover:bg-[var(--color-signal-blue-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-signal-blue-border)] ${devMode ? 'lg:grid-cols-[32px_minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px]' : 'lg:grid-cols-[minmax(240px,1.55fr)_128px_minmax(160px,0.9fr)_80px]'} lg:items-center lg:gap-4 ${isSel ? 'bg-[var(--color-signal-blue-bg)]' : ''}`.trim()}
+                      className={`group relative grid w-full cursor-pointer gap-2 px-4 py-4 text-left transition-colors hover:bg-[var(--color-signal-blue-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-signal-blue-border)] ${devMode ? 'lg:grid-cols-[32px_minmax(260px,1.45fr)_112px_minmax(180px,1fr)_80px]' : 'lg:grid-cols-[minmax(260px,1.45fr)_112px_minmax(180px,1fr)_80px]'} lg:items-center lg:gap-5 ${isSel ? 'bg-[var(--color-signal-blue-bg)]' : ''}`.trim()}
                     >
                       <span aria-hidden="true" className={`absolute bottom-0 left-0 top-0 w-1 bg-[var(--color-signal-blue)] transition-opacity ${isSel ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
                       {devMode ? (
@@ -1166,14 +1166,14 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: Secu
                           />
                         </label>
                       ) : null}
-                      <div className="min-w-0">
+                      <div className="min-w-0 lg:pr-3">
                         <div className="truncate text-sm font-normal text-theme-text-primary" title={task.name}>{task.name}</div>
                         <div className="mt-1 font-mono text-xs text-theme-text-faint">{task.vuln_id || task.case_id || '-'}</div>
                       </div>
                       <div className="flex items-center lg:pl-2">
                         <TaskOutcomeInline status={task.status} verdict={task.verdict} />
                       </div>
-                      <div className="min-w-0 lg:flex lg:items-center lg:pl-5">
+                      <div className="min-w-0 lg:flex lg:items-center lg:pl-1">
                         <div className="mb-1 text-xs font-medium text-theme-text-muted lg:hidden">判定依据</div>
                         <TaskDecisionEvidence task={task} />
                       </div>
