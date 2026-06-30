@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ExternalLink, Wrench } from 'lucide-react';
 import { secoctoClients } from '../../clients/secocto';
+import { getAuthHeaders } from '../../clients/base';
 import type {
   SecOctoTask,
   SecOctoVulnFinding,
@@ -42,6 +43,42 @@ const toPathOnlyUrl = (raw?: string): string | undefined => {
     return `${u.pathname}${u.search}${u.hash}`;
   } catch {
     return raw.startsWith('/') ? raw : `/${raw}`;
+  }
+};
+
+const openProtectedArtifact = async (url: string) => {
+  const popup = window.open('about:blank', '_blank');
+  if (popup) popup.opener = null;
+
+  try {
+    const res = await fetch(url, {
+      headers: { ...getAuthHeaders(), Accept: '*/*' },
+      cache: 'no-store',
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    if (popup) {
+      popup.location.href = objectUrl;
+    } else {
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+  } catch (e: any) {
+    const message = `加载失败：${e?.message || String(e)}`;
+    if (popup) {
+      popup.document.title = '加载失败';
+      popup.document.body.textContent = message;
+    } else {
+      window.alert(message);
+    }
   }
 };
 
@@ -767,18 +804,18 @@ const ScoreQuadrant: React.FC<{
       <div>创建 {fmtTimeCompact(p.createdAt)} · 耗时 {p.duration}</div>
       <div>
         {p.traceUrl && p.traceUrl !== '#' ? (
-          <a href={p.traceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-brand-primary hover:underline">
+          <button type="button" onClick={() => openProtectedArtifact(p.traceUrl!)} className="inline-flex items-center gap-1 text-brand-primary hover:underline">
             查看执行日志 <ExternalLink size={10} />
-          </a>
+          </button>
         ) : (
           <span>执行日志暂未关联</span>
         )}
       </div>
       <div>
         {p.bundleUrl && p.bundleUrl !== '#' ? (
-          <a href={p.bundleUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-brand-primary hover:underline">
+          <button type="button" onClick={() => openProtectedArtifact(p.bundleUrl!)} className="inline-flex items-center gap-1 text-brand-primary hover:underline">
             查看任务上下文 <ExternalLink size={10} />
-          </a>
+          </button>
         ) : (
           <span>任务上下文暂未关联</span>
         )}
