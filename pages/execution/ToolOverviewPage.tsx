@@ -853,10 +853,10 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
         </div>
       ) : null}
 
-      {/* 微服务工具卡片 */}
+      {/* 工具卡片 */}
       <section style={{ marginTop: '32px', borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '24px' }}>
         <div className="mb-5">
-          <h2 className="text-lg font-semibold text-theme-text-primary">微服务工具</h2>
+          <h2 className="text-lg font-semibold text-theme-text-primary">工具</h2>
           <p className="mt-1 text-sm text-theme-text-secondary">点击卡片在下方嵌入查看工具页面，支持返回工具总览。</p>
         </div>
         {overviewLoading ? (
@@ -889,12 +889,18 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
                     <Icon size={19} />
                   </div>
                   <h3 className="truncate text-lg font-semibold text-theme-text-primary">{tool.name}</h3>
+                  <span className="ml-auto shrink-0 rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[11px] font-medium text-theme-text-secondary">{tool.kind === 'microservice' ? '微服务' : 'Agent'}</span>
                 </div>
                 <p className="mt-3 text-sm leading-relaxed text-theme-text-secondary line-clamp-2">{summary}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {tags.map((tag) => (
                     <span key={tag} className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-medium text-theme-text-secondary">{tag}</span>
                   ))}
+                </div>
+                <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-theme-border pt-3 text-[11px] text-theme-text-muted">
+                  <span>{tool.submitted_by_name || '-'}</span>
+                  <span aria-hidden className="text-theme-text-faint">·</span>
+                  <span>{formatTime(tool.created_at)}</span>
                 </div>
               </button>
             );

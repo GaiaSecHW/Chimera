@@ -22,6 +22,7 @@ export interface ToolListItem {
   is_builtin: boolean;
   input_types?: ToolInputType[];
   submitted_by?: string;
+  submitted_by_name?: string;
   view_id?: string;
   icon?: string;
   menu_group?: string;
@@ -29,6 +30,7 @@ export interface ToolListItem {
   catalog?: Record<string, unknown> | null;
   current_version?: string;
   health_status?: ToolHealthStatus;
+  created_at?: string;
   updated_at?: string;
 }
 
@@ -77,6 +79,7 @@ export interface ToolResponse {
   is_builtin: boolean;
   input_types?: ToolInputType[];
   submitted_by?: string;
+  submitted_by_name?: string;
   reviewed_by?: string;
   review_note?: string;
   reviewed_at?: string;
