@@ -387,15 +387,17 @@ export const KnowledgeGraphPanel: React.FC<KnowledgeGraphPanelProps> = ({
         {/* ② 入口分析 */}
         <StageCard
           label="入口分析"
-          done={attackDone}
+          done={attackDone || attackRecoverable}
           badge={
             attackStatus === 'running' ? (
               <Pill tone={toneProgress}>
                 <Loader2 size={12} className="animate-spin" /> 识别中
               </Pill>
             ) : attackRecoverable ? (
-              <Pill tone={toneWarn} title="上次自动识别报错,以下为当前图中最新结果">
-                结果可用（上次识别报错）
+              // 后端 attack_status 仍为 failed(reconciler 据此自动重跑剩余识别),但图中
+              // 已有可用入口 → 视觉判完成(绿),提示词如实说「部分识别完成」,不误导成全绿。
+              <Pill tone={toneSuccess} title="攻击入口部分识别完成:上次自动识别报错,图中已有可用入口,系统将自动重试剩余识别">
+                攻击入口部分识别完成
               </Pill>
             ) : attackStatus === 'failed' ? (
               <Pill tone={toneFail}>识别失败</Pill>

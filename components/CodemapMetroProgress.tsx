@@ -53,6 +53,9 @@ function deriveStages(status: CodemapTaskStatus | null): StageState[] {
   // 会被抢成 building_attack_surface)。优先信任它,与详情页 KnowledgeGraphPanel 同口径。
   // SS3: ok→done 改名,两者都认(过渡兼容)。
   else if (attack === 'done' || attack === 'ok') st2 = 'done';
+  // 部分识别完成:attack 报失败但图中已有入口(entries>0)。结果可用 → 视觉判完成,
+  // 后端仍 failed(reconciler 据此自动重跑),仅 tooltip 文案区分(见组件 stageLabel)。
+  else if (attack === 'failed' && (status.attack?.entries ?? 0) > 0) st2 = 'done';
   else if (attack === 'failed') st2 = 'failed';
   else if (attack === 'running' || s === 'building_attack_surface') st2 = 'active';
   else st2 = 'pending';
@@ -102,7 +105,13 @@ const Node: React.FC<{ state: StageState }> = ({ state }) => {
 
 export const CodemapMetroProgress: React.FC<{ status: CodemapTaskStatus | null }> = ({ status }) => {
   const stages = deriveStages(status);
-  const tip = `知识图谱构建进度 — ${STAGES.map((l, i) => `${l}:${STATE_TEXT[stages[i]]}`).join(' · ')}`;
+  // 入口段「部分识别完成」:attack 报失败但图中已有入口。st2 已判 done(绿勾),这里
+  // 让 tooltip 文案如实区分,不写成纯「已完成」。
+  const attackPartial =
+    status?.attack?.status === 'failed' && (status?.attack?.entries ?? 0) > 0;
+  const stageLabel = (i: number): string =>
+    i === 1 && attackPartial && stages[1] === 'done' ? '部分识别完成' : STATE_TEXT[stages[i]];
+  const tip = `知识图谱构建进度 — ${STAGES.map((l, i) => `${l}:${stageLabel(i)}`).join(' · ')}`;
   const lineCls = (done: boolean) =>
     `h-0.5 flex-1 rounded-full ${done ? 'bg-emerald-400/70' : 'bg-theme-border'}`;
   // 每段一等宽列:圆点与标签各自在列内居中 → 上下必然左右对齐。连线拆成左右两
