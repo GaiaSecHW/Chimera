@@ -1,14 +1,24 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ArrowLeft,
   Bot,
   Box,
+  Boxes,
   Edit2,
   ExternalLink,
+  FileCode2,
+  GitBranch,
   Globe,
   Loader2,
   Lock,
+  LucideIcon,
+  Network,
   Plus,
   RefreshCw,
+  Settings,
+  Shield,
+  ShieldCheck,
+  Smartphone,
   Trash2,
   Upload,
   X,
@@ -22,6 +32,8 @@ import { PageHeader } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { aigwApi } from '../../clients/aigw';
 import type { AiGatewayModelAlias, UserInfo, ViewType } from '../../types/types';
+import { toolRegistryApi } from '../../clients/toolRegistry';
+import type { ToolResponse } from '../../clients/toolRegistry';
 
 const LK = {
   primary: '#2563EB', primarySoft: '#7590ff', primaryDeep: 'var(--brand-primary-hover)',
@@ -35,6 +47,13 @@ const LK = {
   critical: '#ff4d4f', high: '#ff8b3d', medium: '#f0b64c', low: '#49c5ff',
 } as const;
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
+const ICON_LOOKUP: Record<string, LucideIcon> = {
+  shield: Shield, filecode2: FileCode2, boxes: Boxes, smartphone: Smartphone,
+  network: Network, gitbranch: GitBranch, shieldcheck: ShieldCheck,
+  bot: Bot, box: Box, globe: Globe, settings: Settings,
+};
+const lookupIcon = (name: string): LucideIcon => ICON_LOOKUP[name.toLowerCase()] ?? Settings;
 
 interface ToolOverviewPageProps {
   projectId: string;
@@ -607,6 +626,9 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedAppId, setSelectedAppId] = useState('');
   const [expandedHarness, setExpandedHarness] = useState('');
+  const [activeTool, setActiveTool] = useState<ToolResponse | null>(null);
+  const [overviewTools, setOverviewTools] = useState<ToolResponse[]>([]);
+  const [overviewLoading, setOverviewLoading] = useState(false);
   const [harnessBranches, setHarnessBranches] = useState<Record<string, Array<{ name: string; commit: Record<string, unknown>; protected: boolean }>>>({});
   const [pipelineApp, setPipelineApp] = useState<AgentApp | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -664,6 +686,21 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
     void refreshApps();
     void refreshModelAliases();
   }, [effectiveUser?.department_id]);
+
+  useEffect(() => {
+    const fetchOverview = async () => {
+      setOverviewLoading(true);
+      try {
+        const result = await toolRegistryApi.listOverview();
+        setOverviewTools(Array.isArray(result?.items) ? result.items : []);
+      } catch {
+        setOverviewTools([]);
+      } finally {
+        setOverviewLoading(false);
+      }
+    };
+    void fetchOverview();
+  }, []);
 
   useEffect(() => {
     if (!selectedApp && !createOpen && !pipelineApp) return undefined;
@@ -772,15 +809,43 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
     { icon: <Lock size={12} />, value: formatDate(app.updatedAt), label:"更新时间", color:"text-theme-text-secondary", show: true },
   ];
 
+  // 微服务工具卡片点击后进入嵌入视图：iframe 加载工具页面，返回按钮回到卡片列表。
+  // SPA 路由类工具用 ?tool_embed=1#/{viewId} 以无外壳模式加载同站页面；
+  // 外部微服务（如黑板）直接用 embedUrl 指定的路径。
+  if (activeTool) {
+    const detail = activeTool.microservice ?? activeTool.agent;
+    const viewId = detail?.view_id ?? '';
+    const embedUrl = viewId ? `?tool_embed=1#/${viewId}` : '';
+    const ToolIcon = lookupIcon(detail?.icon ?? '');
+    return (
+      <div className="absolute inset-0 flex flex-col bg-theme-app">
+        <div className="flex items-center gap-3 border-b border-theme-border bg-theme-surface px-4 py-3">
+          <button
+            type="button"
+            onClick={() => setActiveTool(null)}
+            className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm font-medium text-theme-text-secondary transition hover:bg-theme-elevated"
+          >
+            <ArrowLeft size={16} />
+            返回工具总览
+          </button>
+          <div className="flex items-center gap-2">
+            <ToolIcon size={18} className="text-theme-text-secondary" />
+            <span className="text-sm font-semibold text-theme-text-primary">{activeTool.name}</span>
+          </div>
+        </div>
+        <iframe
+          src={embedUrl}
+          title={activeTool.name}
+          className="min-h-0 flex-1 w-full border-none bg-theme-surface"
+        />
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: '32px 32px 40px' }}>
       {feedbackNodes}
       <PageHeader title="工具总览" description="统一管理 Agent 市场、AgentHarness 仓库、运行指标和平台内置扫描工具入口。" />
-
-      <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, 1fr)' }}>
-        <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '20px' }}><div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.muted }}>Agent</div><div style={{ marginTop: '8px', fontSize: '30px', fontWeight: 600, color: LK.ink }}>{apps.length}</div></div>
-        <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '20px' }}><div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.muted }}>已选项目</div><div style={{ marginTop: '8px', wordBreak: 'break-all', fontSize: '14px', fontWeight: 600, color: LK.inkSoft }}>{projectId || '未选择项目'}</div></div>
-      </div>
 
       {message ? (
         <div style={{ marginTop: '20px', borderRadius: '12px', border: `1px solid ${message.type === 'success' ? LK.success : LK.error}`, backgroundColor: message.type === 'success' ? LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '69, 192, 111') : LK.primaryMuted.replace('0.14', '0.08').replace('79, 115, 255', '241, 93, 93'), padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: message.type === 'success' ? LK.success : LK.error }}>
@@ -788,77 +853,59 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
         </div>
       ) : null}
 
+      {/* 工具卡片 */}
       <section style={{ marginTop: '32px', borderRadius: '24px', border: `1px solid ${LK.border}`, backgroundColor: LK.surface, padding: '24px' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
-          <div>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <button type="button" onClick={() => void handleRefresh()} disabled={refreshing} className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-4 py-3 text-sm font-medium text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-60">
-              <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
-              刷新
-            </button>
-            {isAdmin ? (
-              <button type="button" onClick={() => void handleSync()} disabled={syncing} className="inline-flex items-center gap-2 rounded-lg border border-teal-500/20 bg-teal-500/15 px-4 py-3 text-sm font-medium text-teal-400 transition hover:bg-teal-500/15 disabled:opacity-60">
-                {syncing ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-                同步仓库
-              </button>
-            ) : null}
-            <button type="button" onClick={() => setCreateOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700">
-              <Plus size={16} />
-              创建新工具
-            </button>
-          </div>
+        <div className="mb-5">
+          <h2 className="text-lg font-semibold text-theme-text-primary">工具</h2>
+          <p className="mt-1 text-sm text-theme-text-secondary">点击卡片在下方嵌入查看工具页面，支持返回工具总览。</p>
         </div>
-
-        {loading ? (
-          <div className="mt-6 flex items-center justify-center rounded-2xl border border-theme-border bg-theme-surface px-4 py-12 text-sm font-semibold text-theme-text-muted" aria-busy="true">
-            <Loader2 size={18} className="mr-2 animate-spin" />
-            正在加载 Agent 列表
+        {overviewLoading ? (
+          <div className="flex items-center justify-center rounded-xl border border-theme-border bg-theme-surface px-4 py-10 text-sm text-theme-text-muted">
+            <Loader2 size={16} className="mr-2 animate-spin" /> 正在加载工具列表…
           </div>
-        ) : apps.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center">
-            <Box className="mx-auto text-theme-text-muted" size={34} />
-            <h3 className="mt-3 text-base font-semibold text-theme-text-primary">暂无 Agent</h3>
-            <p className="mt-2 text-sm text-theme-text-muted">点击右上角创建新工具，或检查后端 Agent 管理服务是否已接入。</p>
+        ) : overviewTools.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-theme-border bg-theme-surface px-6 py-10 text-center">
+            <Box className="mx-auto text-theme-text-muted" size={28} />
+            <h3 className="mt-2 text-sm font-semibold text-theme-text-primary">暂无已上线工具</h3>
+            <p className="mt-1 text-xs text-theme-text-muted">工具注册并审核通过后，将在此处展示。</p>
           </div>
         ) : (
-          <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-3">
-            {apps.map((app) => (
- <article key={app.id} className="group flex flex-col overflow-hidden rounded-xl border border-theme-border bg-theme-surface transition hover:-translate-y-0.5 hover:border-cyan-500/20 hover:">
-                <div className="flex items-start gap-3 p-5 pb-4">
- <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${engineTone(app.engine)} text-white`}><Bot size={19} /></div>
-                  <button type="button" onClick={() => setSelectedAppId(app.id)} className="min-w-0 flex-1 text-left">
-                    <h3 className="truncate text-lg font-semibold text-theme-text-primary">{app.name}</h3>
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <span className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-medium text-theme-text-secondary">{engineLabel(app.engine)}</span>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-bold text-theme-text-muted">{app.isPublic ? <Globe size={11} className="text-emerald-400" /> : <Lock size={11} />}{app.isPublic ? '公开' :`私有 · ${effectiveUser?.department_name ||`部门${app.departmentId ?? ''}`}`}</span>
-                    </div>
-                  </button>
-                  <div className="flex shrink-0 items-center gap-1">
-                    {app.engine === 'agentflow' ? <button type="button" onClick={() => setPipelineApp(app)} className="rounded-xl p-2 text-theme-text-muted transition hover:bg-cyan-500/15 hover:text-cyan-400" title="查看流程"><ExternalLink size={15} /></button> : null}
-                    <button type="button" onClick={() => setSelectedAppId(app.id)} className="rounded-xl p-2 text-theme-text-muted transition hover:bg-theme-elevated hover:text-theme-text-primary" title="编辑"><Edit2 size={15} /></button>
-                    <button type="button" onClick={() => void handleDelete(app)} disabled={deletingId === app.id} className="rounded-xl p-2 text-theme-text-muted transition hover:bg-rose-500/15 hover:text-rose-400 disabled:opacity-50" title="删除">{deletingId === app.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}</button>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-3">
+          {overviewTools.map((tool) => {
+            const detail = tool.microservice ?? tool.agent;
+            const Icon = lookupIcon(detail?.icon ?? '');
+            const catalog = detail?.catalog as { summary?: string; tags?: string[] } | null | undefined;
+            const summary = catalog?.summary ?? tool.description ?? '';
+            const tags = catalog?.tags ?? [];
+            return (
+              <button
+                key={tool.id}
+                type="button"
+                onClick={() => setActiveTool(tool)}
+                className="group flex flex-col rounded-xl border border-theme-border bg-theme-surface p-5 text-left transition hover:-translate-y-0.5 hover:border-cyan-500/20"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
+                    <Icon size={19} />
                   </div>
+                  <h3 className="truncate text-lg font-semibold text-theme-text-primary">{tool.name}</h3>
+                  <span className="ml-auto shrink-0 rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[11px] font-medium text-theme-text-secondary">{tool.kind === 'microservice' ? '微服务' : 'Agent'}</span>
                 </div>
-
-                <div className="mx-5 border-t border-theme-border" />
-                <div className="grid grid-cols-3 gap-2 p-5 py-4">
-                  {visibleMetrics(app).map(({ icon, value, label, color }) => (
-                    <div key={label} className="flex flex-col items-center rounded-2xl bg-theme-surface px-2 py-3 text-center">
-                      <span className={color}>{icon}</span>
-                      <span className="mt-1 text-sm font-semibold leading-tight text-theme-text-primary">{value}</span>
-                      <span className="mt-0.5 text-[10px] font-bold text-theme-text-muted">{label}</span>
-                    </div>
+                <p className="mt-3 text-sm leading-relaxed text-theme-text-secondary line-clamp-2">{summary}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {tags.map((tag) => (
+                    <span key={tag} className="rounded-full border border-theme-border bg-theme-elevated px-2.5 py-1 text-[11px] font-medium text-theme-text-secondary">{tag}</span>
                   ))}
                 </div>
-
-                <div className="mx-5 border-t border-theme-border" />
-                <div className="flex items-center justify-between gap-3 px-5 py-4 text-xs font-semibold text-theme-text-muted">
-                  <span className="truncate">开发者：{user?.username || '-'}</span>
+                <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-theme-border pt-3 text-[11px] text-theme-text-muted">
+                  <span>{tool.submitted_by_name || '-'}</span>
+                  <span aria-hidden className="text-theme-text-faint">·</span>
+                  <span>{formatTime(tool.created_at)}</span>
                 </div>
-              </article>
-            ))}
-          </div>
+              </button>
+            );
+          })}
+        </div>
         )}
       </section>
 
