@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Bot,
@@ -613,6 +614,116 @@ const AgentAppModal: React.FC<AgentAppModalProps> = ({ mode, app, saving, depart
   );
 };
 
+const INPUT_TYPE_LABELS: Record<string, string> = {
+  document: '文档',
+  code: '代码',
+  package: '包',
+  other: '其他',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  draft: '草稿',
+  pending: '待审核',
+  online: '已上线',
+  offline: '已下架',
+};
+
+const DetailRow: React.FC<{ label: string; value?: string | null; mono?: boolean }> = ({ label, value, mono }) => (
+  <div>
+    <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-theme-text-faint">{label}</div>
+    <div className={`mt-1 text-sm text-theme-text-primary ${mono ? 'font-mono break-all' : 'break-words'}`}>{value || '-'}</div>
+  </div>
+);
+
+interface AgentDetailPanelProps {
+  tool: ToolResponse;
+  modelAliases: AiGatewayModelAlias[];
+  onBack: () => void;
+}
+
+const AgentDetailPanel: React.FC<AgentDetailPanelProps> = ({ tool, modelAliases, onBack }) => {
+  const agent = tool.agent;
+  const ToolIcon = lookupIcon(agent?.icon ?? '');
+  const modelName = agent?.model_alias_id != null
+    ? (modelAliases.find((m) => m.id === agent.model_alias_id)?.alias_name ?? String(agent.model_alias_id))
+    : '-';
+
+  return (
+    <div className="absolute inset-0 flex flex-col bg-theme-app">
+      <div className="flex items-center gap-3 border-b border-theme-border bg-theme-surface px-4 py-3">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm font-medium text-theme-text-secondary transition hover:bg-theme-elevated"
+        >
+          <ArrowLeft size={16} />
+          返回工具总览
+        </button>
+        <div className="flex items-center gap-2">
+          <ToolIcon size={18} className="text-theme-text-secondary" />
+          <span className="text-sm font-semibold text-theme-text-primary">{tool.name}</span>
+          <span className="ml-1 rounded-full border border-theme-border bg-theme-elevated px-2 py-0.5 text-[11px] font-medium text-theme-text-secondary">Agent</span>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-5 md:p-6 2xl:p-8">
+        <div className="mx-auto max-w-4xl space-y-5">
+          <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
+            <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+              <DetailRow label="工具 ID" value={tool.id} mono />
+              <DetailRow label="状态" value={STATUS_LABELS[tool.status] ?? tool.status} />
+              <DetailRow label="健康" value={tool.health_status ?? 'unknown'} />
+              <DetailRow label="输入类型" value={(tool.input_types ?? []).map((t) => INPUT_TYPE_LABELS[t] ?? t).join('、')} />
+              <DetailRow label="版本" value={agent?.current_version ?? '-'} />
+              <DetailRow label="提交人" value={tool.submitted_by_name ?? '-'} />
+              <DetailRow label="创建时间" value={formatTime(tool.created_at)} />
+              <DetailRow label="更新时间" value={formatTime(tool.updated_at)} />
+            </div>
+            {tool.description ? (
+              <div className="mt-3 border-t border-theme-border pt-3">
+                <DetailRow label="说明" value={tool.description} />
+              </div>
+            ) : null}
+          </div>
+          {agent ? (
+            <div className="rounded-xl border border-theme-border bg-theme-surface p-5">
+              <div className="mb-3 text-sm font-semibold text-theme-text-primary">Agent 详情</div>
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+                <DetailRow label="使用引擎" value={engineLabel(agent.engine ?? '')} />
+                <DetailRow label="默认 Agent" value={agent.default_agent_name ?? '-'} mono />
+                <DetailRow label="启动命令" value={agent.start_command ?? '-'} mono />
+                <DetailRow label="是否公开" value={agent.is_public ? '是' : '否'} />
+                <DetailRow label="模型" value={modelName} mono />
+                <DetailRow label="菜单/路由标识" value={agent.view_id ?? '-'} mono />
+                <div className="md:col-span-2">
+                  <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-theme-text-faint">harness gitea 仓库</div>
+                  {agent.agent_harness_gitea_url ? (
+                    <a
+                      href={agent.agent_harness_gitea_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-1 inline-flex items-center gap-1 break-all font-mono text-sm text-theme-text-primary underline decoration-dotted hover:text-theme-text-secondary"
+                    >
+                      {agent.agent_harness_gitea_url}
+                      <ExternalLink size={13} />
+                    </a>
+                  ) : (
+                    <div className="mt-1 font-mono text-sm text-theme-text-primary">-</div>
+                  )}
+                </div>
+              </div>
+              {agent.input_requirements ? (
+                <div className="mt-3 border-t border-theme-border pt-3">
+                  <DetailRow label="Agent 说明" value={agent.input_requirements} />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, user, onNavigate }) => {
   const [apps, setApps] = useState<AgentApp[]>([]);
   const [modelAliases, setModelAliases] = useState<AiGatewayModelAlias[]>([]);
@@ -634,6 +745,12 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   const [isAdmin, setIsAdmin] = useState(false);
   const effectiveUser = useMemo(() => user || getLocalUserInfo(), [user]);
   const { confirm, feedbackNodes } = useUiFeedback();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeToolIdParam = searchParams.get('tool') ?? '';
+  const activeAgentTool = useMemo(
+    () => (activeToolIdParam ? overviewTools.find((t) => t.id === activeToolIdParam && t.kind === 'agent') ?? null : null),
+    [overviewTools, activeToolIdParam],
+  );
 
   const selectedApp = useMemo(
     () => apps.find((item) => item.id === selectedAppId) || null,
@@ -812,6 +929,19 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   // 微服务工具卡片点击后进入嵌入视图：iframe 加载工具页面，返回按钮回到卡片列表。
   // SPA 路由类工具用 ?tool_embed=1#/{viewId} 以无外壳模式加载同站页面；
   // 外部微服务（如黑板）直接用 embedUrl 指定的路径。
+  if (activeAgentTool) {
+    return (
+      <AgentDetailPanel
+        tool={activeAgentTool}
+        modelAliases={modelAliases}
+        onBack={() => {
+          const next = new URLSearchParams(searchParams);
+          next.delete('tool');
+          setSearchParams(next);
+        }}
+      />
+    );
+  }
   if (activeTool) {
     const detail = activeTool.microservice ?? activeTool.agent;
     const viewId = detail?.view_id ?? '';
@@ -881,7 +1011,13 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
               <button
                 key={tool.id}
                 type="button"
-                onClick={() => setActiveTool(tool)}
+                onClick={() => {
+                  if (tool.kind === 'agent') {
+                    setSearchParams({ tool: tool.id });
+                  } else {
+                    setActiveTool(tool);
+                  }
+                }}
                 className="group flex flex-col rounded-xl border border-theme-border bg-theme-surface p-5 text-left transition hover:-translate-y-0.5 hover:border-cyan-500/20"
               >
                 <div className="flex items-center gap-3">
