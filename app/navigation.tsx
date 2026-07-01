@@ -30,6 +30,7 @@ import {
   Network,
   Package,
   Play,
+  Plus,
   ServerCog,
   Settings,
   Shield,
@@ -51,6 +52,7 @@ export type NavRole = 'user' | 'developer' | 'admin' | null;
 
 export type TopLevelNavKey =
   | 'home'
+  | 'project-mgmt-nav'
   | 'test-task'
   | 'vuln-center'
   | 'assets-center'
@@ -115,6 +117,7 @@ export const NAV_ROLE_CONFIG: Record<string, { label: string; color: string; act
 
 export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
   { id: 'home', label: '首页', role: null },
+  { id: 'project-mgmt-nav', label: '项目管理', role: null },
   { id: 'test-task', label: '测试任务', role: null },
   { id: 'vuln-center', label: '漏洞中心', role: null },
   { id: 'assets-center', label: '资产管理', role: null },
@@ -407,7 +410,8 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (view === 'vuln-intake' || view === 'vuln-overview' || view === 'vuln-engine') return 'alert-center';
   if (view.startsWith('sec-assessment-') || view.startsWith('sec-baseline-')) return 'sec-assessment';
   if (view === 'vuln-engine' || view.startsWith('vuln-')) return 'vuln-center';
-  if (view === 'project-mgmt' || view === 'project-detail' || view === 'product-mgmt') return 'assets-center';
+  if (view === 'project-mgmt' || view === 'project-detail') return 'project-mgmt-nav';
+  if (view === 'product-mgmt') return 'assets-center';
   if (view.startsWith('test-input-')) return 'assets-center';
   if (view === 'env-access' || view === 'env-management' || view.startsWith('env-')) return 'assets-center';
   if (
@@ -443,9 +447,10 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
 export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | null): string => {
   switch (nav) {
     case 'home': return 'home';
+    case 'project-mgmt-nav': return 'project-mgmt';
     case 'test-task': return 'task-list';
     case 'vuln-center': return 'vuln-list';
-    case 'assets-center': return 'project-mgmt';
+    case 'assets-center': return 'test-input-root';
     case 'asset-supply': return 'public-resource-pvc-management';
     case 'alert-center': return 'vuln-intake';
     case 'sec-assessment': return 'sec-assessment-project-list';
@@ -483,6 +488,14 @@ const PLATFORM_ACCOUNT_ORG_SECTIONS: NavSection[] = [
 
 export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
   home: [],
+  'project-mgmt-nav': [
+    {
+      title: '项目管理',
+      items: [
+        { id: 'project-mgmt', label: '项目概览', icon: Briefcase, aliases: ['project-detail'] },
+      ],
+    },
+  ],
   'test-task': [
     {
       title: '测试任务',
@@ -558,14 +571,17 @@ export const SIDEBAR_SECTIONS: Record<string, NavSection[]> = {
       title: '开发者工具',
       items: [
         { id: 'developer-tools-overview', label: '工具总览', icon: Settings, requiresProject: true, aliases: ['developer-tools'] },
-        { id: 'binary-security', label: '盖亚-二进制固件', icon: Settings, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
-        { id: 'source-security', label: '盖亚-源码', icon: Settings, aliases: ['source-security-detail'], requiresProject: true },
-        { id: 'kg-source-security', label: '知识图谱-源码漏洞挖掘', icon: Settings, aliases: ['kg-source-security-detail'], requiresProject: true },
-        { id: 'cfg-db-vuln-tool', label: '知识图谱-源码（CFG+DFG）', icon: GitBranch, aliases: ['cfg-db-vuln-detail'], requiresProject: true },
-        { id: 'binary-module-security', label: '盖亚-二进制模块', icon: Settings, aliases: ['binary-module-security-detail'], requiresProject: true },
-        { id: 'app-security-scan', label: 'turing 扫描工具', icon: Smartphone, aliases: ['app-security-scan-detail', 'app-security-scan-monitor'], requiresProject: true },
-        { id: 'redline-verification', label: '红线验证', icon: ShieldCheck, aliases: ['redline-verification-detail'], requiresProject: true },
-        { id: 'cairn-blackboard', label: '黑板', icon: Network },
+        { id: 'tool-registration', label: '工具注册', icon: Plus },
+        // 以下微服务工具入口已迁移至「工具总览」页面的微服务工具卡片，
+        // 点击卡片在 iframe 中嵌入查看，不再占用左侧菜单。
+        // { id: 'binary-security', label: '盖亚-二进制固件', icon: Settings, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
+        // { id: 'source-security', label: '盖亚-源码', icon: Settings, aliases: ['source-security-detail'], requiresProject: true },
+        // { id: 'kg-source-security', label: '知识图谱-源码漏洞挖掘', icon: Settings, aliases: ['kg-source-security-detail'], requiresProject: true },
+        // { id: 'cfg-db-vuln-tool', label: '知识图谱-源码（CFG+DFG）', icon: GitBranch, aliases: ['cfg-db-vuln-detail'], requiresProject: true },
+        // { id: 'binary-module-security', label: '盖亚-二进制模块', icon: Settings, aliases: ['binary-module-security-detail'], requiresProject: true },
+        // { id: 'app-security-scan', label: 'turing 扫描工具', icon: Smartphone, aliases: ['app-security-scan-detail', 'app-security-scan-monitor'], requiresProject: true },
+        // { id: 'redline-verification', label: '红线验证', icon: ShieldCheck, aliases: ['redline-verification-detail'], requiresProject: true },
+        // { id: 'cairn-blackboard', label: '黑板', icon: Network },
       ],
     },
   ],
@@ -729,14 +745,6 @@ export const getSystemAdminSidebarSections = (currentView: string): NavSection[]
 };
 
 const ASSETS_CENTER_SIDEBAR_MAP: Record<string, NavSection[]> = {
-  projectMgmt: [
-    {
-      title: '项目管理',
-      items: [
-        { id: 'project-mgmt', label: '项目管理', icon: Briefcase, aliases: ['project-detail'], healthKey: 'projectHealth' },
-      ],
-    },
-  ],
   testObject: [
     {
       title: '测试对象',
@@ -767,19 +775,17 @@ const ASSETS_CENTER_SIDEBAR_MAP: Record<string, NavSection[]> = {
   ],
 };
 
-export type AssetsCenterChildKey = 'projectMgmt' | 'testObject' | 'testEnv';
+export type AssetsCenterChildKey = 'testObject' | 'testEnv';
 
 export const ASSETS_CENTER_CHILDREN: { key: AssetsCenterChildKey; label: string; defaultView: string }[] = [
-  { key: 'projectMgmt', label: '项目管理', defaultView: 'project-mgmt' },
   { key: 'testObject', label: '测试对象', defaultView: 'test-input-root' },
   { key: 'testEnv', label: '测试环境', defaultView: 'env-access' },
 ];
 
 export const getAssetsCenterActiveChild = (currentView: string): AssetsCenterChildKey => {
-  if (currentView === 'project-mgmt' || currentView === 'project-detail' || currentView === 'product-mgmt') return 'projectMgmt';
   if (currentView.startsWith('test-input-')) return 'testObject';
   if (currentView === 'env-access' || currentView === 'env-management') return 'testEnv';
-  return 'projectMgmt';
+  return 'testObject';
 };
 
 export const getAssetsCenterSidebarSections = (currentView: string): NavSection[] => {

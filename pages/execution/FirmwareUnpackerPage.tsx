@@ -4110,7 +4110,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       <PageHeader
         title={showingDetail ? '固件解包 · 任务详情' : '固件解包 · 任务列表'}
         description={!showingDetail && hasRunning ? '有任务运行中，每5秒自动刷新' : undefined}
-        actions={<button onClick={handlePageRefresh} className="inline-flex items-center gap-1.5 rounded-lg bg-theme-surface px-3 py-1.5 text-xs font-semibold text-white">{showingDetail ? <><RefreshCw size={12} /> 刷新详情</> : <><RefreshCw size={12} /> 刷新列表</>}</button>}
+        actions={<button onClick={handlePageRefresh} className="btn-secondary inline-flex items-center gap-1">{showingDetail ? <><RefreshCw size={16} /> 刷新详情</> : <><RefreshCw size={12} /> 刷新列表</>}</button>}
       />
 
       {showingDetail ? (
@@ -4182,14 +4182,14 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
             <div className="flex items-center gap-2">
               <button
                 onClick={() => fetchTasks(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated"
+                className="btn-secondary inline-flex items-center gap-1"
               >
                 <RefreshCw size={12} /> 刷新列表
               </button>
               <button
                 onClick={openCreateModal}
                 disabled={!projectId || isAllProjectsScope}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-theme-surface px-3 py-1.5 text-xs font-semibold text-white hover:bg-theme-elevated disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="btn-primary inline-flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Plus size={13} /> 新建任务
               </button>

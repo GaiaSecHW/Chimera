@@ -768,28 +768,28 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
         actions={<div className="flex items-center gap-3">
           <button
             onClick={() => void handleRefresh()}
-            className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-medium text-theme-text-secondary"
+            className="btn-secondary inline-flex items-center gap-1"
           >
             {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
             刷新
           </button>
           <button
             onClick={handleCreateNew}
-            className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-3 text-sm font-medium text-white"
+            className="btn-secondary inline-flex items-center gap-1"
           >
             <Plus size={16} />
             新建 Provider
           </button>
           <button
             onClick={onOpenChat}
-            className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-medium text-theme-text-secondary"
+            className="btn-secondary inline-flex items-center gap-1"
           >
             <MessageSquare size={16} />
             在线聊天
           </button>
           <button
             onClick={() => setShowUsageGuide(true)}
-            className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-medium text-theme-text-secondary"
+            className="btn-secondary inline-flex items-center gap-1"
           >
             <BookOpenText size={16} />
             使用指引

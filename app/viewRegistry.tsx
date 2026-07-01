@@ -91,6 +91,7 @@ import { MobileSecurityIpcVulnPage } from '../pages/execution/MobileSecurityIpcV
 import { KernelScanPage } from '../pages/execution/KernelScanPage';
 import { AtomicCapabilityOverviewPage } from '../pages/execution/AtomicCapabilityOverviewPage';
 import { ToolOverviewPage } from '../pages/execution/ToolOverviewPage';
+import { ToolRegistrationPage } from '../pages/execution/ToolRegistrationPage';
 import { VulnOverviewPage } from '../pages/vuln/VulnOverviewPage';
 import { VulnIntakePage } from '../pages/vuln/VulnIntakePage';
 import { AlertCenterPage } from '../pages/vuln/AlertCenterPage';
@@ -285,6 +286,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return (
         <ProjectMgmtPage
           projects={ctx.projects}
+          selectedProjectId={ctx.selectedProjectId}
           setSelectedProjectId={ctx.setSelectedProjectId}
           setActiveProjectId={ctx.setActiveProjectId}
           setCurrentView={ctx.setCurrentView}
@@ -315,6 +317,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'developer-tools':
     case 'developer-tools-overview':
       return <ToolOverviewPage projectId={ctx.selectedProjectId} user={ctx.user} onNavigate={ctx.setCurrentView} />;
+    case 'tool-registration':
+      return <ToolRegistrationPage user={ctx.user} />;
     case 'cairn-blackboard':
       return <BlackboardPage />;
     case 'static-packages':

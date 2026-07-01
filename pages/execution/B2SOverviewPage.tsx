@@ -549,7 +549,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
               type="button"
               onClick={openCreateDialog}
               disabled={!projectId || isAllProjectsScope}
-              className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated"
+              className="btn btn-primary gap-1"
             >
               <Plus size={16} />
               创建任务
@@ -560,7 +560,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 void load(false);
                 void loadPiClusterCapacity();
               }}
-              className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated"
+              className="btn-secondary inline-flex items-center gap-1"
             >
               {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               {refreshing ? '刷新中...' : '刷新'}

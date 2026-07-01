@@ -1,4 +1,4 @@
-import { API_BASE, getHeaders, handleResponse } from './base';
+import { API_BASE, getAuthHeaders, getHeaders, handleResponse } from './base';
 
 // Tool Registry API client.
 // Spec: see doc/API-AgentApps.md / 工具注册中心 接口文档.
@@ -68,6 +68,7 @@ export interface ToolAgentDetail {
   order?: number;
   catalog?: Record<string, unknown> | null;
   current_version?: string;
+  model_alias_id?: number | null;
 }
 
 export interface ToolResponse {
@@ -81,6 +82,7 @@ export interface ToolResponse {
   submitted_by?: string;
   submitted_by_name?: string;
   reviewed_by?: string;
+  reviewed_by_name?: string;
   review_note?: string;
   reviewed_at?: string;
   created_at?: string;
@@ -88,6 +90,37 @@ export interface ToolResponse {
   microservice?: ToolMicroserviceDetail | null;
   agent?: ToolAgentDetail | null;
   health_status?: ToolHealthStatus;
+}
+
+/* 任务创建-agent harness 信息（kind=agent 时随 TaskCreateToolMenuItem 返回） */
+export interface TaskCreateToolAgentInfo {
+  agent_app_id: string;
+  engine?: string;
+  default_agent_name?: string;
+  model_alias_id?: number | null;
+  agent_harness_path?: string | null;
+  agent_harness_repo_name?: string | null;
+  agent_harness_gitea_url?: string | null;
+  start_command?: string | null;
+}
+
+/* 任务创建-工具列表项（GET /api/tools/task-create-menu） */
+export interface TaskCreateToolMenuItem {
+  id: string;
+  name: string;
+  description?: string | null;
+  kind: ToolKind;
+  task_type: string;          // = 工具 id，供调度中心建任务时作为任务类型标识
+  input_types: ToolInputType[];
+  icon?: string;
+  order?: number;
+  health_status?: ToolHealthStatus;
+  agent?: TaskCreateToolAgentInfo | null;  // kind=agent 时返回，microservice 为 null
+}
+
+export interface TaskCreateToolMenuResponse {
+  total: number;
+  items: TaskCreateToolMenuItem[];
 }
 
 export interface ProbeTestResponse {
@@ -144,6 +177,7 @@ export interface ToolCreateAgent {
   menu_group?: string;
   order?: number;
   current_version?: string;
+  model_alias_id?: number;
 }
 
 export interface ToolCreate {
@@ -162,6 +196,34 @@ export interface ToolUpdate {
   input_types?: ToolInputType[];
   microservice?: Partial<ToolCreateMicroservice>;
   agent?: Partial<ToolCreateAgent>;
+}
+
+// 创建工具参数（multipart/form-data，对齐后端 POST /api/tools 的 Form 字段）
+export interface ToolCreateAgentParams {
+  engine: string;
+  default_agent_name: string;
+  start_command?: string;
+  input_requirements?: string;
+  is_public: boolean;
+  model_alias_id?: string;
+}
+
+export interface ToolCreateParams {
+  id: string;
+  name: string;
+  description?: string;
+  kind: ToolKind;
+  input_types?: ToolInputType[];
+  view_id?: string;
+  icon?: string;
+  menu_group?: string;
+  order?: number;
+  catalog?: Record<string, unknown>;
+  current_version?: string;
+  microservice?: ToolCreateMicroservice;
+  agent?: ToolCreateAgentParams;
+  agent_harness_file?: File | null;
+  agent_harness_file_type?: string;
 }
 
 export interface ProbeTestRequest {
@@ -209,6 +271,9 @@ export const toolRegistryApi = {
   listMenu: async (group?: string): Promise<ListResponse<ToolListItem>> =>
     getJson(`/menu${buildQuery(group ? { group } : undefined)}`),
 
+  // 任务中心-创建任务工具列表（仅 online，全量返回，按 menu_group+order 排序）
+  taskCreateMenu: async (): Promise<TaskCreateToolMenuResponse> => getJson('/task-create-menu'),
+
   listMine: async (params?: { status?: ToolStatus; kind?: ToolKind; page?: number; page_size?: number }): Promise<PaginatedListResponse<ToolListItem>> =>
     getJson(`/my${buildQuery(params as Record<string, string | number | undefined | null>)}`),
 
@@ -225,8 +290,41 @@ export const toolRegistryApi = {
   // 四、探活连通性调试
   probeTest: async (payload: ProbeTestRequest): Promise<ProbeTestResponse> => postJson('/probe-test', payload),
 
-  // 五、注册工具
-  create: async (payload: ToolCreate): Promise<ToolResponse> => postJson('', payload),
+  // 五、注册工具（multipart/form-data：microservice 用 JSON 字段，agent 带 Harness 文件）
+  create: async (params: ToolCreateParams): Promise<ToolResponse> => {
+    const form = new FormData();
+    form.append('kind', params.kind);
+    form.append('id', params.id);
+    form.append('name', params.name);
+    if (params.description) form.append('description', params.description);
+    if (params.input_types?.length) form.append('input_types', JSON.stringify(params.input_types));
+    if (params.view_id) form.append('view_id', params.view_id);
+    if (params.icon) form.append('icon', params.icon);
+    if (params.menu_group) form.append('menu_group', params.menu_group);
+    if (params.order != null) form.append('order', String(params.order));
+    if (params.catalog) form.append('catalog', JSON.stringify(params.catalog));
+    if (params.current_version) form.append('current_version', params.current_version);
+    if (params.kind === 'microservice' && params.microservice) {
+      form.append('microservice', JSON.stringify(params.microservice));
+    } else if (params.kind === 'agent' && params.agent) {
+      const a = params.agent;
+      form.append('engine', a.engine);
+      form.append('default_agent_name', a.default_agent_name);
+      if (a.start_command) form.append('start_command', a.start_command);
+      if (a.input_requirements) form.append('input_requirements', a.input_requirements);
+      form.append('is_public', String(a.is_public));
+      if (a.model_alias_id) form.append('model_alias_id', a.model_alias_id);
+      if (params.agent_harness_file) {
+        form.append('agent_harness_file', params.agent_harness_file);
+        form.append('agent_harness_file_type', params.agent_harness_file_type || 'archive');
+      }
+    }
+    return handleResponse(await fetch(`${TOOL_REGISTRY_BASE}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: form,
+    })) as Promise<ToolResponse>;
+  },
 
   // 六、改信息
   update: async (id: string, payload: ToolUpdate): Promise<ToolResponse> => putJson(`/${encodeURIComponent(id)}`, payload),

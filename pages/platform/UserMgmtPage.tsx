@@ -1,8 +1,9 @@
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Clock, Download, FileSpreadsheet, Key, Loader2, Plus, RefreshCw, Search, Shield, ShieldCheck, Trash2, Upload, UserCircle, Users } from 'lucide-react';
 import { api } from '../../clients/api';
+import { UserPermissionInfo } from '../../clients/org';
 import { showAlert, showConfirm } from '../../components/DialogService';
-import { UserImportCommitResponse, UserImportPreviewResponse, UserInfo } from '../../types/types';
+import { Department, UserImportCommitResponse, UserImportPreviewResponse, UserInfo } from '../../types/types';
 import { getPlatformRoleLabel } from '../../utils/rbac';
 import { Modal, PageHeader, StatisticCard } from '../../design-system';
 
@@ -26,7 +27,9 @@ export const UserMgmtPage: React.FC = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [importStage, setImportStage] = useState<ImportStage>('upload');
-  const [formData, setFormData] = useState({ username: '', password: '' });
+  const [formData, setFormData] = useState<{ username: string; password: string; department_id?: number }>({ username: '', password: '' });
+  const [permInfo, setPermInfo] = useState<UserPermissionInfo | null>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [resetData, setResetData] = useState({ old_password: '', new_password: '' });
   const [importFileName, setImportFileName] = useState('');
   const [importCsvContent, setImportCsvContent] = useState('');
@@ -42,7 +45,25 @@ export const UserMgmtPage: React.FC = () => {
 
   useEffect(() => {
     void fetchUsers();
+    void fetchScopeData();
   }, []);
+
+  // 拉取当前管理员的权限信息与可归属部门（后端已按子树过滤），用于创建表单的部门选择。
+  const fetchScopeData = async () => {
+    try {
+      const [perm, depts] = await Promise.all([
+        platformApi.org.getUserPermissions(),
+        platformApi.org.listDepartments(),
+      ]);
+      setPermInfo(perm);
+      setDepartments(depts || []);
+    } catch (e) {
+      console.error('加载部门范围信息失败', e);
+    }
+  };
+
+  const isSuperAdmin = permInfo?.platform_role === 'super_admin';
+  const departmentRequired = permInfo != null && !isSuperAdmin;
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -81,9 +102,18 @@ export const UserMgmtPage: React.FC = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (departmentRequired && formData.department_id == null) {
+      await showAlert({ title: '请选择部门', message: '普通管理员创建用户时必须指定所属部门', tone: 'warning' });
+      return;
+    }
     setFormLoading(true);
     try {
-      await platformApi.auth.createUser({ ...formData, role_ids: [] });
+      await platformApi.auth.createUser({
+        username: formData.username,
+        password: formData.password,
+        role_ids: [],
+        ...(formData.department_id != null ? { department_id: formData.department_id } : {}),
+      });
       setIsCreateModalOpen(false);
       setFormData({ username: '', password: '' });
       await fetchUsers();
@@ -522,6 +552,28 @@ placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
+              </div>
+              <div className="space-y-1.5">
+                <label className="form-label">
+                  所属部门 {departmentRequired && <span className="required"> *</span>}
+                </label>
+                <select
+                  className="form-input w-full"
+                  required={departmentRequired}
+                  value={formData.department_id ?? ''}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    department_id: e.target.value ? Number(e.target.value) : undefined,
+                  })}
+                >
+                  <option value="">{isSuperAdmin ? '不归属部门（可选）' : '请选择部门'}</option>
+                  {departments.map((dept) => (
+                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                  ))}
+                </select>
+                {departmentRequired && (
+                  <p className="text-[10px] text-theme-text-muted mt-1">仅可选择您管理的部门及其下级；新用户将以普通成员身份加入。</p>
+                )}
               </div>
  <button disabled={formLoading} className="btn-primary btn-lg btn-block flex items-center justify-center gap-3">
                 {formLoading ? <Loader2 className="animate-spin" size={20} /> : <UserCircle size={20} />}

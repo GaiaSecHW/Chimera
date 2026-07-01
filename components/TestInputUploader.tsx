@@ -1,10 +1,10 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { UploadCloud, X } from 'lucide-react';
 import { DropdownSelect } from '../design-system';
 import { formatUploadBytes, isAllowedArchiveFileName } from '../pages/assets/baseResourcePageModel';
 import { createTrackedProjectInputUpload } from '../services/projectInputUploadWorkflows';
 
-type InputType = 'document' | 'code' | 'software' | 'other';
+export type InputType = 'document' | 'code' | 'software' | 'other';
 
 const INPUT_TYPE_META: Record<InputType, { label: string }> = {
   document: { label: '文档' },
@@ -39,6 +39,8 @@ export interface TestInputUploaderProps {
   defaultInputType?: InputType;
   defaultKeepOriginal?: boolean;
   onUploadStateChange?: (uploading: boolean) => void;
+  /** 当提供时，输入类型下拉仅展示该范围内的选项（用于按工具 input_types 收窄）。 */
+  allowedInputTypes?: InputType[];
 }
 
 const formatSpeed = (value?: number | null) => {
@@ -55,13 +57,27 @@ const formatSpeed = (value?: number | null) => {
 };
 
 export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUploaderProps>(
-  ({ projectId, displayName, compact = false, hideUploadIcon = false, defaultInputType = 'document', defaultKeepOriginal = false, onUploadStateChange }, ref) => {
+  ({ projectId, displayName, compact = false, hideUploadIcon = false, defaultInputType = 'document', defaultKeepOriginal = false, onUploadStateChange, allowedInputTypes }, ref) => {
     const [inputType, setInputType] = useState<InputType>(defaultInputType);
     const [keepOriginal, setKeepOriginal] = useState(defaultKeepOriginal);
     useEffect(() => { setKeepOriginal(defaultKeepOriginal); }, [defaultKeepOriginal]);
     const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
+
+    /* 输入类型可选范围：未提供 allowedInputTypes 时展示全部。 */
+    const visibleInputTypes = useMemo(
+      () => (allowedInputTypes && allowedInputTypes.length > 0
+        ? INPUT_TYPE_ORDER.filter((t) => allowedInputTypes.includes(t))
+        : INPUT_TYPE_ORDER),
+      [allowedInputTypes],
+    );
+    /* 当可选范围变化且当前选择不在范围内时，回退到第一个可选项。 */
+    useEffect(() => {
+      if (visibleInputTypes.length > 0 && !visibleInputTypes.includes(inputType)) {
+        setInputType(visibleInputTypes[0]);
+      }
+    }, [visibleInputTypes, inputType]);
 
     const addFilesToQueue = (files: FileList | null) => {
       if (!files) return;
@@ -169,7 +185,7 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
               <DropdownSelect
                 value={inputType}
                 onChange={(v) => setInputType(v as InputType)}
-                options={INPUT_TYPE_ORDER.map((type) => ({ value: type, label: INPUT_TYPE_META[type].label }))}
+                options={visibleInputTypes.map((type) => ({ value: type, label: INPUT_TYPE_META[type].label }))}
               />
             </div>
             <label className="flex items-center gap-2 whitespace-nowrap text-sm font-medium text-theme-text-secondary">
