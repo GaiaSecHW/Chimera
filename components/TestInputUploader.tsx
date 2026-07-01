@@ -1,8 +1,8 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { UploadCloud, X } from 'lucide-react';
-import { api } from '../clients/api';
 import { DropdownSelect } from '../design-system';
 import { formatUploadBytes, isAllowedArchiveFileName } from '../pages/assets/baseResourcePageModel';
+import { createTrackedProjectInputUpload } from '../services/projectInputUploadWorkflows';
 
 type InputType = 'document' | 'code' | 'software' | 'other';
 
@@ -56,7 +56,6 @@ const formatSpeed = (value?: number | null) => {
 
 export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUploaderProps>(
   ({ projectId, displayName, compact = false, hideUploadIcon = false, defaultInputType = 'document', defaultKeepOriginal = false, onUploadStateChange }, ref) => {
-    const fileserverApi = api.domains.assets.fileserver;
     const [inputType, setInputType] = useState<InputType>(defaultInputType);
     const [keepOriginal, setKeepOriginal] = useState(defaultKeepOriginal);
     useEffect(() => { setKeepOriginal(defaultKeepOriginal); }, [defaultKeepOriginal]);
@@ -110,55 +109,33 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
           ),
         );
         try {
-          const result = await fileserverApi.createProjectInputUpload(
-            {
-              project_id: projectId,
-              input_type: inputType,
-              keep_original: keepOriginal,
-              upload_mode: keepOriginal ? 'raw' : 'archive',
-              files: readyFiles,
+          const result = await createTrackedProjectInputUpload({
+            projectId,
+            inputType,
+            keepOriginal,
+            uploadMode: keepOriginal ? 'raw' : 'archive',
+            files: readyFiles,
+            displayName,
+            externalSignal: controller.signal,
+            onProgress: (progress) => {
+              setUploadQueue((current) =>
+                current.map((item) =>
+                  item.status === 'failed'
+                    ? item
+                    : {
+                        ...item,
+                        progress: Math.max(
+                          item.progress,
+                          progress.total_bytes > 0
+                            ? Math.round((progress.loaded_bytes / progress.total_bytes) * 100)
+                            : item.progress,
+                        ),
+                        speedBytesPerSec: progress.speed_bytes_per_sec || 0,
+                      },
+                ),
+              );
             },
-            {
-              signal: controller.signal,
-              onProgress: (progress) => {
-                setUploadQueue((current) =>
-                  current.map((item) =>
-                    item.status === 'failed'
-                      ? item
-                      : {
-                          ...item,
-                          progress: Math.max(
-                            item.progress,
-                            progress.total_bytes > 0
-                              ? Math.round((progress.loaded_bytes / progress.total_bytes) * 100)
-                              : item.progress,
-                          ),
-                          speedBytesPerSec: progress.speed_bytes_per_sec || 0,
-                        },
-                  ),
-                );
-              },
-            },
-          );
-          if (result?.upload_id && displayName.trim()) {
-            await fileserverApi.updateProjectInputUploadDisplayName({
-              upload_id: result.upload_id,
-              project_id: projectId,
-              display_name: displayName.trim(),
-            });
-          }
-          // Poll until server finishes processing (extracting/indexing)
-          const uploadId = result.upload_id;
-          if (uploadId) {
-            const maxAttempts = 120;
-            for (let i = 0; i < maxAttempts; i++) {
-              if (controller.signal.aborted) throw new Error('上传已取消');
-              const detail = await fileserverApi.getProjectInputUploadDetail(uploadId);
-              if (detail.status === 'succeeded' || detail.status === 'partial_failed') break;
-              if (detail.status === 'failed') throw new Error(detail.last_error || '服务器处理上传文件失败');
-              await new Promise((r) => setTimeout(r, 2000));
-            }
-          }
+          });
           setUploadQueue((current) =>
             current.map((item) =>
               item.status === 'failed' ? item : { ...item, status: 'completed', progress: 100, speedBytesPerSec: 0 },

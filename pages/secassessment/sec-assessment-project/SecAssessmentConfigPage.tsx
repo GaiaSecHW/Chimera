@@ -118,7 +118,7 @@ export const SecAssessmentConfigPage: React.FC = () => {
             <div className="rounded-xl border border-theme-border bg-theme-surface p-5 space-y-4">
               <div className="flex items-center gap-2 text-sm font-medium text-theme-text-primary"><Settings size={15} /> 执行控制</div>
               <div className="grid grid-cols-2 gap-4">
-                <FormField label="warp 最大重试次数" hint="0-20">
+                <FormField label="tool 最大重试次数" hint="0-20">
                   <input type="number" className="form-input text-sm" value={maxRetry} onChange={(e) => setMaxRetry(Math.max(0, Math.min(20, Number(e.target.value) || 0)))} min={0} max={20} />
                 </FormField>
                 <FormField label="agent 最大执行次数" hint="1-50">
@@ -134,6 +134,13 @@ export const SecAssessmentConfigPage: React.FC = () => {
                       {UNIT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                   </div>
+                </FormField>
+                <FormField label="工具类型">
+                  <select className="form-select text-sm" value={toolType} onChange={(e) => setToolType(e.target.value)}>
+                    <option value="mock_tool">mock_tool</option>
+                    <option value="sec_assessment_stand_alone">sec_assessment_stand_alone</option>
+                    <option value="sec_assessmen_with_kb">sec_assessmen_with_kb</option>
+                  </select>
                 </FormField>
               </div>
             </div>

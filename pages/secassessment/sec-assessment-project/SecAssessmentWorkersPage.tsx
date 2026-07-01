@@ -141,7 +141,7 @@ export const SecAssessmentWorkersPage: React.FC<SecAssessmentWorkersPageProps> =
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
                 <div><span className="text-theme-text-faint">agent 引擎</span><div className="text-theme-text-secondary mt-0.5">{ENGINE_MAP[config.agent_engine_type]?.label || config.agent_engine_type}</div></div>
                 <div><span className="text-theme-text-faint">基线执行并发</span><div className="text-theme-text-secondary mt-0.5 tabular-nums">{config.concurrency}</div></div>
-                <div><span className="text-theme-text-faint">warp 最大重试</span><div className="text-theme-text-secondary mt-0.5 tabular-nums">{config.max_retry}</div></div>
+                <div><span className="text-theme-text-faint">tool 最大重试</span><div className="text-theme-text-secondary mt-0.5 tabular-nums">{config.max_retry}</div></div>
                 <div><span className="text-theme-text-faint">agent 最大执行</span><div className="text-theme-text-secondary mt-0.5 tabular-nums">{config.max_agent_exec_count}</div></div>
                 <div><span className="text-theme-text-faint">最大超时</span><div className="text-theme-text-secondary mt-0.5 tabular-nums">{config.max_timeout_value} {TIMEOUT_UNIT_MAP[config.max_timeout_unit]}</div></div>
               </div>

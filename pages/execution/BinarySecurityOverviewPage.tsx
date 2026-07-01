@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Archive, BarChart3, ChevronRight, Layers3, Loader2, Plus, RefreshCw, Search, Shield, ShieldAlert, Upload } from 'lucide-react';
+import { ChevronRight, Loader2, Plus, RefreshCw, Search, Shield, Upload } from 'lucide-react';
 
-import { BinarySecurityDeleteQueueTaskType, BinarySecurityInputFile, BinarySecurityPipelineMode, BinarySecurityPipelineProfile, BinarySecurityProjectStageAggregate, BinarySecurityProjectStats, BinarySecurityTask, BinarySecurityTaskListScope, BinarySecurityTaskType } from '../../clients/binarySecurity';
+import { BinarySecurityDeleteQueueTaskType, BinarySecurityInputFile, BinarySecurityPipelineMode, BinarySecurityPipelineProfile, BinarySecurityTask, BinarySecurityTaskListScope, BinarySecurityTaskType } from '../../clients/binarySecurity';
 import { fileserverApi } from '../../clients/fileserver';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
@@ -17,6 +17,16 @@ interface Props {
 }
 
 type CreateDialogTab = 'basic' | 'files' | 'strategy' | 'parallelism';
+type CreateDefaults = {
+  stageParallelism: Record<string, number>;
+  maxRetries: number;
+  continueOnFailure: boolean;
+  pipelineMode: BinarySecurityPipelineMode;
+  entrySelectionMode: 'auto' | 'manual_confirm';
+  entryAutoSelectionStrategy: 'all' | 'top_n_per_module_by_confidence';
+  entryAutoSelectionTopN: number;
+  partialSuccessStageAdvancement: Record<string, boolean>;
+};
 
 const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled', 'delete_failed']);
 const BINARY_STAGES = ['firmware_unpack', 'system_analysis', 'binary_to_source', 'entry_analysis', 'dataflow_vuln_scan'];
@@ -210,49 +220,6 @@ const CREATE_DIALOG_TABS: Array<{ key: CreateDialogTab; label: string; hint: str
   { key: 'parallelism', label: '并发控制', hint: '阶段并发与重试' },
 ];
 
-const emptyProjectStats = (): BinarySecurityProjectStats => ({
-  total: 0,
-  running: 0,
-  success: 0,
-  partial_success: 0,
-  failed: 0,
-  cancelled: 0,
-  selected_module_count: 0,
-  candidate_module_count: 0,
-  high_risk_module_count: 0,
-  entry_count: 0,
-  vuln_result_count: 0,
-  input_count: 0,
-  unpacked_firmware_count: 0,
-  failed_firmware_count: 0,
-});
-
-const emptyStageAggregates = (): BinarySecurityProjectStageAggregate[] => [];
-
-const deriveProjectStats = (items: BinarySecurityTask[]): BinarySecurityProjectStats => {
-  const stats = emptyProjectStats();
-  stats.total = items.length;
-  items.forEach((item) => {
-    if (TERMINAL.has(item.status)) {
-      if (item.status === 'success') stats.success += 1;
-      if (item.status === 'partial_success') stats.partial_success += 1;
-      if (item.status === 'failed') stats.failed += 1;
-      if (item.status === 'cancelled') stats.cancelled += 1;
-    } else {
-      stats.running += 1;
-    }
-    stats.selected_module_count += item.selected_module_count || 0;
-    stats.candidate_module_count += item.candidate_module_count || 0;
-    stats.high_risk_module_count += item.high_risk_module_count || 0;
-    stats.entry_count += item.entry_count || 0;
-    stats.vuln_result_count += item.vuln_result_count || 0;
-    stats.input_count += item.firmware_item_count || 0;
-    stats.unpacked_firmware_count += item.unpacked_firmware_count || 0;
-    stats.failed_firmware_count += item.failed_firmware_count || 0;
-  });
-  return stats;
-};
-
 const isDirectoryAlreadyExistsError = (error: any) => {
   const message = String(error?.message || '').toLowerCase();
   const code = String(error?.code || '').toLowerCase();
@@ -264,32 +231,6 @@ const isDirectoryAlreadyExistsError = (error: any) => {
     message.includes('already exists') ||
     message.includes('conflict')
   );
-};
-
-const stageAccent = (stageName: string) => {
-  const map: Record<string, string> = {
-    firmware_unpack: 'border-l-emerald-400',
-    system_analysis: 'border-l-sky-400',
-    binary_to_source: 'border-l-cyan-400',
-    entry_analysis: 'border-l-amber-400',
-    knowledge_graph_entry_fetch: 'border-l-fuchsia-400',
-    dataflow_vuln_scan: 'border-l-rose-400',
-  };
-  return map[stageName] || 'border-l-slate-300';
-};
-
-const dominantStatusLabel = (counts?: Record<string, number>) => {
-  const entries = Object.entries(counts || {}).filter(([, count]) => count > 0);
-  if (entries.length === 0) return '暂无执行';
-  const [status, count] = entries.sort((a, b) => b[1] - a[1])[0];
-  return`${status} ${count}`;
-};
-
-const archiveResultLabel = (archive?: BinarySecurityProjectStageAggregate['archive']) => {
-  const successCount = num(archive?.success_count);
-  const failedCount = num(archive?.failed_count);
-  if (successCount === 0 && failedCount === 0) return '暂无结果';
-  return`成功 ${successCount} · 失败 ${failedCount}`;
 };
 
 const manualOperationBadgeTone = (overall?: string) => {
@@ -314,104 +255,20 @@ const manualOperationBadgeLabel = (overall?: string) => {
   }
 };
 
-const ProjectStatCard: React.FC<{ label: string; value: number; hint: string }> = ({ label, value, hint }) => (
- <div className="rounded-2xl border border-theme-border bg-theme-surface px-4 py-4">
-    <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-theme-text-muted">{label}</div>
-    <div className="mt-2 text-2xl font-bold text-theme-text-primary">{value}</div>
-    <div className="mt-1 text-sm text-theme-text-muted">{hint}</div>
-  </div>
-);
-
-const StageMetricPill: React.FC<{ label: string; value: number; tone?: string }> = ({ label, value, tone = 'text-theme-text-primary' }) => (
-  <div className="flex items-center justify-between gap-2 rounded-xl bg-theme-surface px-3 py-2">
-    <span className="text-xs font-semibold text-theme-text-muted">{label}</span>
-    <span className={`text-sm font-semibold ${tone}`}>{value}</span>
-  </div>
-);
-
-const StageAggregateCard: React.FC<{ aggregate: BinarySecurityProjectStageAggregate }> = ({ aggregate }) => {
-  const business = aggregate.business || {
-    task_count: 0,
-    total_items: 0,
-    success_items: 0,
-    failed_items: 0,
-    skipped_items: 0,
-    running_items: 0,
-    cancelled_items: 0,
-    status_counts: {},
-  };
-  const archive = aggregate.archive || {
-    job_count: 0,
-    success_count: 0,
-    failed_count: 0,
-    running_count: 0,
-    applying_count: 0,
-    pending_count: 0,
-    status_counts: {},
-  };
-  const businessTotal = num(business.total_items);
-  const archiveTotal = num(archive.job_count);
-  const businessRate = percent(num(business.success_items), businessTotal);
-  const hasData = businessTotal > 0 || archiveTotal > 0;
-
-  return (
- <div className={`rounded-2xl border border-l-4 border-theme-border bg-theme-surface p-4 ${stageAccent(aggregate.stage_name)}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold text-theme-text-primary">{formatStageLabel(aggregate.stage_name)}</div>
-          <div className="mt-1 text-xs text-theme-text-muted">业务 {dominantStatusLabel(business.status_counts)} · 归档 {archiveResultLabel(archive)}</div>
-        </div>
-        <span className="rounded-full bg-theme-elevated px-2 py-1 text-[11px] font-medium text-theme-text-muted">#{aggregate.sequence_no}</span>
-      </div>
-
-      <div className="mt-4 space-y-3">
-        <div className="rounded-2xl border border-theme-border bg-theme-surface p-3">
-          <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-theme-text-secondary">
-            <Layers3 size={14} className="text-theme-text-muted" />
-            业务执行
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <StageMetricPill label="任务" value={num(business.task_count)} />
-            <StageMetricPill label="总项" value={businessTotal} />
-            <StageMetricPill label="成功" value={num(business.success_items)} tone="text-emerald-400" />
-            <StageMetricPill label="失败" value={num(business.failed_items)} tone="text-rose-400" />
-            <StageMetricPill label="运行" value={num(business.running_items)} tone="text-blue-400" />
-            <StageMetricPill label="跳过/取消" value={num(business.skipped_items) + num(business.cancelled_items)} tone="text-theme-text-secondary" />
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-theme-border bg-theme-surface p-3">
-          <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-theme-text-secondary">
-            <Archive size={14} className="text-theme-text-muted" />
-            归档结果
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <StageMetricPill label="成功" value={num(archive.success_count)} tone="text-emerald-400" />
-            <StageMetricPill label="失败" value={num(archive.failed_count)} tone="text-rose-400" />
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-3 rounded-xl bg-theme-surface px-3 py-2 text-xs font-bold text-white">
-        {hasData ?`业务成功率 ${businessRate}%` : '暂无执行'}
-      </div>
-    </div>
-  );
-};
-
 export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskType, onOpenTask, sourcePipelineProfileMode = 'select' }) => {
   const executionApi = api.domains.execution;
   const buildVersion = useServiceBuildVersion(executionApi.binarySecurity.getHealth);
-  const fallbackCreateDefaults = useMemo(() => ({
+  const fallbackCreateDefaults = useMemo<CreateDefaults>(() => ({
     stageParallelism: { ...DEFAULT_STAGE_PARALLELISM },
     maxRetries: 2,
     continueOnFailure: true,
     pipelineMode: 'barrier' as BinarySecurityPipelineMode,
+    entrySelectionMode: 'auto' as const,
+    entryAutoSelectionStrategy: 'top_n_per_module_by_confidence' as const,
+    entryAutoSelectionTopN: 20,
     partialSuccessStageAdvancement: { ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT },
   }), []);
   const [items, setItems] = useState<BinarySecurityTask[]>([]);
-  const [projectStats, setProjectStats] = useState<BinarySecurityProjectStats>(() => emptyProjectStats());
-  const [projectStageAggregates, setProjectStageAggregates] = useState<BinarySecurityProjectStageAggregate[]>(() => emptyStageAggregates());
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -423,9 +280,6 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [searchInput, setSearchInput] = useState('');
   const [sortBy, setSortBy] = useState<'created_at' | 'updated_at' | 'started_at' | 'finished_at' | 'status' | 'name'>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [runningCount, setRunningCount] = useState(0);
-  const [queuedCount, setQueuedCount] = useState(0);
-  const [maxConcurrentTasks, setMaxConcurrentTasks] = useState(50);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -464,9 +318,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [partialSuccessStageAdvancement, setPartialSuccessStageAdvancement] = useState<Record<string, boolean>>(
     DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
   );
-  const [stageStatsExpanded, setStageStatsExpanded] = useState(false);
   const [moduleSelectionMode, setModuleSelectionMode] = useState<'auto' | 'manual_confirm'>('auto');
   const [moduleRiskLevels, setModuleRiskLevels] = useState<string[]>(['高']);
+  const [entrySelectionMode, setEntrySelectionMode] = useState<'auto' | 'manual_confirm'>('auto');
   const [entryAutoSelectionStrategy, setEntryAutoSelectionStrategy] = useState<'all' | 'top_n_per_module_by_confidence'>('top_n_per_module_by_confidence');
   const [entryAutoSelectionTopN, setEntryAutoSelectionTopN] = useState(20);
   const [stageParallelism, setStageParallelism] = useState<Record<string, number>>(DEFAULT_STAGE_PARALLELISM);
@@ -541,19 +395,6 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       setItems(nextItems);
       setTotal(data.total || 0);
       setTotalPages(data.total_pages || 1);
-      setProjectStats(
-        isAllProjectsScope
-          ? emptyProjectStats()
-          : (data.project_stats || deriveProjectStats(nextItems))
-      );
-      setProjectStageAggregates(
-        isAllProjectsScope
-          ? emptyStageAggregates()
-          : (Array.isArray(data.project_stage_aggregates) ? data.project_stage_aggregates : emptyStageAggregates())
-      );
-      setRunningCount(data.running_count || 0);
-      setQueuedCount(data.queued_count || 0);
-      setMaxConcurrentTasks(data.max_concurrent_tasks || 50);
     } catch (e: any) {
       if (!mountedRef.current || activeLoadRequestRef.current !== requestId) return;
       setError(e?.message || '加载失败');
@@ -571,18 +412,6 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setRefreshing(true);
     setError(null);
     try {
-      if (isAllProjectsScope) {
-        await load({ silent: true });
-        return;
-      }
-      const activeTaskIds = items
-        .filter((item) => !TERMINAL.has(item.status))
-        .map((item) => item.id);
-      if (activeTaskIds.length > 0) {
-        await Promise.allSettled(
-          activeTaskIds.map((taskId) => executionApi.binarySecurity.syncDownstreamStatus(projectId, taskId, { force: true })),
-        );
-      }
       await load({ silent: true });
     } catch (e: any) {
       setError(e?.message || '刷新失败');
@@ -678,12 +507,6 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setSelectedTaskIds((current) => current.filter((id) => items.some((item) => item.id === id)));
   }, [items]);
 
-  const stats = projectStats;
-  const orderedStageAggregates = useMemo(() => {
-    const byStage = new Map(projectStageAggregates.map((item) => [item.stage_name, item]));
-    return stages.map((stage) => byStage.get(stage)).filter((item): item is BinarySecurityProjectStageAggregate => Boolean(item));
-  }, [projectStageAggregates, stages]);
-
   const totalUploadBytes = useMemo(() => files.reduce((sum, file) => sum + (file.size || 0), 0), [files]);
   const activeUploadSpeed = useMemo(
     () => Object.values(uploadSpeed).reduce((max, current) => Math.max(max, current || 0), 0),
@@ -703,13 +526,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const pageStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const pageEnd = total === 0 ? 0 : Math.min(total, (page - 1) * pageSize + items.length);
 
-  const applyCreateDefaults = (defaults: {
-    stageParallelism: Record<string, number>;
-    maxRetries: number;
-    continueOnFailure: boolean;
-    pipelineMode: BinarySecurityPipelineMode;
-    partialSuccessStageAdvancement: Record<string, boolean>;
-  }) => {
+  const applyCreateDefaults = (defaults: CreateDefaults) => {
     setDefaultStageParallelism({ ...defaults.stageParallelism });
     setDefaultMaxRetries(defaults.maxRetries);
     setDefaultContinueOnFailure(defaults.continueOnFailure);
@@ -717,11 +534,14 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setDefaultPartialSuccessStageAdvancement({ ...defaults.partialSuccessStageAdvancement });
   };
 
-  const resetCreateForm = (defaults = {
+  const resetCreateForm = (defaults: CreateDefaults = {
     stageParallelism: defaultStageParallelism,
     maxRetries: defaultMaxRetries,
     continueOnFailure: defaultContinueOnFailure,
     pipelineMode: defaultPipelineMode,
+    entrySelectionMode: 'auto' as const,
+    entryAutoSelectionStrategy: 'top_n_per_module_by_confidence' as const,
+    entryAutoSelectionTopN: 20,
     partialSuccessStageAdvancement: defaultPartialSuccessStageAdvancement,
   }) => {
     setCreateDialogTab('basic');
@@ -743,8 +563,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     });
     setModuleSelectionMode('auto');
     setModuleRiskLevels(['高']);
-    setEntryAutoSelectionStrategy('top_n_per_module_by_confidence');
-    setEntryAutoSelectionTopN(20);
+    setEntrySelectionMode(defaults.entrySelectionMode);
+    setEntryAutoSelectionStrategy(defaults.entrySelectionMode === 'auto' ? defaults.entryAutoSelectionStrategy : 'all');
+    setEntryAutoSelectionTopN(defaults.entryAutoSelectionTopN);
     setSourcePipelineProfile(sourcePipelineProfileMode === 'kg_source_vuln_scan' ? 'kg_source_vuln_scan' : 'default');
     setStageParallelism({
       ...defaults.stageParallelism,
@@ -752,7 +573,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setCreateError(null);
   };
 
-  const loadCreateDefaults = async () => {
+  const loadCreateDefaults = async (): Promise<CreateDefaults> => {
     if (!projectId) {
       return fallbackCreateDefaults;
     }
@@ -765,6 +586,11 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       maxRetries: projectConfig.config.max_retries_per_item ?? 2,
       continueOnFailure: projectConfig.config.continue_on_item_failure ?? true,
       pipelineMode: (projectConfig.config.pipeline_mode === 'mixed_streaming' ? 'mixed_streaming' : 'barrier') as BinarySecurityPipelineMode,
+      entrySelectionMode: String(projectConfig.config.entry_selection_mode || 'auto') === 'manual_confirm' ? 'manual_confirm' : 'auto',
+      entryAutoSelectionStrategy: String(projectConfig.config.entry_auto_selection_strategy || 'top_n_per_module_by_confidence') === 'all'
+        ? 'all'
+        : 'top_n_per_module_by_confidence',
+      entryAutoSelectionTopN: Math.max(1, Math.min(999, Number(projectConfig.config.entry_auto_selection_top_n) || 20)),
       partialSuccessStageAdvancement: normalizePartialSuccessStageAdvancement(projectConfig.config.partial_success_stage_advancement),
     };
   };
@@ -891,9 +717,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
           ),
           stage_parallelism: Object.fromEntries(stages.map((stage) => [stage, stageParallelism[stage] ?? 1])),
           module_selection_mode: isBinaryModuleTask || isKgSourcePage ? undefined : moduleSelectionMode,
-          entry_selection_mode: isBinaryModuleTask || isKgSourcePage ? undefined : 'auto',
-          entry_auto_selection_strategy: isBinaryModuleTask || isKgSourcePage || !isSourceTask ? undefined : entryAutoSelectionStrategy,
-          entry_auto_selection_top_n: isBinaryModuleTask || isKgSourcePage || !isSourceTask || entryAutoSelectionStrategy !== 'top_n_per_module_by_confidence'
+          entry_selection_mode: isBinaryModuleTask || isKgSourcePage || !isSourceTask ? undefined : entrySelectionMode,
+          entry_auto_selection_strategy: isBinaryModuleTask || isKgSourcePage || !isSourceTask || entrySelectionMode !== 'auto' ? undefined : entryAutoSelectionStrategy,
+          entry_auto_selection_top_n: isBinaryModuleTask || isKgSourcePage || !isSourceTask || entrySelectionMode !== 'auto' || entryAutoSelectionStrategy !== 'top_n_per_module_by_confidence'
             ? undefined
             : Math.max(1, Math.min(999, entryAutoSelectionTopN)),
           module_risk_levels: isBinaryModuleTask || isKgSourcePage ? undefined : moduleRiskLevels,
@@ -1032,52 +858,6 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       <div className="rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm text-theme-text-muted">
         范围：<span className="font-semibold text-theme-text-primary">{isAllProjectsScope ? '全部项目任务' : '当前项目任务'}</span>
       </div>
-
- {!isAllProjectsScope ? <section className="rounded-xl border border-theme-border bg-theme-elevated p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <ShieldAlert size={18} className="text-rose-400" />
-            <h2 className="text-xl font-semibold text-theme-text-primary">当前项目统计</h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => setStageStatsExpanded((value) => !value)}
- className="inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-elevated px-3 py-1.5 text-xs font-bold text-theme-text-secondary transition hover:border-theme-border hover:bg-theme-elevated"
-            aria-expanded={stageStatsExpanded}
-          >
-            <BarChart3 size={14} />
-            {stageStatsExpanded ? '收起阶段汇总' :`展开阶段汇总${orderedStageAggregates.length ?` (${orderedStageAggregates.length})` : ''}`}
-            <ChevronRight size={14} className={`transition-transform ${stageStatsExpanded ? 'rotate-90' : ''}`} />
-          </button>
-        </div>
-        <div className="mt-2 text-sm text-theme-text-muted">任务、输入和结果统计基于当前项目；运行中、排队中和最大并发为服务全局队列指标。</div>
-        <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-6">
-          <ProjectStatCard label="任务总数" value={stats.total} hint={`成功 ${stats.success} · 部分成功 ${stats.partial_success} · 失败 ${stats.failed}`} />
-          <ProjectStatCard label="运行中任务" value={stats.running} hint={`全局运行 ${runningCount} · 已入队 ${queuedCount}`} />
-          <ProjectStatCard label={isSourceTask ? '源码输入' : isBinaryModuleTask ? 'ELF 输入' : '固件输入'} value={stats.input_count} hint={isSourceTask ? '当前项目源码输入总量' : isBinaryModuleTask ? '当前项目模块级 ELF 输入总量' :`已解包 ${stats.unpacked_firmware_count} · 失败 ${stats.failed_firmware_count}`} />
-          <ProjectStatCard label={isBinaryModuleTask ? '模块任务' : '已选模块'} value={stats.selected_module_count} hint={isBinaryModuleTask ?`固定模块 ${stats.candidate_module_count}` :`候选 ${stats.candidate_module_count} · 高危 ${stats.high_risk_module_count}`} />
-          <ProjectStatCard label="入口结果" value={stats.entry_count} hint="入口分析产出总量" />
-          <ProjectStatCard label="漏洞结果" value={stats.vuln_result_count} hint={`队列最大并发 ${maxConcurrentTasks}`} />
-        </div>
-
-        {stageStatsExpanded ? (
-          orderedStageAggregates.length > 0 ? (
-            <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-              {orderedStageAggregates.map((aggregate) => (
-                <StageAggregateCard key={aggregate.stage_name} aggregate={aggregate} />
-              ))}
-            </div>
-          ) : (
-            <div className="mt-5 rounded-2xl border border-dashed border-theme-border bg-theme-surface px-6 py-8 text-center text-sm font-semibold text-theme-text-muted">
-              暂无阶段汇总统计
-            </div>
-          )
-        ) : null}
-      </section> : (
-        <section className="rounded-xl border border-theme-border bg-theme-elevated p-6 text-sm text-theme-text-muted">
-          跨项目模式下暂不展示项目级汇总统计；运行中、排队中和最大并发仍按服务全局队列指标展示。
-        </section>
-      )}
 
  <section className="rounded-xl border border-theme-border bg-theme-surface p-6">
         <div className="flex items-center justify-between gap-4">
@@ -1246,9 +1026,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                           </span>
                         ) : null}
                       </div>
-                      {item.status === 'pending' && item.queue_position ? (
+                      {item.status === 'pending' ? (
                         <span className="rounded-full border border-amber-500/20 bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-400">
-                          排队中，第 {item.queue_position} 位
+                          排队中
                         </span>
                       ) : null}
                       {item.status === 'dispatching' ? (
@@ -1581,8 +1361,29 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                   </div>
                   {isSourceTask ? (
                     <div className="mt-5 rounded-2xl border border-theme-border bg-theme-elevated p-4">
-                      <div className="text-sm font-semibold text-theme-text-primary">入口自动筛选</div>
-                      <div className="mt-1 text-xs text-theme-text-muted">源码默认流程下，可按每个模块子任务产出的入口置信度排序，只选择前 N 个入口进入数据流漏洞挖掘。</div>
+                      <div className="text-sm font-semibold text-theme-text-primary">入口选择策略</div>
+                      <div className="mt-1 text-xs text-theme-text-muted">源码默认流程下，可配置自动推进或在入口分析后人工确认，再决定进入数据流漏洞挖掘的入口集合。</div>
+                      <div className="mt-3 grid gap-2">
+                        {[
+                          { value: 'auto', label: '自动选择入口' },
+                          { value: 'manual_confirm', label: '入口分析后人工确认' },
+                        ].map((option) => (
+                          <label key={option.value} className="flex items-center gap-3 rounded-xl border border-theme-border bg-theme-surface px-4 py-3 text-sm font-semibold text-theme-text-secondary">
+                            <input
+                              type="radio"
+                              name="entrySelectionMode"
+                              checked={entrySelectionMode === option.value}
+                              onChange={() => setEntrySelectionMode(option.value as 'auto' | 'manual_confirm')}
+                              className="h-4 w-4 border-theme-border text-theme-text-primary focus:ring-theme-border"
+                            />
+                            {option.label}
+                          </label>
+                        ))}
+                      </div>
+                      {entrySelectionMode === 'auto' ? (
+                        <>
+                          <div className="mt-4 text-sm font-semibold text-theme-text-primary">入口自动筛选</div>
+                          <div className="mt-1 text-xs text-theme-text-muted">可按每个模块子任务产出的入口置信度排序，只选择前 N 个入口进入数据流漏洞挖掘。</div>
                       <div className="mt-3 grid gap-2">
                         {[
                           { value: 'all', label: '全部入口' },
@@ -1612,6 +1413,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                             className="mt-2 w-full rounded-xl border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text-primary outline-none"
                           />
                         </label>
+                      ) : null}
+                        </>
                       ) : null}
                     </div>
                   ) : null}

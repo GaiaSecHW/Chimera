@@ -48,6 +48,9 @@ const DEFAULT_BINARY_SECURITY_GLOBAL_CONFIG = {
   max_retries_per_item: 2,
   continue_on_item_failure: true,
   pipeline_mode: 'barrier' as const,
+  entry_selection_mode: 'auto' as const,
+  entry_auto_selection_strategy: 'top_n_per_module_by_confidence' as const,
+  entry_auto_selection_top_n: 20,
   partial_success_stage_advancement: DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
   stage_parallelism: {} as Record<string, number>,
   stage_options: {} as Record<string, { enabled: boolean }>,
@@ -143,6 +146,9 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
   const [maxRetriesPerItem, setMaxRetriesPerItem] = useState(2);
   const [continueOnItemFailure, setContinueOnItemFailure] = useState(true);
   const [pipelineMode, setPipelineMode] = useState<'barrier' | 'mixed_streaming'>('barrier');
+  const [entrySelectionMode, setEntrySelectionMode] = useState<'auto' | 'manual_confirm'>('auto');
+  const [entryAutoSelectionStrategy, setEntryAutoSelectionStrategy] = useState<'all' | 'top_n_per_module_by_confidence'>('top_n_per_module_by_confidence');
+  const [entryAutoSelectionTopN, setEntryAutoSelectionTopN] = useState(20);
   const [partialSuccessStageAdvancement, setPartialSuccessStageAdvancement] = useState<Record<string, boolean>>(
     DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
   );
@@ -184,6 +190,13 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
       setMaxRetriesPerItem(mergedConfig.max_retries_per_item);
       setContinueOnItemFailure(mergedConfig.continue_on_item_failure);
       setPipelineMode((String(mergedConfig.pipeline_mode) === 'mixed_streaming' ? 'mixed_streaming' : 'barrier') as 'barrier' | 'mixed_streaming');
+      setEntrySelectionMode(String(mergedConfig.entry_selection_mode || 'auto') === 'manual_confirm' ? 'manual_confirm' : 'auto');
+      setEntryAutoSelectionStrategy(
+        String(mergedConfig.entry_auto_selection_strategy || 'top_n_per_module_by_confidence') === 'all'
+          ? 'all'
+          : 'top_n_per_module_by_confidence',
+      );
+      setEntryAutoSelectionTopN(Math.max(1, Math.min(999, Number(mergedConfig.entry_auto_selection_top_n) || 20)));
       setPartialSuccessStageAdvancement({
         ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
         ...(mergedConfig.partial_success_stage_advancement || {}),
@@ -224,6 +237,13 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
     setMaxRetriesPerItem(projectConfig.max_retries_per_item);
     setContinueOnItemFailure(projectConfig.continue_on_item_failure);
     setPipelineMode(projectConfig.pipeline_mode === 'mixed_streaming' ? 'mixed_streaming' : 'barrier');
+    setEntrySelectionMode(String(projectConfig.entry_selection_mode || 'auto') === 'manual_confirm' ? 'manual_confirm' : 'auto');
+    setEntryAutoSelectionStrategy(
+      String(projectConfig.entry_auto_selection_strategy || 'top_n_per_module_by_confidence') === 'all'
+        ? 'all'
+        : 'top_n_per_module_by_confidence',
+    );
+    setEntryAutoSelectionTopN(Math.max(1, Math.min(999, Number(projectConfig.entry_auto_selection_top_n) || 20)));
     setPartialSuccessStageAdvancement({
       ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
       ...(projectConfig.partial_success_stage_advancement || {}),
@@ -248,6 +268,11 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
         max_retries_per_item: Math.max(0, Math.min(20, Number(maxRetriesPerItem) || 0)),
         continue_on_item_failure: continueOnItemFailure,
         pipeline_mode: pipelineMode,
+        entry_selection_mode: entrySelectionMode,
+        entry_auto_selection_strategy: entrySelectionMode === 'auto' ? entryAutoSelectionStrategy : 'all',
+        entry_auto_selection_top_n: entrySelectionMode === 'auto' && entryAutoSelectionStrategy === 'top_n_per_module_by_confidence'
+          ? Math.max(1, Math.min(999, Number(entryAutoSelectionTopN) || 1))
+          : 1,
         partial_success_stage_advancement: Object.fromEntries(
           PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [
             field.key,
@@ -294,6 +319,11 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
         max_retries_per_item: Math.max(0, Math.min(20, Number(maxRetriesPerItem) || 0)),
         continue_on_item_failure: continueOnItemFailure,
         pipeline_mode: pipelineMode,
+        entry_selection_mode: entrySelectionMode,
+        entry_auto_selection_strategy: entrySelectionMode === 'auto' ? entryAutoSelectionStrategy : 'all',
+        entry_auto_selection_top_n: entrySelectionMode === 'auto' && entryAutoSelectionStrategy === 'top_n_per_module_by_confidence'
+          ? Math.max(1, Math.min(999, Number(entryAutoSelectionTopN) || 1))
+          : 1,
         partial_success_stage_advancement: Object.fromEntries(
           PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [
             field.key,
@@ -619,6 +649,45 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
                     className="form-input w-full"
                   />
                   <p className="mt-2 text-xs text-theme-text-muted">这里只控制阶段项级别的业务重试。下游 API / 429 / transport 类可恢复错误默认无限重试，不受这里限制。</p>
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+                <div>
+                  <div className="mb-2 text-sm font-bold text-theme-text-secondary">入口选择模式</div>
+                  <select
+                    disabled={loading || saving}
+                    value={entrySelectionMode}
+                    onChange={(e) => setEntrySelectionMode((e.target.value as 'auto' | 'manual_confirm') || 'auto')}
+                    className="form-select w-full"
+                  >
+                    <option value="auto">自动</option>
+                    <option value="manual_confirm">人工确认</option>
+                  </select>
+                  <p className="mt-2 text-xs text-theme-text-muted">源码任务创建时默认采用这里的入口选择方式。</p>
+                </div>
+                <div>
+                  <div className="mb-2 text-sm font-bold text-theme-text-secondary">自动入口筛选策略</div>
+                  <select
+                    disabled={loading || saving || entrySelectionMode !== 'auto'}
+                    value={entryAutoSelectionStrategy}
+                    onChange={(e) => setEntryAutoSelectionStrategy((e.target.value as 'all' | 'top_n_per_module_by_confidence') || 'top_n_per_module_by_confidence')}
+                    className="form-select w-full"
+                  >
+                    <option value="top_n_per_module_by_confidence">每模块按置信度 Top N</option>
+                    <option value="all">全部入口</option>
+                  </select>
+                </div>
+                <div>
+                  <div className="mb-2 text-sm font-bold text-theme-text-secondary">每模块默认 Top N</div>
+                  <input
+                    type="number"
+                    min={1}
+                    max={999}
+                    disabled={loading || saving || entrySelectionMode !== 'auto' || entryAutoSelectionStrategy !== 'top_n_per_module_by_confidence'}
+                    value={entryAutoSelectionTopN}
+                    onChange={(e) => setEntryAutoSelectionTopN(Math.max(1, Math.min(999, Number(e.target.value) || 1)))}
+                    className="form-input w-full"
+                  />
                 </div>
               </div>
               <div className="mt-4">

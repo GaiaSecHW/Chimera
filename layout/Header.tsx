@@ -10,7 +10,7 @@ import {
   getAssetsCenterActiveChild,
 } from '../app/navigation';
 import { SecurityProject, UserInfo, ViewType } from '../types/types';
-import { getPlatformRoleLabel, getUserAccess } from '../utils/rbac';
+import { getPlatformRoleLabel, getUserAccess, getUserCenterDefaultView } from '../utils/rbac';
 import { ThemeLogo } from '../components/ThemeLogo';
 import { useTheme } from '../theme/ThemeProvider';
 
@@ -228,7 +228,12 @@ export const Header: React.FC<HeaderProps> = ({
                               <button
                                 key={child.key}
                                 onClick={() => {
-                                  onSelectSystemAdminChild(child.defaultView);
+                                  // 租户分区按角色落地：普通管理员无权访问超管默认页(user-mgmt-access)，
+                                  // 改用 getUserCenterDefaultView 落到其可访问的首个页面，避免被弹回首页。
+                                  const targetView = child.key === 'tenant'
+                                    ? getUserCenterDefaultView(user)
+                                    : child.defaultView;
+                                  onSelectSystemAdminChild(targetView);
                                   setIsSystemAdminOpen(false);
                                 }}
                                 className={`w-full text-left px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${

@@ -17,6 +17,7 @@ import type {
   ChimeraDeleteResponse,
   BaselineNodeOut,
   BaselineOption,
+  BaselineTreeResponse,
 } from './types';
 
 // 项目管理服务(:8001)
@@ -24,7 +25,7 @@ const SEC_PROJECT_API_BASE =
   String(import.meta.env.VITE_SEC_PROJECT_API_BASE ?? 'http://127.0.0.1:8001');
 // 基线服务(:8000,跨服务取基线节点树与基线下拉)
 const SEC_BASELINE_API_BASE =
-  String(import.meta.env.VITE_SEC_BASELINE_API_BASE ?? 'http://localhost:8000');
+  String(import.meta.env.VITE_SEC_BASELINE_API_BASE ?? 'http://127.0.0.1:8000');
 
 const P_API = `${SEC_PROJECT_API_BASE}/api`;
 const P_M2M = `${SEC_PROJECT_API_BASE}/api/v1`;
@@ -93,6 +94,15 @@ export const secAssessmentApi = {
     reqP<ExecutionResult>(`${P_API}/projects/${projectId}/executions/${eid}`, {
       method: 'PUT', headers: getHeaders(), body: JSON.stringify(payload),
     }),
+
+  listExecutions: (projectId: number, params: { status?: string; result?: string; confidence?: string; executor?: string; keyword?: string } = {}) =>
+    reqP<ExecutionResult[]>(`${P_API}/projects/${projectId}/executions${withQuery(params as any)}`, { headers: getHeaders() }),
+
+  getExecution: (projectId: number, eid: number) =>
+    reqP<ExecutionResult>(`${P_API}/projects/${projectId}/executions/${eid}`, { headers: getHeaders() }),
+
+  getBaselineTree: (projectId: number) =>
+    reqP<BaselineTreeResponse>(`${P_API}/projects/${projectId}/baseline-tree`, { headers: getHeaders() }),
 
   syncProject: (id: number) =>
     reqP<SyncResult>(`${P_API}/projects/${id}/sync`, { method: 'POST', headers: getHeaders() }),

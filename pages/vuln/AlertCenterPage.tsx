@@ -672,6 +672,8 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
   const [rowDeletingId, setRowDeletingId] = useState<string | null>(null);
   const [confirmingCase, setConfirmingCase] = useState<any | null>(null);
   const [manualConfirmResult, setManualConfirmResult] = useState<'vulnerable' | 'not_vulnerable'>('vulnerable');
+  const [vulnCategories, setVulnCategories] = useState<any[]>([]);
+  const [manualConfirmCategory, setManualConfirmCategory] = useState('');
   const [manualConfirmReason, setManualConfirmReason] = useState('');
   const [manualConfirmError, setManualConfirmError] = useState('');
   const [manualConfirmSubmitting, setManualConfirmSubmitting] = useState(false);
@@ -1152,6 +1154,18 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
   useEffect(() => {
     void loadOverview();
   }, [projectId]);
+
+  useEffect(() => {
+    let mounted = true;
+    vulnApi.vuln.getVulnCategories()
+      .then((resp: any) => {
+        if (mounted) setVulnCategories(resp.items || []);
+      })
+      .catch(() => {
+        if (mounted) setVulnCategories([]);
+      });
+    return () => { mounted = false; };
+  }, []);
 
   const prevProjectIdRef = useRef(projectId);
   useEffect(() => {
@@ -1691,6 +1705,7 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
   const openManualConfirm = (item: any) => {
     setConfirmingCase(item);
     setManualConfirmResult('vulnerable');
+    setManualConfirmCategory(item?.confirmed_category || '');
     setManualConfirmReason('');
     setManualConfirmError('');
   };
@@ -1698,6 +1713,7 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
   const closeManualConfirm = () => {
     if (manualConfirmSubmitting) return;
     setConfirmingCase(null);
+    setManualConfirmCategory('');
     setManualConfirmReason('');
     setManualConfirmError('');
   };
@@ -1709,6 +1725,10 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
       setManualConfirmError('确认不是漏洞时必须填写原因。');
       return;
     }
+    if (manualConfirmResult === 'vulnerable' && !manualConfirmCategory) {
+      setManualConfirmError('确认为漏洞时必须选择漏洞种类。');
+      return;
+    }
     setManualConfirmSubmitting(true);
     setManualConfirmError('');
     setError(null);
@@ -1716,10 +1736,12 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
     try {
       await vulnApi.vuln.finishCase(confirmingCase.id, {
         finished_reason: manualConfirmResult,
+        category: manualConfirmResult === 'vulnerable' ? manualConfirmCategory : undefined,
         summary: manualConfirmResult === 'vulnerable' ? '人工确认：是漏洞' : reason,
       });
       const caseId = confirmingCase.id;
       setConfirmingCase(null);
+      setManualConfirmCategory('');
       setManualConfirmReason('');
       setSelectedSuspicionIds((previous) => previous.filter((id) => id !== caseId));
       await Promise.all([loadOverview(), loadSuspicions(currentPage)]);
@@ -3031,6 +3053,24 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
                 <div className={`mt-1 text-xs ${manualConfirmResult === 'not_vulnerable' ? 'text-state-danger' : 'text-theme-text-muted'}`}>需要填写确认原因。</div>
               </button>
             </div>
+            {manualConfirmResult === 'vulnerable' && (
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold text-theme-text-secondary">漏洞种类</span>
+                <select
+                  value={manualConfirmCategory}
+                  onChange={(event) => {
+                    setManualConfirmCategory(event.target.value);
+                    if (manualConfirmError) setManualConfirmError('');
+                  }}
+                  className="form-select"
+                >
+                  <option value="">请选择漏洞种类</option>
+                  {vulnCategories.map((item) => (
+                    <option key={item.code} value={item.code}>{item.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
             {manualConfirmResult === 'not_vulnerable' && (
               <textarea
                 value={manualConfirmReason}

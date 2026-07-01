@@ -182,6 +182,7 @@ export interface EventItem {
 export interface ChimeraTaskRequest {
   project_id: string;
   task_id: string;
+  task_name?: string | null;
   file_path: string;
   key: string;
   baseline_id: number;
@@ -250,6 +251,30 @@ export interface BaselineOption {
   baseline_code?: string | null;
   version?: string | null;
   category?: string | null;
+  product_org_id?: number;
   product_org_name?: string | null;
+  bg_name?: string | null;
+  bu_name?: string | null;
   total_items?: number | null;
+}
+
+// 基线节点(扁平;来自项目服务 GET /api/projects/{id}/baseline-tree)
+export interface BaselineNodeItem {
+  id: number;
+  uuid: string;
+  parent_id?: number | null;
+  node_type: NodeType;
+  code?: string | null;
+  name: string;
+  priority?: string | null;
+  is_key_ability?: boolean | null;
+  sort_order?: number | null;
+}
+
+export interface BaselineTreeResponse {
+  baseline_id: number;
+  baseline_uuid: string;
+  baseline_name: string;
+  version?: string | null;
+  nodes: BaselineNodeItem[];
 }

@@ -79,7 +79,7 @@ export const getUserAccess = (user: UserInfo | null | undefined): UserAccess => 
       canAccessUserCenter: true,
       canAccessAdminDashboard: false,
       canAccessConfigCenter: false,
-      canManageUsers: false,
+      canManageUsers: true,
       canManageRoles: false,
       canManageDepartments: false,
       canManageDepartmentMembers: true,
@@ -125,15 +125,17 @@ const SUPER_ADMIN_ONLY_VIEWS = new Set<string>([
   'config-center-llm',
   'config-center-llm-chat',
   'chimera-platform-schedule',
-  'user-mgmt-users',
   'user-mgmt-access',
   'user-mgmt-online',
   'user-mgmt-machine',
+  'user-mgmt-roles',
+  'user-mgmt-perms',
   'org-mgmt-departments',
   'feedback-mgmt',
 ]);
 
 const ORDINARY_ADMIN_VIEWS = new Set<string>([
+  'user-mgmt-users',
   'org-mgmt-members',
   'org-mgmt-projects',
 ]);
@@ -186,7 +188,7 @@ export const getUserCenterDefaultView = (user: UserInfo | null | undefined): Vie
     return 'user-mgmt-access';
   }
   if (access.platformRole === 'ordinary_admin') {
-    return 'org-mgmt-members';
+    return 'user-mgmt-users';
   }
   return 'dashboard';
 };

@@ -34,6 +34,7 @@ import { getTaskTypeLabel } from './task/TaskCenterPage';
 import { TestInputUploader, TestInputUploaderHandle } from '../components/TestInputUploader';
 import { KnowledgeGraphPanel } from '../components/KnowledgeGraphPanel';
 import { CodemapMetroProgress } from '../components/CodemapMetroProgress';
+import { appendTrackedProjectInputUpload } from '../services/projectInputUploadWorkflows';
 
 type InputType = 'document' | 'code' | 'software' | 'other';
 
@@ -583,13 +584,14 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
       try {
         const appendController = new AbortController();
         appendAbortRef.current = appendController;
-        const result = await fileserverApi.appendProjectInputUpload({
-          upload_id: activeUploadId,
-          keep_original: keepOriginal,
-          upload_mode: keepOriginal ? 'raw' : 'archive',
+        const result = await appendTrackedProjectInputUpload({
+          projectId,
+          uploadId: activeUploadId,
+          keepOriginal,
+          uploadMode: keepOriginal ? 'raw' : 'archive',
           files: readyFiles,
-        }, {
-          signal: appendController.signal,
+          displayName: uploadDisplayName.trim(),
+          externalSignal: appendController.signal,
           onProgress: (progress) => {
             setUploadQueue((current) => current.map((item) => (
               item.status === 'failed'
@@ -636,12 +638,15 @@ export const TestInputPage: React.FC<TestInputPageProps> = ({ selectedProjectId,
       }
       try {
         await uploaderRef.current.triggerUpload();
+        uploaderRef.current?.reset();
         setIsUploadModalOpen(false);
-        uploaderRef.current.reset();
         setUploadDisplayName('');
         await Promise.all([loadOverview(), loadRecords()]);
       } catch (error: any) {
         setErrorMessage(error?.message || '上传失败');
+        if (options?.runInBackground) {
+          setIsUploadModalOpen(true);
+        }
       } finally {
         setIsUploading(false);
       }

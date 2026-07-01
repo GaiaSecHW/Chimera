@@ -19,7 +19,7 @@ import type {
 // 开发期直连后端;k8s 环境由运维设 VITE_SEC_BASELINE_API_BASE='' (空) 切换为相对路径,
 // 经 ingress/gateway 路由到基线服务,前端代码无需改动。
 const SEC_BASELINE_API_BASE =
-  String(import.meta.env.VITE_SEC_BASELINE_API_BASE ?? 'http://localhost:8000');
+  String(import.meta.env.VITE_SEC_BASELINE_API_BASE ?? 'http://127.0.0.1:8000');
 const PREFIX = `${SEC_BASELINE_API_BASE}/api`;
 
 // 网络层错误(后端离线/CORS/连接拒绝)中文化:fetch 直接抛 TypeError,

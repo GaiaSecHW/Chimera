@@ -973,6 +973,9 @@ export interface BinarySecurityGlobalConfig {
     max_retries_per_item: number;
     continue_on_item_failure: boolean;
     pipeline_mode: BinarySecurityPipelineMode;
+    entry_selection_mode: BinarySecurityEntrySelectionMode;
+    entry_auto_selection_strategy: BinarySecurityEntryAutoSelectionStrategy;
+    entry_auto_selection_top_n: number;
     partial_success_stage_advancement: Record<string, boolean>;
     stage_parallelism: Record<string, number>;
     stage_options: Record<string, { enabled: boolean }>;
@@ -1052,11 +1055,6 @@ export const binarySecurityApi = {
     page_size: number;
     total_pages: number;
     scope?: BinarySecurityTaskListScope;
-    running_count: number;
-    queued_count: number;
-    max_concurrent_tasks: number;
-    project_stats?: BinarySecurityProjectStats;
-    project_stage_aggregates?: BinarySecurityProjectStageAggregate[];
     items: BinarySecurityTask[];
   }> => {
     const params = new URLSearchParams();
@@ -1372,6 +1370,14 @@ export const binarySecurityApi = {
 
   cancelTask: async (projectId: string, taskId: string): Promise<BinarySecurityActionResult> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/cancel`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  finishTaskAsSuccess: async (projectId: string, taskId: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/finish-success`, {
       method: 'POST',
       headers: getHeaders(),
     });
