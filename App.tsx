@@ -594,6 +594,12 @@ const AppShell: React.FC = () => {
         setSelectedProjectId(storedProjectId);
       }
       setToken(data.access_token);
+      // 登录后默认进入项目管理页（DEFAULT_VIEW）。若访问的是深链，或存在待跳转
+      // (chimera:pendingNav)，则跳过默认跳转，交由深链/pendingNav 逻辑接管。
+      const hasPendingNav = !!sessionStorage.getItem('chimera:pendingNav');
+      if (!deepLinkTarget && !hasPendingNav) {
+        navigateToView(DEFAULT_VIEW);
+      }
     } catch (err: any) {
       setLoginError(err.message || "登录失败，请检查用户名和密码");
     } finally {
@@ -608,7 +614,7 @@ const AppShell: React.FC = () => {
     setUser(null);
     setProjects([]);
     setSelectedProjectId('');
-    navigateToView('home');
+    navigateToView(DEFAULT_VIEW);
   };
 
   const handleForcedPasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
