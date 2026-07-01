@@ -973,11 +973,13 @@
   outline: 1px solid var(--brand-primary);
 }
 @keyframes project-switch-flash {
-  0%   { background-color: var(--brand-primary-mask); box-shadow: 0 0 0 2px var(--brand-primary); }
-  60%  { background-color: var(--brand-primary-mask); box-shadow: 0 0 0 2px var(--brand-primary); }
-  100% { background-color: transparent; box-shadow: 0 0 0 0 transparent; }
+  0%   { transform: scale(1);    background-color: transparent;         box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); color: inherit; }
+  25%  { transform: scale(1.12); background-color: var(--brand-primary); box-shadow: 0 0 0 3px var(--brand-primary), 0 6px 20px rgba(37, 99, 235, 0.45); color: #fff; }
+  55%  { transform: scale(1.05); background-color: var(--brand-primary); box-shadow: 0 0 0 3px var(--brand-primary), 0 6px 20px rgba(37, 99, 235, 0.35); color: #fff; }
+  100% { transform: scale(1);    background-color: transparent;         box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); color: inherit; }
 }
 .project-switch-flash {
-  animation: project-switch-flash 0.6s ease-out;
+  animation: project-switch-flash 1s ease-out;
   border-radius: 0.75rem;
+  transform-origin: center right;
 }

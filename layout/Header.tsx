@@ -271,7 +271,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="flex items-center justify-end gap-3 min-w-0">
           <div className="relative min-w-0 max-w-[15rem]" ref={projectDropdownRef}>
-            <div ref={projectIndicatorRef}>
+            <div ref={projectIndicatorRef} className="inline-block">
               <button
                 onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
                 className="flex items-center gap-1.5 px-1.5 py-1 max-w-[13rem] rounded-xl text-xs font-medium opacity-70 hover:opacity-100 head-tab-hover transition-opacity"

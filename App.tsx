@@ -18,7 +18,7 @@ import { AggregatedServiceHealth, MenuServiceHealthSummary } from './clients/men
 import { ThemeLogo } from './components/ThemeLogo';
 import { useTheme } from './theme/ThemeProvider';
 
-const DEFAULT_VIEW = 'home';
+const DEFAULT_VIEW = 'project-mgmt';
 
 type DeepLinkTarget = {
   view: string;

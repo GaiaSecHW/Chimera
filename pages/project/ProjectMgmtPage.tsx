@@ -25,6 +25,7 @@ import { ProjectMemberModal } from './ProjectMemberModal';
 
 interface ProjectMgmtPageProps {
   projects: SecurityProject[];
+  selectedProjectId: string;
   setSelectedProjectId: (id: string) => void;
   setActiveProjectId: (id: string) => void;
   setCurrentView: (view: string) => void;
@@ -79,6 +80,7 @@ const LK = {
 
 export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   projects,
+  selectedProjectId,
   setSelectedProjectId,
   setActiveProjectId,
   setCurrentView,
@@ -120,7 +122,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   const [newProject, setNewProject] = useState<ProjectFormState>(EMPTY_FORM);
   const [editForm, setEditForm] = useState<ProjectFormState>(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
-  const [justSelectedId, setJustSelectedId] = useState<string | null>(null);
   const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [userPermissions, setUserPermissions] = useState<UserPermissionInfo | null>(null);
@@ -523,10 +524,10 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     setCurrentView('project-detail');
   };
 
-  // 卡片主体点击：选中 → 切换全局项目 → 约 300ms 后跳转测试任务页。
+  // 卡片主体点击：切换全局项目（卡片随即进入选中态）→ 约 300ms 后跳转测试任务页。
   // 顺序保证：先 setSelectedProjectId，再延时 setCurrentView，避免 task-list 门禁踢回首页。
+  // 选中态由全局 selectedProjectId 驱动，因此右上角下拉切换后卡片选中也会同步更新。
   const handleCardSelect = (id: string) => {
-    setJustSelectedId(id);
     setSelectedProjectId(id);
     setActiveProjectId(id);
     if (navTimerRef.current) clearTimeout(navTimerRef.current);
@@ -794,6 +795,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
               {tableProjects.map((project) => {
                 const canMembers = canManageProjectMembers(project);
                 const canManage = !!project.can_manage;
+                const isSelected = selectedProjectId === project.id;
                 return (
                   <div
                     key={project.id}
@@ -803,14 +805,14 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                     onKeyDown={(e) => { if (e.key === 'Enter') handleCardSelect(project.id); }}
                     className="group relative flex flex-col rounded-xl p-4 text-left transition-all"
                     style={{
-                      backgroundColor: justSelectedId === project.id ? LK.primaryMuted : LK.surfaceRaised,
-                      border: `1px solid ${justSelectedId === project.id ? LK.primary : LK.border}`,
-                      boxShadow: justSelectedId === project.id ? `0 8px 24px ${LK.primary}33` : 'none',
-                      transform: justSelectedId === project.id ? 'translateY(-2px)' : 'none',
+                      backgroundColor: isSelected ? LK.primaryMuted : LK.surfaceRaised,
+                      border: `1px solid ${isSelected ? LK.primary : LK.border}`,
+                      boxShadow: isSelected ? `0 8px 24px ${LK.primary}33` : 'none',
+                      transform: isSelected ? 'translateY(-2px)' : 'none',
                       cursor: 'pointer',
                     }}
                   >
-                    {justSelectedId === project.id && (
+                    {isSelected && (
                       <span
                         className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full"
                         style={{ backgroundColor: LK.primary, color: '#fff' }}
