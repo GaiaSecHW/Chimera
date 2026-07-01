@@ -430,7 +430,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (ASSESSMENT_VIEWS.has(view)) return 'assessment';
   if (OBSERVE_VIEWS.has(view) || view.startsWith('workflow-')) return 'observe';
   if (SKILL_VIEWS.has(view)) return 'skill';
-  if (DEVELOPER_TOOL_VIEWS.has(view) || view === 'developer-tools-overview' || view === 'developer-tools') return 'tools';
+  if (DEVELOPER_TOOL_VIEWS.has(view) || view === 'developer-tools-overview' || view === 'developer-tools' || view === 'tool-registration') return 'tools';
   if (DEVELOPER_ATOMIC_CAPABILITY_VIEWS.has(view) || view.startsWith('developer-atomic-capability') || view.startsWith('developer-')) return 'atomic';
   if (SYSTEM_ADMIN_DASHBOARD_VIEWS.has(view)) return 'system-admin';
   if (AIGW_VIEWS.has(view)) return 'system-admin';
