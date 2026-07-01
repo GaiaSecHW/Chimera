@@ -1519,14 +1519,14 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                     下一步
                   </button>
                 ) : null}
-                <button type="button" onClick={closeCreateDialog} disabled={submitting} className="rounded-xl border border-theme-border px-4 py-2.5 text-sm font-bold text-theme-text-secondary">
+                <button type="button" onClick={closeCreateDialog} disabled={submitting} className="btn-secondary inline-flex items-center gap-1">
                   取消
                 </button>
                 <button
                   type="button"
                   onClick={() => void submitTask()}
                   disabled={submitting}
- className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated disabled:opacity-60"
+                  className="btn-secondary inline-flex items-center gap-1"
                 >
                   {submitting && <Loader2 size={16} className="animate-spin" />}
                   {submitting ? '创建并上传中...' : '创建并启动'}

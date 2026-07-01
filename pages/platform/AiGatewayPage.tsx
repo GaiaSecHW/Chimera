@@ -1199,11 +1199,11 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
           <h2 className="mt-2 text-xl font-semibold text-theme-text-primary">调用密钥管理</h2>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => { setKeyPage(1); void loadKeys(); }} className="rounded-lg bg-theme-elevated px-4 py-2 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated">刷新</button>
-          <button onClick={() => openLlmKeyModal()} className="inline-flex items-center gap-2 rounded-lg bg-theme-surface px-4 py-2.5 text-sm font-bold text-white">
+          <button onClick={() => openLlmKeyModal()} className="btn btn-primary inline-flex items-center gap-1">
             <Plus className="h-4 w-4" />
             新建调用密钥
           </button>
+          <button onClick={() => { setKeyPage(1); void loadKeys(); }} className="btn-secondary">刷新</button>
           {options?.onClose ? (
             <button onClick={options.onClose} className="rounded-lg bg-theme-elevated p-2 text-theme-text-secondary hover:bg-theme-elevated">
               <X className="h-5 w-5" />
@@ -1251,31 +1251,37 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
             {
               key: 'key_name',
               header: '名称',
-              render: (item) => <div className="truncate font-bold text-theme-text-primary" title={item.description || '无备注'}>{item.key_name || `密钥 #${item.id}`}</div>,
+              width: '25%',
+              render: (item) => <div className="font-bold text-theme-text-primary" title={item.description || '无备注'}>{item.key_name || `密钥 #${item.id}`}</div>,
             },
             {
               key: 'key_type',
               header: '类型',
+              width: '10%',
               render: (item) => <span className="text-theme-text-secondary">{getLlmKeyTypeLabel(item.key_type)}</span>,
             },
             {
               key: 'max_concurrency',
               header: '最大并发',
+              width: '10%',
               render: (item) => <span className="text-theme-text-secondary">{item.max_concurrency || 0}</span>,
             },
             {
               key: 'scope',
               header: '身份范围',
+              width: '25%',
               render: (item) => <span className="text-theme-text-secondary">{getLlmKeyScopeLabel(item)}</span>,
             },
             {
               key: 'enabled',
               header: '状态',
+              width: '10%',
               render: (item) => <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${item.enabled ? 'bg-emerald-500/15 text-emerald-400' : 'bg-theme-elevated text-theme-text-muted'}`}>{item.enabled ? '启用' : '禁用'}</span>,
             },
             {
               key: 'updated_at',
               header: '更新时间',
+              width: '15%',
               render: (item) => <span className="text-theme-text-secondary">{item.updated_at ? new Date(item.updated_at).toLocaleString('zh-CN') : '-'}</span>,
             },
             {
@@ -1328,7 +1334,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
         actions={<button
           onClick={refreshData}
           disabled={refreshing || loading}
-          className="inline-flex items-center gap-2 rounded-2xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white transition hover:bg-theme-elevated disabled:opacity-50"
+          className="btn-secondary inline-flex items-center gap-1 disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
           刷新
@@ -1403,7 +1409,7 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
                         setSelectedAliasId(group.alias.id);
                       }
                     }}
-                    className={`w-full rounded-2xl border px-4 py-3 text-left transition ${active ? 'border-theme-border bg-theme-surface text-white' : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated'}`}
+                    className={`w-full rounded-2xl border px-4 py-3 text-left transition ${active ? 'border-theme-border bg-theme-bg-elevated text-theme-text-primary' : 'border-theme-border bg-theme-surface text-theme-text-secondary hover:bg-theme-elevated'}`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
@@ -1678,8 +1684,8 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
               <label className="flex items-center gap-3 text-sm font-bold text-theme-text-secondary"><input type="checkbox" checked={aliasForm.enabled} onChange={(e) => setAliasForm((v) => ({ ...v, enabled: e.target.checked }))} />启用</label>
             </div>
             <div className="flex items-center justify-end gap-3 border-t border-theme-border px-6 py-4">
-              <button onClick={resetAliasForm} className="rounded-lg bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary">取消</button>
-              <button onClick={submitAlias} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-theme-surface px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />保存</button>
+              <button onClick={resetAliasForm} className="btn-secondary">取消</button>
+              <button onClick={submitAlias} disabled={saving} className="btn btn-primary inline-flex disabled:opacity-50"><Save className="h-4 w-4" />保存</button>
             </div>
       </Modal>
       <Modal open={backendModalOpen} onClose={resetBackendUnitForm} className="max-w-3xl">
@@ -1719,8 +1725,8 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
               <label className="flex items-center gap-3 text-sm font-bold text-theme-text-secondary"><input type="checkbox" checked={backendUnitForm.enabled} onChange={(e) => setBackendUnitForm((v) => ({ ...v, enabled: e.target.checked }))} />启用</label>
             </div>
             <div className="flex items-center justify-end gap-3 border-t border-theme-border px-6 py-4">
-              <button onClick={resetBackendUnitForm} className="rounded-lg bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary">取消</button>
-              <button onClick={submitBackendUnit} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-theme-surface px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />保存</button>
+              <button onClick={resetBackendUnitForm} className="btn-secondary">取消</button>
+              <button onClick={submitBackendUnit} disabled={saving} className="btn btn-primary inline-flex disabled:opacity-50"><Save className="h-4 w-4" />保存</button>
             </div>
       </Modal>
 
@@ -2053,8 +2059,8 @@ export const AiGatewayPage: React.FC<AiGatewayPageProps> = ({ entryView = 'aigw-
               <label className="block text-sm font-bold text-theme-text-secondary">备注<textarea value={llmKeyForm.description} onChange={(e) => setLlmKeyForm((v) => ({ ...v, description: e.target.value }))} className="form-textarea mt-1 min-h-24 w-full" /></label>
             </div>
             <div className="flex items-center justify-end gap-3 border-t border-theme-border px-6 py-4">
-              <button onClick={resetLlmKeyForm} className="rounded-lg bg-theme-elevated px-4 py-2.5 text-sm font-bold text-theme-text-secondary">取消</button>
-              <button onClick={submitLlmKey} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-theme-surface px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"><Save className="h-4 w-4" />{editingLlmKeyId ? '保存修改' : '创建密钥'}</button>
+              <button onClick={resetLlmKeyForm} className="btn-secondary">取消</button>
+              <button onClick={submitLlmKey} disabled={saving} className="btn btn-primary disabled:opacity-50"><Save className="h-4 w-4" />{editingLlmKeyId ? '保存修改' : '创建密钥'}</button>
             </div>
           </div>
         </div>

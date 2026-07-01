@@ -975,14 +975,14 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               <option value="desc">降序</option>
               <option value="asc">升序</option>
             </select>
-            <button onClick={() => { void loadTasks(page); void loadTaskStats(); void loadClusterCapacity(); }} className="rounded-lg border border-theme-border p-2 text-theme-text-muted hover:bg-theme-elevated">
-              <RefreshCw size={14} />
+            <button onClick={() => { void loadTasks(page); void loadTaskStats(); void loadClusterCapacity(); }} className="btn-secondary items-center">
+              <RefreshCw size={16} />
             </button>
             <button
               onClick={() => { setCreateModalInitialForm(buildDefaultSystemAnalysisTaskForm(projectId)); setCreateModalOpen(true); }}
               disabled={!projectId || isAllProjectsScope}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-theme-surface px-3 py-1.5 text-xs font-semibold text-white hover:bg-theme-elevated">
-              <Plus size={13} />新建任务
+              className="btn btn-primary inline-flex items-center gap-1">
+              <Plus size={16} />新建任务
             </button>
           </div>
         </div>

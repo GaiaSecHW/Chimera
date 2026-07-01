@@ -2029,8 +2029,8 @@ export const CfgGuidedExploreTaskPage: React.FC<{ projectId: string; onOpenTask?
             >
               {[10, 50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}条/页</option>)}
             </select>
-            <button onClick={() => void loadAll(page)} className="rounded-lg border border-theme-border p-2 text-theme-text-muted hover:bg-theme-elevated">
-              <RefreshCw size={14} />
+            <button onClick={() => void loadAll(page)} className="btn-secondary inline-flex items-center gap-1">
+              <RefreshCw size={16} />
             </button>
             <button
               onClick={() => {

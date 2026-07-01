@@ -1499,10 +1499,10 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   <button
                     type="button"
                     onClick={() => void loadAll(page)}
-                    className="rounded-lg border border-theme-border p-2 text-theme-text-muted hover:bg-theme-elevated"
+                    className="btn-secondary inline-flex items-center gap-1"
                     title="刷新任务列表与槽位摘要"
                   >
-                    <RefreshCw size={14} />
+                    <RefreshCw size={16} />
                   </button>
                 </div>
               </div>

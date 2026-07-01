@@ -383,7 +383,7 @@
     color: var(--brand-primary-hover);
   }
   .btn-primary {
-    @apply rounded-lg px-3.5 py-2.5 text-sm font-medium text-white transition-colors min-w-16;
+    @apply rounded-lg px-3.5 py-2.5 text-sm font-medium text-white transition-colors;
     background-color: var(--brand-primary);
   }
   .btn-primary:not(:disabled):hover {
@@ -393,7 +393,7 @@
     @apply cursor-not-allowed opacity-50;
   }
   .btn-secondary {
-    @apply rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors min-w-16;
+    @apply rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors;
     background-color: var(--bg-elevated);
     color: var(--text-secondary);
     border: 1px solid var(--border-default);
