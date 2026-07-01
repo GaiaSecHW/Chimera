@@ -5,7 +5,7 @@ import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
-import { reportSanitizeSchema } from '../redline/components/reportMarkdownSanitize';
+import { reportSanitizeSchema, fixTableCellLineBreaks } from '../redline/components/reportMarkdownSanitize';
 import { fileserverApi } from '../../clients/fileserver';
 
 interface Props {
@@ -143,7 +143,8 @@ export const TaskReportViewPage: React.FC<Props> = ({ projectId, taskId, onBack 
   const [tocCollapsed, setTocCollapsed] = useState(false);
   const [activeTocId, setActiveTocId] = useState('');
 
-  const toc = useMemo(() => extractToc(markdown), [markdown]);
+  const renderedMarkdown = useMemo(() => fixTableCellLineBreaks(markdown), [markdown]);
+  const toc = useMemo(() => extractToc(renderedMarkdown), [renderedMarkdown]);
   const mdComponents = useMemo(() => buildMdComponents(toc), [toc]);
 
   const loadReport = useCallback(async () => {
@@ -321,7 +322,7 @@ export const TaskReportViewPage: React.FC<Props> = ({ projectId, taskId, onBack 
                 rehypePlugins={[rehypeRaw, [rehypeSanitize, reportSanitizeSchema]]}
                 components={mdComponents}
               >
-                {markdown}
+                {renderedMarkdown}
               </ReactMarkdown>
             </div>
           ) : null}
