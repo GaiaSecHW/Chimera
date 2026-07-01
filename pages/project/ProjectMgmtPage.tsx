@@ -17,7 +17,7 @@ import {
 import { api } from '../../clients/api';
 import { API_BASE, getHeaders, handleResponse } from '../../clients/base';
 import { orgApi, UserPermissionInfo } from '../../clients/org';
-import { DropdownSelect, PageHeader } from '../../design-system';
+import { DropdownSelect, PageHeader, Pagination } from '../../design-system';
 import { Department, ProductTreeNode, ProductVersionNode, SecurityProject } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -296,6 +296,20 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       setCurrentPage(totalPages);
     }
   }, [totalPages, currentPage]);
+
+  const handlePageSizeChange = (next: number) => {
+    setPageSize(next);
+    localStorage.setItem('chimera:projectList:pageSize', String(next));
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (field: string, direction: 'asc' | 'desc') => {
+    setSortField(field as ProjectSortField);
+    setSortDirection(direction);
+    setCurrentPage(1);
+    localStorage.setItem('chimera:projectList:sortField', field);
+    localStorage.setItem('chimera:projectList:sortDirection', direction);
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -728,6 +742,28 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
               onChange={(event) => setSearchTerm(event.target.value)}
             />
           </div>
+          <div className="w-36">
+            <DropdownSelect
+              value={sortField}
+              onChange={(v) => handleSortChange(v, sortDirection)}
+              options={[
+                { value: 'created_at', label: '创建时间' },
+                { value: 'updated_at', label: '更新时间' },
+                { value: 'name', label: '名称' },
+                { value: 'department_name', label: '归属部门' },
+                { value: 'owner_name', label: '创建人' },
+                { value: 'product_version', label: '产品版本' },
+              ]}
+              placeholder="排序字段"
+            />
+          </div>
+          <button
+            onClick={() => handleSortChange(sortField, sortDirection === 'asc' ? 'desc' : 'asc')}
+            className="button-surface px-3 py-2.5 text-sm"
+            title={sortDirection === 'asc' ? '当前升序，点击改为降序' : '当前降序，点击改为升序'}
+          >
+            {sortDirection === 'asc' ? '↑' : '↓'}
+          </button>
           <button
             onClick={handleRefresh}
             className="button-surface px-4 py-2.5 text-sm ml-auto"
@@ -866,26 +902,15 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
 
             {/* 分页 */}
             {tableTotal > 0 && (
-              <div className="mt-4 flex items-center justify-end gap-3 text-xs" style={{ color: LK.muted }}>
-                <span>共 {tableTotal} 个项目</span>
-                <button
-                  disabled={safePage <= 1}
-                  onClick={() => setCurrentPage(safePage - 1)}
-                  className="rounded-md px-2 py-1 disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{ border: `1px solid ${LK.border}` }}
-                >
-                  上一页
-                </button>
-                <span>第 {safePage} / {Math.max(1, Math.ceil(tableTotal / pageSize))} 页</span>
-                <button
-                  disabled={safePage >= Math.ceil(tableTotal / pageSize)}
-                  onClick={() => setCurrentPage(safePage + 1)}
-                  className="rounded-md px-2 py-1 disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{ border: `1px solid ${LK.border}` }}
-                >
-                  下一页
-                </button>
-              </div>
+              <Pagination
+                page={safePage}
+                perPage={pageSize}
+                total={tableTotal}
+                perPageOptions={[10, 20, 50, 100]}
+                onPageChange={(next) => setCurrentPage(next)}
+                onPerPageChange={handlePageSizeChange}
+                className="mt-2"
+              />
             )}
           </div>
         )}
