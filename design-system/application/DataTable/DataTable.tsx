@@ -50,6 +50,18 @@ export interface DataTableProps<T> {
   selectedRowKey?: string;
 }
 
+function extractTextFromNode(node: React.ReactNode): string {
+  if (node == null || typeof node === 'boolean') return '';
+  if (typeof node === 'string') return node;
+  if (typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(extractTextFromNode).join('');
+  if (React.isValidElement(node)) {
+    const props = node.props as Record<string, unknown>;
+    return extractTextFromNode(props.children as React.ReactNode);
+  }
+  return '';
+}
+
 export function DataTable<T>({
   columns,
   data,
@@ -110,6 +122,9 @@ export function DataTable<T>({
   const alignClass = (align?: 'left' | 'center' | 'right') =>
     align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : '';
 
+  const thClassName = (col: DataTableColumn<T>) =>
+    col.width != null ? 'max-w-0 truncate whitespace-nowrap' : 'whitespace-nowrap';
+
   const renderSortableHeader = (col: DataTableColumn<T>) => {
     const field = col.sortKey ?? col.key;
     const active = sort?.field === field;
@@ -127,10 +142,11 @@ export function DataTable<T>({
       <button
         type="button"
         onClick={handleClick}
-        className="inline-flex cursor-pointer items-center gap-1 text-left text-sm font-bold uppercase tracking-[0.18em] text-theme-text-primary"
+        title={extractTextFromNode(col.header)}
+        className="inline-flex w-full cursor-pointer items-center gap-1 overflow-hidden text-left text-sm font-bold uppercase tracking-[0.18em] text-theme-text-primary"
       >
-        {col.header}
-        <span className="inline-flex items-center gap-0.5 leading-none">
+        <span className="min-w-0 truncate">{col.header}</span>
+        <span className="inline-flex shrink-0 items-center gap-0.5 leading-none">
           <ArrowUp size={12} className={asc ? 'text-theme-text-secondary' : 'text-theme-text-faint'} />
           <ArrowDown size={12} className={desc ? 'text-theme-text-secondary' : 'text-theme-text-faint'} />
         </span>
@@ -161,7 +177,12 @@ export function DataTable<T>({
               </ExecutionTableTh>
             )}
             {columns.map((col) => (
-              <ExecutionTableTh key={col.key} align={col.align} className={col.className}>
+              <ExecutionTableTh
+                key={col.key}
+                align={col.align}
+                title={extractTextFromNode(col.header)}
+                className={cx(thClassName(col), col.className)}
+              >
                 {col.sortable ? renderSortableHeader(col) : col.header}
               </ExecutionTableTh>
             ))}
