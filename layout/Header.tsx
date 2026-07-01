@@ -129,7 +129,7 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="bg-theme-header border-b border-theme-sidebar shadow-brand z-20 sticky top-0">
       <div className="h-14 px-4 flex items-center gap-4">
         <div className="flex items-center gap-2 min-w-0">
-          <ThemeLogo size="small" showBadge={false} />
+          <ThemeLogo size="medium" showBadge={false} />
         </div>
 
         <div className="flex justify-start  flex-1 min-w-0 overflow-visible">

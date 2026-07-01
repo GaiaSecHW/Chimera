@@ -41,7 +41,7 @@ export const ThemeLogo: React.FC<ThemeLogoProps> = ({
     : 'text-theme-text-inverse';
 
   return (
-    <div className="flex items-center gap-4 min-w-0">
+    <div className="flex items-center gap-2 min-w-0">
       <div
         className={`${sizing.box} flex items-center justify-center shrink-0 overflow-hidden`}
       >
