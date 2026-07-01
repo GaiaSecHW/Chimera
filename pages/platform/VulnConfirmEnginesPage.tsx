@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Plus, RefreshCw, Loader2, Trash2, Edit3, Activity, ServerCog, Hash, Clock, X, Link as LinkIcon, Wrench, Bell, Save, Send } from 'lucide-react';
 import { vulnApi, NotifyConfig, NotifyTestResult } from '../../clients/vuln';
+import { toolRegistryApi } from '../../clients/toolRegistry';
 import { showConfirm } from '../../components/DialogService';
-import { Modal, DataTable, DataTableColumn, PageHeader } from '../../design-system';
+import { Modal, DataTable, DataTableColumn, DropdownSelect, DropdownSelectOption, PageHeader } from '../../design-system';
 
 interface VulnConfirmEngine {
   engine_name: string;
@@ -20,15 +21,12 @@ interface EngineFormData {
   engine_name: string;
   endpoint: string;
   version: string;
-  bind_tools_text: string;
+  bind_tools: string[];
 }
 
-const EMPTY_FORM: EngineFormData = { engine_name: '', endpoint: '', version: '', bind_tools_text: '' };
+const EMPTY_FORM: EngineFormData = { engine_name: '', endpoint: '', version: '', bind_tools: [] };
 
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '—');
-
-const parseBindTools = (text: string): string[] =>
-  text.split('\n').map((s) => s.trim()).filter(Boolean);
 
 export const VulnConfirmEnginesPage: React.FC = () => {
   const [engines, setEngines] = useState<VulnConfirmEngine[]>([]);
@@ -37,6 +35,8 @@ export const VulnConfirmEnginesPage: React.FC = () => {
   const [editingEngine, setEditingEngine] = useState<VulnConfirmEngine | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formData, setFormData] = useState<EngineFormData>(EMPTY_FORM);
+  const [toolOptions, setToolOptions] = useState<DropdownSelectOption[]>([]);
+  const [idToName, setIdToName] = useState<Map<string, string>>(new Map());
 
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
   const [notifyConfig, setNotifyConfig] = useState<NotifyConfig | null>(null);
@@ -53,7 +53,21 @@ export const VulnConfirmEnginesPage: React.FC = () => {
   const [notifyTesting, setNotifyTesting] = useState(false);
   const [notifyTestResult, setNotifyTestResult] = useState<NotifyTestResult | null>(null);
 
-  useEffect(() => { fetchEngines(); }, []);
+  useEffect(() => {
+    fetchEngines();
+    fetchTools();
+  }, []);
+
+  const fetchTools = async () => {
+    try {
+      const data = await toolRegistryApi.list();
+      const items = data.items || [];
+      setToolOptions(items.map((t) => ({ value: t.id, label: t.name })));
+      setIdToName(new Map(items.map((t) => [t.id, t.name] as [string, string])));
+    } catch (e: any) {
+      console.error('[VulnConfirmEnginesPage] load tools failed:', e);
+    }
+  };
 
   const fetchEngines = async () => {
     setLoading(true);
@@ -79,14 +93,14 @@ export const VulnConfirmEnginesPage: React.FC = () => {
       engine_name: engine.engine_name,
       endpoint: engine.endpoint,
       version: engine.version,
-      bind_tools_text: (engine.bind_tools || []).join('\n'),
+      bind_tools: engine.bind_tools || [],
     });
     setIsModalOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const bind_tools = parseBindTools(formData.bind_tools_text);
+    const { bind_tools } = formData;
     if (bind_tools.length === 0) {
       alert('bind_tools 至少需要一项');
       return;
@@ -225,7 +239,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
           ) : (
             (engine.bind_tools || []).map((tool) => (
               <span key={tool} className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-500/10 text-indigo-300 rounded text-[10px] font-mono border border-indigo-500/20">
-                <Wrench size={10} /> {tool}
+                <Wrench size={10} /> {idToName.get(tool) || tool}
               </span>
             ))
           )}
@@ -383,14 +397,16 @@ export const VulnConfirmEnginesPage: React.FC = () => {
           </div>
           <div className="space-y-1.5">
             <label className="form-label">绑定工具 (bind_tools) <span className="required"> *</span></label>
-            <textarea
-              rows={4}
-              placeholder={'每行一个工具名，例如：\nloki-triage\nloki-validate'}
-              className="form-textarea w-full font-mono resize-none"
-              value={formData.bind_tools_text}
-              onChange={(e) => setFormData({ ...formData, bind_tools_text: e.target.value })}
+            <DropdownSelect
+              multiple
+              value={formData.bind_tools}
+              onChange={(v) => setFormData({ ...formData, bind_tools: v as string[] })}
+              options={toolOptions}
+              placeholder="选择工具（可多选）"
+              emptyText="暂无可用工具"
+              containerClassName="mt-1"
             />
-            <p className="text-[10px] text-theme-text-faint ml-1">每个工具名不能同时绑定到其他引擎，否则后端返回冲突错误</p>
+            <p className="text-[10px] text-theme-text-faint ml-1">选项来自工具注册中心；每个工具不能同时绑定到其他引擎，否则后端返回冲突错误</p>
           </div>
           <div className="flex gap-4">
             <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary btn-lg">取消</button>

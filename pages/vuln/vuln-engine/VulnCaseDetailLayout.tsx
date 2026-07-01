@@ -233,7 +233,7 @@ export const VulnCaseDetailLayout: React.FC<{
 
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5 px-4 pb-4">
           <MetricCard label="验证结果" value={labelOf(caseDetail?.validation_result, VALIDATION_RESULT_LABELS) || '-'} helper={caseDetail?.finished_reason ?`结束原因：${labelOf(caseDetail?.finished_reason, FINISHED_REASON_LABELS)}` : undefined} />
-          <MetricCard label="漏洞种类" value={caseDetail?.confirmed_category ? ((vulnCategories || []).find((c: any) => c.code === caseDetail.confirmed_category)?.name || caseDetail.confirmed_category) : '-'} helper={caseDetail?.confirmed_category ? ((vulnCategories || []).find((c: any) => c.code === caseDetail.confirmed_category)?.description) : undefined} />
+          <MetricCard label="漏洞种类" value={caseDetail?.confirmed_category ? ((vulnCategories || []).find((c: any) => c.name === caseDetail.confirmed_category)?.name || caseDetail.confirmed_category) : '-'} helper={caseDetail?.confirmed_category ? ((vulnCategories || []).find((c: any) => c.name === caseDetail.confirmed_category)?.description) : undefined} />
           <MetricCard label="主报告" value={displaySummary.current_report_title || selectedReportMeta?.title || '-'} helper={selectedReportMeta?.report_kind || undefined} />
           <MetricCard label="主体对象" value={displaySummary.subject?.locator || caseDetail?.subject?.locator || '-'} helper={displaySummary.subject?.type || caseDetail?.subject?.type || undefined} />
           <MetricCard label="来源任务" value={displaySummary.source_task?.task_id || displaySummary.source_task?.execution_id || '-'} helper={displaySummary.source_task?.service_name || displaySummary.source_task?.service_id || undefined} />

@@ -3066,7 +3066,7 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
                 >
                   <option value="">请选择漏洞种类</option>
                   {vulnCategories.map((item) => (
-                    <option key={item.code} value={item.code}>{item.name}</option>
+                    <option key={item.name} value={item.name}>{item.name}</option>
                   ))}
                 </select>
               </label>

@@ -925,7 +925,7 @@ export const CasesWorkspace: React.FC<any> = ({
                     >
                       <option value="">不指定漏洞种类</option>
                       {(vulnCategories || []).map((item: any) => (
-                        <option key={item.code} value={item.code}>{item.name}</option>
+                        <option key={item.name} value={item.name}>{item.name}</option>
                       ))}
                     </select>
                     <textarea
@@ -960,7 +960,7 @@ export const CasesWorkspace: React.FC<any> = ({
                   </div>
                   <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
                     <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>漏洞种类</div>
-                    <div className="mt-1 font-semibold" style={{ color: LK.ink }}>{selectedCaseDetail.confirmed_category ? ((vulnCategories || []).find((c: any) => c.code === selectedCaseDetail.confirmed_category)?.name || selectedCaseDetail.confirmed_category) : '-'}</div>
+                    <div className="mt-1 font-semibold" style={{ color: LK.ink }}>{selectedCaseDetail.confirmed_category ? ((vulnCategories || []).find((c: any) => c.name === selectedCaseDetail.confirmed_category)?.name || selectedCaseDetail.confirmed_category) : '-'}</div>
                   </div>
                   <div className="rounded-lg px-4 py-3" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}>
                     <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: LK.mutedSoft }}>结果回传</div>
