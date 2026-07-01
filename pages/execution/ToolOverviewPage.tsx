@@ -775,7 +775,7 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   return (
     <div style={{ padding: '32px 32px 40px' }}>
       {feedbackNodes}
-      <PageHeader title="工具总览" description="统一管理 Agent 市场、AgentHarness 仓库、运行指标和平台内置扫描工具入口。页面参考 Agent 市场能力，并适配当前 Chimera 浅色卡片风格。" />
+      <PageHeader title="工具总览" description="统一管理 Agent 市场、AgentHarness 仓库、运行指标和平台内置扫描工具入口。" />
 
       <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, 1fr)' }}>
         <div style={{ borderRadius: '12px', border: `1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised, padding: '20px' }}><div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.2em', color: LK.muted }}>Agent</div><div style={{ marginTop: '8px', fontSize: '30px', fontWeight: 600, color: LK.ink }}>{apps.length}</div></div>

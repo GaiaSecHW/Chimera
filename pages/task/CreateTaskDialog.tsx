@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, Network, X } from 'lucide-react';
+import { ChevronDown, Loader2, Network, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { DropdownSelect, MarkdownViewer } from '../../design-system';
-import { TestInputUploader, TestInputUploaderHandle } from '../../components/TestInputUploader';
-import { getAuthHeaders, handleResponse } from '../../clients/base';
-import { agentManageApiPath } from '../../clients/agentManage';
+import { TestInputUploader, type TestInputUploaderHandle, type InputType as TestInputType } from '../../components/TestInputUploader';
+import { toolRegistryApi } from '../../clients/toolRegistry';
+import type { TaskCreateToolMenuItem, ToolKind } from '../../clients/toolRegistry';
 import { getUploadRecordDisplayName } from '../assets/baseResourcePageModel';
 import {
   loadKgInputEligibility,
@@ -16,10 +16,8 @@ import { resolveSechpsInstruction } from './taskCenterInstruction';
 import { AI4RED_GUIDE_MARKDOWN } from './ai4redGuide';
 import { getPlatformRole } from '../../utils/rbac';
 import type {
-  AgentAppSummary,
   ProjectInputUploadRecord,
   ScheduleCenterUserTaskCreatePayload,
-  ScheduleCenterUserTaskType,
   SecurityProject,
   UserInfo,
 } from '../../types/types';
@@ -46,27 +44,6 @@ export interface CreateTaskDialogProps {
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
-type TaskMode = 'dragon-tail' | 'ram-horn';
-
-type TaskTypeOption = {
-  value: ScheduleCenterUserTaskType;
-  label: string;
-  downstreamView?: string;
-  modes: readonly TaskMode[];
-};
-
-const TASK_TYPES: readonly TaskTypeOption[] = [
-  { value: 'binary_firmware_e2e', label: '盖亚-二进制固件', downstreamView: 'binary-security-detail', modes: ['dragon-tail', 'ram-horn'] },
-  { value: 'source_scan_e2e', label: '盖亚-源码端到端', downstreamView: 'source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
-  { value: 'kg_source_vuln_scan_e2e', label: '知识图谱-漏洞挖掘', downstreamView: 'kg-source-security-detail', modes: ['dragon-tail', 'ram-horn'] },
-  { value: 'binary_module_e2e', label: '盖亚-二进制模块', downstreamView: 'binary-module-security-detail', modes: ['dragon-tail', 'ram-horn'] },
-  { value: 'ai4app_fast', label: 'AI4APP 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
-  { value: 'ai4web_fast', label: 'AI4WEB 扫描（快速）', downstreamView: 'app-security-scan-detail', modes: ['dragon-tail'] },
-  { value: 'ai4app_deep', label: 'AI4APP 扫描（深度）', downstreamView: 'app-security-scan-detail', modes: ['ram-horn'] },
-  { value: 'ai4web_deep', label: 'AI4WEB 扫描（深度）', downstreamView: 'app-security-scan-detail', modes: ['ram-horn'] },
-  { value: 'ai4red', label: 'AI4RED 红线验证', downstreamView: 'task-redline-detail', modes: ['dragon-tail', 'ram-horn'] },
-];
-
 const DISABLED_TASK_TYPE_MESSAGE = '该工具已在系统管理 -> 任务调度 -> 调度参数中禁用前端创建。';
 
 const MODE_OPTIONS = [
@@ -74,20 +51,6 @@ const MODE_OPTIONS = [
   { value: 'ram-horn', label: '羊角' },
   { value: 'lion-head', label: '狮首' },
 ];
-
-const TASK_TYPE_HINTS: Record<string, string> = {
-  binary_firmware_e2e: '请上传一个二进制固件文件（如 .bin、.img、.fw 等），需要勾选"保留原始文件，不自动解压"',
-  binary_module_e2e: '请上传一个或多个二进制模块文件（如 .so、.o、.elf 等），需要勾选"保留原始文件，不自动解压"',
-  source_scan_e2e: '请上传一个源码包，不勾选"保留原始文件，不自动解压"',
-  cfg_db_vuln: '请选择一个已上传的源码目录',
-  kg_source_vuln_scan_e2e: '请选择一个已上传的源码目录',
-  ai4app_fast: '请上传一个应用软件包(apk/hap)或源码压缩包，需要勾选"保留原始文件，不自动解压"',
-  ai4app_deep: '请上传一个应用软件包(apk/hap)或源码压缩包，需要勾选"保留原始文件，不自动解压"',
-  ai4web_fast: '请上传一个压缩包(源码包或产品软件包), 需要勾选"保留原始文件，不自动解压"',
-  ai4web_deep: '请上传一个压缩包(源码包或产品软件包), 需要勾选"保留原始文件，不自动解压"',
-  ai4red: '请上传一个压缩包（具体要求见说明），需要勾选"保留原始文件，不自动解压"',
-  sechps_tool: '已选择 Agent Harness，请在下方选择一个目录作为测试对象。',
-};
 
 const KEEP_ORIGINAL_TASK_TYPES = new Set<string>([
   'binary_firmware_e2e',
@@ -99,23 +62,9 @@ const KEEP_ORIGINAL_TASK_TYPES = new Set<string>([
   'ai4red',
 ]);
 
-/* Prefix used to namespace Agent Harness options inside the tool dropdown so
-   their values cannot collide with regular ScheduleCenterUserTaskType keys. */
-const SECHPS_OPTION_PREFIX = 'sechps:';
-
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
-
-const loadAgentApps = async (departmentId?: number | string | null, tenantId?: number | string | null): Promise<AgentAppSummary[]> => {
-  const params = new URLSearchParams();
-  if (departmentId) params.set('departmentId', String(departmentId));
-  if (tenantId) params.set('tenantId', String(tenantId));
-  const qs = params.toString();
-  const response = await fetch(agentManageApiPath(`/agent-apps${qs ? `?${qs}` : ''}`), { headers: getAuthHeaders() });
-  const payload = await handleResponse(response);
-  return Array.isArray(payload?.apps) ? payload.apps : [];
-};
 
 const getLocalUserInfo = (): UserInfo | null => {
   const raw = localStorage.getItem('user');
@@ -171,6 +120,21 @@ const LK = {
 
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
+/* 工具类型标签：微服务（蓝）/ Agent（紫） */
+const KindBadge = ({ kind }: { kind: ToolKind }) => {
+  const isAgent = kind === 'agent';
+  return (
+    <span
+      className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium leading-tight"
+      style={isAgent
+        ? { backgroundColor: 'rgba(168,85,247,0.16)', color: '#c084fc', border: '1px solid rgba(168,85,247,0.32)' }
+        : { backgroundColor: 'rgba(59,130,246,0.16)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.32)' }}
+    >
+      {isAgent ? 'Agent' : '微服务'}
+    </span>
+  );
+};
+
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
@@ -198,70 +162,72 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId);
-  const [taskType, setTaskType] = useState<ScheduleCenterUserTaskType>('source_scan_e2e');
+  const [taskType, setTaskType] = useState<string>('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [goalText, setGoalText] = useState('');
   const [mode, setMode] = useState('dragon-tail');
   const [selectedInputId, setSelectedInputId] = useState('');
   const [inputs, setInputs] = useState<ProjectInputUploadRecord[]>([]);
-  const [agentApps, setAgentApps] = useState<AgentAppSummary[]>([]);
+  const [tools, setTools] = useState<TaskCreateToolMenuItem[]>([]);
   const [kgEligibilityByUploadId, setKgEligibilityByUploadId] = useState<Record<string, KgInputEligibility>>({});
   const [kgEligibilityLoading, setKgEligibilityLoading] = useState(false);
   const [kgEligibilityError, setKgEligibilityError] = useState('');
   const [toolCreateEnabledByTaskType, setToolCreateEnabledByTaskType] = useState<Record<string, boolean>>({});
   const [showAi4redGuide, setShowAi4redGuide] = useState(false);
 
-  /* --- sechps-specific state --- */
+  /* --- tool/agent-specific state --- */
   const [moduleName, setModuleName] = useState('');
-  const [selectedAgentAppId, setSelectedAgentAppId] = useState('');
   const [instruction, setInstruction] = useState('');
-  const [agentAppsLoadError, setAgentAppsLoadError] = useState('');
+  const [toolsLoadError, setToolsLoadError] = useState('');
 
   /* --- input source toggle --- */
   const [inputSource, setInputSource] = useState<'existing' | 'upload'>('upload');
   const uploaderRef = useRef<TestInputUploaderHandle>(null);
   const [uploading, setUploading] = useState(false);
 
+  /* --- tool dropdown --- */
+  const [toolDropdownOpen, setToolDropdownOpen] = useState(false);
+  const toolDropdownRef = useRef<HTMLDivElement>(null);
+
   /* --- derived --- */
   const isLionHead = mode === 'lion-head';
   const isKgSourceTask = !isLionHead && taskType === 'kg_source_vuln_scan_e2e';
-  const selectedAgentApp = useMemo(() => agentApps.find((item) => item.id === selectedAgentAppId) || null, [agentApps, selectedAgentAppId]);
-  const toolSelectValue = taskType === 'sechps_tool' ? `${SECHPS_OPTION_PREFIX}${selectedAgentAppId}` : taskType;
-  const handleToolSelect = (value: string) => {
-    if (value.startsWith(SECHPS_OPTION_PREFIX)) {
-      setTaskType('sechps_tool');
-      setSelectedAgentAppId(value.slice(SECHPS_OPTION_PREFIX.length));
-    } else {
-      setTaskType(value as ScheduleCenterUserTaskType);
-      setSelectedAgentAppId('');
-    }
-  };
+  const selectedTool = useMemo(() => tools.find((item) => item.task_type === taskType) || null, [tools, taskType]);
+  const isAgentTool = selectedTool?.kind === 'agent';
+  const agentInfo = selectedTool?.agent || null;
   const codeInputs = useMemo(
     () => inputs.filter((item) => String(item.input_type || '').trim().toLowerCase() === 'code'),
     [inputs],
   );
+  /* 工具的 input_types（API 值 document/code/package/other）映射为上传/记录使用的类型（package→software）。 */
+  const allowedUploaderInputTypes = useMemo<TestInputType[] | null>(() => {
+    const its = selectedTool?.input_types;
+    if (!its || its.length === 0) return null;
+    return its.map((t) => (t === 'package' ? 'software' : t) as TestInputType);
+  }, [selectedTool]);
+  const allowedInputTypeSet = useMemo<Set<string> | null>(() => {
+    if (!allowedUploaderInputTypes) return null;
+    return new Set(allowedUploaderInputTypes);
+  }, [allowedUploaderInputTypes]);
   const selectableInputs = useMemo(
-    () => (isKgSourceTask
-      ? codeInputs.filter((item) => kgEligibilityByUploadId[item.upload_id]?.allowed === true)
-      : inputs),
-    [codeInputs, inputs, isKgSourceTask, kgEligibilityByUploadId],
+    () => {
+      const base = isKgSourceTask
+        ? codeInputs.filter((item) => kgEligibilityByUploadId[item.upload_id]?.allowed === true)
+        : inputs;
+      return allowedInputTypeSet
+        ? base.filter((item) => allowedInputTypeSet.has(String(item.input_type || '').trim().toLowerCase()))
+        : base;
+    },
+    [codeInputs, inputs, isKgSourceTask, kgEligibilityByUploadId, allowedInputTypeSet],
   );
   const selectedInput = useMemo(() => selectableInputs.find((item) => item.upload_id === selectedInputId) || null, [selectableInputs, selectedInputId]);
   const selectedKgEligibility = useMemo(
     () => (selectedInputId ? kgEligibilityByUploadId[selectedInputId] || null : null),
     [kgEligibilityByUploadId, selectedInputId],
   );
-  const isTaskTypeDisabled = (value: ScheduleCenterUserTaskType) => !(toolCreateEnabledByTaskType[value] ?? true);
+  const isTaskTypeDisabled = (value: string) => !(toolCreateEnabledByTaskType[value] ?? true);
   const taskTypeDisabled = isTaskTypeDisabled(taskType);
-  const availableTaskTypes = useMemo(
-    () => TASK_TYPES.filter((item) => item.modes.includes(mode as TaskMode)),
-    [mode],
-  );
-  const enabledTaskTypes = useMemo(
-    () => availableTaskTypes.filter((item) => !isTaskTypeDisabled(item.value)),
-    [availableTaskTypes, toolCreateEnabledByTaskType],
-  );
   const kgEligibleItems = useMemo(
     () => codeInputs.filter((item) => kgEligibilityByUploadId[item.upload_id]?.allowed === true),
     [codeInputs, kgEligibilityByUploadId],
@@ -280,11 +246,10 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const canCreateTask = Boolean(selectedProjectId) && !taskTypeDisabled && (
     mode === 'lion-head'
       ? Boolean(lionHeadInputReady && goalText.trim().length > 0)
-      : (
+      : Boolean(taskType) && (
     inputSource === 'upload'
       ? nameValid
       : Boolean(nameValid && selectedInputId
-        && (taskType !== 'sechps_tool' || selectedAgentApp)
         && (taskType !== 'binary_module_e2e' || moduleName.trim())
         && (!isKgSourceTask || selectedKgEligibility?.allowed === true))
   ));
@@ -320,7 +285,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   /* --- data loading --- */
   const loadDialogData = async () => {
     if (!selectedProjectId) return;
-    setAgentAppsLoadError('');
+    setToolsLoadError('');
     try {
       const runtimeConfig = await api.domains.platform.scheduleCenter.getRuntimeConfig();
       const nextToolCreateEnabledByTaskType = Object.fromEntries(
@@ -346,13 +311,11 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setInputs([]);
     }
     try {
-      const appResp = await loadAgentApps(currentUser?.department_id, currentUser?.department_id);
-      setAgentApps(appResp || []);
-      setSelectedAgentAppId((current) => current || appResp?.[0]?.id || '');
+      const menuResp = await toolRegistryApi.taskCreateMenu();
+      setTools(menuResp?.items || []);
     } catch (err: any) {
-      setAgentApps([]);
-      setSelectedAgentAppId('');
-      setAgentAppsLoadError(err?.message || '加载 Agent Harness 失败');
+      setTools([]);
+      setToolsLoadError(err?.message || '加载工具列表失败');
     }
   };
 
@@ -383,42 +346,25 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     void loadKgEligibilityState(inputs);
   }, [open, isKgSourceTask, inputs]);
 
-  /* --- keep taskType valid for the selected mode --- */
+  /* --- keep taskType valid against the loaded tool list --- */
   useEffect(() => {
     if (mode === 'lion-head') return;
-    // sechps_tool is selected via per-harness options in the tool dropdown and
-    // is always valid once an agent app is picked; don't reset it just because
-    // it's no longer a member of the TASK_TYPES list.
-    if (taskType === 'sechps_tool') return;
-    if (!enabledTaskTypes.some((item) => item.value === taskType)) {
-      setTaskType(enabledTaskTypes[0]?.value || availableTaskTypes[0]?.value || 'source_scan_e2e');
-    }
-  }, [mode, availableTaskTypes, enabledTaskTypes, taskType]);
+    if (tools.length === 0) return;
+    const isEnabled = (tt: string) => (toolCreateEnabledByTaskType[tt] ?? true);
+    if (tools.some((t) => t.task_type === taskType && isEnabled(t.task_type))) return;
+    const firstEnabled = tools.find((t) => isEnabled(t.task_type));
+    setTaskType(firstEnabled?.task_type || tools[0]?.task_type || '');
+  }, [mode, tools, taskType, toolCreateEnabledByTaskType]);
 
   /* --- reset on task-type change --- */
   useEffect(() => {
     setInstruction('');
-    if (taskType !== 'sechps_tool') {
-      setSelectedAgentAppId('');
-    }
     // CFG mining needs an existing ingested code upload (graph must pre-exist),
     // so force the "选择已有" source.
     if (taskType === 'kg_source_vuln_scan_e2e') {
       setInputSource('existing');
     }
   }, [taskType]);
-
-  /* --- agent app auto-select --- */
-  useEffect(() => {
-    if (taskType !== 'sechps_tool') return;
-    if (!agentApps.length) {
-      setSelectedAgentAppId('');
-      return;
-    }
-    if (!selectedAgentAppId || !agentApps.some((item) => item.id === selectedAgentAppId)) {
-      setSelectedAgentAppId(agentApps[0]?.id || '');
-    }
-  }, [agentApps, selectedAgentAppId, taskType]);
 
   /* --- keep selectedInputId valid --- */
   useEffect(() => {
@@ -436,6 +382,18 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     uploaderRef.current?.cancel();
     onClose();
   };
+
+  /* --- tool dropdown: close on outside click --- */
+  useEffect(() => {
+    if (!toolDropdownOpen) return;
+    const handleOutside = (event: MouseEvent) => {
+      if (toolDropdownRef.current && !toolDropdownRef.current.contains(event.target as Node)) {
+        setToolDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [toolDropdownOpen]);
 
   /* --- submit --- */
   const createTask = async () => {
@@ -536,11 +494,12 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         return;
       }
 
-      const sechpsInstruction = taskType === 'sechps_tool'
-        ? resolveSechpsInstruction(instruction, selectedAgentApp?.startCommand)
+      const agentStartCommand = isAgentTool ? (agentInfo?.start_command || undefined) : undefined;
+      const resolvedInstruction = isAgentTool
+        ? resolveSechpsInstruction(instruction, agentStartCommand)
         : '';
       const payload: ScheduleCenterUserTaskCreatePayload = {
-        task_type: taskType as ScheduleCenterUserTaskType,
+        task_type: taskType,
         name,
         description,
         input_upload_ids: [finalInputUploadId],
@@ -551,13 +510,13 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         } : {},
         dispatch_policy: {},
         module_name: taskType === 'binary_module_e2e' ? moduleName : undefined,
-        agent_app_id: taskType === 'sechps_tool' ? (selectedAgentApp?.id || undefined) : undefined,
-        agent_app_name: taskType === 'sechps_tool' ? (selectedAgentApp?.name || undefined) : undefined,
-        agent_app_engine: taskType === 'sechps_tool' ? (selectedAgentApp?.engine || undefined) : undefined,
-        agent_app_agent_name: taskType === 'sechps_tool' ? (selectedAgentApp?.defaultAgentName || undefined) : undefined,
-        agent_model_alias_id: taskType === 'sechps_tool' ? (selectedAgentApp?.modelAliasId || undefined) : undefined,
-        agent_harness_path: taskType === 'sechps_tool' ? (selectedAgentApp?.agentHarnessPath || undefined) : undefined,
-        instruction: taskType === 'sechps_tool' ? (sechpsInstruction || undefined) : undefined,
+        agent_app_id: isAgentTool ? (agentInfo?.agent_app_id || undefined) : undefined,
+        agent_app_name: isAgentTool ? (selectedTool?.name || undefined) : undefined,
+        agent_app_engine: isAgentTool ? (agentInfo?.engine || undefined) : undefined,
+        agent_app_agent_name: isAgentTool ? (agentInfo?.default_agent_name || undefined) : undefined,
+        agent_model_alias_id: isAgentTool ? (agentInfo?.model_alias_id ?? undefined) : undefined,
+        agent_harness_path: isAgentTool ? (agentInfo?.agent_harness_path || undefined) : undefined,
+        instruction: isAgentTool ? (resolvedInstruction || undefined) : undefined,
       };
       await scheduleApi.createUserTask(selectedProjectId, payload);
       /* reset form state */
@@ -565,7 +524,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setDescription('');
       setMode('dragon-tail');
       setModuleName('');
-      setSelectedAgentAppId('');
       setInstruction('');
       uploaderRef.current?.reset();
       onCreated();
@@ -694,29 +652,58 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               {/* 工具 */}
               <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                 工具
-                <DropdownSelect
-                  value={toolSelectValue}
-                  onChange={handleToolSelect}
-                  options={[
-                    ...availableTaskTypes.map((item) => ({
-                      value: item.value,
-                      label: `${item.label}${isTaskTypeDisabled(item.value) ? '（已禁用）' : ''}`,
-                      disabled: isTaskTypeDisabled(item.value),
-                    })),
-                    ...(agentApps.length > 0 && !isTaskTypeDisabled('sechps_tool')
-                      ? [
-                          { value: '__sechps_group__', label: '—— Agent Harness ——', disabled: true },
-                          ...agentApps.map((item) => ({
-                            value: `${SECHPS_OPTION_PREFIX}${item.id}`,
-                            label: `${item.name} / ${item.engine}`,
-                          })),
-                        ]
-                      : []),
-                  ]}
-                  placeholder="请选择工具"
-                  emptyText="暂无可用工具"
-                  containerClassName="mt-1"
-                />
+                <div className="relative mt-1" ref={toolDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setToolDropdownOpen((v) => !v)}
+                    className="form-select flex w-full items-center justify-between gap-2 text-left"
+                  >
+                    <span className="flex min-w-0 flex-1 items-center gap-2">
+                      {selectedTool ? (
+                        <>
+                          <KindBadge kind={selectedTool.kind} />
+                          <span className="truncate" style={{ color: LK.ink }}>{selectedTool.name}</span>
+                          {isTaskTypeDisabled(selectedTool.task_type) ? (
+                            <span className="shrink-0 text-xs" style={{ color: LK.warning }}>已禁用</span>
+                          ) : null}
+                        </>
+                      ) : (
+                        <span style={{ color: LK.muted }}>请选择工具</span>
+                      )}
+                    </span>
+                    <ChevronDown size={14} className={`shrink-0 transition-transform ${toolDropdownOpen ? 'rotate-180' : ''}`} style={{ color: LK.muted }} />
+                  </button>
+                  {toolDropdownOpen ? (
+                    <div
+                      className="absolute left-0 top-full z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg p-1.5"
+                      style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
+                    >
+                      {tools.length === 0 ? (
+                        <div className="px-3 py-2 text-xs font-medium" style={{ color: LK.muted }}>暂无可用工具</div>
+                      ) : tools.map((item) => {
+                        const selected = item.task_type === taskType;
+                        const disabled = isTaskTypeDisabled(item.task_type);
+                        return (
+                          <button
+                            key={item.task_type}
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => { if (!disabled) { setTaskType(item.task_type); setToolDropdownOpen(false); } }}
+                            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors"
+                            style={selected
+                              ? { backgroundColor: LK.primaryMuted, color: LK.ink }
+                              : disabled
+                                ? { color: LK.mutedSoft, cursor: 'not-allowed', opacity: 0.5 }
+                                : { color: LK.body }}
+                          >
+                            <KindBadge kind={item.kind} />
+                            <span className="min-w-0 flex-1 truncate">{item.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
               </label>
               {taskTypeDisabled ? (
                 <div
@@ -726,7 +713,15 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   {DISABLED_TASK_TYPE_MESSAGE}
                 </div>
               ) : null}
-              {!taskTypeDisabled && TASK_TYPE_HINTS[taskType] ? (
+              {toolsLoadError ? (
+                <div
+                  className="rounded-lg px-4 py-3 text-sm"
+                  style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
+                >
+                  {toolsLoadError}
+                </div>
+              ) : null}
+              {!taskTypeDisabled && selectedTool?.description ? (
                 <div
                   className="rounded-lg px-3 py-2 text-xs"
                   style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}`, color: LK.body }}
@@ -744,7 +739,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       ），需要勾选&ldquo;保留原始文件，不自动解压&rdquo;
                     </>
                   ) : (
-                    TASK_TYPE_HINTS[taskType]
+                    selectedTool.description
                   )}
                 </div>
               ) : null}
@@ -761,22 +756,14 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 </label>
               ) : null}
 
-              {/* sechps Agent Harness specific */}
-              {taskType === 'sechps_tool' ? (
+              {/* agent 类工具 harness 信息 */}
+              {isAgentTool ? (
                 <>
-                  {agentAppsLoadError ? (
-                    <div
-                      className="rounded-lg px-4 py-3 text-sm"
-                      style={{ backgroundColor: `${LK.warning}14`, border: `1px solid ${LK.warning}40`, color: LK.warning }}
-                    >
-                      {agentAppsLoadError}。不影响上传记录加载，但当前无法创建 Agent Harness 任务。
-                    </div>
-                  ) : null}
-                  {selectedAgentApp ? (
+                  {agentInfo ? (
                     <div className="rounded-lg px-4 py-3 text-xs" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}>
-                      <div>Harness: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.name}</span></div>
-                      <div className="mt-1">Engine: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.engine}</span></div>
-                      <div className="mt-1 break-all">Harness Path: <span className="font-semibold" style={{ color: LK.ink }}>{selectedAgentApp.agentHarnessPath || '—'}</span></div>
+                      <div>Harness: <span className="font-semibold" style={{ color: LK.ink }}>{selectedTool?.name}</span></div>
+                      <div className="mt-1">Engine: <span className="font-semibold" style={{ color: LK.ink }}>{agentInfo.engine || '—'}</span></div>
+                      <div className="mt-1 break-all">Harness Path: <span className="font-semibold" style={{ color: LK.ink }}>{agentInfo.agent_harness_path || '—'}</span></div>
                     </div>
                   ) : null}
                   <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
@@ -831,6 +818,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     defaultInputType="code"
                     defaultKeepOriginal={KEEP_ORIGINAL_TASK_TYPES.has(taskType)}
                     onUploadStateChange={setUploading}
+                    allowedInputTypes={allowedUploaderInputTypes ?? undefined}
                   />
                 ) : (
                   <div className="space-y-3">

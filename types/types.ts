@@ -2443,7 +2443,7 @@ export interface ScheduleCenterUserTaskDeleteQueueResponse {
 }
 
 export interface ScheduleCenterUserTaskCreatePayload {
-  task_type: ScheduleCenterUserTaskType;
+  task_type: ScheduleCenterUserTaskType | string;
   name: string;
   description?: string;
   input_upload_ids: string[];
