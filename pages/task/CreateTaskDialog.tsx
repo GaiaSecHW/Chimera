@@ -597,7 +597,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               创建任务
             </div>
             <div className="mt-1 text-xs leading-5" style={{ color: LK.muted }}>
-              当前项目为<span className="font-semibold" style={{ color: LK.inkSoft }}>「{projectName || selectedProjectId || '—'}」</span>如需为其他项目创建任务，请在顶部导航右上角切换项目空间。
+              当前项目为「<span className="font-bold" style={{ color: LK.error }}>{projectName || selectedProjectId || '—'}</span>」如需为其他项目创建任务，请在顶部导航右上角切换项目空间。
             </div>
           </div>
           <button

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { saveHomeCreateTaskMode } from '../utils/executionReturnContext';
 import { ServiceBuildVersionBadge } from '../components/execution/ServiceBuildVersion';
 import banner1Img from '@/assets/homeBanner/banner1.png';
 import banner2Img from '@/assets/homeBanner/banner2.png';
@@ -109,11 +108,6 @@ const PROMO_SLIDES = [
 ];
 
 export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
-  const handleCardClick = (modeKey: string) => {
-    saveHomeCreateTaskMode(modeKey);
-    setCurrentView('task-list');
-  };
-
   const handlePromoClick = (link: string) => {
     if (link && link !== '#') {
       window.open(link, '_blank', 'noopener,noreferrer');
@@ -230,16 +224,26 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
             <h2 className="text-xl font-semibold text-theme-text-primary md:text-2xl xl:text-3xl">三种执行模式，覆盖全场景</h2>
           </div>
           <p className="text-sm text-theme-text-muted">根据目标特征自动收敛到最优模式</p>
+          <button
+            type="button"
+            onClick={() => setCurrentView('project-mgmt')}
+            className="ml-auto inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5"
+            style={{ backgroundColor: 'var(--brand-primary)', boxShadow: '0 8px 24px -8px var(--brand-primary)' }}
+          >
+            开始使用
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+              <path d="M5 12h14"></path>
+              <path d="m12 5 7 7-7 7"></path>
+            </svg>
+          </button>
         </div>
 
         {/* mode cards */}
         <div className="grid gap-6 md:grid-cols-3 lg:gap-8 xl:gap-10 2xl:gap-12">
           {MODES.map((mode) => (
-            <button
+            <div
               key={mode.key}
-              type="button"
-              onClick={() => handleCardClick(mode.key)}
-              className="group relative overflow-hidden rounded-2xl border p-7 text-left backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_60px_-24px_rgba(0,0,0,0.5)] lg:p-8 xl:p-9 2xl:p-10"
+              className="group relative overflow-hidden rounded-2xl border p-7 text-left backdrop-blur-xl transition-all duration-300 lg:p-8 xl:p-9 2xl:p-10"
               style={{ backgroundColor: GLASS_BG, borderColor: GLASS_BORDER }}
             >
               <div className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full opacity-20 blur-3xl transition-opacity duration-300 group-hover:opacity-40" style={{ backgroundColor: mode.accent }} />
@@ -266,15 +270,8 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
                     </li>
                   ))}
                 </ul>
-                <div className="mt-6 flex items-center gap-2 border-t pt-4 text-sm font-semibold" style={{ color: mode.accent, borderColor: GLASS_BORDER }}>
-                  {mode.jumpMsg}
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1">
-                    <path d="M5 12h14"></path>
-                    <path d="m12 5 7 7-7 7"></path>
-                  </svg>
-                </div>
               </div>
-            </button>
+            </div>
           ))}
         </div>
       </div>
