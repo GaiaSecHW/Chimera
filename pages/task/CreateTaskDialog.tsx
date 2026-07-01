@@ -282,6 +282,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     () => TASK_TYPES.filter((item) => item.modes.includes(mode as TaskMode)),
     [mode],
   );
+  const isTaskTypeDisabled = (value: string) => !(toolCreateEnabledByTaskType[value] ?? true);
   const enabledTaskTypes = useMemo(
     () => availableTaskTypes.filter((item) => !isTaskTypeDisabled(item.value)),
     [availableTaskTypes, toolCreateEnabledByTaskType],
@@ -314,7 +315,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     () => (selectedInputId ? kgEligibilityByUploadId[selectedInputId] || null : null),
     [kgEligibilityByUploadId, selectedInputId],
   );
-  const isTaskTypeDisabled = (value: string) => !(toolCreateEnabledByTaskType[value] ?? true);
   const taskTypeDisabled = isTaskTypeDisabled(taskType);
   const kgEligibleItems = useMemo(
     () => codeInputs.filter((item) => kgEligibilityByUploadId[item.upload_id]?.allowed === true),
