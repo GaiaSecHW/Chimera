@@ -635,7 +635,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     <>
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in"
-      style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}
+      style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)', marginTop: '0px' }}
     >
       <div
         className="flex h-[min(1160px,calc(100vh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-2xl animate-in"

@@ -768,7 +768,7 @@ export const TaskCenterPage: React.FC<Props> = ({ projectId, projects, onRefresh
       {deleteQueueOpen ? (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in"
-          style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}
+          style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)', marginTop: '0px' }}
         >
           <div
             className="flex max-h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl animate-in"

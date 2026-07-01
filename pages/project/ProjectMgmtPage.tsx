@@ -922,7 +922,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       {isCreateModalOpen && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in"
-          style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}
+          style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)', marginTop: '0px' }}
         >
           <div
             className="w-full max-w-xl overflow-hidden rounded-2xl animate-in"
@@ -1011,7 +1011,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       {showConfirm.show && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in"
-          style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}
+          style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)', marginTop: '0px' }}
         >
           <div
             className="w-full max-w-md overflow-hidden rounded-2xl animate-in"
@@ -1059,7 +1059,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       {isEditModalOpen && editingProject && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in"
-          style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)' }}
+          style={{ backgroundColor: 'rgba(5, 10, 20, 0.72)', backdropFilter: 'blur(6px)', marginTop: '0px' }}
         >
           <div
             className="w-full max-w-xl overflow-hidden rounded-2xl animate-in"
