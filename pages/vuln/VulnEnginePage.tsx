@@ -843,10 +843,12 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
     setError(null);
     setSuccessMessage(null);
     try {
+      const isNotVuln = validationForm.validation_result === 'not_vulnerable';
       await vulnApi.vuln.submitValidationResult(selectedCaseId, {
         validation_result: validationForm.validation_result,
-        category: validationForm.category || undefined,
-        summary: validationForm.summary || undefined,
+        // 后端：not_vulnerable 时禁止 category 与 summary（改由误报原因描述）
+        category: isNotVuln ? undefined : (validationForm.category || undefined),
+        summary: isNotVuln ? undefined : (validationForm.summary || undefined),
       });
       await refreshAll();
       setSuccessMessage(`已提交验证结论：${labelOf(validationForm.validation_result, VALIDATION_RESULT_LABELS)}。`);
@@ -950,7 +952,8 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
 
   const handleFinishCase = async () => {
     if (!selectedCaseId) return;
-    if (!finishForm.summary.trim()) {
+    const isNotVuln = finishForm.finished_reason === 'not_vulnerable';
+    if (!isNotVuln && !finishForm.summary.trim()) {
       setError('结束漏洞时必须填写结束说明。');
       return;
     }
@@ -960,7 +963,8 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
     try {
       await vulnApi.vuln.finishCase(selectedCaseId, {
         finished_reason: finishForm.finished_reason,
-        summary: finishForm.summary.trim(),
+        // 后端：not_vulnerable 时不再接收 summary（改由误报原因描述）
+        summary: isNotVuln ? undefined : finishForm.summary.trim(),
       });
       await refreshAll();
       setSuccessMessage('漏洞案例已结束。');

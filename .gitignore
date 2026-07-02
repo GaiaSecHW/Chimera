@@ -17,6 +17,7 @@ dist-ssr
 .codegraph/
 .omc/
 .worktrees/
+.superpowers/
 
 # Editor directories and files
 .vscode/*

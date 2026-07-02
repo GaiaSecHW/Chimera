@@ -690,6 +690,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [confirmingCase, setConfirmingCase] = useState<any | null>(null);
   const [manualConfirmResult, setManualConfirmResult] = useState<'vulnerable' | 'not_vulnerable'>('vulnerable');
   const [vulnCategories, setVulnCategories] = useState<any[]>([]);
+  const [falsePositiveReasons, setFalsePositiveReasons] = useState<any[]>([]);
   const [manualConfirmCategory, setManualConfirmCategory] = useState('');
   const [manualConfirmReason, setManualConfirmReason] = useState('');
   const [manualConfirmError, setManualConfirmError] = useState('');
@@ -1204,6 +1205,13 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       })
       .catch(() => {
         if (mounted) setVulnCategories([]);
+      });
+    vulnApi.vuln.getFalsePositiveReasons()
+      .then((resp: any) => {
+        if (mounted) setFalsePositiveReasons(resp.items || []);
+      })
+      .catch(() => {
+        if (mounted) setFalsePositiveReasons([]);
       });
     return () => { mounted = false; };
   }, []);
@@ -1760,9 +1768,11 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
 
   const openManualConfirm = (item: any) => {
     setConfirmingCase(item);
-    setManualConfirmResult('vulnerable');
+    const currentResult = item?.finished_reason || item?.validation_result;
+    const initialResult = currentResult === 'not_vulnerable' || currentResult === 'vulnerable' ? currentResult : 'vulnerable';
+    setManualConfirmResult(initialResult);
     setManualConfirmCategory(item?.confirmed_category || '');
-    setManualConfirmReason('');
+    setManualConfirmReason(item?.false_positive_reason || '');
     setManualConfirmError('');
   };
 
@@ -1778,7 +1788,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     if (!confirmingCase?.id) return;
     const reason = manualConfirmReason.trim();
     if (manualConfirmResult === 'not_vulnerable' && !reason) {
-      setManualConfirmError('确认不是漏洞时必须填写原因。');
+      setManualConfirmError('确认不是漏洞时必须选择误报原因。');
       return;
     }
     if (manualConfirmResult === 'vulnerable' && !manualConfirmCategory) {
@@ -1793,7 +1803,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       await vulnApi.vuln.finishCase(confirmingCase.id, {
         finished_reason: manualConfirmResult,
         category: manualConfirmResult === 'vulnerable' ? manualConfirmCategory : undefined,
-        summary: manualConfirmResult === 'vulnerable' ? '人工确认：是漏洞' : reason,
+        false_positive_reason: manualConfirmResult === 'not_vulnerable' ? reason : undefined,
+        summary: manualConfirmResult === 'vulnerable' ? '人工确认：是漏洞' : undefined,
       });
       const caseId = confirmingCase.id;
       setConfirmingCase(null);
@@ -3085,7 +3096,25 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 >
                   <option value="">请选择漏洞种类</option>
                   {vulnCategories.map((item) => (
-                    <option key={item.code} value={item.code}>{item.name}</option>
+                    <option key={item.name} value={item.name}>{item.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {manualConfirmResult === 'not_vulnerable' && (
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold text-theme-text-secondary">误报原因</span>
+                <select
+                  value={manualConfirmReason}
+                  onChange={(event) => {
+                    setManualConfirmReason(event.target.value);
+                    if (manualConfirmError) setManualConfirmError('');
+                  }}
+                  className="form-select"
+                >
+                  <option value="">请选择误报原因</option>
+                  {falsePositiveReasons.map((item) => (
+                    <option key={item.name} value={item.name}>{item.name}</option>
                   ))}
                 </select>
               </label>
@@ -3113,21 +3142,9 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 className={`rounded-xl border-2 px-4 py-3 text-left shadow-sm transition ${manualConfirmResult === 'not_vulnerable' ? 'border-state-danger-border bg-state-danger-soft text-state-danger ring-2 ring-state-danger-border' : 'border-theme-border bg-theme-surface text-theme-text-primary hover:bg-theme-elevated'}`}
               >
                 <div className={`text-sm font-semibold ${manualConfirmResult === 'not_vulnerable' ? 'text-state-danger' : 'text-theme-text-primary'}`}>不是漏洞</div>
-                <div className={`mt-1 text-xs ${manualConfirmResult === 'not_vulnerable' ? 'text-state-danger' : 'text-theme-text-muted'}`}>需要填写确认原因。</div>
+                <div className={`mt-1 text-xs ${manualConfirmResult === 'not_vulnerable' ? 'text-state-danger' : 'text-theme-text-muted'}`}>需要选择误报原因。</div>
               </button>
             </div>
-            {manualConfirmResult === 'not_vulnerable' && (
-              <textarea
-                value={manualConfirmReason}
-                onChange={(event) => {
-                  setManualConfirmReason(event.target.value);
-                  if (manualConfirmError) setManualConfirmError('');
-                }}
-                aria-label="确认不是漏洞的原因"
-                placeholder="请输入确认不是漏洞的原因"
-                className="form-textarea min-h-[7rem]"
-              />
-            )}
             {manualConfirmError && <div className="text-sm font-semibold text-state-danger">{manualConfirmError}</div>}
             <div className="flex flex-wrap justify-end gap-3 pt-2">
               <button type="button" onClick={closeManualConfirm} disabled={manualConfirmSubmitting} className="btn btn-secondary">
