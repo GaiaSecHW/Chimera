@@ -11,7 +11,7 @@ import { secBaselineApi } from './client';
 import {
   SyncBadge, PriorityBadge, Badge, ACTION_BADGE, PRIORITY_MAP, coveragePercent, normalizeSources, NODE_TYPE_LABEL,
 } from './constants';
-import type { BaselineDetail, NodeOut, NodeType, LogOut, EventOut, BaselineUpdate } from './types';
+import type { BaselineDetail, NodeOut, NodeType, LogOut, EventOut, BaselineUpdate, Priority } from './types';
 import { NodeEditorModal } from './components/NodeEditorModal';
 
 interface SecBaselineDetailPageProps {
@@ -300,6 +300,12 @@ const NodesTab: React.FC<{ baselineId: number; detail: BaselineDetail }> = ({ ba
     return path;
   }, [nodes]);
 
+  const availablePriorities = useMemo(() => {
+    const set = new Set<string>();
+    nodes.forEach((n) => { if (n.node_type === 'item' && n.priority) set.add(n.priority); });
+    return Array.from(set).sort();
+  }, [nodes]);
+
   const toggleRow = (id: number) => {
     setExpandedRows((prev) => {
       const next = new Set(prev);
@@ -401,7 +407,7 @@ const NodesTab: React.FC<{ baselineId: number; detail: BaselineDetail }> = ({ ba
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-theme-text-faint" size={13} />
                 <input value={leafKw} onChange={(e) => setLeafKw(e.target.value)} placeholder="搜索检查项..." className="form-input text-xs pl-8 py-1.5" />
               </div>
-              <select value={leafPriority} onChange={(e) => setLeafPriority(e.target.value)} className="form-select text-xs w-auto py-1"><option value="all">全部优先级</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+              <select value={leafPriority} onChange={(e) => setLeafPriority(e.target.value)} className="form-select text-xs w-auto py-1"><option value="all">全部优先级</option>{availablePriorities.map((p) => <option key={p} value={p}>{PRIORITY_MAP[p as Priority]?.label || p}</option>)}</select>
               <select value={leafKey} onChange={(e) => setLeafKey(e.target.value)} className="form-select text-xs w-auto py-1"><option value="all">全部能力</option><option value="yes">核心能力项</option><option value="no">非核心能力项</option></select>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -488,7 +494,7 @@ const LeafReadonlyDetail: React.FC<{ node: NodeOut; path: NodeOut[] }> = ({ node
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
         {inline('编码', node.code, true)}
         {inline('排序', node.sort_order, true)}
-        {inline('优先级', node.priority ? PRIORITY_MAP[node.priority]?.label : '—')}
+        {inline('优先级', <PriorityBadge priority={node.priority} />)}
         {inline('核心能力', node.is_key_ability ? '是' : '否')}
       </div>
       {node.description && (

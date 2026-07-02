@@ -3,7 +3,7 @@ import { Modal, FormField } from '../../../../design-system';
 import { showAlert } from '../../../../components/DialogService';
 import { secBaselineApi } from '../client';
 import { sourcesToText, textToSources } from '../constants';
-import type { NodeOut, NodeType, NodeSources } from '../types';
+import type { NodeOut, NodeType, NodeSources, Priority } from '../types';
 
 export interface NodeEditorModalProps {
   open: boolean;
@@ -31,7 +31,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ open, onClose,
   const [nameEn, setNameEn] = useState('');
   const [sortOrder, setSortOrder] = useState<number>(1);
   const [objective, setObjective] = useState('');
-  const [priority, setPriority] = useState<'high' | 'medium' | 'low'>('medium');
+  const [priority, setPriority] = useState<Priority>('L3');
   const [isKeyAbility, setIsKeyAbility] = useState(false);
   const [description, setDescription] = useState('');
   const [verification, setVerification] = useState('');
@@ -42,7 +42,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ open, onClose,
     if (!open) return;
     if (isAdd) {
       setCode(''); setName(''); setNameEn(''); setSortOrder(1);
-      setObjective(''); setPriority('medium'); setIsKeyAbility(false);
+      setObjective(''); setPriority('L3'); setIsKeyAbility(false);
       setDescription(''); setVerification(''); setSourcesText('');
     } else if (node) {
       setCode(node.code || '');
@@ -50,7 +50,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ open, onClose,
       setNameEn(node.name_en || '');
       setSortOrder(node.sort_order || 1);
       setObjective(node.objective || '');
-      setPriority(node.priority || 'medium');
+      setPriority(node.priority || 'L3');
       setIsKeyAbility(!!node.is_key_ability);
       setDescription(node.description || '');
       setVerification(node.verification || '');
@@ -148,10 +148,12 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ open, onClose,
             <div className="grid grid-cols-2 gap-4">
               <FormField label="优先级">
                 <select className="form-select" value={priority} disabled={readonly}
-                  onChange={(e) => setPriority(e.target.value as any)}>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
+                  onChange={(e) => setPriority(e.target.value as Priority)}>
+                  <option value="L1">L1</option>
+                  <option value="L2">L2</option>
+                  <option value="L3">L3</option>
+                  <option value="L4">L4</option>
+                  <option value="L5">L5</option>
                 </select>
               </FormField>
               <FormField label="核心能力项">

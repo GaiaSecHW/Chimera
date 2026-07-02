@@ -66,9 +66,11 @@ import type {
   ToolInputType,
   ToolKind,
   ToolListItem,
+  ToolMode,
   ToolResponse,
   ToolStatus,
   ToolUpdate,
+  ToolUploadMode,
 } from '../../clients/toolRegistry';
 import {
   Button,
@@ -105,7 +107,8 @@ interface AgentHarnessFileData {
   size?: number;
 }
 
-const TOOL_ID_PATTERN = /^[A-Z]{1,10}$/;
+// 工具 ID：小写字母/数字/下划线/横线，1-30 位（正则 ^[a-z0-9_-]{1,30}$，见 tool-registry api.md §一.3）
+const TOOL_ID_PATTERN = /^[a-z0-9_-]{1,30}$/;
 
 /** Icons available for tool registration, matching those used in app/navigation.tsx. */
 const TOOL_ICONS: { name: string; Icon: LucideIcon }[] = [
@@ -165,12 +168,27 @@ const INPUT_TYPE_OPTIONS: { value: ToolInputType; label: string }[] = [
   { value: 'other', label: '其他' },
 ];
 
+// mode 多选：dragon-tail(龙尾) / ram-horn(羊角) / lion-head(狮首)
+const MODE_OPTIONS: { value: ToolMode; label: string }[] = [
+  { value: 'dragon-tail', label: '龙尾' },
+  { value: 'ram-horn', label: '羊角' },
+  { value: 'lion-head', label: '狮首' },
+];
+
+// upload_mode：archive(归档) / raw(原始)
+const UPLOAD_MODE_OPTIONS: { value: ToolUploadMode; label: string }[] = [
+  { value: 'archive', label: '归档' },
+  { value: 'raw', label: '原始' },
+];
+
 const DEFAULT_FORM: FormState = {
   id: '',
   name: '',
   description: '',
   kind: 'microservice',
   input_types: [],
+  mode: [],
+  upload_mode: 'archive',
   view_id: '',
   icon: '',
   current_version: '',
@@ -196,6 +214,8 @@ interface FormState {
   description: string;
   kind: ToolKind;
   input_types: ToolInputType[];
+  mode: ToolMode[];
+  upload_mode: ToolUploadMode;
   // shared registration fields
   view_id: string;
   icon: string;
@@ -271,10 +291,12 @@ const parseMicroserviceUrl = (input: string): ParsedServiceUrl | null => {
 const validate = (form: FormState): ErrorMap => {
   const errors: ErrorMap = {};
   if (!form.id.trim()) errors.id = '请输入工具 ID';
-  else if (!TOOL_ID_PATTERN.test(form.id.trim())) errors.id = 'ID 须为 1-10 位大写字母（如 BINSEC）';
+  else if (!TOOL_ID_PATTERN.test(form.id.trim())) errors.id = 'ID 须为 1-30 位小写字母/数字/下划线/横线（如 binary-sec）';
   if (!form.name.trim()) errors.name = '请输入工具名称';
-  if (!form.view_id.trim()) errors.view_id = '请输入菜单/路由标识';
+  if (form.kind === 'microservice' && !form.view_id.trim()) errors.view_id = '请输入菜单/路由标识';
   if (form.input_types.length === 0) errors.input_types = '请至少选择一种输入类型';
+  if (form.mode.length === 0) errors.mode = '请至少选择一种模式';
+  if (!form.upload_mode) errors.upload_mode = '请选择上传模式';
   if (form.kind === 'microservice') {
     if (!form.namespace.trim()) errors.namespace = '请输入 K8s namespace';
     if (!form.deployment.trim()) errors.deployment = '请输入 deployment 名称';
@@ -300,6 +322,8 @@ const buildCreateParams = (form: FormState, harnessFile: AgentHarnessFileData | 
     description: form.description.trim() || undefined,
     kind: form.kind,
     input_types: form.input_types,
+    mode: form.mode,
+    upload_mode: form.upload_mode,
     view_id: form.view_id.trim() || undefined,
     icon: form.icon.trim() || undefined,
     current_version: form.current_version.trim() || undefined,
@@ -342,6 +366,8 @@ const buildUpdatePayload = (form: FormState, isPublic: boolean): ToolUpdate => {
     name: form.name.trim(),
     description: form.description.trim() || undefined,
     input_types: form.input_types,
+    mode: form.mode,
+    upload_mode: form.upload_mode,
   };
   if (form.kind === 'microservice') {
     let catalog: Record<string, unknown> | undefined;
@@ -366,7 +392,7 @@ const buildUpdatePayload = (form: FormState, isPublic: boolean): ToolUpdate => {
       start_command: form.start_command.trim() || undefined,
       input_requirements: form.input_requirements.trim() || undefined,
       is_public: isPublic,
-      view_id: form.view_id.trim(),
+      view_id: form.view_id.trim() || undefined,
       icon: form.icon.trim() || undefined,
       current_version: form.current_version.trim() || undefined,
       model_alias_id: form.model_alias_id.trim() ? Number(form.model_alias_id) : undefined,
@@ -384,6 +410,8 @@ const formFromToolDetail = (tool: ToolResponse, user: UserInfo | null): FormStat
     description: tool.description ?? '',
     kind: tool.kind,
     input_types: tool.input_types ?? [],
+    mode: tool.mode ?? [],
+    upload_mode: tool.upload_mode ?? 'archive',
     view_id: ms?.view_id ?? ag?.view_id ?? '',
     icon: ms?.icon ?? ag?.icon ?? '',
     current_version: ms?.current_version ?? ag?.current_version ?? '',
@@ -470,6 +498,7 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
   const [microserviceUrl, setMicroserviceUrl] = useState('');
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [inputTypePickerOpen, setInputTypePickerOpen] = useState(false);
+  const [modePickerOpen, setModePickerOpen] = useState(false);
   const [pendingTools, setPendingTools] = useState<ToolListItem[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -508,6 +537,21 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
         ? prev.input_types.filter((t) => t !== value)
         : [...prev.input_types, value],
     }));
+  };
+
+  const toggleMode = (value: ToolMode) => {
+    setForm((prev) => ({
+      ...prev,
+      mode: prev.mode.includes(value)
+        ? prev.mode.filter((m) => m !== value)
+        : [...prev.mode, value],
+    }));
+    setErrors((prev) => {
+      if (!prev.mode) return prev;
+      const next = { ...prev };
+      delete next.mode;
+      return next;
+    });
   };
 
   const handleMicroserviceUrlChange = (value: string) => {
@@ -659,6 +703,7 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
     setMicroserviceUrl('');
     setIconPickerOpen(false);
     setInputTypePickerOpen(false);
+    setModePickerOpen(false);
     setAgentHarnessFile(null);
   };
 
@@ -671,6 +716,7 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
     setMicroserviceUrl('');
     setIconPickerOpen(false);
     setInputTypePickerOpen(false);
+    setModePickerOpen(false);
     setAgentHarnessFile(null);
     setFormOpen(true);
   };
@@ -701,6 +747,7 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
     setMicroserviceUrl('');
     setIconPickerOpen(false);
     setInputTypePickerOpen(false);
+    setModePickerOpen(false);
     setAgentHarnessFile(null);
   };
 
@@ -857,13 +904,13 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
           </FormField>
 
           <div className={inputGridClass}>
-            <FormField label="工具 ID" required error={errors.id} hint="1-10 位大写字母">
+            <FormField label="工具 ID" required error={errors.id} hint="1-30 位小写字母/数字/下划线/横线">
               <Input
                 value={form.id}
-                onChange={(e) => setField('id', e.target.value.toUpperCase())}
-                placeholder="如 BINSEC"
+                onChange={(e) => setField('id', e.target.value.toLowerCase())}
+                placeholder="如 binary-sec"
                 invalid={!!errors.id}
-                maxLength={10}
+                maxLength={30}
                 disabled={!!editingTool}
               />
             </FormField>
@@ -914,14 +961,64 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
                 ) : null}
               </div>
             </FormField>
-            <FormField label="菜单/路由标识" required error={errors.view_id}>
-              <Input
-                value={form.view_id}
-                onChange={(e) => setField('view_id', e.target.value)}
-                placeholder="如 BinarySecurity"
-                invalid={!!errors.view_id}
+            <FormField label="模式" required hint="多选：龙尾 / 羊角 / 狮首" error={errors.mode}>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setModePickerOpen((v) => !v)}
+                  className="form-select flex w-full items-center justify-between gap-2 text-left"
+                >
+                  <span className={`truncate flex-1 ${form.mode.length ? 'text-theme-text-primary' : 'text-theme-text-muted'}`}>
+                    {form.mode.length
+                      ? form.mode.map((m) => MODE_OPTIONS.find((o) => o.value === m)?.label || m).join('、')
+                      : '请选择模式'}
+                  </span>
+                  <ChevronDown size={14} className={`shrink-0 text-theme-text-faint transition-transform ${modePickerOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {modePickerOpen ? (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setModePickerOpen(false)} />
+                    <div className="absolute left-0 top-full z-20 mt-1 w-full rounded-lg border border-theme-border bg-theme-surface p-1.5">
+                      {MODE_OPTIONS.map(({ value, label }) => {
+                        const selected = form.mode.includes(value);
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => toggleMode(value)}
+                            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-theme-elevated"
+                          >
+                            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${selected ? 'border-blue-500 bg-blue-500 text-white' : 'border-theme-border'}`}>
+                              {selected ? <Check size={12} /> : null}
+                            </span>
+                            <span className={selected ? 'text-theme-text-primary' : 'text-theme-text-secondary'}>{label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            </FormField>
+            <FormField label="上传模式" required hint="归档(archive) / 原始(raw)" error={errors.upload_mode}>
+              <Select
+                options={UPLOAD_MODE_OPTIONS}
+                placeholder="请选择上传模式"
+                value={form.upload_mode}
+                onChange={(e) => setField('upload_mode', e.target.value as ToolUploadMode)}
+                invalid={!!errors.upload_mode}
               />
             </FormField>
+            {form.kind === 'microservice' ? (
+              <FormField label="菜单/路由标识" required error={errors.view_id}>
+                <Input
+                  value={form.view_id}
+                  onChange={(e) => setField('view_id', e.target.value)}
+                  placeholder="如 BinarySecurity"
+                  invalid={!!errors.view_id}
+                />
+              </FormField>
+            ) : null}
             <FormField label="icon" hint="选择侧边栏图标（可选）">
               <div className="relative">
                 <div className="flex items-center gap-2">

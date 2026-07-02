@@ -9,11 +9,13 @@ export const SYNC_MAP: Record<SyncStatus, { label: string; dot: string; badge: s
   sync_failed: { label: '同步失败', dot: 'bg-rose-400', badge: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
 };
 
-// 优先级映射
+// 优先级映射(L1 最高 ~ L5 最低,五级)
 export const PRIORITY_MAP: Record<Priority, { label: string; badge: string }> = {
-  high: { label: 'HIGH', badge: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
-  medium: { label: 'MEDIUM', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/20' },
-  low: { label: 'LOW', badge: 'bg-sky-500/15 text-sky-400 border-sky-500/20' },
+  L1: { label: 'L1', badge: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
+  L2: { label: 'L2', badge: 'bg-orange-500/15 text-orange-400 border-orange-500/20' },
+  L3: { label: 'L3', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/20' },
+  L4: { label: 'L4', badge: 'bg-sky-500/15 text-sky-400 border-sky-500/20' },
+  L5: { label: 'L5', badge: 'bg-slate-500/15 text-slate-400 border-slate-500/20' },
 };
 
 // 操作日志 action 映射
@@ -63,37 +65,30 @@ export const SyncBadge: React.FC<{ status: SyncStatus }> = ({ status }) => {
 
 export const PriorityBadge: React.FC<{ priority?: Priority | null }> = ({ priority }) => {
   if (!priority) return <span className="text-xs text-theme-text-faint">—</span>;
-  const m = PRIORITY_MAP[priority];
+  const m = PRIORITY_MAP[priority as Priority];
+  if (!m) return <Badge className="bg-theme-elevated text-theme-text-muted border-theme-border">{priority}</Badge>;
   return <Badge className={m.badge}>{m.label}</Badge>;
 };
 
-// sources 归一化为 {document, section}[]
+// sources 归一化为 {document, section}[](按 \n 分行,首个 | 拆文档/章节)
 export function normalizeSources(sources: NodeSources): { document: string; section?: string }[] {
-  if (!sources || !Array.isArray(sources) || sources.length === 0) return [];
-  if (typeof sources[0] === 'string') {
-    return (sources as string[]).map((s) => ({ document: s, section: '' }));
-  }
-  return sources as { document: string; section?: string }[];
-}
-
-// sources 序列化为多行文本(level2: 每行一条;item: 每行 "文档 | 章节")
-export function sourcesToText(sources: NodeSources, itemType: 'level2' | 'item'): string {
-  const list = normalizeSources(sources);
-  if (itemType === 'level2') {
-    return list.map((s) => s.document).join('\n');
-  }
-  return list.map((s) => `${s.document}${s.section ? ` | ${s.section}` : ''}`).join('\n');
-}
-
-// 多行文本解析为 sources
-export function textToSources(text: string, itemType: 'level2' | 'item'): NodeSources {
-  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
-  if (lines.length === 0) return null;
-  if (itemType === 'level2') return lines;
-  return lines.map((l) => {
-    const [document, section] = l.split('|').map((x) => x?.trim() || '');
-    return { document, section: section || '' };
+  if (typeof sources !== 'string' || !sources.trim()) return [];
+  return sources.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
+    const idx = l.indexOf('|');
+    if (idx < 0) return { document: l, section: '' };
+    return { document: l.slice(0, idx).trim(), section: l.slice(idx + 1).trim() };
   });
+}
+
+// sources 序列化为多行文本(后端本就是文本字符串,直接返回)
+export function sourcesToText(sources: NodeSources, _itemType: 'level2' | 'item'): string {
+  return typeof sources === 'string' ? sources : '';
+}
+
+// 多行文本解析为 sources(后端存储为文本字符串)
+export function textToSources(text: string, _itemType: 'level2' | 'item'): NodeSources {
+  const trimmed = text.trim();
+  return trimmed || null;
 }
 
 // 覆盖率安全取数
