@@ -422,7 +422,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         taskQueuedSum += Number(tr.stats.queued ?? tr.stats.pending ?? 0);
         taskRunningSum += Number(tr.stats.running || 0);
         taskFailedSum += Number(tr.stats.failed || 0);
-        allTaskItems.push(...tr.items);
+        const pidItems = (tr.items || []).map((it: any) => ({ ...it, project_id: pid }));
+        allTaskItems.push(...pidItems);
       }
 
       setTaskCount(anyTaskOk ? taskTotalSum : null);
@@ -824,6 +825,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   <>
                     <thead>
                       <tr>
+                        <th>项目名称</th>
                         <th>任务名称</th>
                         <th>工具</th>
                         <th>测试对象</th>
@@ -833,13 +835,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     </thead>
                     <tbody>
                       {pagedRows.length === 0 ? (
-                        <tr><td colSpan={5} className="text-center py-8" style={{ color: LK.muted }}>{statsLoading ? '加载中...' : '暂无数据'}</td></tr>
+                        <tr><td colSpan={6} className="text-center py-8" style={{ color: LK.muted }}>{statsLoading ? '加载中...' : '暂无数据'}</td></tr>
                       ) : pagedRows.map((t: any, idx: number) => {
                         const statusLabel = getTaskStatusLabel(t);
                         const statusColor = TASK_STATUS_COLOR[statusLabel] || LK.muted;
                         const isRunning = statusLabel === '运行中';
+                        const projectName = projectById.get(t.project_id)?.name || '—';
                         return (
                           <tr key={t.id || idx}>
+                            <td><span className="nm">{projectName}</span></td>
                             <td><span className="nm">{t.name || '—'}</span></td>
                             <td>{getTaskHarnessLabel(t)}</td>
                             <td>{getTaskTestObjectLabel(t)}</td>
