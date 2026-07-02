@@ -32,6 +32,7 @@ import {
 import { api } from '../../clients/api';
 import { authApi } from '../../clients/auth';
 import { API_BASE } from '../../clients/base';
+import { getToolNameMap } from '../../clients/toolRegistry';
 import { DataTable, DataTableColumn, MarkdownViewer, Modal, PageHeader, PageSection, StatisticCard } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
 import type { RedispatchResponse } from '../../clients/vuln';
@@ -678,6 +679,12 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
   const [manualConfirmSubmitting, setManualConfirmSubmitting] = useState(false);
   const [engineTools, setEngineTools] = useState<Set<string>>(new Set());
   const [enginesLoaded, setEnginesLoaded] = useState(true);
+  const [toolNameMap, setToolNameMap] = useState<Map<string, string>>(new Map());
+  // reporter.name 存的是 toolid，展示时翻译成 toolname；未命中（人工上报 / tool-registry 缺失）回退原值
+  const resolveToolName = (raw: any): string => {
+    const id = typeof raw === 'string' ? raw.trim() : '';
+    return (id && toolNameMap.get(id)) || id || '';
+  };
   const [downloadJobs, setDownloadJobs] = useState<any[]>([]);
   const [downloadStats, setDownloadStats] = useState<any>({
     total: 0,
@@ -1205,6 +1212,18 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
   useEffect(() => {
     setEngineTools(new Set());
     setEnginesLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    getToolNameMap()
+      .then((map) => {
+        if (mounted) setToolNameMap(map);
+      })
+      .catch(() => {
+        if (mounted) setToolNameMap(new Map());
+      });
+    return () => { mounted = false; };
   }, []);
 
   useEffect(() => {
@@ -2066,7 +2085,7 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
       width: '12%',
       render: (item: any) => (
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold text-theme-text-secondary">{item.reporter?.name || 'unknown'}</div>
+          <div className="truncate text-sm font-semibold text-theme-text-secondary">{resolveToolName(item.reporter?.name) || 'unknown'}</div>
           <div className="mt-0.5 text-xs text-theme-text-faint">{item.reporter?.version || 'n/a'}</div>
         </div>
       ),
@@ -2278,7 +2297,7 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
       { label: '当前状态', value: toUserVulnStatusText(selectedDetail), hint: selectedDetail.current_status || selectedDetail.current_stage || 'n/a' },
       { label: '置信度', value: selectedDetail.confidence ?? 'n/a', hint:`决策：${toDecisionText(selectedDetail.decision_status)}` },
       { label: 'CVSS', value: Number(selectedDetail.cvss_score || 0).toFixed(1), hint: selectedDetail.severity || 'n/a' },
-      { label: '上报者', value: selectedDetail.reporter?.name || '未提供', hint: selectedDetail.reporter?.type || '未知类型' },
+      { label: '上报者', value: resolveToolName(selectedDetail.reporter?.name) || '未提供', hint: selectedDetail.reporter?.type || '未知类型' },
       { label: '文件根路径', value: selectedDetail.files_root_path || '未分配', hint: workspaceSummary?.files_root_path || '暂无工作区摘要' },
     ];
 
@@ -2727,7 +2746,7 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
               <div className="grid gap-4 xl:grid-cols-2">
                 <DetailSectionCard title="关联上下文" subtitle="集中展示来源任务、对象、执行引用与存储位置。">
                   <div className="mt-3 space-y-2 text-sm text-theme-text-secondary">
-                    <div><span className="font-semibold text-theme-text-secondary">上报者：</span>{selectedDetail.reporter?.name || '未提供'} / {selectedDetail.reporter?.type || 'unknown'}</div>
+                    <div><span className="font-semibold text-theme-text-secondary">上报者：</span>{resolveToolName(selectedDetail.reporter?.name) || '未提供'} / {selectedDetail.reporter?.type || 'unknown'}</div>
                     <div><span className="font-semibold text-theme-text-secondary">目标对象：</span>{selectedDetail.subject?.type || '未提供'} / {selectedDetail.subject?.name || selectedDetail.subject?.locator || '未提供'}</div>
                     <div><span className="font-semibold text-theme-text-secondary">来源报告 ID：</span>{Array.isArray(displaySummary?.source_report_ids) && displaySummary.source_report_ids.length > 0 ? displaySummary.source_report_ids.join(', ') : '未提供'}</div>
                     <div><span className="font-semibold text-theme-text-secondary">来源任务 ID：</span>{selectedDetail.source_task_id || '未提供'}</div>
