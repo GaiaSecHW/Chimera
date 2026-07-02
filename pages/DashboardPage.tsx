@@ -1,34 +1,22 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Activity,
   AlertTriangle,
   ArrowUpRight,
   BarChart3,
-  Briefcase,
-  Bug,
   Building2,
   CheckCircle2,
   Clock,
-  HardDrive,
   HelpCircle,
-  Layers,
   ListChecks,
   Loader,
-  Monitor,
-  Package,
-  Server,
   ShieldCheck,
-  Workflow,
   XCircle,
 } from 'lucide-react';
 import { api } from '../clients/api';
 import { PageHeader } from '../design-system';
-import { SuspectVulnTaskBreakdownDialog } from '../components/SuspectVulnTaskBreakdownDialog';
-import { API_BASE, getHeaders, handleResponse } from '../clients/base';
 import {
   AdminDashboardStats,
   Agent,
-  AiGatewayProviderStat,
   Department,
   EnvTemplate,
   PackageStats,
@@ -50,7 +38,6 @@ interface DashboardPageProps {
   setCurrentView: (view: string) => void;
 }
 
-// LOKI design tokens (DESIGN.md) — dashboard-local palette.
 const LK = {
   primary: '#2563EB',
   primarySoft: '#7590ff',
@@ -73,196 +60,132 @@ const LK = {
   info: '#4f8cff',
 } as const;
 
-const WORKFLOW_STATUS_STYLE: Record<string, { label: string; color: string }> = {
-  running: { label: '运行中', color: LK.primary },
-  active: { label: '运行中', color: LK.primary },
-  pending: { label: '等待中', color: LK.warning },
-  queued: { label: '排队中', color: LK.warning },
-  waiting: { label: '等待中', color: LK.warning },
-  completed: { label: '已完成', color: LK.success },
-  succeeded: { label: '已完成', color: LK.success },
-  success: { label: '已完成', color: LK.success },
-  done: { label: '已完成', color: LK.success },
-  finished: { label: '已完成', color: LK.success },
-  failed: { label: '失败', color: LK.error },
-  failure: { label: '失败', color: LK.error },
-  error: { label: '失败', color: LK.error },
-  cancelled: { label: '已取消', color: LK.muted },
-  canceled: { label: '已取消', color: LK.muted },
-  stopped: { label: '已停止', color: LK.muted },
-  paused: { label: '已暂停', color: LK.muted },
+const TASK_TYPES: readonly { value: string; label: string }[] = [
+  { value: 'binary_firmware_e2e', label: '盖亚-二进制固件' },
+  { value: 'source_scan_e2e', label: '盖亚-源码' },
+  { value: 'kg_source_vuln_scan_e2e', label: '知识图谱-漏洞挖掘' },
+  { value: 'binary_module_e2e', label: '盖亚-二进制模块' },
+  { value: 'ai4app_fast', label: 'AI4APP 扫描（快速）' },
+  { value: 'ai4web_fast', label: 'AI4WEB 扫描（快速）' },
+  { value: 'ai4app_deep', label: 'AI4APP 扫描（深度）' },
+  { value: 'ai4web_deep', label: 'AI4WEB 扫描（深度）' },
+  { value: 'ai4red', label: 'AI4RED 红线验证' },
+  { value: 'sechps_tool', label: 'Agent Harness 任务' },
+];
+
+const getTaskTypeLabel = (t: string) => TASK_TYPES.find(i => i.value === t)?.label || t;
+const getTaskHarnessLabel = (task: any) =>
+  task.task_type === 'sechps_tool' ? (task.agent_app_name || 'Agent Harness') : getTaskTypeLabel(String(task.task_type || ''));
+const getTaskTestObjectLabel = (task: any) => String(task.inputs?.[0]?.display_name || '').trim() || '—';
+const getDisplayStatus = (task: any) => task.display_status || task.business_status || task.dispatch_status || task.create_status || 'unknown';
+
+const TASK_STATUS_TO_LABEL: Record<string, string> = {
+  success: '成功', partial_success: '成功', completed: '成功',
+  failed: '失败',
+  cancelled: '已取消',
+  pending: '等待中', stopped: '等待中', queued: '等待中',
+};
+const getTaskStatusLabel = (task: any) => TASK_STATUS_TO_LABEL[getDisplayStatus(task)] ?? '运行中';
+const TASK_STATUS_COLOR: Record<string, string> = {
+  '等待中': LK.warning, '运行中': LK.info, '成功': LK.success, '失败': LK.error, '已取消': LK.muted,
 };
 
-const SERVICE_STATUS_ORDER = ['healthy', 'degraded', 'unhealthy', 'stale', 'unregistered', 'unknown'];
-
-const SERVICE_STATUS_META: Record<string, { label: string; color: string }> = {
-  healthy: { label: '健康', color: LK.success },
-  degraded: { label: '降级', color: LK.warning },
-  unhealthy: { label: '异常', color: LK.error },
-  stale: { label: '失联', color: LK.muted },
-  unregistered: { label: '未注册', color: LK.mutedSoft },
-  unknown: { label: '未知', color: LK.mutedSoft },
+const getCaseConclusion = (item: any): string => {
+  const raw = String(item?.finished_reason || item?.validation_result || '').trim();
+  if (raw === 'vulnerable' || raw === 'not_vulnerable') return raw;
+  if (raw === 'non_vulnerable') return 'not_vulnerable';
+  return '';
 };
+const CONCLUSION_TEXT: Record<string, string> = { vulnerable: '是漏洞', not_vulnerable: '不是漏洞' };
+const conclusionLabel = (c: string) => c ? (CONCLUSION_TEXT[c] || c) : '—';
+const conclusionClass = (c: string) => c === 'vulnerable' ? 'yes' : c === 'not_vulnerable' ? 'no' : 'pending';
 
-const pickWorkflowStyle = (status: string) =>
-  WORKFLOW_STATUS_STYLE[status] || { label: status || '未知', color: LK.muted };
-
-const pickServiceMeta = (status: string) =>
-  SERVICE_STATUS_META[status] || { label: status || '未知', color: LK.mutedSoft };
+const softBg = (color: string) => `color-mix(in srgb, ${color} 13%, transparent)`;
 
 const formatNumber = (n: number) => {
   if (typeof n !== 'number' || Number.isNaN(n)) return '--';
   return n.toLocaleString('zh-CN');
 };
+const formatDateTime = (v?: string | null) => v ? new Date(v).toLocaleString('zh-CN') : '—';
 
-const formatMs = (ms?: number) => {
-  if (typeof ms !== 'number' || Number.isNaN(ms)) return '--';
-  if (ms < 1) return`${(ms * 1000).toFixed(0)}μs`;
-  if (ms < 1000) return`${ms.toFixed(0)}ms`;
-  return`${(ms / 1000).toFixed(2)}s`;
+type MetricKey = 'projects' | 'taskTotal' | 'taskQueued' | 'taskRunning' | 'taskFailed' | 'vulnSuspect' | 'vulnConfirmed' | 'vulnRuledOut';
+
+const ALGO: Record<string, string> = {
+  '疑似漏洞': 'A + B\n\nA：上报工具（reporter.name）被任一漏洞确认引擎的 bind_tools 包含，且 finished_reason="vulnerable" 的 case 数。\nB：上报工具未被任何引擎 bind_tools 包含的全部 case 数（任意阶段都计入）。',
+  '确认是漏洞': '经过人工终审且判定为漏洞的 case 数。\n\n人工终审指 StageHistory 中存在 to_stage="finished" 且 source_type="human" 的记录；判定取 finished_reason="vulnerable"。',
+  '确认非漏洞': '经过人工终审且判定为非漏洞的 case 数。\n\n人工终审指 StageHistory 中存在 to_stage="finished" 且 source_type="human" 的记录；判定取 finished_reason="not_vulnerable"。',
 };
 
-const formatPercent = (rate?: number) => {
-  if (typeof rate !== 'number' || Number.isNaN(rate)) return '--';
-  const pct = rate <= 1 ? rate * 100 : rate;
-  return`${pct.toFixed(1)}%`;
+const SEVERITY_LABELS: Record<string, string> = { critical: '严重', high: '高危', medium: '中危', low: '低危' };
+const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'];
+const SEVERITY_COLORS: Record<string, string> = { critical: LK.error, high: '#ff8b3d', medium: LK.warning, low: LK.success };
+
+const DONUT_PALETTE = [
+  '#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#f43f5e',
+  '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6',
+  '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7',
+];
+
+const tipEnter = (e: React.MouseEvent<HTMLElement>, text: string) => {
+  const el = e.currentTarget;
+  if (el.offsetWidth >= el.scrollWidth && el.offsetHeight >= el.scrollHeight) return;
+  const tip = document.createElement('div');
+  tip.textContent = text;
+  tip.style.cssText = `position:fixed;z-index:9999;padding:6px 10px;border-radius:6px;font-size:12px;font-weight:500;line-height:1.5;white-space:normal;word-break:break-all;max-width:400px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border-default);box-shadow:0 4px 16px rgba(0,0,0,.25);pointer-events:none;left:${e.clientX + 12}px;top:${e.clientY + 12}px;`;
+  tip.id = 'dash-tip';
+  document.body.appendChild(tip);
 };
-
-interface KpiCardProps {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  value: React.ReactNode;
-  label: string;
-  caption: string;
-  accent?: string;
-  onClick?: () => void;
-}
-
-const KpiCard: React.FC<KpiCardProps> = ({ icon: Icon, value, label, caption, accent = LK.primary, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="group flex flex-col gap-3 rounded-xl p-4 text-left transition-colors"
-    style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.borderColor = LK.primary;
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.borderColor = LK.border;
-    }}
-  >
-    <div className="flex items-center justify-between">
-      <div
-        className="flex h-8 w-8 items-center justify-center rounded-[10px]"
-        style={{ backgroundColor: LK.primaryMuted, color: accent }}
-      >
-        <Icon size={16} />
-      </div>
-      <ArrowUpRight size={14} style={{ color: LK.muted }} className="transition-colors group-hover:opacity-100" />
-    </div>
-    <div>
-      <div className="text-2xl font-bold leading-8 tracking-tight" style={{ color: accent }}>
-        {value}
-      </div>
-      <div className="mt-0.5 text-sm font-semibold" style={{ color: LK.inkSoft }}>
-        {label}
-      </div>
-      <div className="mt-1 text-xs" style={{ color: LK.muted }}>
-        {caption}
-      </div>
-    </div>
-  </button>
-);
-
-const CardShell: React.FC<{
-  title: string;
-  subtitle?: string;
-  right?: React.ReactNode;
-  children: React.ReactNode;
-  className?: string;
-}> = ({ title, subtitle, right, children, className }) => (
-  <section
-    className={`overflow-hidden rounded-xl ${className || ''}`}
-    style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
-  >
-    <div
-      className="flex items-start justify-between gap-3 px-4 py-3"
-      style={{ borderBottom:`1px solid ${LK.borderSoft}` }}
-    >
-      <div>
-        <h2 className="text-base font-semibold leading-6" style={{ color: LK.ink }}>
-          {title}
-        </h2>
-        {subtitle && (
-          <p className="mt-0.5 text-xs" style={{ color: LK.muted }}>
-            {subtitle}
-          </p>
-        )}
-      </div>
-      {right}
-    </div>
-    <div className="px-4 py-4">{children}</div>
-  </section>
-);
-
-const Placeholder: React.FC<{ text: string }> = ({ text }) => (
-  <div className="py-8 text-center text-sm" style={{ color: LK.muted }}>
-    {text}
-  </div>
-);
-
-const MiniStat: React.FC<{ label: string; value: React.ReactNode; accent?: string }> = ({
-  label,
-  value,
-  accent = LK.ink,
-}) => (
-  <div className="rounded-[10px] px-3 py-2.5" style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}>
-    <div className="text-xs" style={{ color: LK.muted }}>
-      {label}
-    </div>
-    <div className="mt-1 text-lg font-semibold leading-6" style={{ color: accent }}>
-      {value}
-    </div>
-  </div>
-);
-
-const BarRow: React.FC<{ label: string; count: number; total: number; color?: string }> = ({
-  label,
-  count,
-  total,
-  color = LK.primary,
-}) => (
-  <div className="flex items-center justify-between gap-3 text-xs">
-    <span className="truncate" style={{ color: LK.body }}>
-      {label}
-    </span>
-    <div className="flex items-center gap-2">
-      <div className="h-1.5 w-24 overflow-hidden rounded-full" style={{ backgroundColor: LK.surfaceRaised }}>
-        <div
-          className="h-full rounded-full"
-          style={{ width: `${total > 0 ? (count / total) * 100 : 0}%`, backgroundColor: color }}
-        />
-      </div>
-      <span className="font-semibold tabular-nums" style={{ color: LK.inkSoft }}>
-        {count.toLocaleString('zh-CN')}
-      </span>
-    </div>
-  </div>
-);
+const tipMove = (e: React.MouseEvent) => {
+  const tip = document.getElementById('dash-tip');
+  if (tip) { tip.style.left = `${e.clientX + 12}px`; tip.style.top = `${e.clientY + 12}px`; }
+};
+const tipLeave = () => { document.getElementById('dash-tip')?.remove(); };
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   projects,
-  agents,
-  staticPackages,
-  packageStats,
-  adminStats,
-  adminStatsLoading,
   setCurrentView,
 }) => {
-  const [providerStats, setProviderStats] = useState<AiGatewayProviderStat[]>([]);
-  const [providerStatsLoading, setProviderStatsLoading] = useState(false);
-
   const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
+  const [curMetric, setCurMetric] = useState<MetricKey>('projects');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  const [taskCount, setTaskCount] = useState<number | null>(null);
+  const [taskQueued, setTaskQueued] = useState<number | null>(null);
+  const [taskRunning, setTaskRunning] = useState<number | null>(null);
+  const [taskFailed, setTaskFailed] = useState<number | null>(null);
+  const [vulnSuspect, setVulnSuspect] = useState<number | null>(null);
+  const [vulnSuspectLoading, setVulnSuspectLoading] = useState(true);
+  const [vulnConfirmed, setVulnConfirmed] = useState<number | null>(null);
+  const [vulnRuledOut, setVulnRuledOut] = useState<number | null>(null);
+  const [algoHover, setAlgoHover] = useState<string | null>(null);
+
+  const [taskItems, setTaskItems] = useState<any[]>([]);
+  const [caseItems, setCaseItems] = useState<any[]>([]);
+  const [perProjectTaskStats, setPerProjectTaskStats] = useState<Record<string, any>>({});
+  const [stageCountsAgg, setStageCountsAgg] = useState<Record<string, number>>({});
+  const [severityCountsAgg, setSeverityCountsAgg] = useState<Record<string, number>>({});
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [engineTools, setEngineTools] = useState<Set<string>>(new Set());
+
+  const getReporterName = (item: any) => String(item?.reporter?.name || '').trim();
+  const hasConfiguredConfirmEngine = (item: any, tools: Set<string>) => {
+    const name = getReporterName(item);
+    return !!name && tools.has(name);
+  };
+  const isHumanFinishedCase = (item: any) => item?.is_human_finished === true;
+  const getEffectiveResult = (item: any) => String(item?.finished_reason || item?.validation_result || '').trim();
+  const shouldEnterVulnCenter = (item: any, tools: Set<string>) => {
+    if (item?.engine_confirmed_vulnerable === true) return true;
+    if (isHumanFinishedCase(item)) return true;
+    return !hasConfiguredConfirmEngine(item, tools);
+  };
+  const matchesSuspect = (item: any, tools: Set<string>) => {
+    if (isHumanFinishedCase(item)) return true;
+    if (hasConfiguredConfirmEngine(item, tools)) return getEffectiveResult(item) === 'vulnerable';
+    return true;
+  };
 
   useEffect(() => {
     orgApi.listDepartments()
@@ -270,741 +193,740 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       .catch((e) => console.error('Failed to fetch departments', e));
   }, []);
 
-  const [taskCount, setTaskCount] = useState<number | null>(null);
-  const [taskQueued, setTaskQueued] = useState<number | null>(null);
-  const [taskRunning, setTaskRunning] = useState<number | null>(null);
-  const [taskFailed, setTaskFailed] = useState<number | null>(null);
-  const [envCount, setEnvCount] = useState<number | null>(null);
-  const [vulnTotal, setVulnTotal] = useState<number | null>(null);
-  const [vulnSuspect, setVulnSuspect] = useState<number | null>(null);
-  const [vulnSuspectLoading, setVulnSuspectLoading] = useState(true);
-  const [algoHover, setAlgoHover] = useState<string | null>(null);
-  const [vulnConfirmed, setVulnConfirmed] = useState<number | null>(null);
-  const [vulnRuledOut, setVulnRuledOut] = useState<number | null>(null);
-  const [suspectBreakdownOpen, setSuspectBreakdownOpen] = useState(false);
-  const [suspectCardHover, setSuspectCardHover] = useState(false);
-
   useEffect(() => {
-    let mounted = true;
-    setProviderStatsLoading(true);
-    api.domains.platform.aigw
-      .listProviderStats()
-      .then((items: any) => {
-        if (mounted) setProviderStats(Array.isArray(items) ? items : []);
-      })
-      .catch((e) => console.error('Failed to fetch aigw provider stats', e))
-      .finally(() => {
-        if (mounted) setProviderStatsLoading(false);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    setCurrentPage(1);
+  }, [curMetric, selectedDepartmentId]);
 
-  const rootDepartments = useMemo(
-    () => departments.filter((d) => !d.parent_id),
-    [departments],
-  );
-
+  const rootDepartments = useMemo(() => departments.filter(d => !d.parent_id), [departments]);
   const selectedDeptIds = useMemo(() => {
     if (!selectedDepartmentId) return null;
     const ids = new Set<number>([selectedDepartmentId]);
     const walk = (parentId: number) => {
-      departments
-        .filter((d) => d.parent_id === parentId)
-        .forEach((d) => {
-          ids.add(d.id);
-          walk(d.id);
-        });
+      departments.filter(d => d.parent_id === parentId).forEach(d => { ids.add(d.id); walk(d.id); });
     };
     walk(selectedDepartmentId);
     return ids;
   }, [selectedDepartmentId, departments]);
-
   const filteredProjects = useMemo(() => {
     if (!selectedDeptIds) return projects;
-    return projects.filter(
-      (p) => p.department_id != null && selectedDeptIds.has(p.department_id),
-    );
+    return projects.filter(p => p.department_id != null && selectedDeptIds.has(p.department_id));
   }, [projects, selectedDeptIds]);
+
+  const deptName = useMemo(() => {
+    if (!selectedDepartmentId) return '全部部门';
+    const dept = departments.find(d => d.id === selectedDepartmentId);
+    return dept?.name || '全部部门';
+  }, [selectedDepartmentId, departments]);
+
+  const projectById = useMemo(() => new Map(projects.map(p => [p.id, p])), [projects]);
+
+  const taskNameById = useMemo(() => new Map(taskItems.map(t => [t.id || t.task_id, t.name?.trim() || t.id || t.task_id])), [taskItems]);
+
+  const dashGetTaskName = (item: any) => {
+    const taskId = String(item?.source_task_id || item?.display_summary?.source_task?.task_id || item?.source_task?.task_id || '').trim();
+    return taskId ? (taskNameById.get(taskId) || taskId) : '未提供';
+  };
 
   useEffect(() => {
     let mounted = true;
     const scheduleApi = api.domains.platform.scheduleCenter;
     const vulnApi = api.domains.vuln.vuln;
+
     const loadStats = async () => {
+      if (mounted) setStatsLoading(true);
       if (mounted) setVulnSuspectLoading(true);
-      const filteredProjectIdSet = new Set((filteredProjects || []).map((p) => p.id));
-      const perProject = (filteredProjects || []).map((p) =>
-        Promise.allSettled([
-          scheduleApi.listUserTasks(p.id, { page_size: 1 }),
-          fetch(`${API_BASE}/api/agent/agents/stats?project_id=${encodeURIComponent(p.id)}`, { headers: getHeaders() })
-            .then((r) => handleResponse(r))
-            .catch(() => null),
-        ]),
+      const filteredProjectIdSet = new Set(filteredProjects.map(p => p.id));
+
+      // ── 并行启动所有独立请求 ──────────────────────
+      // 第1组：任务数据（每项目 listUserTasks）
+      const tasksPromise = Promise.allSettled(
+        filteredProjects.map(p => scheduleApi.listUserTasks(p.id, { page_size: 200 })),
       );
-      const [breakdownRes, ...projectResults] = await Promise.allSettled([
-        vulnApi.getBreakdown(),
-        ...perProject,
-      ]);
-      if (!mounted) return;
-      let taskTotalSum = 0;
-      let taskQueuedSum = 0;
-      let taskRunningSum = 0;
-      let taskFailedSum = 0;
-      let envTotal = 0;
-      let anyTaskOk = false;
-      let anyEnvOk = false;
-      projectResults.forEach((res) => {
-        if (res.status !== 'fulfilled') return;
-        const [taskR, envR] = res.value;
-        if (taskR.status === 'fulfilled' && taskR.value?.stats) {
-          anyTaskOk = true;
-          taskTotalSum += Number(taskR.value.stats.total || 0);
-          taskQueuedSum += Number(taskR.value.stats.queued || 0);
-          taskRunningSum += Number(taskR.value.stats.running || 0);
-          taskFailedSum += Number(taskR.value.stats.failed || 0);
+      // 第2组：漏洞 breakdown
+      const breakdownPromise = vulnApi.getBreakdown().catch(() => null);
+      // 第3组：每项目 getOverview
+      const overviewsPromise = Promise.allSettled(
+        filteredProjects.map(p => vulnApi.getOverview(p.id)),
+      );
+      // 第4组：确认引擎
+      const enginesPromise = vulnApi.listConfirmEngines().catch(() => ({ engines: [] }));
+      // 第5组：全量 cases（先拉第一页拿 total，再并行拉剩余页）
+      const casesPromise = (async () => {
+        const first = await vulnApi.listCases({ page: 1, page_size: 200 });
+        const total = Number(first?.total || 0);
+        const allItems: any[] = [...(first?.items || [])];
+        const pages = Math.ceil(total / 200);
+        if (pages > 1) {
+          const rest = await Promise.allSettled(
+            Array.from({ length: pages - 1 }, (_, i) =>
+              vulnApi.listCases({ page: i + 2, page_size: 200 }),
+            ),
+          );
+          rest.forEach(r => {
+            if (r.status === 'fulfilled' && r.value?.items) allItems.push(...r.value.items);
+          });
         }
-        if (envR.status === 'fulfilled' && envR.value) {
-          anyEnvOk = true;
-          envTotal += Number(envR.value?.summary?.total_agents || 0);
+        return { items: allItems, total };
+      })().catch(() => ({ items: [], total: 0 }));
+
+      const [taskResults, breakdown, overviewResults, enginesRes, casesResp] = await Promise.all([
+        tasksPromise, breakdownPromise, overviewsPromise, enginesPromise, casesPromise,
+      ]);
+
+      if (!mounted) return;
+
+      // ── 处理任务数据 ──────────────────────────────
+      let taskTotalSum = 0, taskQueuedSum = 0, taskRunningSum = 0, taskFailedSum = 0;
+      let anyTaskOk = false;
+      const allTaskItems: any[] = [];
+      const pStats: Record<string, any> = {};
+
+      taskResults.forEach((res, idx) => {
+        if (res.status !== 'fulfilled' || !res.value) return;
+        anyTaskOk = true;
+        const projectId = filteredProjects[idx]?.id;
+        const stats = res.value.stats || {};
+        taskTotalSum += Number(stats.total || 0);
+        taskQueuedSum += Number(stats.queued ?? stats.pending ?? 0);
+        taskRunningSum += Number(stats.running || 0);
+        taskFailedSum += Number(stats.failed || 0);
+        if (projectId) pStats[projectId] = stats;
+        const items: any[] = res.value.items || [];
+        for (const item of items) {
+          if (selectedDeptIds && !filteredProjectIdSet.has(item?.project_id || projectId)) continue;
+          allTaskItems.push(item);
         }
       });
+
       setTaskCount(anyTaskOk ? taskTotalSum : null);
       setTaskQueued(anyTaskOk ? taskQueuedSum : null);
       setTaskRunning(anyTaskOk ? taskRunningSum : null);
       setTaskFailed(anyTaskOk ? taskFailedSum : null);
-      setEnvCount(anyEnvOk ? envTotal : null);
-      const breakdown = breakdownRes.status === 'fulfilled' ? breakdownRes.value : null;
+      setTaskItems(allTaskItems);
+      setPerProjectTaskStats(pStats);
+
+      // ── 处理 breakdown ────────────────────────────
       const breakdownProjects = breakdown?.projects || [];
       const visibleBreakdownProjects = selectedDeptIds
-        ? breakdownProjects.filter((p) => filteredProjectIdSet.has(p.project_id))
+        ? breakdownProjects.filter(p => filteredProjectIdSet.has(p.project_id))
         : breakdownProjects;
-      setVulnTotal(breakdown ? visibleBreakdownProjects.reduce((s, p) => s + Number(p.total || 0), 0) : null);
 
-      const overviewResults = await Promise.allSettled(
-        (filteredProjects || []).map((p) => vulnApi.getOverview(p.id)),
-      );
-      let confirmedSum = 0;
-      let ruledOutSum = 0;
+      // ── 处理 overview ─────────────────────────────
+      let confirmedSum = 0, ruledOutSum = 0;
       let anyOverviewOk = false;
-      overviewResults.forEach((r) => {
+      const sAgg: Record<string, number> = {};
+      const sevAgg: Record<string, number> = {};
+
+      overviewResults.forEach(r => {
         if (r.status !== 'fulfilled' || !r.value) return;
         anyOverviewOk = true;
         confirmedSum += Number(r.value?.human_finished_reason_counts?.vulnerable || 0);
         ruledOutSum += Number(r.value?.human_finished_reason_counts?.not_vulnerable || 0);
+        const sc = r.value?.stage_counts || {};
+        for (const [k, v] of Object.entries(sc)) sAgg[k] = (sAgg[k] || 0) + Number(v || 0);
+        const sevc = r.value?.severity_counts || {};
+        for (const [k, v] of Object.entries(sevc)) sevAgg[k] = (sevAgg[k] || 0) + Number(v || 0);
       });
       setVulnConfirmed(anyOverviewOk ? confirmedSum : null);
       setVulnRuledOut(anyOverviewOk ? ruledOutSum : null);
+      setStageCountsAgg(sAgg);
+      setSeverityCountsAgg(sevAgg);
 
-      // 疑似漏洞 = A (引擎工具且 finished_reason=vulnerable) + B (无引擎工具的所有上报)
-      // engines 拉取失败时按"无引擎"降级：所有 case 都计入 B
-      const engineTools = new Set<string>();
-      try {
-        const enginesRes = await vulnApi.listConfirmEngines();
-        (enginesRes?.engines || []).forEach((eng: any) => {
-          (eng?.bind_tools || []).forEach((t: string) => engineTools.add(t));
-        });
-      } catch (e) {
-        console.error('[Dashboard] listConfirmEngines failed, fallback to no-engines', e);
+      // ── 处理引擎 + cases ──────────────────────────
+      const tools = new Set<string>();
+      (enginesRes?.engines || []).forEach((eng: any) => {
+        (eng?.bind_tools || []).forEach((t: string) => tools.add(t));
+      });
+      setEngineTools(tools);
+
+      const allCases: any[] = [];
+      let suspectCount = 0;
+      const rawItems: any[] = casesResp?.items || [];
+      for (const c of rawItems) {
+        if (selectedDeptIds && !filteredProjectIdSet.has(c?.project_id)) continue;
+        allCases.push(c);
+        if (shouldEnterVulnCenter(c, tools) && matchesSuspect(c, tools)) suspectCount += 1;
       }
-      try {
-        let aCount = 0;
-        let bCount = 0;
-        let page = 1;
-        const pageSize = 200;
-        while (true) {
-          const resp = await vulnApi.listCases({ page, page_size: pageSize });
-          const items: any[] = resp?.items || [];
-          for (const c of items) {
-            if (selectedDeptIds && !filteredProjectIdSet.has(c?.project_id)) continue;
-            const reporterName: string = c?.reporter?.name || c?.source_meta?.reporter?.name || '';
-            if (reporterName && engineTools.has(reporterName)) {
-              if (c?.finished_reason === 'vulnerable') aCount += 1;
-            } else {
-              bCount += 1;
-            }
-          }
-          if (items.length < pageSize || page * pageSize >= (resp?.total || 0)) break;
-          page += 1;
-        }
-        if (mounted) setVulnSuspect(aCount + bCount);
-      } catch (e) {
-        console.error('[Dashboard] listCases failed', e);
-        if (mounted) setVulnSuspect(null);
-      } finally {
-        if (mounted) setVulnSuspectLoading(false);
-      }
+      setVulnSuspect(suspectCount);
+      setVulnSuspectLoading(false);
+      setCaseItems(allCases);
+      setStatsLoading(false);
     };
     void loadStats();
-    return () => {
-      mounted = false;
-    };
-  }, [filteredProjects]);
+    return () => { mounted = false; };
+  }, [filteredProjects, selectedDeptIds]);
 
-  const localProjectsCount = (projects || []).length;
-  const localAgentsTotal = (agents || []).length;
-  const localAgentsOnline = (agents || []).filter((a) => a.status === 'online').length;
+  const cardValues: Record<MetricKey, number | null> = useMemo(() => ({
+    projects: filteredProjects.length,
+    taskTotal: taskCount,
+    taskQueued: taskQueued,
+    taskRunning: taskRunning,
+    taskFailed: taskFailed,
+    vulnSuspect: vulnSuspect,
+    vulnConfirmed: vulnConfirmed,
+    vulnRuledOut: vulnRuledOut,
+  }), [filteredProjects, taskCount, taskQueued, taskRunning, taskFailed, vulnSuspect, vulnConfirmed, vulnRuledOut]);
 
-  const adminAgents = adminStats?.agents;
-  const adminWorkflows = adminStats?.workflows;
-  const adminResources = adminStats?.resources;
-  const adminServices = adminStats?.services || [];
+  const taskStatusAgg = useMemo(() => {
+    const agg: Record<string, number> = { '等待中': 0, '运行中': 0, '成功': 0, '失败': 0, '已取消': 0 };
+    taskItems.forEach(t => {
+      const label = getTaskStatusLabel(t);
+      agg[label] = (agg[label] || 0) + 1;
+    });
+    return Object.entries(agg)
+      .filter(([, c]) => c > 0)
+      .map(([name, count]) => ({ name, count, color: TASK_STATUS_COLOR[name] || LK.primary }));
+  }, [taskItems]);
 
-  const effectiveProjectsCount = adminStats?.projects?.total ?? localProjectsCount;
-  const effectiveAgentsTotal = adminAgents?.total ?? localAgentsTotal;
-  const effectiveAgentsOnline = adminAgents?.online ?? localAgentsOnline;
-
-  const workflowTotal = adminWorkflows?.totalInstances ?? 0;
-  const workflowEntries = Object.entries(adminWorkflows?.statusDistribution || {}).map(([status, count]) => ({
-    status,
-    count: Number(count || 0),
-    ...pickWorkflowStyle(status),
-  }));
-  const workflowAppTemplates = adminWorkflows?.templates?.appTemplates ?? 0;
-  const workflowJobTemplates = adminWorkflows?.templates?.jobTemplates ?? 0;
-  const workflowTemplateCount = workflowAppTemplates + workflowJobTemplates;
-
-  const servicesByStatus = new Map<string, number>();
-  adminServices.forEach((svc) => {
-    servicesByStatus.set(svc.status, (servicesByStatus.get(svc.status) || 0) + 1);
-  });
-  const serviceEntries: Array<{ status: string; count: number }> = [];
-  SERVICE_STATUS_ORDER.forEach((status) => {
-    const count = servicesByStatus.get(status) || 0;
-    if (count > 0) serviceEntries.push({ status, count });
-  });
-  Array.from(servicesByStatus.entries()).forEach(([status, count]) => {
-    if (!SERVICE_STATUS_ORDER.includes(status) && count > 0) {
-      serviceEntries.push({ status, count });
+  const taskStatusAggFromStats = useMemo(() => {
+    const agg: Record<string, number> = { '等待中': 0, '运行中': 0, '成功': 0, '失败': 0, '已取消': 0 };
+    for (const stats of Object.values(perProjectTaskStats)) {
+      agg['等待中'] += Number(stats.queued ?? stats.pending ?? 0);
+      agg['运行中'] += Number(stats.running ?? 0);
+      agg['成功'] += Number(stats.success ?? 0);
+      agg['失败'] += Number(stats.failed ?? 0);
+      agg['已取消'] += Number(stats.cancelled ?? 0);
     }
-  });
-  const serviceTotal = adminServices.length;
-  const serviceHealthy = servicesByStatus.get('healthy') || 0;
+    return Object.entries(agg)
+      .filter(([, c]) => c > 0)
+      .map(([name, count]) => ({ name, count, color: TASK_STATUS_COLOR[name] || LK.primary }));
+  }, [perProjectTaskStats]);
 
-  const pvcTotal = adminResources?.totalPvcs ?? 0;
-  const storageGi = adminResources?.totalStorageGi ?? 0;
-  const storageHuman =
-    storageGi >= 1024 ?`${(storageGi / 1024).toFixed(2)} Ti` :`${storageGi.toFixed(0)} Gi`;
-  const resourceStatusEntries = Object.entries(adminResources?.statusCounts || {}).map(([status, count]) => ({
-    status,
-    count: Number(count || 0),
-  }));
-  const resourceStatusTotal = resourceStatusEntries.reduce((sum, e) => sum + e.count, 0);
+  const reporterAgg = useMemo(() => {
+    const m = new Map<string, number>();
+    caseItems.forEach(c => {
+      const reporterName = c?.reporter?.name || c?.source_meta?.reporter?.name || 'unknown';
+      if (shouldEnterVulnCenter(c, engineTools) && matchesSuspect(c, engineTools)) {
+        m.set(reporterName, (m.get(reporterName) || 0) + 1);
+      }
+    });
+    return Array.from(m.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [caseItems, engineTools]);
 
-  const pkgTotal = packageStats?.summary?.total_packages ?? (staticPackages || []).length;
-  const pkgSize = packageStats?.summary?.total_size_human ?? '--';
-  const pkgDownloads = packageStats?.summary?.total_downloads ?? 0;
-  const archEntries = (packageStats?.by_architecture || [])
-    .map((a) => ({ arch: a.architecture, count: a.package_count }))
-    .sort((a, b) => b.count - a.count);
-  const archTotal = archEntries.reduce((sum, a) => sum + a.count, 0);
+  const projectTaskRows = useMemo(() => {
+    const rows = filteredProjects.map(p => {
+      const stats = perProjectTaskStats[p.id] || {};
+      return {
+        project: p,
+        total: Number(stats.total || 0),
+        queued: Number(stats.queued ?? stats.pending ?? 0),
+        running: Number(stats.running || 0),
+        failed: Number(stats.failed || 0),
+      };
+    });
+    rows.sort((a, b) => b.total - a.total);
+    return rows;
+  }, [filteredProjects, perProjectTaskStats]);
 
-  const topProviders = [...providerStats]
-    .filter((p) => p && typeof p.request_count === 'number')
-    .sort((a, b) => (b.request_count || 0) - (a.request_count || 0))
-    .slice(0, 6);
-  const totalProviderRequests = providerStats.reduce((sum, p) => sum + (p.request_count || 0), 0);
+  const filteredTaskItems = useMemo(() => {
+    const m = curMetric;
+    let items = [...taskItems];
+    if (m === 'taskQueued') items = items.filter(t => ['pending', 'queued', 'stopped'].includes(getDisplayStatus(t)));
+    else if (m === 'taskRunning') items = items.filter(t => getDisplayStatus(t) === 'running');
+    else if (m === 'taskFailed') items = items.filter(t => getDisplayStatus(t) === 'failed');
+    items.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+    return items;
+  }, [taskItems, curMetric]);
 
-  const adminUnavailable = !adminStats && !adminStatsLoading;
+  const filteredCaseItems = useMemo(() => {
+    const m = curMetric;
+    let items = [...caseItems];
+    if (m === 'vulnConfirmed') items = items.filter(c => c?.is_human_finished === true && getCaseConclusion(c) === 'vulnerable');
+    else if (m === 'vulnRuledOut') items = items.filter(c => c?.is_human_finished === true && getCaseConclusion(c) === 'not_vulnerable');
+    else if (m === 'vulnSuspect') items = items.filter(c => shouldEnterVulnCenter(c, engineTools) && matchesSuspect(c, engineTools));
+    items.sort((a, b) => (b.updated_at || b.created_at || '').localeCompare(a.updated_at || a.created_at || ''));
+    return items;
+  }, [caseItems, curMetric]);
+
+  const panelRows = useMemo(() => {
+    if (curMetric === 'projects') return projectTaskRows;
+    if (curMetric === 'vulnSuspect' || curMetric === 'vulnConfirmed' || curMetric === 'vulnRuledOut') return filteredCaseItems;
+    return filteredTaskItems;
+  }, [curMetric, projectTaskRows, filteredCaseItems, filteredTaskItems]);
+
+  const totalRows = panelRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+  const normalizedPage = Math.min(currentPage, totalPages);
+  const pagedRows = useMemo(
+    () => panelRows.slice((normalizedPage - 1) * pageSize, normalizedPage * pageSize),
+    [panelRows, normalizedPage, pageSize],
+  );
+
+  const distItems = useMemo(() => {
+    const m = curMetric;
+    if (m === 'projects' || m === 'taskTotal') return taskStatusAggFromStats;
+    if (m === 'vulnSuspect') {
+      return reporterAgg.map(r => ({ name: r.name, count: r.count, color: LK.primaryDeep }));
+    }
+    if (m === 'vulnConfirmed') {
+      const sevAgg: Record<string, number> = { critical: 0, high: 0, medium: 0, low: 0 };
+      filteredCaseItems.forEach(c => {
+        const s = String(c?.severity || '').trim().toLowerCase();
+        if (s && sevAgg.hasOwnProperty(s)) sevAgg[s] += 1;
+      });
+      return SEVERITY_ORDER.map(sev => ({
+        name: SEVERITY_LABELS[sev] || sev,
+        count: sevAgg[sev] || 0,
+        color: SEVERITY_COLORS[sev] || LK.primary,
+      })).filter(i => i.count > 0);
+    }
+    return [];
+  }, [curMetric, taskStatusAggFromStats, reporterAgg, severityCountsAgg]);
+
+  const dist2Items = useMemo(() => {
+    const m = curMetric;
+    if (m === 'vulnConfirmed') {
+      const agg = new Map<string, number>();
+      filteredCaseItems.forEach(c => {
+        const cat = String(c?.confirmed_category || '').trim();
+        if (cat) agg.set(cat, (agg.get(cat) || 0) + 1);
+      });
+      return Array.from(agg.entries())
+        .map(([name, count], i) => ({ name, count, color: DONUT_PALETTE[i % DONUT_PALETTE.length] }))
+        .sort((a, b) => b.count - a.count);
+    }
+    if (m === 'vulnRuledOut') {
+      const agg = new Map<string, number>();
+      filteredCaseItems.forEach(c => {
+        const reason = String(c?.false_positive_reason || '').trim();
+        if (reason) agg.set(reason, (agg.get(reason) || 0) + 1);
+      });
+      return Array.from(agg.entries())
+        .map(([name, count], i) => ({ name, count, color: DONUT_PALETTE[i % DONUT_PALETTE.length] }))
+        .sort((a, b) => b.count - a.count);
+    }
+    return [];
+  }, [curMetric, filteredCaseItems]);
+
+  const panelTitle = useMemo(() => {
+    const m = curMetric;
+    if (m === 'projects') return '项目';
+    if (m === 'taskTotal') return '系统中总的任务';
+    if (m === 'taskQueued') return '排队中任务';
+    if (m === 'taskRunning') return '运行中的任务';
+    if (m === 'taskFailed') return '失败的任务';
+    if (m === 'vulnSuspect') return '疑似漏洞';
+    if (m === 'vulnConfirmed') return '确认是漏洞';
+    if (m === 'vulnRuledOut') return '确认非漏洞';
+    return '—';
+  }, [curMetric]);
+
+  const panelSub = useMemo(() => {
+    const m = curMetric;
+    const val = cardValues[m];
+    const vStr = val !== null ? formatNumber(val) : '—';
+    if (m === 'projects') return `${deptName} · 共 ${vStr} 个项目`;
+    if (m === 'taskTotal' || m === 'taskQueued' || m === 'taskRunning' || m === 'taskFailed') {
+      return `${deptName} · 共 ${vStr} 个任务`;
+    }
+    if (m === 'vulnSuspect' || m === 'vulnConfirmed' || m === 'vulnRuledOut') {
+      return `${deptName} · 累计 ${vStr} 条`;
+    }
+    return '';
+  }, [curMetric, cardValues, deptName]);
+
+  const handleMetricClick = useCallback((m: MetricKey) => {
+    setCurMetric(m);
+  }, []);
+
+  const row1 = useMemo(() => [
+    { label: '项目', metric: 'projects' as MetricKey, Icon: Building2, color: LK.primary, algo: '' },
+    { label: '疑似漏洞', metric: 'vulnSuspect' as MetricKey, Icon: CheckCircle2, color: LK.primaryDeep, algo: ALGO['疑似漏洞'] },
+    { label: '确认是漏洞', metric: 'vulnConfirmed' as MetricKey, Icon: AlertTriangle, color: LK.error, algo: ALGO['确认是漏洞'] },
+    { label: '确认非漏洞', metric: 'vulnRuledOut' as MetricKey, Icon: ShieldCheck, color: LK.success, algo: ALGO['确认非漏洞'] },
+  ], []);
+
+  const row2 = useMemo(() => [
+    { label: '系统中总的任务', metric: 'taskTotal' as MetricKey, Icon: ListChecks, color: LK.primary, algo: '' },
+    { label: '排队中任务', metric: 'taskQueued' as MetricKey, Icon: Clock, color: LK.warning, algo: '' },
+    { label: '运行中的任务', metric: 'taskRunning' as MetricKey, Icon: Loader, color: LK.info, algo: '' },
+    { label: '失败的任务', metric: 'taskFailed' as MetricKey, Icon: XCircle, color: LK.error, algo: '' },
+  ], []);
+
+  const isSingle = curMetric === 'taskQueued' || curMetric === 'taskRunning' || curMetric === 'taskFailed';
 
   return (
-    <div
-      className="min-h-full px-5 py-5 md:px-6 2xl:px-8"
-      style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}
-    >
+    <div className="min-h-full px-5 py-5 md:px-6 2xl:px-8" style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
       <div className="mx-auto w-full max-w-[1600px] space-y-4">
         <PageHeader
-          title={<div className="flex flex-col gap-1"><span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}><BarChart3 size={13} /> 平台结果看板</span><span>Chimera 平台结果看板</span></div>}
+          title={
+            <div className="flex flex-col gap-1">
+              <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium" style={{ backgroundColor: LK.primaryMuted, color: LK.primary }}>
+                <BarChart3 size={13} /> 平台结果看板
+              </span>
+              <span>Chimera 平台结果看板</span>
+            </div>
+          }
           description="汇总各模块的结果性数据：交付范围、节点状态、工作流执行、服务健康、资源占用与 AI 网关调用。"
           actions={
-          <div className="flex items-center gap-3">
-            <select
-              value={selectedDepartmentId ?? ''}
-              onChange={(e) => setSelectedDepartmentId(e.target.value ? Number(e.target.value) : null)}
-              className="px-4 py-2 rounded-lg text-sm font-medium outline-none transition-colors"
-              style={{ backgroundColor: LK.surface, color: LK.ink, border: `1px solid ${LK.border}` }}
-            >
-              <option value="">全部部门</option>
-              {rootDepartments.map((dept) => (
-                <option key={dept.id} value={dept.id}>{dept.name}</option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => setCurrentView('aigw-dashboard')}
-              className="btn btn-primary"
-            >
-              AI 网关详情 <ArrowUpRight size={16} />
-            </button>
-          </div>
-        }
+            <div className="flex items-center gap-3">
+              <select
+                value={selectedDepartmentId ?? ''}
+                onChange={(e) => setSelectedDepartmentId(e.target.value ? Number(e.target.value) : null)}
+                className="px-4 py-2 rounded-lg text-sm font-medium outline-none transition-colors"
+                style={{ backgroundColor: LK.surface, color: LK.ink, border: `1px solid ${LK.border}` }}
+              >
+                <option value="">全部部门</option>
+                {rootDepartments.map((dept) => (
+                  <option key={dept.id} value={dept.id}>{dept.name}</option>
+                ))}
+              </select>
+              <button type="button" onClick={() => setCurrentView('aigw-dashboard')} className="btn btn-primary">
+                AI 网关详情 <ArrowUpRight size={16} />
+              </button>
+            </div>
+          }
         />
 
-        <section className="grid grid-cols-3 gap-3">
-          {[
-            { label: '项目', value: filteredProjects.length, icon: Building2, color: LK.primary },
-            { label: '任务', value: taskCount !== null ? taskCount : '-', icon: Layers, color: LK.success },
-            { label: '环境', value: envCount !== null ? envCount : '-', icon: Server, color: LK.warning },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="flex items-center justify-between rounded-xl px-4 py-3"
-              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
-            >
-              <div>
-                <div className="text-xs" style={{ color: LK.muted }}>
-                  {stat.label}
-                </div>
-                <div className="mt-1 text-2xl font-semibold leading-7 tabular-nums" style={{ color: stat.color }}>
-                  {stat.value}
-                </div>
-              </div>
-              <div
-                className="flex h-9 w-9 items-center justify-center rounded-md"
-                style={{ backgroundColor: `${stat.color}22`, color: stat.color }}
-              >
-                <stat.icon size={18} />
-              </div>
-            </div>
-          ))}
-        </section>
-
-        <section className="grid grid-cols-4 gap-3">
-          {[
-            { label: '系统中总的任务', value: taskCount !== null ? taskCount : '-', icon: ListChecks, color: LK.primary },
-            { label: '排队中任务', value: taskQueued !== null ? taskQueued : '-', icon: Clock, color: LK.warning },
-            { label: '运行中的任务', value: taskRunning !== null ? taskRunning : '-', icon: Loader, color: LK.info },
-            { label: '失败的任务', value: taskFailed !== null ? taskFailed : '-', icon: XCircle, color: LK.error },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="flex items-center justify-between rounded-xl px-4 py-3"
-              style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}` }}
-            >
-              <div>
-                <div className="text-xs" style={{ color: LK.muted }}>
-                  {stat.label}
-                </div>
-                <div className="mt-1 text-2xl font-semibold leading-7 tabular-nums" style={{ color: stat.color }}>
-                  {stat.value}
-                </div>
-              </div>
-              <div
-                className="flex h-9 w-9 items-center justify-center rounded-md"
-                style={{ backgroundColor: `${stat.color}22`, color: stat.color }}
-              >
-                <stat.icon size={18} />
-              </div>
-            </div>
-          ))}
-        </section>
-
-        <section className="grid grid-cols-4 gap-3">
-          {[
-            {
-              label: '告警总数',
-              value: vulnTotal !== null ? vulnTotal : '-',
-              icon: Bug,
-              color: LK.primary,
-              algorithm: '漏洞中心接收到的全部 case 数量，包含所有阶段（receive / triage / validation / finished）。',
-              onClick: undefined,
-            },
-            {
-              label: '疑似漏洞',
-              value: vulnSuspectLoading ? '加载中' : (vulnSuspect !== null ? vulnSuspect : '-'),
-              icon: CheckCircle2,
-              color: LK.primaryDeep,
-              algorithm: 'A + B\n\nA：上报工具（reporter.name）被任一漏洞确认引擎的 bind_tools 包含，且 finished_reason="vulnerable" 的 case 数。\nB：上报工具未被任何引擎 bind_tools 包含的全部 case 数（任意阶段都计入）。',
-              onClick: () => setSuspectBreakdownOpen(true),
-            },
-            {
-              label: '确认是漏洞',
-              value: vulnConfirmed !== null ? vulnConfirmed : '-',
-              icon: AlertTriangle,
-              color: LK.error,
-              algorithm: '经过人工终审且判定为漏洞的 case 数。\n\n人工终审指 StageHistory 中存在 to_stage="finished" 且 source_type="human" 的记录；判定取 finished_reason="vulnerable"。',
-              onClick: undefined,
-            },
-            {
-              label: '确认非漏洞',
-              value: vulnRuledOut !== null ? vulnRuledOut : '-',
-              icon: ShieldCheck,
-              color: LK.success,
-              algorithm: '经过人工终审且判定为非漏洞的 case 数。\n\n人工终审指 StageHistory 中存在 to_stage="finished" 且 source_type="human" 的记录；判定取 finished_reason="not_vulnerable"。',
-              onClick: undefined,
-            },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className={`flex flex-col rounded-xl px-3 py-3 relative${stat.onClick ? ' cursor-pointer transition-colors' : ''}`}
-              style={{
-                backgroundColor: LK.surface,
-                border: `1px solid ${stat.onClick && suspectCardHover ? LK.primarySoft : LK.border}`,
-              }}
-              onClick={stat.onClick}
-              role={stat.onClick ? 'button' : undefined}
-              tabIndex={stat.onClick ? 0 : undefined}
-              onMouseEnter={stat.onClick ? () => setSuspectCardHover(true) : undefined}
-              onMouseLeave={stat.onClick ? () => setSuspectCardHover(false) : undefined}
-              onKeyDown={
-                stat.onClick
-                  ? (e: React.KeyboardEvent) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        stat.onClick?.();
-                      }
-                    }
-                  : undefined
-              }
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1">
-                  <span className="text-[11px]" style={{ color: LK.muted }}>
-                    {stat.label}
-                  </span>
-                  <button
-                    type="button"
-                    onMouseEnter={() => setAlgoHover(stat.label)}
-                    onMouseLeave={() => setAlgoHover(null)}
-                    className="p-0.5 rounded transition-colors hover:bg-white/5"
-                    style={{ color: LK.mutedSoft }}
-                    aria-label="查看统计算法"
+        <div className="sticky top-0 z-30 py-2 space-y-3" style={{ backgroundColor: LK.canvas }}>
+          {[row1, row2].map((row, ri) => (
+            <section key={ri} className="grid grid-cols-4 gap-3">
+              {row.map(c => {
+                const val = cardValues[c.metric];
+                const sel = curMetric === c.metric;
+                const isLoading = c.metric === 'vulnSuspect' && vulnSuspectLoading;
+                return (
+                  <div
+                    key={c.metric}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleMetricClick(c.metric)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleMetricClick(c.metric); } }}
+                    className={`dash-vuln-card ${sel ? 'sel' : ''} flex flex-col rounded-xl px-3 py-3 relative cursor-pointer transition-colors`}
                   >
-                    <HelpCircle size={11} />
-                  </button>
-                </div>
-                <div
-                  className="flex h-7 w-7 items-center justify-center rounded-md"
-                  style={{ backgroundColor: `${stat.color}22`, color: stat.color }}
-                >
-                  <stat.icon size={14} />
-                </div>
-              </div>
-              <div className="mt-2 text-2xl font-semibold leading-7 tabular-nums" style={{ color: stat.color }}>
-                {stat.value}
-              </div>
-              {algoHover === stat.label && (
-                <div
-                  className="absolute z-50 top-full right-0 mt-1 p-3 rounded-lg max-w-[300px] shadow-xl"
-                  style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
-                >
-                  <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: LK.mutedSoft }}>
-                    统计算法
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[11px]" style={{ color: LK.muted }}>{c.label}</span>
+                        {c.algo && (
+                          <span className="relative inline-flex">
+                            <button
+                              type="button"
+                              onMouseEnter={() => setAlgoHover(c.label)}
+                              onMouseLeave={() => setAlgoHover(null)}
+                              className="p-0.5 rounded transition-colors hover:bg-white/5"
+                              style={{ color: LK.mutedSoft }}
+                              aria-label="查看统计算法"
+                            >
+                              <HelpCircle size={11} />
+                            </button>
+                            {algoHover === c.label && (
+                              <div
+                                className="absolute z-50 top-full right-0 mt-1 p-3 rounded-lg max-w-[300px] shadow-xl"
+                                style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.border}` }}
+                              >
+                                <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: LK.mutedSoft }}>统计算法</div>
+                                <div className="text-[11px] leading-relaxed whitespace-pre-line" style={{ color: LK.body }}>{c.algo}</div>
+                              </div>
+                            )}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex h-7 w-7 items-center justify-center rounded-md" style={{ backgroundColor: softBg(c.color), color: c.color }}>
+                        <c.Icon size={14} />
+                      </div>
+                    </div>
+                    <div className="mt-2 text-2xl font-semibold leading-7 tabular-nums" style={{ color: c.color }}>
+                      {isLoading ? '加载中' : (statsLoading && val === null ? '—' : (val !== null ? formatNumber(val) : '—'))}
+                    </div>
                   </div>
-                  <div className="text-[11px] leading-relaxed whitespace-pre-line" style={{ color: LK.body }}>
-                    {stat.algorithm}
-                  </div>
-                </div>
-              )}
-            </div>
+                );
+              })}
+            </section>
           ))}
-        </section>
-
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <KpiCard
-            icon={Briefcase}
-            accent={LK.primary}
-            value={formatNumber(effectiveProjectsCount)}
-            label="项目空间"
-            caption="平台纳管交付范围"
-            onClick={() => setCurrentView('project-mgmt')}
-          />
-          <KpiCard
-            icon={Monitor}
-            accent={LK.success}
-            value={
-              <>
-                {formatNumber(effectiveAgentsOnline)}
-                <span className="ml-1 text-base font-medium" style={{ color: LK.muted }}>
-                  / {formatNumber(effectiveAgentsTotal)}
-                </span>
-              </>
-            }
-            label="执行节点"
-            caption="在线 / 注册"
-            onClick={() => setCurrentView('env-agent')}
-          />
-          <KpiCard
-            icon={Workflow}
-            accent={LK.info}
-            value={formatNumber(workflowTotal)}
-            label="工作流实例"
-            caption={`App+Job 模板 ${workflowTemplateCount} 套`}
-            onClick={() => setCurrentView('workflow-instances')}
-          />
-          <KpiCard
-            icon={Package}
-            accent={LK.primarySoft}
-            value={formatNumber(pkgTotal)}
-            label="静态资产"
-            caption={`总大小 ${pkgSize}`}
-            onClick={() => setCurrentView('static-packages')}
-          />
-          <KpiCard
-            icon={Activity}
-            accent={LK.success}
-            value={
-              serviceTotal === 0 ? (
-                <span style={{ color: LK.muted }}>--</span>
-              ) : (
-                <>
-                  {formatNumber(serviceHealthy)}
-                  <span className="ml-1 text-base font-medium" style={{ color: LK.muted }}>
-                    / {formatNumber(serviceTotal)}
-                  </span>
-                </>
-              )
-            }
-            label="服务健康度"
-            caption="healthy / 全部"
-            onClick={() => setCurrentView('admin-dashboard')}
-          />
-          <KpiCard
-            icon={HardDrive}
-            accent={LK.warning}
-            value={
-              <>
-                {formatNumber(pvcTotal)}
-                <span className="ml-1 text-base font-medium" style={{ color: LK.muted }}>
-                  PVC
-                </span>
-              </>
-            }
-            label="资源池"
-            caption={`总存储 ${storageHuman}`}
-            onClick={() => setCurrentView('public-resource-pvc-management')}
-          />
-        </section>
-
-        <div className="grid gap-4 xl:grid-cols-2">
-          <CardShell title="工作流执行结果" subtitle={`实例总数 ${formatNumber(workflowTotal)}`}>
-            {adminUnavailable ? (
-              <Placeholder text="需要管理员权限查看" />
-            ) : workflowEntries.length === 0 ? (
-              <Placeholder text={adminStatsLoading ? '加载中...' : '暂无工作流实例'} />
-            ) : (
-              <>
-                <div className="flex h-2.5 overflow-hidden rounded-full" style={{ backgroundColor: LK.surfaceRaised }}>
-                  {workflowEntries.map((entry) => (
-                    <div
-                      key={entry.status}
-                      style={{
-                        width: `${workflowTotal > 0 ? (entry.count / workflowTotal) * 100 : 0}%`,
-                        backgroundColor: entry.color,
-                      }}
-                      title={`${entry.label} ${entry.count}`}
-                    />
-                  ))}
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {workflowEntries.map((entry) => (
-                    <div
-                      key={entry.status}
-                      className="flex items-center justify-between rounded-[10px] px-3 py-2 text-xs"
-                      style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}
-                    >
-                      <span className="inline-flex items-center gap-2" style={{ color: LK.body }}>
-                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                        {entry.label}
-                      </span>
-                      <span className="font-semibold tabular-nums" style={{ color: LK.inkSoft }}>
-                        {formatNumber(entry.count)}
-                        <span className="ml-1" style={{ color: LK.muted }}>
-                          {workflowTotal > 0 ?`${((entry.count / workflowTotal) * 100).toFixed(0)}%` : ''}
-                        </span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-3 pt-3 text-xs" style={{ borderTop:`1px solid ${LK.borderSoft}`, color: LK.muted }}>
-                  App 模板 {formatNumber(workflowAppTemplates)} 套 · Job 模板 {formatNumber(workflowJobTemplates)} 套
-                </div>
-              </>
-            )}
-          </CardShell>
-
-          <CardShell title="服务健康" subtitle={`注册服务 ${formatNumber(serviceTotal)}`}>
-            {adminUnavailable ? (
-              <Placeholder text="需要管理员权限查看" />
-            ) : serviceEntries.length === 0 ? (
-              <Placeholder text={adminStatsLoading ? '加载中...' : '暂无注册服务'} />
-            ) : (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {serviceEntries.map((entry) => {
-                  const meta = pickServiceMeta(entry.status);
-                  return (
-                    <div
-                      key={entry.status}
-                      className="rounded-[10px] px-3 py-3"
-                      style={{ backgroundColor: LK.surfaceRaised, border: `1px solid ${LK.borderSoft}` }}
-                    >
-                      <div className="inline-flex items-center gap-2 text-xs" style={{ color: meta.color }}>
-                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: meta.color }} />
-                        {meta.label}
-                      </div>
-                      <div className="mt-2 flex items-baseline gap-1">
-                        <span className="text-xl font-semibold tabular-nums" style={{ color: LK.ink }}>
-                          {formatNumber(entry.count)}
-                        </span>
-                        <span className="text-xs" style={{ color: LK.muted }}>
-                          {serviceTotal > 0 ?`${((entry.count / serviceTotal) * 100).toFixed(0)}%` : ''}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardShell>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <CardShell title="资源池" subtitle="PVC 与存储使用情况">
-            {adminUnavailable ? (
-              <Placeholder text="需要管理员权限查看" />
-            ) : pvcTotal === 0 && storageGi === 0 ? (
-              <Placeholder text={adminStatsLoading ? '加载中...' : '暂无 PVC 资源'} />
-            ) : (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <MiniStat label="PVC 总数" value={formatNumber(pvcTotal)} accent={LK.warning} />
-                  <MiniStat label="总存储" value={storageHuman} accent={LK.warning} />
-                </div>
-                {resourceStatusEntries.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    <div className="text-xs font-medium" style={{ color: LK.mutedSoft }}>
-                      PVC 状态分布
-                    </div>
-                    {resourceStatusEntries.slice(0, 5).map((entry) => (
-                      <BarRow
-                        key={entry.status}
-                        label={entry.status}
-                        count={entry.count}
-                        total={resourceStatusTotal}
-                        color={LK.warning}
-                      />
-                    ))}
-                  </div>
+        <section className="dash-panel">
+          <div className="dash-panel-h">
+            <div className="flex items-center flex-wrap gap-3.5 w-full">
+              <h2>{panelTitle}</h2>
+              <span className="text-xs" style={{ color: LK.muted }}>{panelSub}</span>
+            </div>
+          </div>
+          <div className={`dash-panel-b ${isSingle ? 'single' : ''}`}>
+            <div>
+            <div className="dash-ptbl-wrap tight">
+              <table className="dash-ptable tight">
+                {curMetric === 'projects' && (
+                  <>
+                    <thead>
+                      <tr>
+                        <th>项目</th>
+                        <th>归属部门</th>
+                        <th>产品版本</th>
+                        <th>创建人</th>
+                        <th>创建时间</th>
+                        <th className="r">任务数</th>
+                        <th className="r">排队</th>
+                        <th className="r">运行</th>
+                        <th className="r">失败</th>
+                        <th className="r">占比</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagedRows.length === 0 ? (
+                        <tr><td colSpan={10} className="text-center py-8" style={{ color: LK.muted }}>{statsLoading ? '加载中...' : '暂无数据'}</td></tr>
+                      ) : pagedRows.map((r: any) => {
+                        const totalSum = projectTaskRows.reduce((s, x) => s + x.total, 0) || 1;
+                        return (
+                          <tr key={r.project.id}>
+                            <td><span className="nm">{r.project.name}</span></td>
+                            <td>{r.project.department_name || '—'}</td>
+                            <td>{r.project.product_version || '—'}</td>
+                            <td>{r.project.owner_name || '—'}</td>
+                            <td className="n" style={{ color: LK.mutedSoft }}>{formatDateTime(r.project.created_at)}</td>
+                            <td className="n r" style={{ color: LK.primary }}>{formatNumber(r.total)}</td>
+                            <td className="n r" style={{ color: LK.warning }}>{formatNumber(r.queued)}</td>
+                            <td className="n r" style={{ color: LK.info }}>{formatNumber(r.running)}</td>
+                            <td className="n r" style={{ color: LK.error }}>{formatNumber(r.failed)}</td>
+                            <td className="n r" style={{ color: LK.mutedSoft }}>{totalSum > 0 ? `${(r.total / totalSum * 100).toFixed(1)}%` : '—'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </>
                 )}
-              </>
-            )}
-          </CardShell>
 
-          <CardShell title="静态资产" subtitle="软件包库存与下载">
-            {pkgTotal === 0 ? (
-              <Placeholder text="暂无资产数据" />
-            ) : (
-              <>
-                <div className="grid grid-cols-3 gap-3">
-                  <MiniStat label="包总数" value={formatNumber(pkgTotal)} accent={LK.primarySoft} />
-                  <MiniStat label="总大小" value={pkgSize} accent={LK.primarySoft} />
-                  <MiniStat label="总下载" value={formatNumber(pkgDownloads)} accent={LK.primarySoft} />
-                </div>
-                {archEntries.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    <div className="text-xs font-medium" style={{ color: LK.mutedSoft }}>
-                      架构分布
-                    </div>
-                    {archEntries.slice(0, 5).map((entry) => (
-                      <BarRow
-                        key={entry.arch}
-                        label={entry.arch || '未知'}
-                        count={entry.count}
-                        total={archTotal}
-                        color={LK.primary}
-                      />
-                    ))}
-                  </div>
+                {(curMetric === 'taskTotal' || curMetric === 'taskQueued' || curMetric === 'taskRunning' || curMetric === 'taskFailed') && (
+                  <>
+                    <thead>
+                      <tr>
+                        <th>任务名称</th>
+                        <th>工具</th>
+                        <th>测试对象</th>
+                        <th>任务状态</th>
+                        <th>创建时间</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagedRows.length === 0 ? (
+                        <tr><td colSpan={5} className="text-center py-8" style={{ color: LK.muted }}>{statsLoading ? '加载中...' : '暂无数据'}</td></tr>
+                      ) : pagedRows.map((t: any, idx: number) => {
+                        const statusLabel = getTaskStatusLabel(t);
+                        const statusColor = TASK_STATUS_COLOR[statusLabel] || LK.muted;
+                        const isRunning = statusLabel === '运行中';
+                        return (
+                          <tr key={t.id || idx}>
+                            <td><span className="nm">{t.name || '—'}</span></td>
+                            <td>{getTaskHarnessLabel(t)}</td>
+                            <td>{getTaskTestObjectLabel(t)}</td>
+                            <td><span className={`dash-status-pill ${isRunning ? 'pulse' : ''}`} style={{ '--sc': statusColor } as any}>{statusLabel}</span></td>
+                            <td className="n" style={{ color: LK.mutedSoft }}>{formatDateTime(t.created_at)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </>
                 )}
-              </>
-            )}
-          </CardShell>
-        </div>
 
-        <CardShell
-          title="AI 网关调用结果"
-          subtitle={`累计请求 ${formatNumber(totalProviderRequests)}`}
-          right={
-            <button
-              type="button"
-              onClick={() => setCurrentView('aigw-dashboard')}
-              className="hidden items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors md:inline-flex"
-              style={{ backgroundColor: LK.surfaceRaised, color: LK.body, border: `1px solid ${LK.border}` }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = LK.primarySoft;
-                e.currentTarget.style.borderColor = LK.primary;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = LK.body;
-                e.currentTarget.style.borderColor = LK.border;
-              }}
-            >
-              详情 <ArrowUpRight size={12} />
-            </button>
-          }
-        >
-          {providerStatsLoading ? (
-            <Placeholder text="加载中..." />
-          ) : topProviders.length === 0 ? (
-            <Placeholder text="暂无调用记录" />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full border-separate border-spacing-0 text-sm">
-                <thead>
-                  <tr className="text-left text-xs uppercase tracking-wider" style={{ color: LK.mutedSoft }}>
-                    <th className="px-3 py-2.5 font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                      模型 / 后端
-                    </th>
-                    <th className="px-3 py-2.5 text-right font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                      请求数
-                    </th>
-                    <th className="px-3 py-2.5 text-right font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                      平均响应
-                    </th>
-                    <th className="px-3 py-2.5 text-right font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                      成功率
-                    </th>
-                    <th className="px-3 py-2.5 text-right font-medium" style={{ borderBottom:`1px solid ${LK.border}`, backgroundColor: LK.surfaceRaised }}>
-                      活跃并发
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topProviders.map((p, idx) => (
-                    <tr key={`${p.model_name}-${idx}`}>
-                      <td
-                        className="px-3 py-2.5 font-medium"
-                        style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.ink, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}
-                      >
-                        {p.model_name || '--'}
-                      </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.body }}>
-                        {formatNumber(p.request_count || 0)}
-                      </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.body }}>
-                        {formatMs(p.avg_response_time)}
-                      </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.body }}>
-                        {p.success_rate !== undefined && p.success_rate !== null
-                          ? formatPercent(p.success_rate)
-                          : '--'}
-                      </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums" style={{ borderBottom:`1px solid ${LK.borderSoft}`, color: LK.body }}>
-                        {formatNumber(p.active_requests || 0)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+                {(curMetric === 'vulnSuspect' || curMetric === 'vulnConfirmed' || curMetric === 'vulnRuledOut') && (
+                  <>
+                    <thead>
+                      <tr>
+                        <th>任务名称</th>
+                        <th>标题 / 摘要</th>
+                        <th>严重程度</th>
+                        <th>人工确认状态</th>
+                        <th>{curMetric === 'vulnRuledOut' ? '误报原因' : '漏洞种类'}</th>
+                        <th>工具</th>
+                        <th>更新时间</th>
+                        <th>创建时间</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagedRows.length === 0 ? (
+                        <tr><td colSpan={8} className="text-center py-8" style={{ color: LK.muted }}>{statsLoading ? '加载中...' : '暂无数据'}</td></tr>
+                      ) : pagedRows.map((c: any, idx: number) => {
+                        const conc = getCaseConclusion(c);
+                        const cLabel = conclusionLabel(conc);
+                        const cClass = conclusionClass(conc);
+                        const reporterName = c?.reporter?.name || c?.source_meta?.reporter?.name || 'unknown';
+                        const reporterVer = c?.reporter?.version || c?.source_meta?.reporter?.version || '';
+                        const sev = String(c?.severity || '').trim().toLowerCase();
+                        const sevLabel = SEVERITY_LABELS[sev] || sev || '—';
+                        const sevColor = SEVERITY_COLORS[sev] || LK.muted;
+                        const categoryLabel = curMetric === 'vulnRuledOut'
+                          ? (c?.false_positive_reason || '—')
+                          : (c?.confirmed_category || '—');
+                        return (
+                          <tr key={c.id || idx}>
+                            <td style={{ maxWidth: '200px' }}>
+                              <span className="nm" style={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: 'block',
+                                whiteSpace: 'nowrap',
+                                userSelect: 'all',
+                                WebkitUserSelect: 'all',
+                                cursor: 'text',
+                              }}
+                              onMouseEnter={(e) => tipEnter(e, dashGetTaskName(c))}
+                              onMouseMove={tipMove}
+                              onMouseLeave={tipLeave}
+                              >
+                                {dashGetTaskName(c)}
+                              </span>
+                            </td>
+                            <td className="wrap">
+                              <span className="vtitle"
+                                onMouseEnter={(e) => tipEnter(e, c.title || '—')}
+                                onMouseMove={tipMove}
+                                onMouseLeave={tipLeave}
+                              >{c.title || '—'}</span>
+                              <span className="vsum"
+                                onMouseEnter={(e) => tipEnter(e, c?.subtitle || c?.summary || '暂无摘要')}
+                                onMouseMove={tipMove}
+                                onMouseLeave={tipLeave}
+                              >{c?.subtitle || c?.summary || '暂无摘要'}</span>
+                            </td>
+                            <td><span className="dash-status-pill" style={{ '--sc': sevColor } as any}>{sevLabel}</span></td>
+                            <td><span className={`dash-vconc ${cClass}`}>{cLabel}</span></td>
+                            <td><span style={{ color: LK.inkSoft, fontSize: '12px' }}>{categoryLabel}</span></td>
+                            <td>
+                              <span className="vtool">{reporterName}</span>
+                              {reporterVer && <span className="vtoolv">{reporterVer}</span>}
+                            </td>
+                            <td className="n" style={{ color: LK.mutedSoft }}>{formatDateTime(c.updated_at)}</td>
+                            <td className="n" style={{ color: LK.mutedSoft }}>{formatDateTime(c.created_at)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </>
+                )}
               </table>
             </div>
-          )}
-        </CardShell>
-        <SuspectVulnTaskBreakdownDialog
-          open={suspectBreakdownOpen}
-          onClose={() => setSuspectBreakdownOpen(false)}
-          projects={filteredProjects}
-        />
+
+            <div className="flex items-center justify-between gap-3 mt-3 text-xs" style={{ color: LK.muted }}>
+              <span>共 {formatNumber(totalRows)} 条</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={normalizedPage <= 1}
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  className="px-2 py-1 rounded transition-colors disabled:opacity-30"
+                  style={{ border: `1px solid ${LK.border}`, color: LK.inkSoft }}
+                >上一页</button>
+                <span className="tabular-nums">{normalizedPage} / {totalPages}</span>
+                <button
+                  type="button"
+                  disabled={normalizedPage >= totalPages}
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  className="px-2 py-1 rounded transition-colors disabled:opacity-30"
+                  style={{ border: `1px solid ${LK.border}`, color: LK.inkSoft }}
+                >下一页</button>
+                <select
+                  value={pageSize}
+                  onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                  className="px-2 py-1 rounded text-xs outline-none"
+                  style={{ backgroundColor: LK.surface, color: LK.ink, border: `1px solid ${LK.border}` }}
+                >
+                  {[20, 50, 100, 200, 500].map(s => <option key={s} value={s}>{s} 条/页</option>)}
+                </select>
+              </div>
+            </div>
+            </div>
+
+            {(distItems.length > 0 || dist2Items.length > 0) && (
+              <div className="flex flex-col gap-0" style={{ minWidth: 0 }}>
+                {distItems.length > 0 && (
+                  <div className="flex flex-col gap-0 py-1">
+                    <div className="dash-dist-h" style={{ marginBottom: 10 }}>
+                      {curMetric === 'vulnSuspect' ? '上报来源分布'
+                        : curMetric === 'vulnConfirmed' ? '严重度分布'
+                        : '任务状态分布'}
+                    </div>
+                    {(() => {
+                      const max = Math.max(1, ...distItems.map(i => i.count));
+                      return distItems.map(item => (
+                        <div key={item.name} className="flex items-center justify-between gap-1.5 text-xs" style={{ padding: '4px 0' }}>
+                          <span className="dash-bar-label" title={item.name}>{item.name}</span>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <div className="dash-bar-trk">
+                              <span className="dash-bar-fl" style={{ width: `${(item.count / max * 100).toFixed(1)}%`, background: `linear-gradient(90deg, ${item.color}, color-mix(in srgb, ${item.color} 55%, transparent))` }} />
+                            </div>
+                            <span className="dash-bar-ct">{formatNumber(item.count)}</span>
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
+
+                {dist2Items.length > 0 && (
+                  <div className={`flex flex-col gap-0 ${curMetric === 'vulnConfirmed' ? 'pt-4' : ''}`} style={curMetric === 'vulnConfirmed' ? { borderTop: `1px solid ${LK.borderSoft}` } : undefined}>
+                    <div className="dash-dist-h" style={{ marginBottom: 10 }}>
+                      {curMetric === 'vulnConfirmed' ? '漏洞种类分布' : '误报原因分布'}
+                    </div>
+                    {(() => {
+                      const total = dist2Items.reduce((s, i) => s + i.count, 0);
+                      const R = 42;
+                      const C = 2 * Math.PI * R;
+                      let offset = 0;
+                      return (
+                        <div className="dash-donut-wrap">
+                          <div className="dash-donut">
+                            <svg viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r={R} fill="none" stroke="var(--bg-app)" strokeWidth="14" />
+                              {dist2Items.map((item) => {
+                                const pct = total > 0 ? item.count / total : 0;
+                                const dash = pct * C;
+                                const seg = (
+                                  <circle
+                                    key={item.name}
+                                    cx="50" cy="50" r={R}
+                                    className="dash-donut-seg"
+                                    stroke={item.color}
+                                    strokeDasharray={`${dash} ${C - dash}`}
+                                    strokeDashoffset={-offset}
+                                    transform="rotate(-90 50 50)"
+                                  />
+                                );
+                                offset += dash;
+                                return seg;
+                              })}
+                            </svg>
+                            <div className="dash-donut-center">
+                              <span className="dc-num">{formatNumber(total)}</span>
+                              <span className="dc-label">总计</span>
+                            </div>
+                          </div>
+                          <div className="dash-donut-legend">
+                            {dist2Items.slice(0, 6).map(item => {
+                              const pct = total > 0 ? (item.count / total * 100).toFixed(1) : '0.0';
+                              return (
+                                <div key={item.name} className="dash-donut-legend-item" title={item.name}>
+                                  <span className="dl-dot" style={{ background: item.color }} />
+                                  <span className="dl-name">{item.name}</span>
+                                  <span className="dl-pct">{pct}%</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {(() => {
+                      const max = Math.max(1, ...dist2Items.map(i => i.count));
+                      return dist2Items.map(item => (
+                        <div key={item.name} className="flex items-center justify-between gap-1.5 text-xs" style={{ padding: '4px 0' }}>
+                          <span className="dash-bar-label" title={item.name}>{item.name}</span>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <div className="dash-bar-trk">
+                              <span className="dash-bar-fl" style={{ width: `${(item.count / max * 100).toFixed(1)}%`, background: `linear-gradient(90deg, ${item.color}, color-mix(in srgb, ${item.color} 55%, transparent))` }} />
+                            </div>
+                            <span className="dash-bar-ct">{formatNumber(item.count)}</span>
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );
