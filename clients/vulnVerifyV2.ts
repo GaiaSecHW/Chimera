@@ -138,6 +138,67 @@ export interface VulnVerifyV2AdminPushResult {
   };
 }
 
+export interface VulnVerifyV2AdminStatusCounts {
+  pending: number;
+  running: number;
+  success: number;
+  failed: number;
+  cancelled: number;
+}
+
+export interface VulnVerifyV2AdminVerdictCounts {
+  confirmed: number;
+  ruled_out: number;
+  unresolved: number;
+}
+
+export interface VulnVerifyV2AdminProjectOverview {
+  project_id: string;
+  task_count: number;
+  status_counts: VulnVerifyV2AdminStatusCounts;
+  verdict_counts: VulnVerifyV2AdminVerdictCounts;
+  failed_attempt_count: number;
+  latest_task_at?: string | null;
+  latest_failed_attempt_at?: string | null;
+}
+
+export interface VulnVerifyV2AdminFailedAttemptRow {
+  project_id: string;
+  task_id: string;
+  task_name: string;
+  vuln_id?: string | null;
+  case_id?: string | null;
+  task_status?: string | null;
+  task_verdict?: string | null;
+  model?: string | null;
+  attempt_id: string;
+  attempt_no?: number | null;
+  attempt_status: 'failed' | string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  duration_ms?: number | null;
+  error?: string | null;
+}
+
+export interface VulnVerifyV2AdminOverview {
+  generated_at: string;
+  service: {
+    status: string;
+    version?: string | null;
+    build_time?: string | null;
+  };
+  totals: {
+    project_count: number;
+    task_count: number;
+    status_counts: VulnVerifyV2AdminStatusCounts;
+    verdict_counts: VulnVerifyV2AdminVerdictCounts;
+    recent_failed_attempt_count: number;
+  };
+  projects: VulnVerifyV2AdminProjectOverview[];
+  failed_attempts: VulnVerifyV2AdminFailedAttemptRow[];
+  warnings: string[];
+}
+
 function normalizeCaseIds(caseIds?: string[] | null): string[] {
   if (!Array.isArray(caseIds)) return [];
   return caseIds
@@ -164,6 +225,9 @@ export const vulnVerifyV2Api = {
 
   getProjectStats: async (projectId: string): Promise<VulnVerifyV2ProjectStats> =>
     getJsonWithDedupe(`${BASE}/projects/${encodeURIComponent(projectId)}/stats`, { headers: getHeaders() }),
+
+  getAdminOverview: async (): Promise<VulnVerifyV2AdminOverview> =>
+    handleResponse(await fetch(`${BASE}/admin/overview`, { headers: getHeaders() })),
 
   listTasks: async (projectId: string, params?: { status?: string; verdict?: string; search?: string; limit?: number; offset?: number }): Promise<{ total: number; items: VulnVerifyV2Task[] }> => {
     const query = new URLSearchParams();
