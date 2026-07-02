@@ -36,6 +36,7 @@ export const projectsApi = {
     page_size?: number;
     sort_by?: string;
     sort_direction?: 'asc' | 'desc';
+    department_id?: number;
   }): Promise<{ total: number; projects: SecurityProject[] }> => {
     const query = new URLSearchParams();
     if (params?.search) query.set('search', params.search);
@@ -43,6 +44,7 @@ export const projectsApi = {
     if (params?.page_size) query.set('page_size', String(params.page_size));
     if (params?.sort_by) query.set('sort_by', params.sort_by);
     if (params?.sort_direction) query.set('sort_direction', params.sort_direction);
+    if (params?.department_id) query.set('department_id', String(params.department_id));
     const qs = query.toString();
     const response = await fetch(`${API_BASE}/api/project${qs ? `?${qs}` : ''}`, { headers: getHeaders() });
     return handleResponse(response);

@@ -125,6 +125,8 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [userPermissions, setUserPermissions] = useState<UserPermissionInfo | null>(null);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
+  const [selectedSubDeptId, setSelectedSubDeptId] = useState<number | null>(null);
   const [productTree, setProductTree] = useState<ProductTreeNode[]>([]);
 
   // Placeholder counts for new stat blocks — will be wired to real API later
@@ -211,6 +213,25 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     return departments.filter((department) => allowedSet.has(department.id));
   }, [allowedDepartmentIds, departments, userPermissions]);
 
+  const rootDeptOptions = useMemo(() => {
+    const rootIds = new Set<number>();
+    const deptMap = new Map(departments.map(d => [d.id, d]));
+    for (const dept of selectableDepartments) {
+      let current = dept;
+      while (current && current.parent_id) {
+        const parent = deptMap.get(current.parent_id);
+        if (!parent) break;
+        current = parent;
+      }
+      if (current) rootIds.add(current.id);
+    }
+    return departments.filter(d => !d.parent_id && rootIds.has(d.id));
+  }, [departments, selectableDepartments]);
+  const subDeptOptions = useMemo(() => {
+    if (!selectedDepartmentId) return [];
+    return selectableDepartments.filter(d => d.parent_id === selectedDepartmentId);
+  }, [selectedDepartmentId, selectableDepartments]);
+
   // ComboBox derived data
   const leafProducts = useMemo(() => {
     const flat = (nodes: ProductTreeNode[]): ProductTreeNode[] =>
@@ -257,6 +278,15 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  // Reset to first page whenever the department filter changes.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedDepartmentId, selectedSubDeptId]);
+
+  useEffect(() => {
+    setSelectedSubDeptId(null);
+  }, [selectedDepartmentId]);
+
   // Server-side fetch: query backend whenever search / page / size / sort or a manual reload changes.
   useEffect(() => {
     let cancelled = false;
@@ -268,6 +298,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         page_size: pageSize,
         sort_by: sortField,
         sort_direction: sortDirection,
+        department_id: (selectedSubDeptId ?? selectedDepartmentId) ?? undefined,
       })
       .then((data) => {
         if (cancelled) return;
@@ -289,7 +320,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [debouncedSearch, currentPage, pageSize, sortField, sortDirection, reloadTrigger]);
+  }, [debouncedSearch, currentPage, pageSize, sortField, sortDirection, reloadTrigger, selectedDepartmentId, selectedSubDeptId]);
 
   // Keep current page in bounds when the total shrinks (e.g. after delete).
   useEffect(() => {
@@ -673,42 +704,6 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         description="统一展示用户权限范围内的所有项目"
       />
 
-      {/* Stat blocks — 4 columns */}
-      <div className="grid grid-cols-4 bg-theme-surface">
-        {[
-          { label: '项目', value: projectTotal || tableTotal, icon: Building2, color: LK.primary },
-          { label: '任务', value: taskCount !== null ? taskCount : '-', icon: Layers, color: LK.success },
-          { label: '环境', value: envCount !== null ? envCount : '-', icon: Server, color: LK.warning },
-          { label: '漏洞', value: vulnCount !== null ? vulnCount : '-', icon: AlertTriangle, color: LK.error },
-        ].map((stat, i) => (
-          <div
-            key={stat.label}
-            className="relative flex items-center justify-between p-4"
-          >
-            {i > 0 && (
-              <span
-                className="absolute left-0 top-1/2 -translate-y-1/2 h-10 w-px"
-                style={{ backgroundColor: LK.border }}
-              />
-            )}
-            <div>
-              <div className="text-sm" style={{ color: LK.muted }}>
-                {stat.label}
-              </div>
-              <div className="mt-1 text-3xl font-semibold tabular-nums" style={{ color: stat.color }}>
-                {stat.value}
-              </div>
-            </div>
-            <div
-              className="flex h-9 w-9 items-center justify-center rounded-md"
-              style={{ backgroundColor: `${stat.color}22`, color: stat.color }}
-            >
-              <stat.icon size={18} />
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* Admin notice */}
       {userPermissions?.platform_role === 'ordinary_admin' && (
         <div
@@ -761,10 +756,34 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
           <button
             onClick={() => handleSortChange(sortField, sortDirection === 'asc' ? 'desc' : 'asc')}
             className="button-surface px-3 py-2.5 text-sm"
-            title={sortDirection === 'asc' ? '当前升序，点击改为降序' : '当前降序，点击改为升序'}
+            title={sortDirection === 'asc' ? '当前升序，点击改为降序' : '当前降序，点击改为降序'}
           >
             {sortDirection === 'asc' ? '↑' : '↓'}
           </button>
+          <select
+            value={selectedDepartmentId ?? ''}
+            onChange={(e) => setSelectedDepartmentId(e.target.value ? Number(e.target.value) : null)}
+            className="px-4 py-2 rounded-lg text-sm font-medium outline-none transition-colors"
+            style={{ backgroundColor: LK.surface, color: LK.ink, border: `1px solid ${LK.border}` }}
+          >
+            <option value="">全部部门</option>
+            {rootDeptOptions.map((dept) => (
+              <option key={dept.id} value={dept.id}>{dept.name}</option>
+            ))}
+          </select>
+          {subDeptOptions.length > 0 && (
+            <select
+              value={selectedSubDeptId ?? ''}
+              onChange={(e) => setSelectedSubDeptId(e.target.value ? Number(e.target.value) : null)}
+              className="px-4 py-2 rounded-lg text-sm font-medium outline-none transition-colors"
+              style={{ backgroundColor: LK.surface, color: LK.ink, border: `1px solid ${LK.border}` }}
+            >
+              <option value="">全部子部门</option>
+              {subDeptOptions.map((dept) => (
+                <option key={dept.id} value={dept.id}>{dept.name}</option>
+              ))}
+            </select>
+          )}
           <button
             onClick={handleRefresh}
             className="button-surface px-4 py-2.5 text-sm ml-auto"
