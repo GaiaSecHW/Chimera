@@ -1,0 +1,128 @@
+name: build-secflow-frontend-beta-image
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - refactor/frontend
+    paths:
+      - .github/workflows/build-secflow-frontend-beta-image.yaml
+      - Dockerfile
+      - nginx-secflow-debug.conf
+      - package.json
+      - package-lock.json
+      - public/**
+      - app/**
+      - clients/**
+      - components/**
+      - constants/**
+      - design-system/**
+      - layout/**
+      - pages/**
+      - services/**
+      - theme/**
+      - types/**
+      - utils/**
+      - '*.ts'
+      - '*.tsx'
+      - '*.js'
+      - '*.json'
+      - '*.html'
+      - '*.css'
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      date_tag: ${{ steps.date.outputs.date_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Generate beta date tag
+        id: date
+        env:
+          REPO_SHA: ${{ github.sha }}
+        run: |
+          SHORT_SHA="${REPO_SHA::7}"
+          COMMIT_TS="$(git show -s --format=%ct "${REPO_SHA}")"
+          DATE_TAG="beta.$(TZ=Asia/Shanghai date -d "@${COMMIT_TS}" +'%Y%m%d-%H%M%S')-${SHORT_SHA}"
+          echo "date_tag=${DATE_TAG}" >> "$GITHUB_OUTPUT"
+
+  build-amd64:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
+
+      - name: Build and push amd64 image
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --build-arg SECFLOW_BUILD_VERSION=${{ needs.prepare.outputs.date_tag }} \
+            --cache-from type=gha,scope=chimera-frontend-beta-amd64 \
+            --cache-to type=gha,scope=chimera-frontend-beta-amd64,mode=max \
+            --file ./Dockerfile \
+            --tag ghcr.io/gaiasechw/chimera-frontend:amd64-${{ needs.prepare.outputs.date_tag }} \
+            --push \
+            .
+
+  build-arm64:
+    needs: prepare
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
+
+      - name: Build and push arm64 image
+        run: |
+          docker buildx build \
+            --platform linux/arm64 \
+            --build-arg SECFLOW_BUILD_VERSION=${{ needs.prepare.outputs.date_tag }} \
+            --cache-from type=gha,scope=chimera-frontend-beta-arm64 \
+            --cache-to type=gha,scope=chimera-frontend-beta-arm64,mode=max \
+            --file ./Dockerfile \
+            --tag ghcr.io/gaiasechw/chimera-frontend:arm64-${{ needs.prepare.outputs.date_tag }} \
+            --push \
+            .
+
+  merge-manifest:
+    needs: [prepare, build-amd64, build-arm64]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
+
+      - name: Create and push multi-arch manifest (beta date tag)
+        run: |
+          docker buildx imagetools create \
+            --tag ghcr.io/gaiasechw/chimera-frontend:${{ needs.prepare.outputs.date_tag }} \
+            ghcr.io/gaiasechw/chimera-frontend:amd64-${{ needs.prepare.outputs.date_tag }} \
+            ghcr.io/gaiasechw/chimera-frontend:arm64-${{ needs.prepare.outputs.date_tag }}

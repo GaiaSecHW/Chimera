@@ -3,7 +3,6 @@ import type { ServiceHealthMeta } from '../components/execution/serviceHealthMet
 
 export interface VulnCategoryItem {
   id: number;
-  code: string;
   name: string;
   description?: string | null;
   sort_order: number;
@@ -419,14 +418,14 @@ export const vulnApi = {
   listConfirmEngines: async (): Promise<{ engines: any[] }> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/admin/vuln-confirm/engines`, { headers: getHeaders() })),
 
-  createConfirmEngine: async (payload: { engine_name: string; endpoint: string; version: string; bind_tools: string[] }) =>
+  createConfirmEngine: async (payload: { engine_name: string; endpoint: string; version: string; bind_tools: string[] /* toolid[] */ }) =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/admin/vuln-confirm/engines`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(payload),
     })),
 
-  updateConfirmEngine: async (engineName: string, payload: { engine_name: string; endpoint: string; version: string; bind_tools: string[] }) =>
+  updateConfirmEngine: async (engineName: string, payload: { engine_name: string; endpoint: string; version: string; bind_tools: string[] /* toolid[] */ }) =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/admin/vuln-confirm/engines/${encodeURIComponent(engineName)}`, {
       method: 'PUT',
       headers: getHeaders(),

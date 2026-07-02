@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { Check, ChevronDown } from 'lucide-react';
 
 import { cx } from '../../utils/cx';
 
@@ -9,9 +9,7 @@ export interface DropdownSelectOption {
   disabled?: boolean;
 }
 
-export interface DropdownSelectProps {
-  value: string;
-  onChange: (value: string) => void;
+interface BaseProps {
   options: DropdownSelectOption[];
   placeholder?: string;
   emptyText?: string;
@@ -23,6 +21,20 @@ export interface DropdownSelectProps {
   /** extra classes for the dropdown panel */
   panelClassName?: string;
 }
+
+interface SingleProps extends BaseProps {
+  multiple?: false;
+  value: string;
+  onChange: (value: string) => void;
+}
+
+interface MultiProps extends BaseProps {
+  multiple: true;
+  value: string[];
+  onChange: (value: string[]) => void;
+}
+
+export type DropdownSelectProps = SingleProps | MultiProps;
 
 const SEARCH_THRESHOLD = 10;
 const PANEL_ESTIMATE = 300;
@@ -44,17 +56,20 @@ const computePosition = (el: HTMLElement, withSearch: boolean): PositionResult =
   return { dropUp: shouldFlip, listMaxHeight };
 };
 
-export const DropdownSelect = function DropdownSelect({
-  value,
-  onChange,
-  options,
-  placeholder,
-  emptyText = '暂无数据',
-  searchPlaceholder = '搜索...',
-  className,
-  containerClassName,
-  panelClassName,
-}: DropdownSelectProps) {
+export const DropdownSelect = function DropdownSelect(props: DropdownSelectProps) {
+  const {
+    multiple = false,
+    options,
+    placeholder,
+    emptyText = '暂无数据',
+    searchPlaceholder = '搜索...',
+    className,
+    containerClassName,
+    panelClassName,
+  } = props;
+  const value = props.value as string | string[];
+  const onChange = props.onChange as (value: string | string[]) => void;
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -65,8 +80,21 @@ export const DropdownSelect = function DropdownSelect({
   const [query, setQuery] = useState('');
 
   const showSearch = options.length > SEARCH_THRESHOLD;
-  const selectedOption = options.find((opt) => opt.value === value) || null;
-  const triggerLabel = selectedOption ? selectedOption.label : (placeholder || '请选择');
+  const selectedValues: string[] = multiple && Array.isArray(value) ? value : [];
+  const selectedSet = new Set(selectedValues);
+
+  const triggerLabel = (() => {
+    if (multiple) {
+      if (selectedValues.length === 0) return placeholder || '请选择';
+      const labels = selectedValues
+        .map((v) => options.find((opt) => opt.value === v))
+        .filter(Boolean)
+        .map((opt) => opt!.label);
+      return labels.length > 0 ? labels.join('、') : `${selectedValues.length} 项已选`;
+    }
+    const selectedOption = options.find((opt) => opt.value === value) || null;
+    return selectedOption ? selectedOption.label : (placeholder || '请选择');
+  })();
 
   /* close on outside click */
   useEffect(() => {
@@ -126,6 +154,13 @@ export const DropdownSelect = function DropdownSelect({
 
   const handleSelect = (opt: DropdownSelectOption) => {
     if (opt.disabled) return;
+    if (multiple) {
+      const next = selectedSet.has(opt.value)
+        ? selectedValues.filter((v) => v !== opt.value)
+        : [...selectedValues, opt.value];
+      onChange(next);
+      return;
+    }
     onChange(opt.value);
     setOpen(false);
   };
@@ -169,16 +204,16 @@ export const DropdownSelect = function DropdownSelect({
               <div className="px-3 py-2 text-xs font-medium text-theme-text-secondary">{emptyText}</div>
             ) : (
               filteredOptions.map((opt) => {
-                const selected = opt.value === value;
+                const selected = multiple ? selectedSet.has(opt.value) : opt.value === value;
                 return (
                   <button
                     key={opt.value}
-                    ref={selected ? selectedRef : undefined}
+                    ref={selected && !multiple ? selectedRef : undefined}
                     type="button"
                     disabled={opt.disabled}
                     onClick={() => handleSelect(opt)}
                     className={cx(
-                      'w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                      'w-full flex items-center gap-2 text-left px-3 py-2 rounded-md text-sm font-medium transition-colors',
                       selected
                         ? 'theme-shell-active'
                         : opt.disabled
@@ -186,7 +221,12 @@ export const DropdownSelect = function DropdownSelect({
                           : 'text-theme-text-secondary hover:bg-theme-elevated',
                     )}
                   >
-                    {opt.label}
+                    {multiple && (
+                      <span className={cx('shrink-0', selected ? 'text-indigo-400' : 'text-transparent')}>
+                        <Check size={14} />
+                      </span>
+                    )}
+                    <span className="flex-1 truncate">{opt.label}</span>
                   </button>
                 );
               })
