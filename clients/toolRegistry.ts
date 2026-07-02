@@ -361,3 +361,29 @@ export const toolRegistryApi = {
   // 十、上架
   online: async (id: string): Promise<ToolResponse> => postJson(`/${encodeURIComponent(id)}/online`, {}),
 };
+
+// toolid -> toolname 映射，供展示层把 reporter.name（toolid）翻译成人读名。
+// 模块级缓存：成功后整会话复用；失败不缓存，下次调用自动重试。调用方对未命中项 fallback 原始 toolid 即可。
+let _toolNameMapCache: Map<string, string> | null = null;
+let _toolNameMapLoading: Promise<Map<string, string>> | null = null;
+
+export async function getToolNameMap(): Promise<Map<string, string>> {
+  if (_toolNameMapCache) return _toolNameMapCache;
+  if (!_toolNameMapLoading) {
+    _toolNameMapLoading = toolRegistryApi
+      .list()
+      .then(({ items }) => {
+        const map = new Map<string, string>();
+        for (const item of items || []) {
+          if (item?.id && item.name) map.set(item.id, item.name);
+        }
+        _toolNameMapCache = map; // 仅缓存成功结果
+        return map;
+      })
+      .catch(() => new Map<string, string>())
+      .finally(() => {
+        _toolNameMapLoading = null; // 允许失败后下次重试
+      });
+  }
+  return _toolNameMapLoading;
+}

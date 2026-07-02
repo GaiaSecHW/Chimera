@@ -744,21 +744,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 </label>
               ) : null}
 
-              {/* agent 类工具 harness 信息 */}
-              {isAgentTool ? (
-                <>
-                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                    执行指令（可选，不填则使用 Agent Harness 注册的启动命令）
-                    <textarea
-                      value={instruction}
-                      onChange={(e) => setInstruction(e.target.value)}
-                      rows={3}
-                      className="form-textarea mt-1 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                      placeholder="不填时使用 Agent Harness 的启动命令，例如 /project:xxx"
-                    />
-                  </label>
-                </>
-              ) : null}
+              {/* agent 类工具「执行指令」输入框已隐藏：默认隐式使用 Agent Harness 注册的 start_command。
+                  instruction state 与 resolveSechpsInstruction fallback 逻辑保留（不填即走 start_command），如需恢复见 git 历史。 */}
                 </>
               )}
 
