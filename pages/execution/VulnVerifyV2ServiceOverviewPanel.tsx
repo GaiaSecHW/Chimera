@@ -95,8 +95,7 @@ export const VulnVerifyV2ServiceOverviewPanel: React.FC<VulnVerifyV2ServiceOverv
       open={panelOpen}
       ariaLabel="全局概览"
       onClose={handleClose}
-      title={<span className="inline-flex items-center gap-2"><Server size={18} />漏洞验证 v2 全局概览</span>}
-      subtitle="后端聚合展示服务状态、项目统计和最近失败 Attempt"
+      title="全局概览"
       actions={(
         <button type="button" onClick={() => void loadOverview()} disabled={loading} className="inline-flex h-8 items-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-3 text-xs text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-50">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />刷新

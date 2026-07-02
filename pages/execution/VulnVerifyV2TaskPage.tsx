@@ -437,11 +437,11 @@ const DimensionCard: React.FC<{ dimKey: string; status?: boolean | null; detail?
   const StatusIcon = statusTone.Icon;
   return (
     <div className="grid grid-cols-[minmax(156px,188px)_minmax(0,1fr)] items-start gap-3 py-3">
-      <div className="flex min-w-0 items-start gap-2">
-        <div className={`flex h-8 w-8 shrink-0 items-center justify-center ${statusCls}`} title={statusTone.label}>
-          <StatusIcon size={17} strokeWidth={2.5} />
+      <div className="flex min-w-0 items-start gap-2 pl-2">
+        <div className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center ${statusCls}`} title={statusTone.label}>
+          <StatusIcon size={20} strokeWidth={2.5} />
         </div>
-        <div className={`min-w-0 truncate pt-1 text-base font-semibold leading-6 ${statusCls}`}>{conclusion}</div>
+        <div className="min-w-0 truncate pt-0.5 text-base font-medium leading-6 text-theme-text-primary">{conclusion}</div>
       </div>
       <div className="min-w-0">
         <div className="whitespace-pre-wrap break-words text-sm font-normal leading-6 text-theme-text-primary">{detail || '-'}</div>
@@ -1305,11 +1305,8 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: Secu
               </div>
             ) : (
               <>
-                    {/* 头部：结论 + metadata */}
+                    {/* 头部：metadata */}
                     <div className="space-y-4 px-1 pb-2">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <OutcomePill item={outcomeBadge(undefined, detail.verdict)} />
-                      </div>
                       <div className="text-xs font-normal">
                         {[
                           ['漏洞ID', detail.vuln_id || detail.case_id, true],
@@ -1326,8 +1323,18 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: Secu
 
                   {/* 结论依据 */}
                   <section className="space-y-3">
-                    <div className="text-base font-medium text-theme-text-primary">结论依据</div>
-                    <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                    <div className="text-base font-medium text-theme-text-primary">验证结论</div>
+                    <div className="space-y-4 rounded-2xl border border-theme-border bg-theme-surface p-5">
+                      {(() => {
+                        const outcome = outcomeBadge(undefined, detail.verdict);
+                        const Icon = outcome.Icon;
+                        return (
+                          <div className={`inline-flex items-center gap-1.5 text-sm font-semibold ${outcome.iconCls}`}>
+                            {Icon ? <Icon size={17} strokeWidth={2.5} className="shrink-0" /> : null}
+                            <span className="truncate">{outcome.label}</span>
+                          </div>
+                        );
+                      })()}
                       {detailRaw.root_cause_summary ? (
                         <p className="whitespace-pre-wrap text-sm font-normal leading-6 text-theme-text-primary">
                           {String(detailRaw.root_cause_summary)}
