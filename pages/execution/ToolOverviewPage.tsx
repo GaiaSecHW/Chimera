@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTheme } from '../../theme/ThemeProvider';
 import { useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -739,6 +740,15 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
   const [expandedHarness, setExpandedHarness] = useState('');
   const [activeTool, setActiveTool] = useState<ToolResponse | null>(null);
   const [overviewTools, setOverviewTools] = useState<ToolResponse[]>([]);
+  const { theme } = useTheme();
+  const embedIframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    embedIframeRef.current?.contentWindow?.postMessage(
+      { type: 'theme', theme },
+      '*',
+    );
+  }, [theme]);
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [harnessBranches, setHarnessBranches] = useState<Record<string, Array<{ name: string; commit: Record<string, unknown>; protected: boolean }>>>({});
   const [pipelineApp, setPipelineApp] = useState<AgentApp | null>(null);
@@ -964,8 +974,15 @@ export const ToolOverviewPage: React.FC<ToolOverviewPageProps> = ({ projectId, u
           </div>
         </div>
         <iframe
+          ref={embedIframeRef}
           src={embedUrl}
           title={activeTool.name}
+          onLoad={() => {
+            embedIframeRef.current?.contentWindow?.postMessage(
+              { type: 'theme', theme },
+              '*',
+            );
+          }}
           className="min-h-0 flex-1 w-full border-none bg-theme-surface"
         />
       </div>
