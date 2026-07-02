@@ -46,9 +46,8 @@ jobs:
         env:
           REPO_SHA: ${{ github.sha }}
         run: |
-          SHORT_SHA="${REPO_SHA::7}"
           COMMIT_TS="$(git show -s --format=%ct "${REPO_SHA}")"
-          DATE_TAG="beta.$(TZ=Asia/Shanghai date -d "@${COMMIT_TS}" +'%Y%m%d-%H%M%S')-${SHORT_SHA}"
+          DATE_TAG="beta-$(TZ=Asia/Shanghai date -d "@${COMMIT_TS}" +'%Y%m%d-%H%M%S')"
           echo "date_tag=${DATE_TAG}" >> "$GITHUB_OUTPUT"
 
   build-amd64:
