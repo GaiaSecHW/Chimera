@@ -12,12 +12,18 @@ export type ToolKind = 'microservice' | 'agent';
 export type ToolStatus = 'draft' | 'pending' | 'online' | 'offline';
 export type ToolHealthStatus = 'healthy' | 'unhealthy' | 'unknown';
 export type ToolInputType = 'document' | 'code' | 'package' | 'other';
+// mode 多选：dragon-tail(龙尾) / ram-horn(羊角) / lion-head(狮首)
+export type ToolMode = 'dragon-tail' | 'ram-horn' | 'lion-head';
+// upload_mode：archive(归档) / raw(原始)
+export type ToolUploadMode = 'archive' | 'raw';
 
 export interface ToolListItem {
   id: string;
   name: string;
   description?: string;
   kind: ToolKind;
+  mode?: ToolMode[];
+  upload_mode?: ToolUploadMode;
   status: ToolStatus;
   is_builtin: boolean;
   input_types?: ToolInputType[];
@@ -76,6 +82,8 @@ export interface ToolResponse {
   name: string;
   description?: string;
   kind: ToolKind;
+  mode?: ToolMode[];
+  upload_mode?: ToolUploadMode;
   status: ToolStatus;
   is_builtin: boolean;
   input_types?: ToolInputType[];
@@ -110,6 +118,8 @@ export interface TaskCreateToolMenuItem {
   name: string;
   description?: string | null;
   kind: ToolKind;
+  mode?: ToolMode[];
+  upload_mode?: ToolUploadMode;
   task_type: string;          // = 工具 id，供调度中心建任务时作为任务类型标识
   input_types: ToolInputType[];
   icon?: string;
@@ -185,6 +195,8 @@ export interface ToolCreate {
   name: string;
   description?: string;
   kind: ToolKind;
+  mode?: ToolMode[];
+  upload_mode?: ToolUploadMode;
   input_types?: ToolInputType[];
   microservice?: ToolCreateMicroservice;
   agent?: ToolCreateAgent;
@@ -194,6 +206,8 @@ export interface ToolUpdate {
   name?: string;
   description?: string;
   input_types?: ToolInputType[];
+  mode?: ToolMode[];
+  upload_mode?: ToolUploadMode;
   microservice?: Partial<ToolCreateMicroservice>;
   agent?: Partial<ToolCreateAgent>;
 }
@@ -213,6 +227,8 @@ export interface ToolCreateParams {
   name: string;
   description?: string;
   kind: ToolKind;
+  mode?: ToolMode[];
+  upload_mode?: ToolUploadMode;
   input_types?: ToolInputType[];
   view_id?: string;
   icon?: string;
@@ -298,6 +314,8 @@ export const toolRegistryApi = {
     form.append('name', params.name);
     if (params.description) form.append('description', params.description);
     if (params.input_types?.length) form.append('input_types', JSON.stringify(params.input_types));
+    if (params.mode?.length) form.append('mode', JSON.stringify(params.mode));
+    if (params.upload_mode) form.append('upload_mode', params.upload_mode);
     if (params.view_id) form.append('view_id', params.view_id);
     if (params.icon) form.append('icon', params.icon);
     if (params.menu_group) form.append('menu_group', params.menu_group);
