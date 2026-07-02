@@ -20,12 +20,12 @@ import type {
   BaselineTreeResponse,
 } from './types';
 
-// 项目管理服务(:8001)
+// dev 由 .env.local 直连(env 优先);k8s 同源走 ingress /api/app/ai4eva/project(rewrite 剥前缀)。
 const SEC_PROJECT_API_BASE =
-  String(import.meta.env.VITE_SEC_PROJECT_API_BASE ?? 'http://127.0.0.1:8001');
-// 基线服务(:8000,跨服务取基线节点树与基线下拉)
+  String(import.meta.env.VITE_SEC_PROJECT_API_BASE ?? '/api/app/ai4eva/project');
+// 基线服务:k8s 走 ingress /api/app/ai4eva/baseline(跨服务取基线节点树与基线下拉)。
 const SEC_BASELINE_API_BASE =
-  String(import.meta.env.VITE_SEC_BASELINE_API_BASE ?? 'http://127.0.0.1:8000');
+  String(import.meta.env.VITE_SEC_BASELINE_API_BASE ?? '/api/app/ai4eva/baseline');
 
 const P_API = `${SEC_PROJECT_API_BASE}/api`;
 const P_M2M = `${SEC_PROJECT_API_BASE}/api/v1`;
