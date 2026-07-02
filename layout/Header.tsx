@@ -10,7 +10,7 @@ import {
   getAssetsCenterActiveChild,
 } from '../app/navigation';
 import { SecurityProject, UserInfo, ViewType } from '../types/types';
-import { getPlatformRoleLabel, getUserAccess } from '../utils/rbac';
+import { getPlatformRoleLabel, getUserAccess, getUserCenterDefaultView } from '../utils/rbac';
 import { ThemeLogo } from '../components/ThemeLogo';
 import { useTheme } from '../theme/ThemeProvider';
 
@@ -101,6 +101,25 @@ export const Header: React.FC<HeaderProps> = ({
 
   const currentProject = projects.find((p) => p.id === selectedProjectId) || { name: '选择项目' };
 
+  const projectIndicatorRef = useRef<HTMLDivElement>(null);
+  const isFirstProjectRender = useRef(true);
+  useEffect(() => {
+    // 跳过首次挂载，仅在后续切换时闪烁
+    if (isFirstProjectRender.current) {
+      isFirstProjectRender.current = false;
+      return;
+    }
+    const el = projectIndicatorRef.current;
+    if (!el) return;
+    el.classList.remove('project-switch-flash');
+    // 强制 reflow 以便重复触发动画
+    void el.offsetWidth;
+    el.classList.add('project-switch-flash');
+    const onEnd = () => el.classList.remove('project-switch-flash');
+    el.addEventListener('animationend', onEnd, { once: true });
+    return () => el.removeEventListener('animationend', onEnd);
+  }, [selectedProjectId]);
+
   const visibleNavItems = getVisibleTopLevelNavItems(user);
   const activeSystemAdminChild = getSystemAdminActiveChild(String(currentView));
   const activeAssetsCenterChild = getAssetsCenterActiveChild(String(currentView));
@@ -129,7 +148,7 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="bg-theme-header border-b border-theme-sidebar shadow-brand z-20 sticky top-0">
       <div className="h-14 px-4 flex items-center gap-4">
         <div className="flex items-center gap-2 min-w-0">
-          <ThemeLogo size="small" showBadge={false} />
+          <ThemeLogo size="medium" showBadge={false} />
         </div>
 
         <div className="flex justify-start  flex-1 min-w-0 overflow-visible">
@@ -209,7 +228,12 @@ export const Header: React.FC<HeaderProps> = ({
                               <button
                                 key={child.key}
                                 onClick={() => {
-                                  onSelectSystemAdminChild(child.defaultView);
+                                  // 租户分区按角色落地：普通管理员无权访问超管默认页(user-mgmt-access)，
+                                  // 改用 getUserCenterDefaultView 落到其可访问的首个页面，避免被弹回首页。
+                                  const targetView = child.key === 'tenant'
+                                    ? getUserCenterDefaultView(user)
+                                    : child.defaultView;
+                                  onSelectSystemAdminChild(targetView);
                                   setIsSystemAdminOpen(false);
                                 }}
                                 className={`w-full text-left px-3 py-2.5 text-xs font-medium rounded-xl transition-all ${
@@ -247,16 +271,19 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="flex items-center justify-end gap-3 min-w-0">
           <div className="relative min-w-0 max-w-[15rem]" ref={projectDropdownRef}>
-            <button
-              onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-              className="flex items-center gap-2 px-1.5 py-1.5 max-w-[15rem] rounded-xl text-sm font-medium head-tab-hover"
-            >
-              <span className="truncate flex-1 text-left">{currentProject.name}</span>
-              <span onClick={(e) => { e.stopPropagation(); fetchProjects(true); }} className="shrink-0 text-theme-text-faint text-theme-text-primary-hover transition-all">
-                <RotateCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
-              </span>
-              <ChevronDown size={14} className="shrink-0 text-theme-text-faint" />
-            </button>
+            <div ref={projectIndicatorRef} className="inline-block">
+              <button
+                onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+                className="flex items-center gap-1.5 px-1.5 py-1 max-w-[13rem] rounded-xl text-xs font-medium opacity-70 hover:opacity-100 head-tab-hover transition-opacity"
+                title="快速切换项目（主入口在“项目管理”页）"
+              >
+                <span className="truncate flex-1 text-left">{currentProject.name}</span>
+                <span onClick={(e) => { e.stopPropagation(); fetchProjects(true); }} className="shrink-0 text-theme-text-faint text-theme-text-primary-hover transition-all">
+                  <RotateCw size={12} className={isRefreshing ? 'animate-spin' : ''} />
+                </span>
+                <ChevronDown size={12} className="shrink-0 text-theme-text-faint" />
+              </button>
+            </div>
             {isProjectDropdownOpen && (
               <div className="absolute top-full right-0 mt-2 w-48 bg-theme-surface border border-theme-border rounded-lg shadow-overlay p-2 z-50">
                 <input

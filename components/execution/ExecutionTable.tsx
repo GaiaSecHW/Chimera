@@ -41,15 +41,17 @@ export function ExecutionTableTh({
   className = '',
   align,
   colSpan,
+  title,
 }: {
   children: React.ReactNode;
   className?: string;
   align?: 'left' | 'center' | 'right';
   colSpan?: number;
+  title?: string;
 }) {
   const alignClassName =
     align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : '';
-  return <th colSpan={colSpan} className={`px-4 py-3 ${alignClassName} ${className}`.trim()}>{children}</th>;
+  return <th colSpan={colSpan} title={title} className={`px-4 py-3 ${alignClassName} ${className}`.trim()}>{children}</th>;
 }
 
 export function ExecutionTableTd({

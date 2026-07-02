@@ -1257,7 +1257,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => refreshJobDetail(activeJob.id)} className="inline-flex items-center gap-1.5 rounded-lg bg-theme-surface px-3 py-1.5 text-xs font-semibold text-white"><RefreshCw size={12} />刷新详情</button>
+            <button onClick={() => refreshJobDetail(activeJob.id)} className="btn-secondary inline-flex items-center gap-1"><RefreshCw size={12} />刷新详情</button>
             <button onClick={() => handleRetry(activeJob.id)} disabled={!isTerminal(activeJob.status)} className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-xs font-semibold text-theme-text-secondary disabled:cursor-not-allowed disabled:opacity-40"><RotateCcw size={12} />重试</button>
             <button onClick={() => handleCancel(activeJob.id)} disabled={isTerminal(activeJob.status)} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/20 bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-400 disabled:cursor-not-allowed disabled:opacity-40"><Square size={12} />结束</button>
             <button onClick={() => handleDelete(activeJob.id)} disabled={!isTerminal(activeJob.status) || deletingJobId === activeJob.id} className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/15 px-3 py-1.5 text-xs font-semibold text-red-400 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 size={12} />删除</button>
@@ -1626,7 +1626,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
       <PageHeader
         title={showingDetail ? '进化固件解包 · 任务详情' : '进化固件解包 · 任务列表'}
         description={!showingDetail && hasRunning ? '有进化任务运行中，每5秒自动刷新' : undefined}
-        actions={<button onClick={() => void (showingDetail && activeJobId ? refreshJobDetail(activeJobId) : handleRefreshList())} className="inline-flex items-center gap-1.5 rounded-lg bg-theme-surface px-3 py-1.5 text-xs font-semibold text-white"><RefreshCw size={12} />{showingDetail ? '刷新详情' : '刷新列表'}</button>}
+        actions={<button onClick={() => void (showingDetail && activeJobId ? refreshJobDetail(activeJobId) : handleRefreshList())} className="btn-secondary inline-flex items-center gap-1"><RefreshCw size={16} />{showingDetail ? '刷新详情' : '刷新列表'}</button>}
       />
 
       {showingDetail ? renderDetail() : (
@@ -1647,7 +1647,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                   当前展示 <span className="font-mono">{runtimeFiles?.root || '/data/chimera-app-firmware-unpacker'}</span> 下的文件与目录。
                 </p>
               </div>
-              <button onClick={() => void loadRuntimeFiles()} className="inline-flex items-center gap-1.5 rounded-lg border border-theme-border px-3 py-1.5 text-xs font-semibold text-theme-text-secondary hover:bg-theme-elevated">
+              <button onClick={() => void loadRuntimeFiles()} className="btn-secondary inline-flex items-center gap-1">
                 <RefreshCw size={12} className={runtimeFilesLoading ? 'animate-spin' : ''} />
                 刷新文件
               </button>

@@ -4579,7 +4579,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       type="button"
                       onClick={() => void loadDeleteQueue(deleteQueuePage)}
                       disabled={deleteQueueLoading}
-                      className="inline-flex items-center gap-2 rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 text-sm font-bold text-theme-text-secondary hover:bg-theme-elevated disabled:opacity-60"
+                      className="btn-secondary inline-flex items-center gap-1 disabled:opacity-50"
                     >
                       {deleteQueueLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
                       刷新
@@ -4587,7 +4587,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     <button
                       type="button"
                       onClick={closeDeleteQueue}
-                      className="inline-flex items-center gap-2 rounded-xl bg-theme-surface px-4 py-2.5 text-sm font-bold text-white hover:bg-theme-elevated"
+                      className="btn-secondary inline-flex items-center gap-1"
                     >
                       <X size={16} />
                       关闭
