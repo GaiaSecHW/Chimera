@@ -45,6 +45,7 @@ const TASK_TYPES: readonly TaskTypeOption[] = [
   { value: 'ai4web_deep', label: 'AI4WEB 扫描（深度）', downstreamView: 'app-security-scan-detail' },
   { value: 'ai4red', label: 'AI4RED 红线验证', downstreamView: 'task-redline-detail' },
   { value: 'sechps_tool', label: 'Agent Harness 任务' },
+  { value: 'cairn_blackboard', label: '黑板报', downstreamView: 'cairn-blackboard' },
 ];
 
 const getLocalUserInfo = (): UserInfo | null => {

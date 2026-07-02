@@ -177,8 +177,8 @@ const MODE_OPTIONS: { value: ToolMode; label: string }[] = [
 
 // upload_mode：archive(归档) / raw(原始)
 const UPLOAD_MODE_OPTIONS: { value: ToolUploadMode; label: string }[] = [
-  { value: 'archive', label: '归档' },
-  { value: 'raw', label: '原始' },
+  { value: 'archive', label: '是' },
+  { value: 'raw', label: '否' },
 ];
 
 const DEFAULT_FORM: FormState = {
@@ -296,7 +296,7 @@ const validate = (form: FormState): ErrorMap => {
   if (form.kind === 'microservice' && !form.view_id.trim()) errors.view_id = '请输入菜单/路由标识';
   if (form.input_types.length === 0) errors.input_types = '请至少选择一种输入类型';
   if (form.mode.length === 0) errors.mode = '请至少选择一种模式';
-  if (!form.upload_mode) errors.upload_mode = '请选择上传模式';
+  if (!form.upload_mode) errors.upload_mode = '请选择是/否';
   if (form.kind === 'microservice') {
     if (!form.namespace.trim()) errors.namespace = '请输入 K8s namespace';
     if (!form.deployment.trim()) errors.deployment = '请输入 deployment 名称';
@@ -444,7 +444,7 @@ const STATUS_TONE: Record<ToolStatus, string> = {
   draft: 'bg-theme-elevated text-theme-text-secondary border-theme-border',
   pending: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
   online: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  offline: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+  offline: 'bg-rose-500/15 text-black border-rose-500/30',
 };
 const HEALTH_TONE: Record<string, string> = {
   healthy: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
@@ -1000,10 +1000,10 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
                 ) : null}
               </div>
             </FormField>
-            <FormField label="上传模式" required hint="归档(archive) / 原始(raw)" error={errors.upload_mode}>
+            <FormField label="上传后 平台是否自动解压" required hint="是 / 否" error={errors.upload_mode}>
               <Select
                 options={UPLOAD_MODE_OPTIONS}
-                placeholder="请选择上传模式"
+                placeholder="请选择是/否"
                 value={form.upload_mode}
                 onChange={(e) => setField('upload_mode', e.target.value as ToolUploadMode)}
                 invalid={!!errors.upload_mode}
@@ -1331,7 +1331,6 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
                   <th className="px-4 py-2.5 font-semibold">名称</th>
                   <th className="px-4 py-2.5 font-semibold">类型</th>
                   <th className="px-4 py-2.5 font-semibold">状态</th>
-                  <th className="px-4 py-2.5 font-semibold">健康</th>
                   <th className="px-4 py-2.5 font-semibold">版本</th>
                   <th className="px-4 py-2.5 font-semibold">更新时间</th>
                   <th className="px-4 py-2.5 font-semibold">操作</th>
@@ -1347,7 +1346,6 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
                     </td>
                     <td className="px-4 py-2.5 text-theme-text-secondary">{tool.kind === 'microservice' ? '微服务' : 'Agent'}</td>
                     <td className="px-4 py-2.5"><Badge className={STATUS_TONE[tool.status]}>{STATUS_LABEL[tool.status]}</Badge></td>
-                    <td className="px-4 py-2.5"><Badge className={HEALTH_TONE[tool.health_status ?? 'unknown']}>{tool.health_status ?? 'unknown'}</Badge></td>
                     <td className="px-4 py-2.5 text-theme-text-secondary">{tool.current_version || '-'}</td>
                     <td className="px-4 py-2.5 text-theme-text-muted">{formatTime(tool.updated_at)}</td>
                     <td className="px-4 py-2.5">
@@ -1360,7 +1358,7 @@ export const ToolRegistrationPage: React.FC<ToolRegistrationPageProps> = ({ user
                         ) : null}
                         {tool.status === 'online' && isAdmin ? (
                           <>
-                            <button type="button" onClick={() => void handleOffline(tool.id)} disabled={actionLoadingId === tool.id} className="rounded-md bg-rose-500/15 px-2.5 py-1 text-xs font-medium text-rose-300 transition-colors hover:bg-rose-500/25 disabled:opacity-50">{actionLoadingId === tool.id ? '处理中…' : '下架'}</button>
+                            <button type="button" onClick={() => void handleOffline(tool.id)} disabled={actionLoadingId === tool.id} className="rounded-md bg-rose-500/15 px-2.5 py-1 text-xs font-medium text-black transition-colors hover:bg-rose-500/25 disabled:opacity-50">{actionLoadingId === tool.id ? '处理中…' : '下架'}</button>
                             <button type="button" onClick={() => void handleOpenEdit(tool)} disabled={actionLoadingId === tool.id} className="rounded-md bg-blue-500/15 px-2.5 py-1 text-xs font-medium text-blue-300 transition-colors hover:bg-blue-500/25 disabled:opacity-50">修改</button>
                           </>
                         ) : null}

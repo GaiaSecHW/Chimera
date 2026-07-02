@@ -2286,7 +2286,8 @@ export type ScheduleCenterUserTaskType =
   | 'ai4web_fast'
   | 'ai4web_deep'
   | 'sechps_tool'
-  | 'redline_verification_e2e';
+  | 'redline_verification_e2e'
+  | 'cairn_blackboard';
 
 export interface AgentAppSummary {
   id: string;
