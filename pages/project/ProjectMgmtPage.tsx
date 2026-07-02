@@ -764,7 +764,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
             <DropdownSelect
               value={selectedDepartmentId ? String(selectedDepartmentId) : ''}
               onChange={(v) => setSelectedDepartmentId(v ? Number(v) : null)}
-              options={rootDeptOptions.map((d) => ({ value: String(d.id), label: d.name }))}
+              options={[{ value: '', label: '全部部门' }, ...rootDeptOptions.map((d) => ({ value: String(d.id), label: d.name }))]}
               placeholder="全部部门"
             />
           </div>
@@ -773,7 +773,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
               <DropdownSelect
                 value={selectedSubDeptId ? String(selectedSubDeptId) : ''}
                 onChange={(v) => setSelectedSubDeptId(v ? Number(v) : null)}
-                options={subDeptOptions.map((d) => ({ value: String(d.id), label: d.name }))}
+                options={[{ value: '', label: '全部子部门' }, ...subDeptOptions.map((d) => ({ value: String(d.id), label: d.name }))]}
                 placeholder="全部子部门"
               />
             </div>

@@ -691,7 +691,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 <DropdownSelect
                   value={selectedDepartmentId ? String(selectedDepartmentId) : ''}
                   onChange={(v) => setSelectedDepartmentId(v ? Number(v) : null)}
-                  options={rootDepartments.map((d) => ({ value: String(d.id), label: d.name }))}
+                  options={[{ value: '', label: '全部部门' }, ...rootDepartments.map((d) => ({ value: String(d.id), label: d.name }))]}
                   placeholder="全部部门"
                 />
               </div>
@@ -700,7 +700,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   <DropdownSelect
                     value={selectedSubDeptId ? String(selectedSubDeptId) : ''}
                     onChange={(v) => setSelectedSubDeptId(v ? Number(v) : null)}
-                    options={subDepartments.map((d) => ({ value: String(d.id), label: d.name }))}
+                    options={[{ value: '', label: '全部子部门' }, ...subDepartments.map((d) => ({ value: String(d.id), label: d.name }))]}
                     placeholder="全部子部门"
                   />
                 </div>
