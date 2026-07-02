@@ -475,6 +475,11 @@ const CONCLUSION_TEXT: Record<string, string> = {
   inconclusive: '无法判定',
   manual_terminated: '人工终止',
 };
+const ENGINE_RESULT_TO_VALIDATION: Record<string, string> = {
+  yes: 'vulnerable',
+  no: 'not_vulnerable',
+  inconclusive: 'inconclusive',
+};
 
 const toUserVulnStatusText = (itemOrStage?: any, status?: string) => {
   if (itemOrStage && typeof itemOrStage === 'object') {
@@ -831,12 +836,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     return { source: '', text: '', engineName: '' };
   }, [selectedDetail, selectedTimeline, confirmRecords]);
   const engineConclusionReason = useMemo(() => {
-    if (!selectedDetail) return { text: '', engineName: '' };
+    if (!selectedDetail) return { text: '', engineName: '', result: '' };
     const completed = (confirmRecords || [])
       .filter((record: any) => record && (record.status === 'completed' || record.result) && record.engine_name)
       .sort((a: any, b: any) => (b.completed_at || b.created_at || '').localeCompare(a.completed_at || a.created_at || ''));
     const top = completed[0];
-    return { text: top?.reason || '', engineName: top?.engine_name || '' };
+    const rawResult = top?.result || (!selectedDetail.finished_reason ? (selectedDetail.validation_result || '') : '');
+    const result = rawResult ? (ENGINE_RESULT_TO_VALIDATION[rawResult] || rawResult) : '';
+    return { result, text: top?.reason || '', engineName: top?.engine_name || '' };
   }, [selectedDetail, confirmRecords]);
   const relatedRefs = Array.isArray(workspaceSummary.related_execution_refs) ? workspaceSummary.related_execution_refs : [];
   const processManualTasks = Array.isArray(selectedDetail?.manual_tasks) ? selectedDetail.manual_tasks : [];
@@ -2484,8 +2491,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                       <div>{displaySummary?.subtitle || selectedDetail.summary || '暂无摘要说明'}</div>
                       <div className="rounded-xl p-4 bg-theme-elevated">
                         <div className="text-xs font-semibold text-theme-text-muted-soft">当前结论</div>
-                        <div className={`mt-1 text-sm font-semibold ${selectedDetail.validation_result === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-primary'}`}>
-                          {selectedDetail.validation_result ? (toConclusionText(selectedDetail.validation_result) || '—') : '—'}
+                        <div className={`mt-1 text-sm font-semibold ${engineConclusionReason.result === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-primary'}`}>
+                          {engineConclusionReason.result ? (toConclusionText(engineConclusionReason.result) || '—') : '—'}
                         </div>
                         {engineConclusionReason.engineName ? (
                           <div className="mt-1 text-[11px] font-medium text-theme-text-muted">
