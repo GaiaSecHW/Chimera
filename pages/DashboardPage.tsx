@@ -120,6 +120,27 @@ const SEVERITY_LABELS: Record<string, string> = { critical: '严重', high: '高
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'];
 const SEVERITY_COLORS: Record<string, string> = { critical: LK.error, high: '#ff8b3d', medium: LK.warning, low: LK.success };
 
+const DONUT_PALETTE = [
+  '#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#f43f5e',
+  '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6',
+  '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7',
+];
+
+const tipEnter = (e: React.MouseEvent<HTMLElement>, text: string) => {
+  const el = e.currentTarget;
+  if (el.offsetWidth >= el.scrollWidth && el.offsetHeight >= el.scrollHeight) return;
+  const tip = document.createElement('div');
+  tip.textContent = text;
+  tip.style.cssText = `position:fixed;z-index:9999;padding:6px 10px;border-radius:6px;font-size:12px;font-weight:500;line-height:1.5;white-space:normal;word-break:break-all;max-width:400px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border-default);box-shadow:0 4px 16px rgba(0,0,0,.25);pointer-events:none;left:${e.clientX + 12}px;top:${e.clientY + 12}px;`;
+  tip.id = 'dash-tip';
+  document.body.appendChild(tip);
+};
+const tipMove = (e: React.MouseEvent) => {
+  const tip = document.getElementById('dash-tip');
+  if (tip) { tip.style.left = `${e.clientX + 12}px`; tip.style.top = `${e.clientY + 12}px`; }
+};
+const tipLeave = () => { document.getElementById('dash-tip')?.remove(); };
+
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   projects,
   setCurrentView,
@@ -198,6 +219,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   }, [selectedDepartmentId, departments]);
 
   const projectById = useMemo(() => new Map(projects.map(p => [p.id, p])), [projects]);
+
+  const taskNameById = useMemo(() => new Map(taskItems.map(t => [t.id || t.task_id, t.name?.trim() || t.id || t.task_id])), [taskItems]);
+
+  const dashGetTaskName = (item: any) => {
+    const taskId = String(item?.source_task_id || item?.display_summary?.source_task?.task_id || item?.source_task?.task_id || '').trim();
+    return taskId ? (taskNameById.get(taskId) || taskId) : '未提供';
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -407,7 +435,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     let items = [...caseItems];
     if (m === 'vulnConfirmed') items = items.filter(c => c?.is_human_finished === true && getCaseConclusion(c) === 'vulnerable');
     else if (m === 'vulnRuledOut') items = items.filter(c => c?.is_human_finished === true && getCaseConclusion(c) === 'not_vulnerable');
-    else if (m === 'vulnSuspect') items = items.filter(c => !getCaseConclusion(c));
+    else if (m === 'vulnSuspect') items = items.filter(c => shouldEnterVulnCenter(c, engineTools) && matchesSuspect(c, engineTools));
     items.sort((a, b) => (b.updated_at || b.created_at || '').localeCompare(a.updated_at || a.created_at || ''));
     return items;
   }, [caseItems, curMetric]);
@@ -446,6 +474,31 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     }
     return [];
   }, [curMetric, taskStatusAggFromStats, reporterAgg, severityCountsAgg]);
+
+  const dist2Items = useMemo(() => {
+    const m = curMetric;
+    if (m === 'vulnConfirmed') {
+      const agg = new Map<string, number>();
+      filteredCaseItems.forEach(c => {
+        const cat = String(c?.confirmed_category || '').trim();
+        if (cat) agg.set(cat, (agg.get(cat) || 0) + 1);
+      });
+      return Array.from(agg.entries())
+        .map(([name, count], i) => ({ name, count, color: DONUT_PALETTE[i % DONUT_PALETTE.length] }))
+        .sort((a, b) => b.count - a.count);
+    }
+    if (m === 'vulnRuledOut') {
+      const agg = new Map<string, number>();
+      filteredCaseItems.forEach(c => {
+        const reason = String(c?.false_positive_reason || '').trim();
+        if (reason) agg.set(reason, (agg.get(reason) || 0) + 1);
+      });
+      return Array.from(agg.entries())
+        .map(([name, count], i) => ({ name, count, color: DONUT_PALETTE[i % DONUT_PALETTE.length] }))
+        .sort((a, b) => b.count - a.count);
+    }
+    return [];
+  }, [curMetric, filteredCaseItems]);
 
   const panelTitle = useMemo(() => {
     const m = curMetric;
@@ -492,7 +545,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     { label: '失败的任务', metric: 'taskFailed' as MetricKey, Icon: XCircle, color: LK.error, algo: '' },
   ], []);
 
-  const isSingle = curMetric === 'taskQueued' || curMetric === 'taskRunning' || curMetric === 'taskFailed' || curMetric === 'vulnRuledOut';
+  const isSingle = curMetric === 'taskQueued' || curMetric === 'taskRunning' || curMetric === 'taskFailed';
 
   return (
     <div className="min-h-full px-5 py-5 md:px-6 2xl:px-8" style={{ backgroundColor: LK.canvas, color: LK.inkSoft }}>
@@ -675,6 +728,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         <th>标题 / 摘要</th>
                         <th>严重程度</th>
                         <th>人工确认状态</th>
+                        <th>{curMetric === 'vulnRuledOut' ? '误报原因' : '漏洞种类'}</th>
                         <th>工具</th>
                         <th>更新时间</th>
                         <th>创建时间</th>
@@ -682,7 +736,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     </thead>
                     <tbody>
                       {pagedRows.length === 0 ? (
-                        <tr><td colSpan={7} className="text-center py-8" style={{ color: LK.muted }}>{statsLoading ? '加载中...' : '暂无数据'}</td></tr>
+                        <tr><td colSpan={8} className="text-center py-8" style={{ color: LK.muted }}>{statsLoading ? '加载中...' : '暂无数据'}</td></tr>
                       ) : pagedRows.map((c: any, idx: number) => {
                         const conc = getCaseConclusion(c);
                         const cLabel = conclusionLabel(conc);
@@ -692,16 +746,43 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         const sev = String(c?.severity || '').trim().toLowerCase();
                         const sevLabel = SEVERITY_LABELS[sev] || sev || '—';
                         const sevColor = SEVERITY_COLORS[sev] || LK.muted;
+                        const categoryLabel = curMetric === 'vulnRuledOut'
+                          ? (c?.false_positive_reason || '—')
+                          : (c?.confirmed_category || '—');
                         return (
                           <tr key={c.id || idx}>
-                            <td><span className="nm">{c.title || `CASE-${String(idx + 1).padStart(4, '0')}`}</span></td>
+                            <td style={{ maxWidth: '200px' }}>
+                              <span className="nm" style={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: 'block',
+                                whiteSpace: 'nowrap',
+                                userSelect: 'all',
+                                WebkitUserSelect: 'all',
+                                cursor: 'text',
+                              }}
+                              onMouseEnter={(e) => tipEnter(e, dashGetTaskName(c))}
+                              onMouseMove={tipMove}
+                              onMouseLeave={tipLeave}
+                              >
+                                {dashGetTaskName(c)}
+                              </span>
+                            </td>
                             <td className="wrap">
-                              <span className="vtitle">{c.title || '—'}</span>
-                              <span className="vmid">CASE-{String(idx + 1).padStart(4, '0')}</span>
-                              <span className="vsum">{c?.subtitle || c?.summary || '暂无摘要'}</span>
+                              <span className="vtitle"
+                                onMouseEnter={(e) => tipEnter(e, c.title || '—')}
+                                onMouseMove={tipMove}
+                                onMouseLeave={tipLeave}
+                              >{c.title || '—'}</span>
+                              <span className="vsum"
+                                onMouseEnter={(e) => tipEnter(e, c?.subtitle || c?.summary || '暂无摘要')}
+                                onMouseMove={tipMove}
+                                onMouseLeave={tipLeave}
+                              >{c?.subtitle || c?.summary || '暂无摘要'}</span>
                             </td>
                             <td><span className="dash-status-pill" style={{ '--sc': sevColor } as any}>{sevLabel}</span></td>
                             <td><span className={`dash-vconc ${cClass}`}>{cLabel}</span></td>
+                            <td><span style={{ color: LK.inkSoft, fontSize: '12px' }}>{categoryLabel}</span></td>
                             <td>
                               <span className="vtool">{reporterName}</span>
                               {reporterVer && <span className="vtoolv">{reporterVer}</span>}
@@ -747,27 +828,101 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             </div>
             </div>
 
-            {distItems.length > 0 && (
-              <div className="flex flex-col gap-0 py-1" style={{ minWidth: 0 }}>
-                <div className="dash-dist-h" style={{ marginBottom: 10 }}>
-                  {curMetric === 'vulnSuspect' ? '上报来源分布'
-                    : curMetric === 'vulnConfirmed' ? '严重度分布'
-                    : '任务状态分布'}
-                </div>
-                {(() => {
-                  const max = Math.max(1, ...distItems.map(i => i.count));
-                  return distItems.map(item => (
-                    <div key={item.name} className="flex items-center justify-between gap-1.5 text-xs" style={{ padding: '4px 0' }}>
-                      <span className="dash-bar-label" title={item.name}>{item.name}</span>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <div className="dash-bar-trk">
-                          <span className="dash-bar-fl" style={{ width: `${(item.count / max * 100).toFixed(1)}%`, background: `linear-gradient(90deg, ${item.color}, color-mix(in srgb, ${item.color} 55%, transparent))` }} />
-                        </div>
-                        <span className="dash-bar-ct">{formatNumber(item.count)}</span>
-                      </div>
+            {(distItems.length > 0 || dist2Items.length > 0) && (
+              <div className="flex flex-col gap-0" style={{ minWidth: 0 }}>
+                {distItems.length > 0 && (
+                  <div className="flex flex-col gap-0 py-1">
+                    <div className="dash-dist-h" style={{ marginBottom: 10 }}>
+                      {curMetric === 'vulnSuspect' ? '上报来源分布'
+                        : curMetric === 'vulnConfirmed' ? '严重度分布'
+                        : '任务状态分布'}
                     </div>
-                  ));
-                })()}
+                    {(() => {
+                      const max = Math.max(1, ...distItems.map(i => i.count));
+                      return distItems.map(item => (
+                        <div key={item.name} className="flex items-center justify-between gap-1.5 text-xs" style={{ padding: '4px 0' }}>
+                          <span className="dash-bar-label" title={item.name}>{item.name}</span>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <div className="dash-bar-trk">
+                              <span className="dash-bar-fl" style={{ width: `${(item.count / max * 100).toFixed(1)}%`, background: `linear-gradient(90deg, ${item.color}, color-mix(in srgb, ${item.color} 55%, transparent))` }} />
+                            </div>
+                            <span className="dash-bar-ct">{formatNumber(item.count)}</span>
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
+
+                {dist2Items.length > 0 && (
+                  <div className={`flex flex-col gap-0 ${curMetric === 'vulnConfirmed' ? 'pt-4' : ''}`} style={curMetric === 'vulnConfirmed' ? { borderTop: `1px solid ${LK.borderSoft}` } : undefined}>
+                    <div className="dash-dist-h" style={{ marginBottom: 10 }}>
+                      {curMetric === 'vulnConfirmed' ? '漏洞种类分布' : '误报原因分布'}
+                    </div>
+                    {(() => {
+                      const total = dist2Items.reduce((s, i) => s + i.count, 0);
+                      const R = 42;
+                      const C = 2 * Math.PI * R;
+                      let offset = 0;
+                      return (
+                        <div className="dash-donut-wrap">
+                          <div className="dash-donut">
+                            <svg viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r={R} fill="none" stroke="var(--bg-app)" strokeWidth="14" />
+                              {dist2Items.map((item) => {
+                                const pct = total > 0 ? item.count / total : 0;
+                                const dash = pct * C;
+                                const seg = (
+                                  <circle
+                                    key={item.name}
+                                    cx="50" cy="50" r={R}
+                                    className="dash-donut-seg"
+                                    stroke={item.color}
+                                    strokeDasharray={`${dash} ${C - dash}`}
+                                    strokeDashoffset={-offset}
+                                    transform="rotate(-90 50 50)"
+                                  />
+                                );
+                                offset += dash;
+                                return seg;
+                              })}
+                            </svg>
+                            <div className="dash-donut-center">
+                              <span className="dc-num">{formatNumber(total)}</span>
+                              <span className="dc-label">总计</span>
+                            </div>
+                          </div>
+                          <div className="dash-donut-legend">
+                            {dist2Items.slice(0, 6).map(item => {
+                              const pct = total > 0 ? (item.count / total * 100).toFixed(1) : '0.0';
+                              return (
+                                <div key={item.name} className="dash-donut-legend-item" title={item.name}>
+                                  <span className="dl-dot" style={{ background: item.color }} />
+                                  <span className="dl-name">{item.name}</span>
+                                  <span className="dl-pct">{pct}%</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {(() => {
+                      const max = Math.max(1, ...dist2Items.map(i => i.count));
+                      return dist2Items.map(item => (
+                        <div key={item.name} className="flex items-center justify-between gap-1.5 text-xs" style={{ padding: '4px 0' }}>
+                          <span className="dash-bar-label" title={item.name}>{item.name}</span>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <div className="dash-bar-trk">
+                              <span className="dash-bar-fl" style={{ width: `${(item.count / max * 100).toFixed(1)}%`, background: `linear-gradient(90deg, ${item.color}, color-mix(in srgb, ${item.color} 55%, transparent))` }} />
+                            </div>
+                            <span className="dash-bar-ct">{formatNumber(item.count)}</span>
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
               </div>
             )}
           </div>
