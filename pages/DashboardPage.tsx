@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -13,7 +13,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { api } from '../clients/api';
-import { PageHeader } from '../design-system';
+import { DropdownSelect, PageHeader } from '../design-system';
 import {
   AdminDashboardStats,
   Agent,
@@ -141,12 +141,46 @@ const tipMove = (e: React.MouseEvent) => {
 };
 const tipLeave = () => { document.getElementById('dash-tip')?.remove(); };
 
+const SWR_TTL = 60_000;
+const SWR_PREFIX = 'dash:swr:';
+const swrGet = <T,>(key: string): T | null => {
+  try {
+    const raw = sessionStorage.getItem(SWR_PREFIX + key);
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
+    if (Date.now() - ts > SWR_TTL) return null;
+    return data as T;
+  } catch { return null; }
+};
+const swrSet = (key: string, data: unknown) => {
+  try { sessionStorage.setItem(SWR_PREFIX + key, JSON.stringify({ ts: Date.now(), data })); } catch { /* quota */ }
+};
+
+async function runWithConcurrency<T, R>(
+  items: T[],
+  fn: (item: T, index: number) => Promise<R>,
+  concurrency = 6,
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = new Array(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (cursor < items.length) {
+      const idx = cursor++;
+      try { results[idx] = { status: 'fulfilled', value: await fn(items[idx], idx) }; }
+      catch (e) { results[idx] = { status: 'rejected', reason: e }; }
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   projects,
   setCurrentView,
 }) => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
+  const [selectedSubDeptId, setSelectedSubDeptId] = useState<number | null>(null);
   const [curMetric, setCurMetric] = useState<MetricKey>('projects');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -155,19 +189,21 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [taskQueued, setTaskQueued] = useState<number | null>(null);
   const [taskRunning, setTaskRunning] = useState<number | null>(null);
   const [taskFailed, setTaskFailed] = useState<number | null>(null);
-  const [vulnSuspect, setVulnSuspect] = useState<number | null>(null);
   const [vulnSuspectLoading, setVulnSuspectLoading] = useState(true);
   const [vulnConfirmed, setVulnConfirmed] = useState<number | null>(null);
   const [vulnRuledOut, setVulnRuledOut] = useState<number | null>(null);
   const [algoHover, setAlgoHover] = useState<string | null>(null);
 
   const [taskItems, setTaskItems] = useState<any[]>([]);
-  const [caseItems, setCaseItems] = useState<any[]>([]);
+  const [allCases, setAllCases] = useState<any[]>([]);
   const [perProjectTaskStats, setPerProjectTaskStats] = useState<Record<string, any>>({});
   const [stageCountsAgg, setStageCountsAgg] = useState<Record<string, number>>({});
   const [severityCountsAgg, setSeverityCountsAgg] = useState<Record<string, number>>({});
   const [statsLoading, setStatsLoading] = useState(true);
   const [engineTools, setEngineTools] = useState<Set<string>>(new Set());
+
+  const taskCacheRef = useRef<Map<string, { stats: any; items: any[]; ts: number }>>(new Map());
+  const overviewCacheRef = useRef<Map<string, { data: any; ts: number }>>(new Map());
 
   const getReporterName = (item: any) => String(item?.reporter?.name || '').trim();
   const hasConfiguredConfirmEngine = (item: any, tools: Set<string>) => {
@@ -194,29 +230,40 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   }, []);
 
   useEffect(() => {
+    setSelectedSubDeptId(null);
+  }, [selectedDepartmentId]);
+
+  useEffect(() => {
     setCurrentPage(1);
-  }, [curMetric, selectedDepartmentId]);
+  }, [curMetric, selectedDepartmentId, selectedSubDeptId]);
 
   const rootDepartments = useMemo(() => departments.filter(d => !d.parent_id), [departments]);
+  const subDepartments = useMemo(() => {
+    if (!selectedDepartmentId) return [];
+    return departments.filter(d => d.parent_id === selectedDepartmentId);
+  }, [selectedDepartmentId, departments]);
   const selectedDeptIds = useMemo(() => {
-    if (!selectedDepartmentId) return null;
-    const ids = new Set<number>([selectedDepartmentId]);
+    const rootId = selectedSubDeptId ?? selectedDepartmentId;
+    if (!rootId) return null;
+    const ids = new Set<number>([rootId]);
     const walk = (parentId: number) => {
       departments.filter(d => d.parent_id === parentId).forEach(d => { ids.add(d.id); walk(d.id); });
     };
-    walk(selectedDepartmentId);
+    walk(rootId);
     return ids;
-  }, [selectedDepartmentId, departments]);
+  }, [selectedDepartmentId, selectedSubDeptId, departments]);
   const filteredProjects = useMemo(() => {
     if (!selectedDeptIds) return projects;
     return projects.filter(p => p.department_id != null && selectedDeptIds.has(p.department_id));
   }, [projects, selectedDeptIds]);
 
+  const filteredProjectIdSet = useMemo(() => new Set(filteredProjects.map(p => p.id)), [filteredProjects]);
+
   const deptName = useMemo(() => {
-    if (!selectedDepartmentId) return '全部部门';
-    const dept = departments.find(d => d.id === selectedDepartmentId);
-    return dept?.name || '全部部门';
-  }, [selectedDepartmentId, departments]);
+    if (selectedSubDeptId) return departments.find(d => d.id === selectedSubDeptId)?.name || '全部部门';
+    if (selectedDepartmentId) return departments.find(d => d.id === selectedDepartmentId)?.name || '全部部门';
+    return '全部部门';
+  }, [selectedDepartmentId, selectedSubDeptId, departments]);
 
   const projectById = useMemo(() => new Map(projects.map(p => [p.id, p])), [projects]);
 
@@ -227,76 +274,156 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return taskId ? (taskNameById.get(taskId) || taskId) : '未提供';
   };
 
+  // ── 全局数据：cases + engines（只加载一次，SWR模式）──
+  useEffect(() => {
+    let mounted = true;
+    const vulnApi = api.domains.vuln.vuln;
+
+    // SWR: 先从 sessionStorage 恢复
+    const cachedCases = swrGet<any[]>('cases');
+    const cachedTools = swrGet<string[]>('engineTools');
+    if (cachedCases) setAllCases(cachedCases);
+    if (cachedTools && cachedTools.length >= 0) setEngineTools(new Set(cachedTools));
+    if (cachedCases && cachedTools) setVulnSuspectLoading(false);
+
+    const loadGlobal = async () => {
+      if (mounted && !cachedCases) setVulnSuspectLoading(true);
+
+      const enginesPromise = vulnApi.listConfirmEngines().catch(() => ({ engines: [] }));
+      const casesPromise = (async () => {
+        const cachedTotal = swrGet<number>('casesTotal');
+        if (cachedTotal) {
+          const pages = Math.ceil(cachedTotal / 200);
+          const allBatches = await runWithConcurrency(
+            Array.from({ length: pages }, (_, i) => i + 1),
+            (pg) => vulnApi.listCases({ page: pg, page_size: 200 }),
+            6,
+          );
+          const allItems: any[] = [];
+          allBatches.forEach(r => { if (r.status === 'fulfilled' && r.value?.items) allItems.push(...r.value.items); });
+          return allItems;
+        }
+        const first = await vulnApi.listCases({ page: 1, page_size: 200 });
+        const total = Number(first?.total || 0);
+        swrSet('casesTotal', total);
+        const allItems: any[] = [...(first?.items || [])];
+        const pages = Math.ceil(total / 200);
+        if (pages > 1) {
+          const rest = await runWithConcurrency(
+            Array.from({ length: pages - 1 }, (_, i) => i + 2),
+            (pg) => vulnApi.listCases({ page: pg, page_size: 200 }),
+            6,
+          );
+          rest.forEach(r => { if (r.status === 'fulfilled' && r.value?.items) allItems.push(...r.value.items); });
+        }
+        return allItems;
+      })().catch(() => []);
+
+      const [enginesRes, casesItems] = await Promise.all([enginesPromise, casesPromise]);
+      if (!mounted) return;
+
+      const tools = new Set<string>();
+      (enginesRes?.engines || []).forEach((eng: any) => {
+        (eng?.bind_tools || []).forEach((t: string) => tools.add(t));
+      });
+      setEngineTools(tools);
+      setAllCases(casesItems);
+      setVulnSuspectLoading(false);
+
+      swrSet('engineTools', Array.from(tools));
+      swrSet('cases', casesItems);
+    };
+    void loadGlobal();
+    return () => { mounted = false; };
+  }, []);
+
+  // ── 按项目数据：tasks + overviews（随部门筛选变化，带缓存+并发控制）──
   useEffect(() => {
     let mounted = true;
     const scheduleApi = api.domains.platform.scheduleCenter;
     const vulnApi = api.domains.vuln.vuln;
 
-    const loadStats = async () => {
+    const loadPerProject = async () => {
       if (mounted) setStatsLoading(true);
-      if (mounted) setVulnSuspectLoading(true);
-      const filteredProjectIdSet = new Set(filteredProjects.map(p => p.id));
 
-      // ── 并行启动所有独立请求 ──────────────────────
-      // 第1组：任务数据（每项目 listUserTasks）
-      const tasksPromise = Promise.allSettled(
-        filteredProjects.map(p => scheduleApi.listUserTasks(p.id, { page_size: 200 })),
-      );
-      // 第2组：漏洞 breakdown
-      const breakdownPromise = vulnApi.getBreakdown().catch(() => null);
-      // 第3组：每项目 getOverview
-      const overviewsPromise = Promise.allSettled(
-        filteredProjects.map(p => vulnApi.getOverview(p.id)),
-      );
-      // 第4组：确认引擎
-      const enginesPromise = vulnApi.listConfirmEngines().catch(() => ({ engines: [] }));
-      // 第5组：全量 cases（先拉第一页拿 total，再并行拉剩余页）
-      const casesPromise = (async () => {
-        const first = await vulnApi.listCases({ page: 1, page_size: 200 });
-        const total = Number(first?.total || 0);
-        const allItems: any[] = [...(first?.items || [])];
-        const pages = Math.ceil(total / 200);
-        if (pages > 1) {
-          const rest = await Promise.allSettled(
-            Array.from({ length: pages - 1 }, (_, i) =>
-              vulnApi.listCases({ page: i + 2, page_size: 200 }),
-            ),
-          );
-          rest.forEach(r => {
-            if (r.status === 'fulfilled' && r.value?.items) allItems.push(...r.value.items);
-          });
-        }
-        return { items: allItems, total };
-      })().catch(() => ({ items: [], total: 0 }));
+      const isGlobal = !selectedDeptIds;
+      const projectIds = filteredProjects.map(p => p.id);
+      const now = Date.now();
 
-      const [taskResults, breakdown, overviewResults, enginesRes, casesResp] = await Promise.all([
-        tasksPromise, breakdownPromise, overviewsPromise, enginesPromise, casesPromise,
+      // SWR: 先从缓存恢复已缓存的项目数据
+      const cachedTaskResults: Record<string, { stats: any; items: any[] }> = {};
+      const cachedOverviewResults: Record<string, any> = {};
+      for (const pid of projectIds) {
+        const tc = taskCacheRef.current.get(pid);
+        if (tc && now - tc.ts < SWR_TTL) cachedTaskResults[pid] = { stats: tc.stats, items: tc.items };
+        const oc = overviewCacheRef.current.get(pid);
+        if (oc && now - oc.ts < SWR_TTL) cachedOverviewResults[pid] = oc.data;
+      }
+
+      // 确定需要拉取的项目
+      const tasksToFetch = projectIds.filter(pid => !cachedTaskResults[pid]);
+      const overviewsToFetch = isGlobal ? [] : projectIds.filter(pid => !cachedOverviewResults[pid]);
+
+      // 并发控制：分批拉取
+      const [taskResults, overviewResults] = await Promise.all([
+        runWithConcurrency(tasksToFetch, (pid) => scheduleApi.listUserTasks(pid, { page_size: 200 }), 6),
+        isGlobal
+          ? Promise.resolve([] as PromiseSettledResult<any>[])
+          : runWithConcurrency(overviewsToFetch, (pid) => vulnApi.getOverview(pid), 6),
       ]);
 
       if (!mounted) return;
 
-      // ── 处理任务数据 ──────────────────────────────
+      // 合并缓存 + 新数据
+      taskResults.forEach((res, i) => {
+        if (res.status !== 'fulfilled' || !res.value) return;
+        const pid = tasksToFetch[i];
+        const stats = res.value.stats || {};
+        const items = res.value.items || [];
+        cachedTaskResults[pid] = { stats, items };
+        taskCacheRef.current.set(pid, { stats, items, ts: now });
+        swrSet('task:' + pid, { stats, items });
+      });
+
+      if (!isGlobal) {
+        overviewResults.forEach((res, i) => {
+          if (res.status !== 'fulfilled' || !res.value) return;
+          const pid = overviewsToFetch[i];
+          cachedOverviewResults[pid] = res.value;
+          overviewCacheRef.current.set(pid, { data: res.value, ts: now });
+          swrSet('overview:' + pid, res.value);
+        });
+      }
+
+      // 全局 overview（1次调用替代N次）
+      let globalOverview: any = null;
+      if (isGlobal) {
+        const cachedGlobalOv = swrGet<any>('globalOverview');
+        if (cachedGlobalOv) globalOverview = cachedGlobalOv;
+        try {
+          globalOverview = await vulnApi.getOverview();
+          swrSet('globalOverview', globalOverview);
+        } catch { /* keep cached or null */ }
+        if (!mounted) return;
+      }
+
+      // 聚合任务数据
       let taskTotalSum = 0, taskQueuedSum = 0, taskRunningSum = 0, taskFailedSum = 0;
       let anyTaskOk = false;
       const allTaskItems: any[] = [];
       const pStats: Record<string, any> = {};
 
-      taskResults.forEach((res, idx) => {
-        if (res.status !== 'fulfilled' || !res.value) return;
+      for (const pid of projectIds) {
+        const tr = cachedTaskResults[pid];
+        if (!tr) continue;
         anyTaskOk = true;
-        const projectId = filteredProjects[idx]?.id;
-        const stats = res.value.stats || {};
-        taskTotalSum += Number(stats.total || 0);
-        taskQueuedSum += Number(stats.queued ?? stats.pending ?? 0);
-        taskRunningSum += Number(stats.running || 0);
-        taskFailedSum += Number(stats.failed || 0);
-        if (projectId) pStats[projectId] = stats;
-        const items: any[] = res.value.items || [];
-        for (const item of items) {
-          if (selectedDeptIds && !filteredProjectIdSet.has(item?.project_id || projectId)) continue;
-          allTaskItems.push(item);
-        }
-      });
+        pStats[pid] = tr.stats;
+        taskTotalSum += Number(tr.stats.total || 0);
+        taskQueuedSum += Number(tr.stats.queued ?? tr.stats.pending ?? 0);
+        taskRunningSum += Number(tr.stats.running || 0);
+        taskFailedSum += Number(tr.stats.failed || 0);
+        allTaskItems.push(...tr.items);
+      }
 
       setTaskCount(anyTaskOk ? taskTotalSum : null);
       setTaskQueued(anyTaskOk ? taskQueuedSum : null);
@@ -305,56 +432,54 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       setTaskItems(allTaskItems);
       setPerProjectTaskStats(pStats);
 
-      // ── 处理 breakdown ────────────────────────────
-      const breakdownProjects = breakdown?.projects || [];
-      const visibleBreakdownProjects = selectedDeptIds
-        ? breakdownProjects.filter(p => filteredProjectIdSet.has(p.project_id))
-        : breakdownProjects;
-
-      // ── 处理 overview ─────────────────────────────
+      // 聚合 overview 数据
       let confirmedSum = 0, ruledOutSum = 0;
       let anyOverviewOk = false;
       const sAgg: Record<string, number> = {};
       const sevAgg: Record<string, number> = {};
 
-      overviewResults.forEach(r => {
-        if (r.status !== 'fulfilled' || !r.value) return;
+      if (isGlobal && globalOverview) {
         anyOverviewOk = true;
-        confirmedSum += Number(r.value?.human_finished_reason_counts?.vulnerable || 0);
-        ruledOutSum += Number(r.value?.human_finished_reason_counts?.not_vulnerable || 0);
-        const sc = r.value?.stage_counts || {};
-        for (const [k, v] of Object.entries(sc)) sAgg[k] = (sAgg[k] || 0) + Number(v || 0);
-        const sevc = r.value?.severity_counts || {};
-        for (const [k, v] of Object.entries(sevc)) sevAgg[k] = (sevAgg[k] || 0) + Number(v || 0);
-      });
+        confirmedSum = Number(globalOverview?.human_finished_reason_counts?.vulnerable || 0);
+        ruledOutSum = Number(globalOverview?.human_finished_reason_counts?.not_vulnerable || 0);
+        const sc = globalOverview?.stage_counts || {};
+        for (const [k, v] of Object.entries(sc)) sAgg[k] = Number(v || 0);
+        const sevc = globalOverview?.severity_counts || {};
+        for (const [k, v] of Object.entries(sevc)) sevAgg[k] = Number(v || 0);
+      } else {
+        for (const pid of projectIds) {
+          const ov = cachedOverviewResults[pid];
+          if (!ov) continue;
+          anyOverviewOk = true;
+          confirmedSum += Number(ov?.human_finished_reason_counts?.vulnerable || 0);
+          ruledOutSum += Number(ov?.human_finished_reason_counts?.not_vulnerable || 0);
+          const sc = ov?.stage_counts || {};
+          for (const [k, v] of Object.entries(sc)) sAgg[k] = (sAgg[k] || 0) + Number(v || 0);
+          const sevc = ov?.severity_counts || {};
+          for (const [k, v] of Object.entries(sevc)) sevAgg[k] = (sevAgg[k] || 0) + Number(v || 0);
+        }
+      }
+
       setVulnConfirmed(anyOverviewOk ? confirmedSum : null);
       setVulnRuledOut(anyOverviewOk ? ruledOutSum : null);
       setStageCountsAgg(sAgg);
       setSeverityCountsAgg(sevAgg);
-
-      // ── 处理引擎 + cases ──────────────────────────
-      const tools = new Set<string>();
-      (enginesRes?.engines || []).forEach((eng: any) => {
-        (eng?.bind_tools || []).forEach((t: string) => tools.add(t));
-      });
-      setEngineTools(tools);
-
-      const allCases: any[] = [];
-      let suspectCount = 0;
-      const rawItems: any[] = casesResp?.items || [];
-      for (const c of rawItems) {
-        if (selectedDeptIds && !filteredProjectIdSet.has(c?.project_id)) continue;
-        allCases.push(c);
-        if (shouldEnterVulnCenter(c, tools) && matchesSuspect(c, tools)) suspectCount += 1;
-      }
-      setVulnSuspect(suspectCount);
-      setVulnSuspectLoading(false);
-      setCaseItems(allCases);
       setStatsLoading(false);
     };
-    void loadStats();
+    void loadPerProject();
     return () => { mounted = false; };
-  }, [filteredProjects, selectedDeptIds]);
+  }, [filteredProjects]);
+
+  // ── 客户端部门筛选（即时，无API调用）──
+  const caseItems = useMemo(() => {
+    if (!selectedDeptIds) return allCases;
+    return allCases.filter(c => filteredProjectIdSet.has(c?.project_id));
+  }, [allCases, selectedDeptIds, filteredProjectIdSet]);
+
+  const vulnSuspect = useMemo<number | null>(() => {
+    if (vulnSuspectLoading) return null;
+    return caseItems.filter(c => shouldEnterVulnCenter(c, engineTools) && matchesSuspect(c, engineTools)).length;
+  }, [caseItems, engineTools, vulnSuspectLoading]);
 
   const cardValues: Record<MetricKey, number | null> = useMemo(() => ({
     projects: filteredProjects.length,
@@ -562,17 +687,24 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           description="汇总各模块的结果性数据：交付范围、节点状态、工作流执行、服务健康、资源占用与 AI 网关调用。"
           actions={
             <div className="flex items-center gap-3">
-              <select
-                value={selectedDepartmentId ?? ''}
-                onChange={(e) => setSelectedDepartmentId(e.target.value ? Number(e.target.value) : null)}
-                className="px-4 py-2 rounded-lg text-sm font-medium outline-none transition-colors"
-                style={{ backgroundColor: LK.surface, color: LK.ink, border: `1px solid ${LK.border}` }}
-              >
-                <option value="">全部部门</option>
-                {rootDepartments.map((dept) => (
-                  <option key={dept.id} value={dept.id}>{dept.name}</option>
-                ))}
-              </select>
+              <div className="w-36">
+                <DropdownSelect
+                  value={selectedDepartmentId ? String(selectedDepartmentId) : ''}
+                  onChange={(v) => setSelectedDepartmentId(v ? Number(v) : null)}
+                  options={[{ value: '', label: '全部部门' }, ...rootDepartments.map((d) => ({ value: String(d.id), label: d.name }))]}
+                  placeholder="全部部门"
+                />
+              </div>
+              {subDepartments.length > 0 && (
+                <div className="w-36">
+                  <DropdownSelect
+                    value={selectedSubDeptId ? String(selectedSubDeptId) : ''}
+                    onChange={(v) => setSelectedSubDeptId(v ? Number(v) : null)}
+                    options={[{ value: '', label: '全部子部门' }, ...subDepartments.map((d) => ({ value: String(d.id), label: d.name }))]}
+                    placeholder="全部子部门"
+                  />
+                </div>
+              )}
               <button type="button" onClick={() => setCurrentView('aigw-dashboard')} className="btn btn-primary">
                 AI 网关详情 <ArrowUpRight size={16} />
               </button>
