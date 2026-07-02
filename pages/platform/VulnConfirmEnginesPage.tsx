@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ShieldCheck, Plus, RefreshCw, Loader2, Trash2, Edit3, Activity, ServerCog, Hash, Clock, X, Link as LinkIcon, Wrench, Bell, Save, Send } from 'lucide-react';
 import { vulnApi, NotifyConfig, NotifyTestResult } from '../../clients/vuln';
 import { toolRegistryApi } from '../../clients/toolRegistry';
@@ -26,6 +26,9 @@ interface EngineFormData {
 
 const EMPTY_FORM: EngineFormData = { engine_name: '', endpoint: '', version: '', bind_tools: [] };
 
+// 工具状态下拉标签：仅 online 工具可被新引擎绑定；非 online 的仅在已绑定时回显
+const TOOL_STATUS_LABEL: Record<string, string> = { draft: '草稿', pending: '待审核', online: '已上线', offline: '已下架' };
+
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '—');
 
 export const VulnConfirmEnginesPage: React.FC = () => {
@@ -35,7 +38,7 @@ export const VulnConfirmEnginesPage: React.FC = () => {
   const [editingEngine, setEditingEngine] = useState<VulnConfirmEngine | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formData, setFormData] = useState<EngineFormData>(EMPTY_FORM);
-  const [toolOptions, setToolOptions] = useState<DropdownSelectOption[]>([]);
+  const [allTools, setAllTools] = useState<Array<{ id: string; name: string; status: string }>>([]);
   const [idToName, setIdToName] = useState<Map<string, string>>(new Map());
 
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
@@ -61,13 +64,30 @@ export const VulnConfirmEnginesPage: React.FC = () => {
   const fetchTools = async () => {
     try {
       const data = await toolRegistryApi.list();
-      const items = data.items || [];
-      setToolOptions(items.map((t) => ({ value: t.id, label: t.name })));
+      const items = (data.items || []) as Array<{ id: string; name: string; status: string }>;
+      setAllTools(items);
       setIdToName(new Map(items.map((t) => [t.id, t.name] as [string, string])));
     } catch (e: any) {
       console.error('[VulnConfirmEnginesPage] load tools failed:', e);
     }
   };
+
+  // 下拉只提供「已上线」工具；编辑时若已绑定工具后来下架了，仍保留可见（标注状态）以便解绑
+  const toolOptions = useMemo<DropdownSelectOption[]>(() => {
+    const selectedIds = new Set(formData.bind_tools);
+    const knownIds = new Set(allTools.map((t) => t.id));
+    const onlineOrBound = allTools
+      .filter((t) => t.status === 'online' || selectedIds.has(t.id))
+      .map((t) => ({
+        value: t.id,
+        label: t.status === 'online' ? t.name : `${t.name}（${TOOL_STATUS_LABEL[t.status] || t.status}）`,
+      }));
+    // 已绑定但已从注册中心删除的工具：仍展示（标"已失效"）以便在面板看到勾选并解绑
+    const orphan = formData.bind_tools
+      .filter((id) => !knownIds.has(id))
+      .map((id) => ({ value: id, label: `${id}（已失效）` }));
+    return [...onlineOrBound, ...orphan];
+  }, [allTools, formData.bind_tools]);
 
   const fetchEngines = async () => {
     setLoading(true);
@@ -102,7 +122,19 @@ export const VulnConfirmEnginesPage: React.FC = () => {
     e.preventDefault();
     const { bind_tools } = formData;
     if (bind_tools.length === 0) {
-      alert('bind_tools 至少需要一项');
+      alert('请至少选择一个绑定工具（bind_tools 不能为空）。');
+      return;
+    }
+    // 客户端预检：一个工具不能同时绑给多个引擎（路由是 工具→引擎 1:1）
+    const selfName = editingEngine?.engine_name;
+    const conflictTool = bind_tools.find((tool) =>
+      engines.some((eng) => eng.engine_name !== selfName && (eng.bind_tools || []).includes(tool)),
+    );
+    if (conflictTool) {
+      const holder = engines.find(
+        (eng) => eng.engine_name !== selfName && (eng.bind_tools || []).includes(conflictTool),
+      )?.engine_name;
+      alert(`工具「${conflictTool}」已绑定到引擎「${holder}」。\n一个工具不能同时绑给多个引擎（路由按 工具→引擎 1:1 匹配），请先在该引擎解绑，或选其它工具。`);
       return;
     }
     setFormLoading(true);
