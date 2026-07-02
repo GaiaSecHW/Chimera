@@ -9,9 +9,20 @@ export interface VulnCategoryItem {
   status: string;
 }
 
+export interface FalsePositiveReasonItem {
+  id: number;
+  name: string;
+  group_code: string;
+  group_name: string;
+  description?: string | null;
+  sort_order: number;
+  status: string;
+}
+
 export interface ValidationResultPayload {
   validation_result: string;
   category?: string;
+  false_positive_reason?: string;
   summary?: string;
 }
 
@@ -25,6 +36,8 @@ export interface VulnCaseDisplaySummary {
   validation_result?: string | null;
   finished_reason?: string | null;
   confirmed_category?: string | null;
+  false_positive_reason?: string | null;
+  false_positive_group?: string | null;
   reporter?: Record<string, any>;
   subject?: Record<string, any>;
   source_task?: Record<string, any> | null;
@@ -664,6 +677,12 @@ export const vulnApi = {
 
   getVulnCategories: async (): Promise<{ items: VulnCategoryItem[]; total: number }> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/vuln-categories`, {
+      method: 'GET',
+      headers: getHeaders(),
+    })),
+
+  getFalsePositiveReasons: async (): Promise<{ items: FalsePositiveReasonItem[]; total: number }> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/vuln-false-positive-reasons`, {
       method: 'GET',
       headers: getHeaders(),
     })),
