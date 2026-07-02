@@ -38,6 +38,8 @@ export interface TestInputUploaderProps {
   hideUploadIcon?: boolean;
   defaultInputType?: InputType;
   defaultKeepOriginal?: boolean;
+  /** 隐藏「保留原始文件，不自动解压」勾选框（keepOriginal 仍由 defaultKeepOriginal 驱动）。 */
+  hideKeepOriginal?: boolean;
   onUploadStateChange?: (uploading: boolean) => void;
   /** 当提供时，输入类型下拉仅展示该范围内的选项（用于按工具 input_types 收窄）。 */
   allowedInputTypes?: InputType[];
@@ -57,7 +59,7 @@ const formatSpeed = (value?: number | null) => {
 };
 
 export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUploaderProps>(
-  ({ projectId, displayName, compact = false, hideUploadIcon = false, defaultInputType = 'document', defaultKeepOriginal = false, onUploadStateChange, allowedInputTypes }, ref) => {
+  ({ projectId, displayName, compact = false, hideUploadIcon = false, defaultInputType = 'document', defaultKeepOriginal = false, hideKeepOriginal = false, onUploadStateChange, allowedInputTypes }, ref) => {
     const [inputType, setInputType] = useState<InputType>(defaultInputType);
     const [keepOriginal, setKeepOriginal] = useState(defaultKeepOriginal);
     useEffect(() => { setKeepOriginal(defaultKeepOriginal); }, [defaultKeepOriginal]);
@@ -188,15 +190,17 @@ export const TestInputUploader = forwardRef<TestInputUploaderHandle, TestInputUp
                 options={visibleInputTypes.map((type) => ({ value: type, label: INPUT_TYPE_META[type].label }))}
               />
             </div>
-            <label className="flex items-center gap-2 whitespace-nowrap text-sm font-medium text-theme-text-secondary">
-              <input
-                type="checkbox"
-                checked={keepOriginal}
-                onChange={(e) => setKeepOriginal(e.target.checked)}
-                className="h-4 w-4 rounded border-theme-border"
-              />
-              保留原始文件，不自动解压
-            </label>
+            {hideKeepOriginal ? null : (
+              <label className="flex items-center gap-2 whitespace-nowrap text-sm font-medium text-theme-text-secondary">
+                <input
+                  type="checkbox"
+                  checked={keepOriginal}
+                  onChange={(e) => setKeepOriginal(e.target.checked)}
+                  className="h-4 w-4 rounded border-theme-border"
+                />
+                保留原始文件，不自动解压
+              </label>
+            )}
           </div>
         </div>
 
