@@ -3,10 +3,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
   Activity,
-  ArrowDown,
   ArrowLeft,
   ArrowRight,
-  ArrowUp,
   BookOpen,
   Check,
   ChevronDown,
@@ -34,7 +32,7 @@ import {
 import { api } from '../../clients/api';
 import { authApi } from '../../clients/auth';
 import { API_BASE } from '../../clients/base';
-import { MarkdownViewer, Modal, PageHeader, PageSection, StatisticCard } from '../../design-system';
+import { DataTable, DataTableColumn, MarkdownViewer, Modal, PageHeader, PageSection, StatisticCard } from '../../design-system';
 import { useUiFeedback } from '../../components/UiFeedback';
 import type { RedispatchResponse } from '../../clients/vuln';
 
@@ -737,7 +735,6 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
   const totalFiltered = listTotal;
   const totalPages = Math.max(1, Math.ceil(totalFiltered / Math.max(1, pageSize)));
   const normalizedPage = Math.min(Math.max(1, currentPage), totalPages);
-  const pageStart = (normalizedPage - 1) * pageSize;
   const pagedSuspicions = suspicions;
 
   const stats = useMemo(() => {
@@ -1885,15 +1882,6 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
     }
   };
 
-  const handleSortChange = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-      return;
-    }
-    setSortField(field);
-    setSortDirection(field === 'updated_at' || field === 'confidence' || field === 'conclusion' ? 'desc' : 'asc');
-  };
-
   // ===== 一键重派（告警中心）=====
   // dry-run 预览当前项目下卡在「已接收」的 case（任意工具）；确认后正式并发 dispatch。
   const handleRedispatchPreview = async () => {
@@ -1992,24 +1980,162 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
     });
   };
 
-  const renderSortHeader = (label: string, field: SortField) => {
-    const active = sortField === field;
-    const desc = active && sortDirection === 'desc';
-    const asc = active && sortDirection === 'asc';
-    return (
-      <button
-        type="button"
-        onClick={() => handleSortChange(field)}
-        className="inline-flex items-center gap-2 text-left text-sm uppercase tracking-wider font-semibold text-theme-text-primary"
-      >
-        {label}
-        <span className="inline-flex items-center gap-0.5 leading-none">
-          <ArrowUp size={12} className={asc ? 'text-theme-text-secondary' : 'text-theme-text-faint'} />
-          <ArrowDown size={12} className={desc ? 'text-theme-text-secondary' : 'text-theme-text-faint'} />
-        </span>
-      </button>
-    );
-  };
+  const caseColumns: DataTableColumn<any>[] = [
+    {
+      key: 'task_name',
+      header: '任务名称',
+      width: '14%',
+      render: (item: any) => (
+        <div className="min-w-0 text-sm font-semibold text-theme-text-secondary" title={getTaskName(item)}>
+          <div className="truncate">{getTaskName(item)}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'title',
+      header: '标题 / 摘要',
+      sortable: true,
+      sortKey: 'title',
+      defaultDirection: 'asc',
+      width: '20%',
+      render: (item: any) => (
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-theme-text-primary">{item.title}</div>
+          <div className="mt-1 font-mono text-[11px] text-theme-text-faint">{item.id}</div>
+          <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-theme-text-muted">{item.summary || '暂无摘要'}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'current_stage',
+      header: '阶段 / 状态',
+      sortable: true,
+      sortKey: 'current_stage',
+      defaultDirection: 'asc',
+      width: '12%',
+      render: (item: any) => (
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-theme-text-secondary">{toUserVulnStatusText(item)}</div>
+          {item.confirm_engine_name && !(item.current_stage === 'finished' || item.finished_reason) ? (
+            <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
+              已派发: {item.confirm_engine_name}
+            </div>
+          ) : toUserVulnStatusText(item) === '研判中' && !(item.current_stage === 'finished' || item.finished_reason || getEffectiveConclusion(item)) ? (
+            <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
+              人工研判中
+            </div>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      key: 'conclusion',
+      header: '引擎研判结论',
+      sortable: true,
+      sortKey: 'conclusion',
+      defaultDirection: 'desc',
+      width: '12%',
+      render: (item: any) => (
+        <div className="min-w-0">
+          {(() => {
+            const conclusion = getEffectiveConclusion(item)
+              || (item.is_human_finished ? String(item.finished_reason || item.validation_result || '').trim() : '');
+            if (!conclusion) return <span className="text-sm text-theme-text-faint">—</span>;
+            return (
+              <>
+                <div className={`text-sm font-semibold ${conclusion === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-secondary'}`}>
+                  {toConclusionText(conclusion)}
+                </div>
+                {item.confirm_engine_name ? (
+                  <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
+                    {item.confirm_engine_name}
+                  </div>
+                ) : null}
+              </>
+            );
+          })()}
+        </div>
+      ),
+    },
+    {
+      key: 'reporter',
+      header: '工具',
+      sortable: true,
+      sortKey: 'reporter',
+      defaultDirection: 'asc',
+      width: '12%',
+      render: (item: any) => (
+        <div className="min-w-0">
+          <div className="truncate text-sm font-semibold text-theme-text-secondary">{item.reporter?.name || 'unknown'}</div>
+          <div className="mt-0.5 text-xs text-theme-text-faint">{item.reporter?.version || 'n/a'}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'updated_at',
+      header: '更新时间',
+      sortable: true,
+      sortKey: 'updated_at',
+      defaultDirection: 'desc',
+      width: '10%',
+      render: (item: any) => (
+        <div className="text-sm text-theme-text-muted">{formatTime(item.updated_at || item.created_at)}</div>
+      ),
+    },
+    {
+      key: 'created_at',
+      header: '创建时间',
+      sortable: true,
+      sortKey: 'created_at',
+      defaultDirection: 'asc',
+      width: '10%',
+      render: (item: any) => (
+        <div className="text-sm text-theme-text-muted">{formatTime(item.created_at)}</div>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '操作',
+      align: 'left',
+      width: '8%',
+      render: (item: any) => (
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleCreateDownloadJob([item.id], 'single');
+            }}
+            disabled={creatingDownload}
+            title={creatingDownload ? '创建下载任务中' : '下载'}
+            aria-label={`下载漏洞 ${item.title}`}
+            className="rounded-md p-1.5 transition-colors"
+            style={{ color: 'var(--text-secondary)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--brand-primary-mask)'; e.currentTarget.style.color = 'var(--brand-primary)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+          >
+            <Download size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleDeleteSingleFromList(item.id, item.title);
+            }}
+            disabled={bulkDeleting || rowDeletingId === item.id}
+            title={rowDeletingId === item.id ? '删除中' : '删除'}
+            aria-label={`删除漏洞 ${item.title}`}
+            className="rounded-md p-1.5 transition-colors"
+            style={{ color: 'var(--text-secondary)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--danger-soft)'; e.currentTarget.style.color = 'var(--danger)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+          >
+            {rowDeletingId === item.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   const renderDownloadCenter = () => (
     <div className="space-y-4">
@@ -2858,165 +2984,30 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
               </div>
             </div>
 
-            <div>
-              <div className="overflow-hidden">
-                  <div className="grid grid-cols-[1.5fr_2.2fr_0.9fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr] gap-3 border-b border-theme-border bg-theme-elevated px-4 py-2.5">
-                  <div className="flex items-center justify-center hidden">
-                    <input
-                      type="checkbox"
-                        checked={allVisibleSelected}
-                        onChange={toggleSelectAllVisible}
-                      aria-label="全选当前页"
-                      className="hidden"
-                    />
-                  </div>
-                  <div className="text-sm uppercase tracking-wider font-semibold text-theme-text-primary">任务名称</div>
-                  {renderSortHeader('标题 / 摘要', 'title')}
-                  {renderSortHeader('阶段 / 状态', 'current_stage')}
-                  {renderSortHeader('引擎研判结论', 'conclusion')}
-                  {renderSortHeader('工具', 'reporter')}
-                  {renderSortHeader('更新时间', 'updated_at')}
-                  {renderSortHeader('创建时间', 'created_at')}
-                  <div className="text-sm uppercase tracking-wider font-semibold text-theme-text-primary">操作</div>
-                </div>
-                {loading ? (
-                  <div className="bg-theme-surface px-4 py-8 text-sm text-theme-text-faint">正在加载漏洞列表...</div>
-                ) : pagedSuspicions.length === 0 ? (
-                  <div className="bg-theme-surface px-4 py-8 text-sm text-theme-text-faint">当前筛选条件下没有漏洞。</div>
-                ) : (
-                  pagedSuspicions.map((item) => (
-                    <div
-                      key={item.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setSelectedSuspicionId(item.id)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          setSelectedSuspicionId(item.id);
-                        }
-                      }}
-                      className="grid cursor-pointer grid-cols-[1.5fr_2.2fr_0.9fr_1.1fr_1.2fr_1.1fr_1.1fr_0.9fr] gap-3 border-b border-theme-border-subtle bg-theme-surface px-4 py-3.5 text-left transition hover:bg-theme-elevated last:border-b-0"
-                    >
-                      <div className="flex items-center justify-center hidden">
-                        <input
-                          type="checkbox"
-                          checked={selectedSuspicionIds.includes(item.id)}
-                          onChange={() => toggleSuspicionSelection(item.id)}
-                          onClick={(event) => event.stopPropagation()}
-                          aria-label={`选择漏洞 ${item.title}`}
-                          className="hidden"
-                        />
-                      </div>
-                      <div className="min-w-0 text-sm font-semibold text-theme-text-secondary" title={getTaskName(item)}>
-                        <div className="truncate">{getTaskName(item)}</div>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-theme-text-primary">{item.title}</div>
-                        <div className="mt-1 font-mono text-[11px] text-theme-text-faint">{item.id}</div>
-                        <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-theme-text-muted">{item.summary || '暂无摘要'}</div>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-theme-text-secondary">{toUserVulnStatusText(item)}</div>
-                        {item.confirm_engine_name && !(item.current_stage === 'finished' || item.finished_reason) ? (
-                          <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
-                            已派发: {item.confirm_engine_name}
-                          </div>
-                        ) : toUserVulnStatusText(item) === '研判中' && !(item.current_stage === 'finished' || item.finished_reason || getEffectiveConclusion(item)) ? (
-                          <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
-                            人工研判中
-                          </div>
-                        ) : null}
-                      </div>
-                      <div className="min-w-0">
-                        {(() => {
-                          const conclusion = getEffectiveConclusion(item)
-                            || (item.is_human_finished ? String(item.finished_reason || item.validation_result || '').trim() : '');
-                          if (!conclusion) return <span className="text-sm text-theme-text-faint">—</span>;
-                          return (
-                            <>
-                              <div className={`text-sm font-semibold ${conclusion === 'vulnerable' ? 'text-state-danger font-bold' : 'text-theme-text-secondary'}`}>
-                                {toConclusionText(conclusion)}
-                              </div>
-                              {item.confirm_engine_name ? (
-                                <div className="mt-0.5 text-[10px] font-medium text-theme-text-faint">
-                                  {item.confirm_engine_name}
-                                </div>
-                              ) : null}
-                            </>
-                          );
-                        })()}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-theme-text-secondary">{item.reporter?.name || 'unknown'}</div>
-                        <div className="mt-0.5 text-xs text-theme-text-faint">{item.reporter?.version || 'n/a'}</div>
-                      </div>
-                      <div className="text-sm text-theme-text-muted">{formatTime(item.updated_at || item.created_at)}</div>
-                      <div className="text-sm text-theme-text-muted">{formatTime(item.created_at)}</div>
-                      <div>
-                        <div className="flex flex-wrap gap-1.5">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleCreateDownloadJob([item.id], 'single');
-                            }}
-                            disabled={creatingDownload}
-                            title={creatingDownload ? '创建下载任务中' : '下载'}
-                            aria-label={`下载漏洞 ${item.title}`}
-                            className="btn btn-secondary btn-sm px-2"
-                          >
-                            <Download size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleDeleteSingleFromList(item.id, item.title);
-                            }}
-                            disabled={bulkDeleting || rowDeletingId === item.id}
-                            title={rowDeletingId === item.id ? '删除中' : '删除'}
-                            aria-label={`删除漏洞 ${item.title}`}
-                            className="btn btn-ghost-danger btn-sm px-2"
-                          >
-                            {rowDeletingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-theme-border px-3 py-2.5">
-                <div className="text-xs font-semibold text-theme-text-muted">
-                  当前显示 {totalFiltered === 0 ? 0 : pageStart + 1} - {Math.min(pageStart + pageSize, totalFiltered)} / {totalFiltered}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <label className="text-xs font-semibold text-theme-text-muted">
-                    每页
-                    <select
-                      value={pageSize}
-                      onChange={(event) => {
-                        const value = Math.min(1000, Math.max(10, Number(event.target.value) || 20));
-                        setPageSize(value);
-                      }}
-                      className="ml-2 form-select text-xs"
-                      style={{ width: '68px' }}
-                    >
-                      {[20, 50, 100, 200, 500, 1000].map((size) => (
-                        <option key={size} value={size}>
-                          {size}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button type="button" onClick={() => setCurrentPage(1)} disabled={normalizedPage <= 1} className="btn btn-secondary btn-sm">首页</button>
-                  <button type="button" onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))} disabled={normalizedPage <= 1} className="btn btn-secondary btn-sm">上一页</button>
-                  <button type="button" onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))} disabled={normalizedPage >= totalPages} className="btn btn-secondary btn-sm">下一页</button>
-                  <button type="button" onClick={() => setCurrentPage(totalPages)} disabled={normalizedPage >= totalPages} className="btn btn-secondary btn-sm">末页</button>
-                </div>
-              </div>
+            <div className="px-4">
+              <DataTable
+                columns={caseColumns}
+                data={pagedSuspicions}
+                rowKey={(item: any) => item.id}
+                loading={loading}
+                empty={<span className="text-sm text-theme-text-faint">当前筛选条件下没有漏洞。</span>}
+                onRowClick={(item: any) => setSelectedSuspicionId(item.id)}
+                showRowNumber
+                className="[&_table]:table-fixed [&_td]:break-words"
+                sort={{ field: sortField, direction: sortDirection }}
+                onSortChange={(next) => {
+                  setSortField(next.field as SortField);
+                  setSortDirection(next.direction);
+                }}
+                pagination={{
+                  page: normalizedPage,
+                  perPage: pageSize,
+                  total: totalFiltered,
+                  perPageOptions: [20, 50, 100, 200, 500, 1000],
+                  onPageChange: (p) => setCurrentPage(p),
+                  onPerPageChange: (n) => setPageSize(n),
+                }}
+              />
             </div>
           </div>
         </>
