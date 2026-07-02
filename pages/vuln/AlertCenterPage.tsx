@@ -735,7 +735,6 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
   const totalFiltered = listTotal;
   const totalPages = Math.max(1, Math.ceil(totalFiltered / Math.max(1, pageSize)));
   const normalizedPage = Math.min(Math.max(1, currentPage), totalPages);
-  const pageStart = (normalizedPage - 1) * pageSize;
   const pagedSuspicions = suspicions;
 
   const stats = useMemo(() => {
@@ -3000,37 +2999,15 @@ export const AlertCenterPage: React.FC<AlertCenterPageProps> = ({ projectId, onN
                   setSortField(next.field as SortField);
                   setSortDirection(next.direction);
                 }}
+                pagination={{
+                  page: normalizedPage,
+                  perPage: pageSize,
+                  total: totalFiltered,
+                  perPageOptions: [20, 50, 100, 200, 500, 1000],
+                  onPageChange: (p) => setCurrentPage(p),
+                  onPerPageChange: (n) => setPageSize(n),
+                }}
               />
-
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-theme-border px-3 py-2.5">
-                <div className="text-xs font-semibold text-theme-text-muted">
-                  当前显示 {totalFiltered === 0 ? 0 : pageStart + 1} - {Math.min(pageStart + pageSize, totalFiltered)} / {totalFiltered}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <label className="text-xs font-semibold text-theme-text-muted">
-                    每页
-                    <select
-                      value={pageSize}
-                      onChange={(event) => {
-                        const value = Math.min(1000, Math.max(10, Number(event.target.value) || 20));
-                        setPageSize(value);
-                      }}
-                      className="ml-2 form-select text-xs"
-                      style={{ width: '68px' }}
-                    >
-                      {[20, 50, 100, 200, 500, 1000].map((size) => (
-                        <option key={size} value={size}>
-                          {size}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button type="button" onClick={() => setCurrentPage(1)} disabled={normalizedPage <= 1} className="btn btn-secondary btn-sm">首页</button>
-                  <button type="button" onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))} disabled={normalizedPage <= 1} className="btn btn-secondary btn-sm">上一页</button>
-                  <button type="button" onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))} disabled={normalizedPage >= totalPages} className="btn btn-secondary btn-sm">下一页</button>
-                  <button type="button" onClick={() => setCurrentPage(totalPages)} disabled={normalizedPage >= totalPages} className="btn btn-secondary btn-sm">末页</button>
-                </div>
-              </div>
             </div>
           </div>
         </>
