@@ -760,29 +760,23 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
           >
             {sortDirection === 'asc' ? '↑' : '↓'}
           </button>
-          <select
-            value={selectedDepartmentId ?? ''}
-            onChange={(e) => setSelectedDepartmentId(e.target.value ? Number(e.target.value) : null)}
-            className="px-4 py-2 rounded-lg text-sm font-medium outline-none transition-colors"
-            style={{ backgroundColor: LK.surface, color: LK.ink, border: `1px solid ${LK.border}` }}
-          >
-            <option value="">全部部门</option>
-            {rootDeptOptions.map((dept) => (
-              <option key={dept.id} value={dept.id}>{dept.name}</option>
-            ))}
-          </select>
+          <div className="w-36">
+            <DropdownSelect
+              value={selectedDepartmentId ? String(selectedDepartmentId) : ''}
+              onChange={(v) => setSelectedDepartmentId(v ? Number(v) : null)}
+              options={rootDeptOptions.map((d) => ({ value: String(d.id), label: d.name }))}
+              placeholder="全部部门"
+            />
+          </div>
           {subDeptOptions.length > 0 && (
-            <select
-              value={selectedSubDeptId ?? ''}
-              onChange={(e) => setSelectedSubDeptId(e.target.value ? Number(e.target.value) : null)}
-              className="px-4 py-2 rounded-lg text-sm font-medium outline-none transition-colors"
-              style={{ backgroundColor: LK.surface, color: LK.ink, border: `1px solid ${LK.border}` }}
-            >
-              <option value="">全部子部门</option>
-              {subDeptOptions.map((dept) => (
-                <option key={dept.id} value={dept.id}>{dept.name}</option>
-              ))}
-            </select>
+            <div className="w-36">
+              <DropdownSelect
+                value={selectedSubDeptId ? String(selectedSubDeptId) : ''}
+                onChange={(v) => setSelectedSubDeptId(v ? Number(v) : null)}
+                options={subDeptOptions.map((d) => ({ value: String(d.id), label: d.name }))}
+                placeholder="全部子部门"
+              />
+            </div>
           )}
           <button
             onClick={handleRefresh}
