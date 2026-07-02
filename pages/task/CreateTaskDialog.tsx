@@ -400,7 +400,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         return;
       }
 
-      /* ---- 狮首 (lion-head): 直接走 Cairn 黑板，不经过调度中心 ---- */
+      /* ---- 狮首 (lion-head): 走调度中心 cairn_blackboard,调度中心派发到黑板报 ---- */
       if (mode === 'lion-head') {
         let lionUploadId = selectedInputId;
         let lionRelativePath = '';
@@ -419,24 +419,17 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           setSaving(false);
           return;
         }
-        const resolved = await fileserverApi.resolveProjectInputUpload(selectedProjectId, lionUploadId, lionRelativePath);
-        const cairnProject = await api.domains.cairn.createProject({
-          title: name,
-          origin: resolved.absolute_path,
-          goal: goalText,
-        });
-        const cairnProjectId = cairnProject?.project?.id || cairnProject?.id || '';
         await scheduleApi.createUserTask(selectedProjectId, {
-          task_type: 'source_scan_e2e',
+          task_type: 'cairn_blackboard',
           name,
-          description: `[黑板:cairn:${cairnProjectId}] ${goalText}`,
+          description: goalText,
           input_upload_ids: [lionUploadId],
           input_binding: {
             upload_id: lionUploadId,
             selection_type: 'directory',
             relative_path: lionRelativePath || '',
           },
-          policy: { cairn_project_id: cairnProjectId },
+          policy: {},
           dispatch_policy: {},
         });
         setName('');
