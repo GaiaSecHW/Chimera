@@ -64,11 +64,13 @@ export const CONFIDENCE_MAP: Record<Confidence, { label: string; badge: string }
   low: { label: '低', badge: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
 };
 
-// 优先级映射(基线节点 priority 字段)
+// 优先级映射(基线节点 priority 字段,L1 最高 ~ L5 最低)
 export const PRIORITY_MAP: Record<string, { label: string; badge: string }> = {
-  high: { label: 'HIGH', badge: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
-  medium: { label: 'MED', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/20' },
-  low: { label: 'LOW', badge: 'bg-sky-500/15 text-sky-400 border-sky-500/20' },
+  L1: { label: 'L1', badge: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
+  L2: { label: 'L2', badge: 'bg-orange-500/15 text-orange-400 border-orange-500/20' },
+  L3: { label: 'L3', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/20' },
+  L4: { label: 'L4', badge: 'bg-sky-500/15 text-sky-400 border-sky-500/20' },
+  L5: { label: 'L5', badge: 'bg-slate-500/15 text-slate-400 border-slate-500/20' },
 };
 
 // 引擎类型映射

@@ -2,7 +2,7 @@
 
 export type SyncStatus = 'unsync' | 'syncing' | 'synced' | 'sync_failed';
 export type NodeType = 'level1' | 'level2' | 'item';
-export type Priority = 'high' | 'medium' | 'low';
+export type Priority = 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
 export type OrgNodeType = 'bg' | 'bu' | 'product';
 
 export interface BaselineStats {
@@ -83,8 +83,8 @@ export interface BaselinePreview {
   nodes: NodePreviewItem[];
 }
 
-// sources: level2 = string[]; item = {document, section}[]
-export type NodeSources = string[] | { document: string; section?: string }[] | null;
+// sources: 后端存储为多行文本字符串(level2=纯文档名/item="文档|章节",\n 分隔)
+export type NodeSources = string | null;
 
 export interface NodeOut {
   id: number;
