@@ -754,13 +754,6 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               {/* agent 类工具 harness 信息 */}
               {isAgentTool ? (
                 <>
-                  {agentInfo ? (
-                    <div className="rounded-lg px-4 py-3 text-xs" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}>
-                      <div>Harness: <span className="font-semibold" style={{ color: LK.ink }}>{selectedTool?.name}</span></div>
-                      <div className="mt-1">Engine: <span className="font-semibold" style={{ color: LK.ink }}>{agentInfo.engine || '—'}</span></div>
-                      <div className="mt-1 break-all">Harness Path: <span className="font-semibold" style={{ color: LK.ink }}>{agentInfo.agent_harness_path || '—'}</span></div>
-                    </div>
-                  ) : null}
                   <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
                     执行指令（可选，不填则使用 Agent Harness 注册的启动命令）
                     <textarea
