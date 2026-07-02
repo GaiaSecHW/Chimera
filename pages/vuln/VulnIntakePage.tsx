@@ -2019,13 +2019,22 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     },
     {
       key: 'title',
-      header: '标题 / 摘要',
+      header: '标题',
       width: '20%',
       render: (item: any) => (
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-theme-text-primary">{item.title}</div>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setSelectedSuspicionId(item.id);
+            }}
+            className="block w-full text-left text-sm font-semibold text-theme-text-primary hover:text-blue-600 hover:underline cursor-pointer"
+            title={item.title}
+          >
+            <span className="line-clamp-2">{item.title}</span>
+          </button>
           <div className="mt-1 font-mono text-[11px] text-theme-text-faint">{item.id}</div>
-          <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-theme-text-muted">{item.summary || '暂无摘要'}</div>
         </div>
       ),
     },
@@ -3051,7 +3060,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 rowKey={(item: any) => item.id}
                 loading={loading}
                 empty={<span className="text-sm text-theme-text-faint">当前筛选条件下没有漏洞。</span>}
-                onRowClick={(item: any) => setSelectedSuspicionId(item.id)}
                 showRowNumber
                 minWidth={1300}
                 sort={{ field: sortField, direction: sortDirection }}
