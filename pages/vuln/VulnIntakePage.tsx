@@ -33,6 +33,7 @@ import {
 import { api } from '../../clients/api';
 import { authApi } from '../../clients/auth';
 import { API_BASE } from '../../clients/base';
+import { getToolNameMap } from '../../clients/toolRegistry';
 import { DataTable, DataTableColumn, MarkdownViewer, Modal, PageHeader, PageSection, StatisticCard } from '../../design-system';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -666,7 +667,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [finalResultFilter, setFinalResultFilter] = useState<string[]>([]);
   const [finalResultFilterOpen, setFinalResultFilterOpen] = useState(false);
   const finalResultFilterRef = useRef<HTMLDivElement | null>(null);
-  const [sortField, setSortField] = useState<SortField>('updated_at');
+  const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -702,6 +703,12 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
   const [manualConfirmSubmitting, setManualConfirmSubmitting] = useState(false);
   const [engineTools, setEngineTools] = useState<Set<string>>(new Set());
   const [enginesLoaded, setEnginesLoaded] = useState(false);
+  const [toolNameMap, setToolNameMap] = useState<Map<string, string>>(new Map());
+  // reporter.name 存的是 toolid，展示时翻译成 toolname；未命中（人工上报 / tool-registry 缺失）回退原值
+  const resolveToolName = (raw: any): string => {
+    const id = typeof raw === 'string' ? raw.trim() : '';
+    return (id && toolNameMap.get(id)) || id || '';
+  };
   const [downloadJobs, setDownloadJobs] = useState<any[]>([]);
   const [downloadStats, setDownloadStats] = useState<any>({
     total: 0,
@@ -1219,6 +1226,18 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       })
       .catch(() => {
         if (mounted) setFalsePositiveReasons([]);
+      });
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    getToolNameMap()
+      .then((map) => {
+        if (mounted) setToolNameMap(map);
+      })
+      .catch(() => {
+        if (mounted) setToolNameMap(new Map());
       });
     return () => { mounted = false; };
   }, []);
@@ -2019,13 +2038,22 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
     },
     {
       key: 'title',
-      header: '标题 / 摘要',
+      header: '标题',
       width: '20%',
       render: (item: any) => (
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-theme-text-primary">{item.title}</div>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setSelectedSuspicionId(item.id);
+            }}
+            className="block w-full text-left text-sm font-semibold text-theme-text-primary hover:text-blue-600 hover:underline cursor-pointer"
+            title={item.title}
+          >
+            <span className="line-clamp-2">{item.title}</span>
+          </button>
           <div className="mt-1 font-mono text-[11px] text-theme-text-faint">{item.id}</div>
-          <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-theme-text-muted">{item.summary || '暂无摘要'}</div>
         </div>
       ),
     },
@@ -2059,7 +2087,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       width: '12%',
       render: (item: any) => (
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold text-theme-text-secondary">{item.reporter?.name || 'unknown'}</div>
+          <div className="truncate text-sm font-semibold text-theme-text-secondary">{resolveToolName(item.reporter?.name) || 'unknown'}</div>
           <div className="mt-0.5 text-xs text-theme-text-faint">{item.reporter?.version || 'n/a'}</div>
         </div>
       ),
@@ -2346,7 +2374,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
       { label: '当前状态', value: toUserVulnStatusText(selectedDetail), hint: selectedDetail.current_status || selectedDetail.current_stage || 'n/a' },
       { label: '置信度', value: selectedDetail.confidence ?? 'n/a', hint:`决策：${toDecisionText(selectedDetail.decision_status)}` },
       { label: 'CVSS', value: Number(selectedDetail.cvss_score || 0).toFixed(1), hint: selectedDetail.severity || 'n/a' },
-      { label: '上报者', value: selectedDetail.reporter?.name || '未提供', hint: selectedDetail.reporter?.type || '未知类型' },
+      { label: '上报者', value: resolveToolName(selectedDetail.reporter?.name) || '未提供', hint: selectedDetail.reporter?.type || '未知类型' },
       { label: '文件根路径', value: selectedDetail.files_root_path || '未分配', hint: workspaceSummary?.files_root_path || '暂无工作区摘要' },
     ];
 
@@ -2803,7 +2831,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
               <div className="grid gap-4 xl:grid-cols-2">
                 <DetailSectionCard title="关联上下文" subtitle="集中展示来源任务、对象、执行引用与存储位置。">
                   <div className="mt-3 space-y-2 text-sm text-theme-text-secondary">
-                    <div><span className="font-semibold text-theme-text-secondary">上报者：</span>{selectedDetail.reporter?.name || '未提供'} / {selectedDetail.reporter?.type || 'unknown'}</div>
+                    <div><span className="font-semibold text-theme-text-secondary">上报者：</span>{resolveToolName(selectedDetail.reporter?.name) || '未提供'} / {selectedDetail.reporter?.type || 'unknown'}</div>
                     <div><span className="font-semibold text-theme-text-secondary">目标对象：</span>{selectedDetail.subject?.type || '未提供'} / {selectedDetail.subject?.name || selectedDetail.subject?.locator || '未提供'}</div>
                     <div><span className="font-semibold text-theme-text-secondary">来源报告 ID：</span>{Array.isArray(displaySummary?.source_report_ids) && displaySummary.source_report_ids.length > 0 ? displaySummary.source_report_ids.join(', ') : '未提供'}</div>
                     <div><span className="font-semibold text-theme-text-secondary">来源任务 ID：</span>{selectedDetail.source_task_id || '未提供'}</div>
@@ -3051,7 +3079,6 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId, onNavigateT
                 rowKey={(item: any) => item.id}
                 loading={loading}
                 empty={<span className="text-sm text-theme-text-faint">当前筛选条件下没有漏洞。</span>}
-                onRowClick={(item: any) => setSelectedSuspicionId(item.id)}
                 showRowNumber
                 minWidth={1300}
                 sort={{ field: sortField, direction: sortDirection }}

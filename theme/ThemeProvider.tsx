@@ -38,6 +38,32 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === THEME_STORAGE_KEY && e.newValue) {
+        const migrated = migrateLegacyThemeId(e.newValue);
+        if (migrated && isThemeId(migrated)) {
+          setThemeState(migrated);
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'theme' && e.data.theme) {
+        const migrated = migrateLegacyThemeId(e.data.theme);
+        if (migrated && isThemeId(migrated)) {
+          setThemeState(migrated);
+        }
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const setTheme = (themeId: ThemeId) => {
     setThemeState(themeId);
   };

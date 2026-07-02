@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CircleHelp, Loader2, PanelRightClose, RefreshCw, Server, SquareCheck } from 'lucide-react';
+import { AlertTriangle, CircleHelp, Loader2, RefreshCw, Server, SquareCheck } from 'lucide-react';
 
 import { projectsApi } from '../../clients/projects';
 import { vulnVerifyV2Api, VulnVerifyV2AdminOverview } from '../../clients/vulnVerifyV2';
 import type { SecurityProject } from '../../types/types';
+import { VulnVerifyV2RightDrawer } from './VulnVerifyV2RightDrawer';
 
 interface VulnVerifyV2ServiceOverviewPanelProps {
   projects?: SecurityProject[];
@@ -80,7 +81,7 @@ export const VulnVerifyV2ServiceOverviewPanel: React.FC<VulnVerifyV2ServiceOverv
 
   const handleClose = useCallback(() => {
     setPanelOpen(false);
-    window.setTimeout(onClose, 300);
+    window.setTimeout(onClose, 250);
   }, [onClose]);
 
   const projectNameById = useMemo(() => new Map(knownProjects.map((project) => [project.id, project.name || project.id])), [knownProjects]);
@@ -90,33 +91,17 @@ export const VulnVerifyV2ServiceOverviewPanel: React.FC<VulnVerifyV2ServiceOverv
   const serviceJson = overview ? { service: overview.service, generated_at: overview.generated_at, warnings: overview.warnings } : null;
 
   return (
-    <div className={`fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px] transition-opacity duration-300 ${panelOpen ? 'opacity-100' : 'opacity-0'}`} onClick={handleClose} role="presentation">
-      <aside
-        className={`absolute right-0 top-0 flex h-full w-full max-w-[1080px] transform flex-col overflow-visible border-l border-theme-border bg-theme-bg-app shadow-2xl transition-transform duration-300 ease-out xl:w-[62vw] 2xl:max-w-[1180px] ${panelOpen ? 'translate-x-0' : 'translate-x-full'}`}
-        onClick={(event) => event.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label="漏洞验证 v2 全局概览"
-      >
-        <button
-          onClick={handleClose}
-          aria-label="收起全局概览"
-          title="收起全局概览"
-          className="absolute left-0 top-1/2 z-10 inline-flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-theme-border bg-theme-bg-app text-theme-text-secondary shadow-md transition hover:bg-theme-elevated hover:text-theme-text-primary"
-        >
-          <PanelRightClose size={14} strokeWidth={2.1} />
+    <VulnVerifyV2RightDrawer
+      open={panelOpen}
+      ariaLabel="全局概览"
+      onClose={handleClose}
+      title="全局概览"
+      actions={(
+        <button type="button" onClick={() => void loadOverview()} disabled={loading} className="inline-flex h-8 items-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-3 text-xs text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-50">
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />刷新
         </button>
-
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-8 py-8 lg:px-10 lg:py-10">
-          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-theme-border pb-4">
-            <div className="min-w-0 space-y-1">
-              <div className="inline-flex items-center gap-2 text-lg font-bold text-theme-text-primary"><Server size={18} />漏洞验证 v2 全局概览</div>
-              <div className="text-xs text-theme-text-muted">后端聚合展示服务状态、项目统计和最近失败 Attempt</div>
-            </div>
-            <button type="button" onClick={() => void loadOverview()} disabled={loading} className="inline-flex h-8 items-center gap-2 rounded-lg border border-theme-border bg-theme-surface px-3 text-xs text-theme-text-secondary transition hover:bg-theme-elevated disabled:opacity-50">
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />刷新
-            </button>
-          </div>
+      )}
+    >
           {error ? <div className="rounded-lg border border-[var(--color-signal-red-border)] bg-[var(--color-signal-red-bg)] px-4 py-3 text-xs text-[var(--color-signal-red)]">{error}</div> : null}
 
           <section className="grid gap-4 md:grid-cols-4">
@@ -226,8 +211,6 @@ export const VulnVerifyV2ServiceOverviewPanel: React.FC<VulnVerifyV2ServiceOverv
               <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words font-mono leading-5 text-theme-text-secondary">{JSON.stringify(serviceJson, null, 2)}</pre>
             </details>
           ) : null}
-        </div>
-      </aside>
-    </div>
+    </VulnVerifyV2RightDrawer>
   );
 };

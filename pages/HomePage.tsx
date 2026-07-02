@@ -168,7 +168,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentView }) => {
             </h1>
             <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-theme-text-muted backdrop-blur" style={{ backgroundColor: GLASS_BG, borderColor: GLASS_BORDER }}>
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              AI 安全验证平台
+              AI辅助安全验证平台
             </span>
           </div>
           <div className="flex flex-col gap-6 lg:flex-row lg:justify-between lg:items-center">

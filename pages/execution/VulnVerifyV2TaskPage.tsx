@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, Check, ChevronRight, CircleHelp, Clock3, FileText, Loader2, Minus, PanelRightClose, RefreshCw, RotateCcw, Search, Send, Server, SquareCheck, Wrench, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Check, ChevronRight, CircleHelp, Clock3, FileText, Loader2, Minus, RefreshCw, RotateCcw, Search, Send, Server, SquareCheck, Wrench, X } from 'lucide-react';
 import { vulnVerifyV2Api, VulnVerifyV2AdminPushResult, VulnVerifyV2Attempt, VulnVerifyV2ProjectStats, VulnVerifyV2Result, VulnVerifyV2Task, VulnVerifyV2TaskDetail } from '../../clients/vulnVerifyV2';
 import { fileserverApi } from '../../clients/fileserver';
 import type { ProjectFilesystemEntry, SecurityProject } from '../../types/types';
 import { VulnVerifyV2SessionPreview } from './VulnVerifyV2SessionPreview';
 import { VulnVerifyV2ServiceOverviewPanel } from './VulnVerifyV2ServiceOverviewPanel';
+import { VulnVerifyV2RightDrawer } from './VulnVerifyV2RightDrawer';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { PageHeader } from '../../design-system';
 
@@ -436,11 +437,11 @@ const DimensionCard: React.FC<{ dimKey: string; status?: boolean | null; detail?
   const StatusIcon = statusTone.Icon;
   return (
     <div className="grid grid-cols-[minmax(156px,188px)_minmax(0,1fr)] items-start gap-3 py-3">
-      <div className="flex min-w-0 items-start gap-2">
-        <div className={`flex h-8 w-8 shrink-0 items-center justify-center ${statusCls}`} title={statusTone.label}>
-          <StatusIcon size={17} strokeWidth={2.5} />
+      <div className="flex min-w-0 items-start gap-2 pl-2">
+        <div className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center ${statusCls}`} title={statusTone.label}>
+          <StatusIcon size={20} strokeWidth={2.5} />
         </div>
-        <div className={`min-w-0 truncate pt-1 text-base font-semibold leading-6 ${statusCls}`}>{conclusion}</div>
+        <div className="min-w-0 truncate pt-0.5 text-base font-medium leading-6 text-theme-text-primary">{conclusion}</div>
       </div>
       <div className="min-w-0">
         <div className="whitespace-pre-wrap break-words text-sm font-normal leading-6 text-theme-text-primary">{detail || '-'}</div>
@@ -806,7 +807,7 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: Secu
       setDetail(null);
       setSessionViewOpen(false);
       closeDetailTimerRef.current = null;
-    }, 220);
+    }, 250);
   }, []);
 
   useEffect(() => {
@@ -1238,59 +1239,43 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: Secu
       </div>
 
       {selectedTaskId ? (
-        <div
-          className={`fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px] transition-opacity duration-300 ${detailPanelOpen ? 'opacity-100' : 'opacity-0'}`}
-          onClick={closeDetailPanel}
-          role="presentation"
-        >
-          <aside
-            className={`absolute right-0 top-0 flex h-full w-full max-w-[1080px] transform flex-col overflow-visible border-l border-theme-border bg-theme-bg-app shadow-2xl transition-transform duration-300 ease-out xl:w-[62vw] 2xl:max-w-[1180px] ${detailPanelOpen ? 'translate-x-0' : 'translate-x-full'}`}
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="验证详情"
-          >
+        <VulnVerifyV2RightDrawer
+          open={detailPanelOpen}
+          ariaLabel={sessionViewOpen ? '会话记录' : '验证详情'}
+          onClose={closeDetailPanel}
+          scrollRef={detailScrollRef}
+          bodyClassName={sessionViewOpen ? 'flex min-h-full flex-col space-y-5 pt-5' : 'space-y-7 pt-5'}
+          title={sessionViewOpen ? (
+            <span className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setSessionViewOpen(false)}
+                className="inline-flex items-center gap-2 text-sm font-medium text-theme-text-secondary transition hover:text-theme-text-primary"
+              >
+                <ArrowLeft size={16} strokeWidth={2.2} />返回验证详情
+              </button>
+              <span className="block">会话记录</span>
+            </span>
+          ) : (detail?.name || '验证详情')}
+          subtitle={sessionViewOpen ? `run: ${sessionRunPath || '-'}` : undefined}
+          actions={sessionViewOpen ? (
             <button
-              onClick={closeDetailPanel}
-              aria-label="收起详情"
-              title="收起详情"
-              className="absolute left-0 top-1/2 z-10 inline-flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-theme-border bg-theme-bg-app text-theme-text-secondary shadow-md transition hover:bg-theme-elevated hover:text-theme-text-primary"
+              type="button"
+              onClick={() => void openSessionView(true)}
+              disabled={sessionLoading}
+              className="inline-flex h-8 shrink-0 items-center rounded-lg border border-theme-border bg-theme-surface px-3 text-xs font-medium text-theme-text-secondary transition hover:bg-theme-elevated hover:text-theme-text-primary disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <PanelRightClose size={14} strokeWidth={2.1} />
+              <RefreshCw size={14} className={`mr-1.5 ${sessionLoading ? 'animate-spin' : ''}`} />刷新
             </button>
-            <div ref={detailScrollRef} className="min-h-0 flex-1 overflow-y-auto px-8 py-8 lg:px-10 lg:py-10">
-              {detailLoading ? (
+          ) : undefined}
+        >
+          {detailLoading ? (
                 <div className="flex h-full min-h-[300px] items-center justify-center gap-2 py-10 text-sm font-normal text-theme-text-muted">
                   <Loader2 size={16} className="animate-spin" />加载详情...
                 </div>
-              ) : detail ? (
-                sessionViewOpen ? (
-                  <div className="flex min-h-full flex-col space-y-5">
-                    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-theme-border pb-4">
-                      <div className="min-w-0 space-y-2">
-                        <button
-                          type="button"
-                          onClick={() => setSessionViewOpen(false)}
-                          className="inline-flex items-center gap-2 text-sm font-medium text-theme-text-secondary transition hover:text-theme-text-primary"
-                        >
-                          <ArrowLeft size={16} strokeWidth={2.2} />返回验证详情
-                        </button>
-                        <div>
-                          <div className="text-lg font-bold text-theme-text-primary">会话记录</div>
-                          <div className="mt-1 truncate font-mono text-xs text-theme-text-muted" title={sessionRunPath}>run: {sessionRunPath || '-'}</div>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => void openSessionView(true)}
-                        disabled={sessionLoading}
-                        className="inline-flex h-8 shrink-0 items-center rounded-lg border border-theme-border bg-theme-surface px-3 text-xs font-medium text-theme-text-secondary transition hover:bg-theme-elevated hover:text-theme-text-primary disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <RefreshCw size={14} className={`mr-1.5 ${sessionLoading ? 'animate-spin' : ''}`} />刷新
-                      </button>
-                    </div>
-
-                    <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+          ) : detail ? (
+            sessionViewOpen ? (
+              <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
                       <aside className="min-w-0 space-y-2 lg:sticky lg:top-0 lg:self-start">
                         <div className="text-xs font-medium text-theme-text-muted">JSONL 文件（{sessionFiles.length}）</div>
                         <div className="max-h-[38vh] space-y-2 overflow-auto rounded-2xl border border-theme-border bg-theme-surface p-3 lg:max-h-[calc(100vh-180px)]">
@@ -1317,22 +1302,11 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: Secu
                           <div className="flex min-h-[220px] items-center justify-center rounded-2xl border border-theme-border bg-theme-surface text-sm text-theme-text-muted">请选择 JSONL 文件</div>
                         ) : null}
                       </section>
-                    </div>
-                  </div>
-                ) : (
-                <div className="space-y-7">
-                  {/* 头部：标题 + 结论 */}
-                  <div className="px-1 pb-2 pt-4">
-                    <div className="min-w-0 space-y-4">
-                      <div className="whitespace-normal break-words text-lg font-bold leading-6 text-theme-text-primary" title={detail.name}>{detail.name}</div>
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <OutcomePill item={outcomeBadge(undefined, detail.verdict)} />
-                        {devMode ? (
-                          <button onClick={() => void handleRerun(detail.id)} aria-label="重新执行" className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-theme-border px-3 py-1.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated">
-                            <RotateCcw size={16} strokeWidth={2.2} />重新执行
-                          </button>
-                        ) : null}
-                      </div>
+              </div>
+            ) : (
+              <>
+                    {/* 头部：metadata */}
+                    <div className="space-y-4 px-1 pb-2">
                       <div className="text-xs font-normal">
                         {[
                           ['漏洞ID', detail.vuln_id || detail.case_id, true],
@@ -1346,12 +1320,21 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: Secu
                         ))}
                       </div>
                     </div>
-                  </div>
 
                   {/* 结论依据 */}
                   <section className="space-y-3">
-                    <div className="text-base font-medium text-theme-text-primary">结论依据</div>
-                    <div className="rounded-2xl border border-theme-border bg-theme-surface p-5">
+                    <div className="text-base font-medium text-theme-text-primary">验证结论</div>
+                    <div className="space-y-4 rounded-2xl border border-theme-border bg-theme-surface p-5">
+                      {(() => {
+                        const outcome = outcomeBadge(undefined, detail.verdict);
+                        const Icon = outcome.Icon;
+                        return (
+                          <div className={`inline-flex items-center gap-1.5 text-sm font-semibold ${outcome.iconCls}`}>
+                            {Icon ? <Icon size={17} strokeWidth={2.5} className="shrink-0" /> : null}
+                            <span className="truncate">{outcome.label}</span>
+                          </div>
+                        );
+                      })()}
                       {detailRaw.root_cause_summary ? (
                         <p className="whitespace-pre-wrap text-sm font-normal leading-6 text-theme-text-primary">
                           {String(detailRaw.root_cause_summary)}
@@ -1386,8 +1369,8 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: Secu
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="text-base font-medium text-theme-text-primary">时间线</div>
                       {devMode && detail.work_dir ? (
-                        <button onClick={() => void openSessionView()} aria-label="会话记录" className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-theme-border px-3 py-1.5 text-sm font-medium text-theme-text-secondary hover:bg-theme-elevated">
-                          <FileText size={16} strokeWidth={2.2} />会话记录
+                        <button onClick={() => void openSessionView()} aria-label="会话记录" className="inline-flex h-8 shrink-0 items-center rounded-lg border border-theme-border bg-theme-surface px-3 text-xs font-medium text-theme-text-secondary transition hover:bg-theme-elevated hover:text-theme-text-primary">
+                          <FileText size={14} className="mr-1.5" />会话记录
                         </button>
                       ) : null}
                     </div>
@@ -1395,14 +1378,12 @@ export const VulnVerifyV2TaskPage: React.FC<{ projectId: string; projects?: Secu
                       <AttemptTimeline attempts={detailAttempts} devMode={devMode} />
                     </div>
                   </section>
-                </div>
-                )
-              ) : (
-                <div className="py-10 text-center text-sm font-normal text-theme-text-muted">加载详情失败</div>
-              )}
-            </div>
-          </aside>
-        </div>
+                </>
+            )
+          ) : (
+            <div className="py-10 text-center text-sm font-normal text-theme-text-muted">加载详情失败</div>
+          )}
+        </VulnVerifyV2RightDrawer>
       ) : null}
     </div>
   );

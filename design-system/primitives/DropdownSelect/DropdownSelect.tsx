@@ -199,6 +199,18 @@ export const DropdownSelect = function DropdownSelect(props: DropdownSelectProps
               />
             </div>
           )}
+          {multiple && selectedValues.length > 0 && (
+            <div className="flex items-center justify-between px-1 pb-1.5 text-xs">
+              <span className="text-theme-text-faint">已选 {selectedValues.length} 项</span>
+              <button
+                type="button"
+                onClick={() => onChange([])}
+                className="font-medium text-theme-text-secondary transition-colors hover:text-state-danger"
+              >
+                清空
+              </button>
+            </div>
+          )}
           <div ref={listRef} className="max-h-60 overflow-y-auto space-y-0.5" style={{ maxHeight: listMaxHeight ? `${listMaxHeight}px` : undefined }}>
             {filteredOptions.length === 0 ? (
               <div className="px-3 py-2 text-xs font-medium text-theme-text-secondary">{emptyText}</div>

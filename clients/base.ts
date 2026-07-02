@@ -38,18 +38,31 @@ const stringifyErrorPart = (value: any): string => {
 };
 
 const extractErrorMessage = (errorData: any, status: number): string => {
-  const candidates = [
-    errorData?.detail,
-    errorData?.error,
-    errorData?.message,
-    errorData?.details,
-  ];
+  const parts: string[] = [];
+  const seen = new Set<string>();
 
-  for (const candidate of candidates) {
-    const formatted = stringifyErrorPart(candidate).trim();
-    if (formatted) return formatted;
+  const add = (value: any) => {
+    const formatted = stringifyErrorPart(value).trim();
+    if (formatted && !seen.has(formatted)) {
+      seen.add(formatted);
+      parts.push(formatted);
+    }
+  };
+
+  add(errorData?.detail);
+
+  const errorText = stringifyErrorPart(errorData?.error).trim();
+  const messageText = stringifyErrorPart(errorData?.message).trim();
+  if (errorText && messageText && errorText !== messageText) {
+    add(`${errorText}: ${messageText}`);
+  } else {
+    add(errorText);
+    add(messageText);
   }
 
+  add(errorData?.details);
+
+  if (parts.length > 0) return parts.join('；');
   return `API Error (${status})`;
 };
 

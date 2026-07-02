@@ -16,10 +16,10 @@ import type {
   EventOut,
 } from './types';
 
-// 开发期直连后端;k8s 环境由运维设 VITE_SEC_BASELINE_API_BASE='' (空) 切换为相对路径,
-// 经 ingress/gateway 路由到基线服务,前端代码无需改动。
+// dev 由 .env.local 直连后端(env 优先);k8s 同源走 ingress /api/app/ai4eva/baseline
+// (rewrite 剥前缀转 svc)。fallback 写死前缀:构建期无 env 时产物用前缀,k8s 直接可用。
 const SEC_BASELINE_API_BASE =
-  String(import.meta.env.VITE_SEC_BASELINE_API_BASE ?? 'http://127.0.0.1:8000');
+  String(import.meta.env.VITE_SEC_BASELINE_API_BASE ?? '/api/app/ai4eva/baseline');
 const PREFIX = `${SEC_BASELINE_API_BASE}/api`;
 
 // 网络层错误(后端离线/CORS/连接拒绝)中文化:fetch 直接抛 TypeError,

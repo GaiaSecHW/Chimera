@@ -400,7 +400,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         return;
       }
 
-      /* ---- 狮首 (lion-head): 直接走 Cairn 黑板，不经过调度中心 ---- */
+      /* ---- 狮首 (lion-head): 走调度中心 cairn_blackboard,调度中心派发到黑板报 ---- */
       if (mode === 'lion-head') {
         let lionUploadId = selectedInputId;
         let lionRelativePath = '';
@@ -419,24 +419,17 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           setSaving(false);
           return;
         }
-        const resolved = await fileserverApi.resolveProjectInputUpload(selectedProjectId, lionUploadId, lionRelativePath);
-        const cairnProject = await api.domains.cairn.createProject({
-          title: name,
-          origin: resolved.absolute_path,
-          goal: goalText,
-        });
-        const cairnProjectId = cairnProject?.project?.id || cairnProject?.id || '';
         await scheduleApi.createUserTask(selectedProjectId, {
-          task_type: 'source_scan_e2e',
+          task_type: 'cairn_blackboard',
           name,
-          description: `[黑板:cairn:${cairnProjectId}] ${goalText}`,
+          description: goalText,
           input_upload_ids: [lionUploadId],
           input_binding: {
             upload_id: lionUploadId,
             selection_type: 'directory',
             relative_path: lionRelativePath || '',
           },
-          policy: { cairn_project_id: cairnProjectId },
+          policy: {},
           dispatch_policy: {},
         });
         setName('');
@@ -751,28 +744,8 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 </label>
               ) : null}
 
-              {/* agent 类工具 harness 信息 */}
-              {isAgentTool ? (
-                <>
-                  {agentInfo ? (
-                    <div className="rounded-lg px-4 py-3 text-xs" style={{ backgroundColor: LK.surface, border: `1px solid ${LK.border}`, color: LK.body }}>
-                      <div>Harness: <span className="font-semibold" style={{ color: LK.ink }}>{selectedTool?.name}</span></div>
-                      <div className="mt-1">Engine: <span className="font-semibold" style={{ color: LK.ink }}>{agentInfo.engine || '—'}</span></div>
-                      <div className="mt-1 break-all">Harness Path: <span className="font-semibold" style={{ color: LK.ink }}>{agentInfo.agent_harness_path || '—'}</span></div>
-                    </div>
-                  ) : null}
-                  <label className="block text-sm font-semibold" style={{ color: LK.inkSoft }}>
-                    执行指令（可选，不填则使用 Agent Harness 注册的启动命令）
-                    <textarea
-                      value={instruction}
-                      onChange={(e) => setInstruction(e.target.value)}
-                      rows={3}
-                      className="form-textarea mt-1 w-full resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-                      placeholder="不填时使用 Agent Harness 的启动命令，例如 /project:xxx"
-                    />
-                  </label>
-                </>
-              ) : null}
+              {/* agent 类工具「执行指令」输入框已隐藏：默认隐式使用 Agent Harness 注册的 start_command。
+                  instruction state 与 resolveSechpsInstruction fallback 逻辑保留（不填即走 start_command），如需恢复见 git 历史。 */}
                 </>
               )}
 
